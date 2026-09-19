@@ -34,6 +34,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as WearablesRouteImport } from './routes/wearables'
+import { Route as WowStudioRouteImport } from './routes/wow-studio'
 import { Route as ChatIdRouteImport } from './routes/chat_.$id'
 import { Route as GameIdRouteImport } from './routes/game.$id'
 import { Route as GameSandboxRouteImport } from './routes/game.sandbox'
@@ -164,6 +165,11 @@ const WearablesRoute = WearablesRouteImport.update({
   path: '/wearables',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WowStudioRoute = WowStudioRouteImport.update({
+  id: '/wow-studio',
+  path: '/wow-studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatIdRoute = ChatIdRouteImport.update({
   id: '/chat_/$id',
   path: '/chat/$id',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/signup': typeof SignupRoute
   '/wearables': typeof WearablesRoute
+  '/wow-studio': typeof WowStudioRoute
   '/chat/$id': typeof ChatIdRoute
   '/game/$id': typeof GameIdRoute
   '/game/sandbox': typeof GameSandboxRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/signup': typeof SignupRoute
   '/wearables': typeof WearablesRoute
+  '/wow-studio': typeof WowStudioRoute
   '/chat/$id': typeof ChatIdRoute
   '/game/$id': typeof GameIdRoute
   '/game/sandbox': typeof GameSandboxRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/signup': typeof SignupRoute
   '/wearables': typeof WearablesRoute
+  '/wow-studio': typeof WowStudioRoute
   '/chat_/$id': typeof ChatIdRoute
   '/game/$id': typeof GameIdRoute
   '/game/sandbox': typeof GameSandboxRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/signup'
     | '/wearables'
+    | '/wow-studio'
     | '/chat/$id'
     | '/game/$id'
     | '/game/sandbox'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/signup'
     | '/wearables'
+    | '/wow-studio'
     | '/chat/$id'
     | '/game/$id'
     | '/game/sandbox'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/signup'
     | '/wearables'
+    | '/wow-studio'
     | '/chat_/$id'
     | '/game/$id'
     | '/game/sandbox'
@@ -401,6 +413,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   SignupRoute: typeof SignupRoute
   WearablesRoute: typeof WearablesRoute
+  WowStudioRoute: typeof WowStudioRoute
   ChatIdRoute: typeof ChatIdRoute
   GameIdRoute: typeof GameIdRoute
   GameSandboxRoute: typeof GameSandboxRoute
@@ -584,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WearablesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wow-studio': {
+      id: '/wow-studio'
+      path: '/wow-studio'
+      fullPath: '/wow-studio'
+      preLoaderRoute: typeof WowStudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat_/$id': {
       id: '/chat_/$id'
       path: '/chat/$id'
@@ -641,6 +661,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   SignupRoute: SignupRoute,
   WearablesRoute: WearablesRoute,
+  WowStudioRoute: WowStudioRoute,
   ChatIdRoute: ChatIdRoute,
   GameIdRoute: GameIdRoute,
   GameSandboxRoute: GameSandboxRoute,
