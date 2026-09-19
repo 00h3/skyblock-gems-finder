@@ -1,0 +1,8 @@
+{
+  "name": "QBLOCK V2",
+  "description": "QBLOCK V2 — modern 3D avatar customization and sandbox game platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

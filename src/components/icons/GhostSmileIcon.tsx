@@ -1,0 +1,26 @@
+import React from "react";
+
+export function GhostSmileIcon({ className = "h-8 w-8" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 500 500"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M100 240 C100 135 165 80 250 80 C335 80 400 135 400 240 L400 375 C400 375 365 355 338 375 C310 395 280 395 250 375 C220 355 190 355 162 375 C135 395 100 375 100 375 Z"
+        fill="#1C274C"
+      />
+      <circle cx="205" cy="225" r="16" fill="#0E162C" />
+      <circle cx="295" cy="225" r="16" fill="#0E162C" />
+      <path
+        d="M225 268 C238 278 262 278 275 268"
+        stroke="#0E162C"
+        strokeWidth="14"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

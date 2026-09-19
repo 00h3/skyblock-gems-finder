@@ -1,0 +1,81 @@
+{
+  "id": "qblock-skyblock-mining-area",
+  "name": "SkyBlock - Grand Mining Area",
+  "version": "2.0",
+  "dimensions": {
+    "width": 100,
+    "length": 110,
+    "height": 40,
+    "floorY": -180,
+    "ceilingY": -140
+  },
+  "blockPalette": {
+    "stone": { "type": 2, "texture": "/textures/blocks/stone.png" },
+    "cobblestone": { "type": 15, "texture": "/textures/blocks/cobblestone.png" },
+    "stone_bricks": { "type": 11, "texture": "/textures/blocks/stone_bricks.png" },
+    "mossy_stone": { "type": 8, "texture": "/textures/blocks/mossy_cobblestone.png" },
+    "dark_stone": { "type": 13, "texture": "/textures/blocks/basalt.png" },
+    "oak_log": { "type": 3, "texture": "/textures/blocks/oak_log.png" },
+    "dark_oak_log": { "type": 18, "texture": "/textures/blocks/dark_oak_log.png" },
+    "oak_planks": { "type": 22, "texture": "/textures/blocks/oak_planks.png" },
+    "coal_ore": { "type": 49, "texture": "/textures/blocks/coal_ore.png" },
+    "iron_ore": { "type": 32, "texture": "/textures/blocks/iron_block.png" },
+    "gold_ore": { "type": 30, "texture": "/textures/blocks/gold_block.png" },
+    "rare_diamond": { "type": 31, "texture": "/textures/blocks/diamond_block.png" },
+    "rare_emerald": { "type": 33, "texture": "/textures/blocks/emerald_block.png" },
+    "crystal": { "type": 47, "texture": "/textures/blocks/amethyst.png" },
+    "water": { "type": 6, "texture": "/textures/blocks/water.png" },
+    "lantern": { "type": 46, "texture": "/textures/blocks/glowstone.png" }
+  },
+  "zones": [
+    { "id": "main_cavern", "center": [0, -96, 0], "size": [70, 30, 70], "base": "stone" },
+    {
+      "id": "coal_mining_zone",
+      "center": [-28, -101, 12],
+      "size": [24, 14, 30],
+      "base": "stone",
+      "ore": "coal_ore"
+    },
+    {
+      "id": "iron_mining_zone",
+      "center": [28, -99, 8],
+      "size": [24, 18, 28],
+      "base": "stone",
+      "ore": "iron_ore"
+    },
+    {
+      "id": "gold_mining_zone",
+      "center": [18, -99, 34],
+      "size": [26, 18, 20],
+      "base": "dark_stone",
+      "ore": "gold_ore"
+    },
+    {
+      "id": "deep_mine_chamber",
+      "center": [0, -101, 43],
+      "size": [30, 20, 30],
+      "base": "dark_stone",
+      "ore": "rare_diamond"
+    },
+    {
+      "id": "water_cavern",
+      "center": [-38, -108, -20],
+      "size": [16, 10, 18],
+      "base": "mossy_stone",
+      "ore": "water"
+    },
+    {
+      "id": "crystal_section",
+      "center": [38, -99, -28],
+      "size": [16, 16, 16],
+      "base": "dark_stone",
+      "ore": "crystal"
+    }
+  ],
+  "unsupportedDecorations": {
+    "rails": "not in the current block catalog; represented by oak-plank route markers",
+    "minecarts": "not in the current block catalog; omitted until a prop asset is available",
+    "chains": "not in the current block catalog; represented by dark-oak support braces"
+  },
+  "sourceInstructions": "qblock-skyblock-mining-area attachment: massive enclosed underground multiplayer mine with wooden entrance, natural rock formations, ore progression, tunnels, supports, bridges, abandoned sections, water and crystal side caves."
+}

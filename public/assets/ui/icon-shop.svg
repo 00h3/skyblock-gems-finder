@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Left page -->
+  <path d="M60 22Q38 14 12 24V86Q38 78 60 90Z" fill="white"/>
+  <!-- Right page -->
+  <path d="M68 22Q90 14 116 24V86Q90 78 68 90Z" fill="white"/>
+  <!-- Binding / back pages -->
+  <path d="M12 94C36 86 52 90 64 98 76 90 92 86 116 94V104C92 96 76 100 64 108 52 100 36 96 12 104Z" fill="white"/>
+</svg>

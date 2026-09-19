@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>QBlock Wardrobe &amp; 3D Avatar Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ffffff;
+      color: #17191d;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+    .app-wrap {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .qb-squircle {
+      border-radius: 14px;
+      border: 1px solid rgba(23, 24, 27, 0.1);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 243, 247, 0.94));
+      box-shadow: 0 4px 12px rgba(23, 24, 27, 0.05), inset 1px 1px 0 rgba(255, 255, 255, 0.98);
+    }
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      background: #ffffff;
+    }
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      text-decoration: none;
+      color: #17191d;
+    }
+    .stage-card {
+      margin: 8px 20px 16px;
+      height: 380px;
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(23, 24, 27, 0.1);
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+    }
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+    .floating-pill {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 10;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(23, 24, 27, 0.08);
+      font-size: 12px;
+      font-weight: 800;
+      color: #17191d;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stage-tools {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 10;
+      display: flex;
+      gap: 6px;
+    }
+    .tool-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(23, 24, 27, 0.1);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: #5f646d;
+    }
+    .tool-btn.active {
+      color: #fa4616;
+    }
+    .selector-box {
+      padding: 0 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .section-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #17191d;
+      display: flex;
+      justify-content: space-between;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .char-card {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(23, 24, 27, 0.1);
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .char-card.selected {
+      background: #ffffff;
+      border-color: #fa4616;
+      box-shadow: 0 4px 14px rgba(250, 70, 22, 0.15);
+      outline: 2px solid #fa4616;
+    }
+    .char-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #17191d;
+    }
+    .char-desc {
+      font-size: 11px;
+      color: #697383;
+    }
+    .equip-btn {
+      height: 48px;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(23, 24, 27, 0.1);
+      background: linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
+      font-size: 14px;
+      font-weight: 800;
+      color: #17191d;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(23, 24, 27, 0.05);
+    }
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .html-spinner {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 0, 0, 0.08);
+      border-top-color: #fa4616;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrap">
+    <header class="top-bar">
+      <a href="/" class="qb-squircle icon-btn" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+        </svg>
+      </a>
+      <div style="font-size: 17px; font-weight: 900; letter-spacing: -0.02em;">Wardrobe</div>
+      <a href="/profile" class="qb-squircle icon-btn" aria-label="Profile">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="stage-card">
+      <div class="floating-pill" id="char-name-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fa4616">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+        </svg>
+        <span id="char-name-text">Character 1</span>
+      </div>
+
+      <div class="stage-tools">
+        <button class="tool-btn active" id="btn-rotate" title="Auto rotate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-reset" title="Reset camera">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="loading-overlay" id="model-spinner">
+        <div class="html-spinner"></div>
+      </div>
+
+      <model-viewer
+        id="avatar-viewer"
+        src="https://maxwell.z3ki.dev/bot/_files/char1-opt/char1_opt.gltf"
+        alt="3D Character"
+        camera-controls
+        auto-rotate
+        rotation-per-second="25deg"
+        camera-orbit="0deg 75deg 3m"
+        field-of-view="30deg"
+        shadow-intensity="1"
+        exposure="1.1"
+        interaction-prompt="none"
+        loading="eager"
+      ></model-viewer>
+    </div>
+
+    <div class="selector-box">
+      <div class="section-label">
+        <span>Select 3D Avatar</span>
+        <span style="color: #697383; font-weight: 600;">2 Options</span>
+      </div>
+
+      <div class="cards-grid">
+        <div class="char-card selected" id="card-char1" onclick="switchCharacter('char1')">
+          <div class="char-title">Character 1</div>
+          <div class="char-desc">Classic QBlock Adventurer</div>
+        </div>
+        <div class="char-card" id="card-char2" onclick="switchCharacter('char2')">
+          <div class="char-title">Character 2</div>
+          <div class="char-desc">Modern Cyber Explorer</div>
+        </div>
+      </div>
+
+      <button class="equip-btn" id="equip-btn" onclick="saveEquip()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fa4616">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+        <span>Equip Character 1</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const CHARS = {
+      char1: {
+        name: 'Character 1',
+        url: 'https://maxwell.z3ki.dev/bot/_files/char1-opt/char1_opt.gltf'
+      },
+      char2: {
+        name: 'Character 2',
+        url: 'https://maxwell.z3ki.dev/bot/_files/char2-opt/char2_opt.gltf'
+      }
+    };
+
+    let currentChar = 'char1';
+    const viewer = document.getElementById('avatar-viewer');
+    const spinner = document.getElementById('model-spinner');
+    const nameText = document.getElementById('char-name-text');
+    const equipBtn = document.getElementById('equip-btn');
+
+    viewer.addEventListener('load', () => {
+      spinner.style.display = 'none';
+    });
+
+    function switchCharacter(id) {
+      if (currentChar === id) return;
+      currentChar = id;
+      spinner.style.display = 'flex';
+      viewer.src = CHARS[id].url;
+      nameText.textContent = CHARS[id].name;
+      equipBtn.querySelector('span').textContent = 'Equip ' + CHARS[id].name;
+
+      document.getElementById('card-char1').classList.toggle('selected', id === 'char1');
+      document.getElementById('card-char2').classList.toggle('selected', id === 'char2');
+    }
+
+    let rotating = true;
+    document.getElementById('btn-rotate').addEventListener('click', () => {
+      rotating = !rotating;
+      viewer.autoRotate = rotating;
+      document.getElementById('btn-rotate').classList.toggle('active', rotating);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      viewer.cameraOrbit = '0deg 75deg 3m';
+      if (viewer.resetTurntable) viewer.resetTurntable();
+    });
+
+    function saveEquip() {
+      equipBtn.querySelector('span').textContent = 'Equipped ✓';
+      setTimeout(() => {
+        equipBtn.querySelector('span').textContent = 'Equip ' + CHARS[currentChar].name;
+      }, 1500);
+    }
+  </script>
+</body>
+</html>

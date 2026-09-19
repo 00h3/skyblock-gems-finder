@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- 2nd place (left) -->
+  <rect x="10" y="52" width="34" height="66" rx="2" fill="white"/>
+  <!-- 1st place (center) -->
+  <rect x="48" y="16" width="32" height="102" rx="2" fill="white"/>
+  <!-- 3rd place (right) -->
+  <rect x="84" y="68" width="34" height="50" rx="2" fill="white"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <!-- Isometric cube facets -->
+  <!-- Top Face -->
+  <path d="M 380 138 C 392 131 408 131 420 138 L 610 248 C 622 255 628 270 622 282 L 420 398 C 408 405 392 405 380 398 L 178 282 C 172 270 178 255 190 248 Z" fill="#9ea3aa" rx="30" />
+  <!-- Left Face -->
+  <path d="M 166 316 C 166 304 176 295 188 302 L 372 408 C 382 414 388 425 388 437 L 388 652 C 388 668 370 678 356 670 L 180 568 C 171 563 166 553 166 543 Z" fill="#9ea3aa" />
+  <!-- Right Face -->
+  <path d="M 412 437 C 412 425 418 414 428 408 L 612 302 C 624 295 634 304 634 316 L 634 543 C 634 553 629 563 620 568 L 444 670 C 430 678 412 668 412 652 Z" fill="#9ea3aa" />
+
+  <!-- Magnifying glass at bottom right -->
+  <circle cx="622" cy="624" r="128" fill="#2b2d33" />
+  <rect x="696" y="700" width="46" height="74" rx="23" transform="rotate(-45 719 737)" fill="#2b2d33" />
+</svg>
