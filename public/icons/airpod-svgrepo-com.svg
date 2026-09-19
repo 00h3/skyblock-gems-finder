@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <!-- Squircle AirPods Case Body -->
+  <rect x="80" y="66" width="640" height="668" rx="160" fill="#9ea3aa" />
+
+  <!-- Horizontal lid seam line -->
+  <rect x="80" y="272" width="640" height="50" fill="#2b2d33" />
+
+  <!-- Center lid opening notch -->
+  <rect x="220" y="216" width="360" height="162" rx="81" fill="#2b2d33" />
+</svg>

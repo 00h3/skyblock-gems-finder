@@ -1,0 +1,94 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Profiles are public to signed-in & guest players
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if signedIn() && userId == request.auth.uid;
+    }
+
+    match /global_chat/{messageId} {
+      allow read: if true;
+      allow create: if true;
+    }
+
+    match /friendRequests/{requestId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /friendships/{friendshipId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /chatMeta/{chatId} {
+      allow read: if true;
+      allow create, update: if true;
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if true;
+      allow create: if true;
+    }
+
+    // Groups / Community Servers & subcollections
+    match /groups/{groupId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /groups/{groupId}/messages/{messageId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /groups/{groupId}/{document=**} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /inbox/{messageId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Sandbox multiplayer presence
+    match /sandboxPlayers/{playerId} {
+      allow read, write: if true;
+    }
+
+    // Shared sandbox blocks sync
+    match /sandboxBlocks/{blockId} {
+      allow read, write: if true;
+    }
+
+    // Sandbox chat
+    match /sandboxChat/{messageId} {
+      allow read, write: if true;
+    }
+
+    // Skyblock multiplayer players
+    match /skyblock_players/{playerId} {
+      allow read, write: if true;
+    }
+
+    // Skyblock islands & subcollections
+    match /islands/{islandId} {
+      allow read, write: if true;
+    }
+
+    match /islands/{islandId}/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

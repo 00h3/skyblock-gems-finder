@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- ドア枠（evenodd: 外枠+内くり抜き） -->
+  <path fill-rule="evenodd" d="M18 10 L110 10 L110 118 L18 118 Z M28 20 L28 108 L100 108 L100 20 Z" fill="white"/>
+  <!-- ドアノブ -->
+  <circle cx="88" cy="66" r="7" fill="white"/>
+  <!-- 入場矢印（first-login: 右向き） -->
+  <path d="M34 58 L56 58 L56 48 L76 64 L56 80 L56 70 L34 70 Z" fill="white"/>
+</svg>

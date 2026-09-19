@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <!-- Siren top rays -->
+  <rect x="376" y="44" width="48" height="82" rx="24" fill="#9ea3aa" />
+  <rect x="180" y="108" width="48" height="82" rx="24" transform="rotate(-45 204 149)" fill="#9ea3aa" />
+  <rect x="572" y="108" width="48" height="82" rx="24" transform="rotate(45 596 149)" fill="#9ea3aa" />
+
+  <!-- Siren dome -->
+  <path d="M 100 706 L 100 560 C 100 350 234 200 400 200 C 566 200 700 350 700 560 L 700 706 Z" fill="#2b2d33" />
+
+  <!-- Siren base bar -->
+  <rect x="40" y="706" width="720" height="52" rx="26" fill="#9ea3aa" />
+</svg>

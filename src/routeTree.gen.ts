@@ -10,33 +10,401 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SplatRouteImport } from './routes/$'
+import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AvatarRouteImport } from './routes/avatar'
+import { Route as BuildRouteImport } from './routes/build'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as EventsRouteImport } from './routes/events'
+import { Route as FavoritesRouteImport } from './routes/favorites'
+import { Route as FragmentsRouteImport } from './routes/fragments'
+import { Route as FriendsRouteImport } from './routes/friends'
+import { Route as GlobalChatRouteImport } from './routes/global-chat'
+import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MailRouteImport } from './routes/mail'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PreviewSettingsRouteImport } from './routes/preview-settings'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RewardsRouteImport } from './routes/rewards'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShopRouteImport } from './routes/shop'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as WearablesRouteImport } from './routes/wearables'
+import { Route as ChatIdRouteImport } from './routes/chat_.$id'
+import { Route as GameIdRouteImport } from './routes/game.$id'
+import { Route as GameSandboxRouteImport } from './routes/game.sandbox'
+import { Route as PeopleUsernameRouteImport } from './routes/people.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivityRoute = ActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AvatarRoute = AvatarRouteImport.update({
+  id: '/avatar',
+  path: '/avatar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuildRoute = BuildRouteImport.update({
+  id: '/build',
+  path: '/build',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FragmentsRoute = FragmentsRouteImport.update({
+  id: '/fragments',
+  path: '/fragments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FriendsRoute = FriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GlobalChatRoute = GlobalChatRouteImport.update({
+  id: '/global-chat',
+  path: '/global-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MailRoute = MailRouteImport.update({
+  id: '/mail',
+  path: '/mail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewSettingsRoute = PreviewSettingsRouteImport.update({
+  id: '/preview-settings',
+  path: '/preview-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RewardsRoute = RewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WearablesRoute = WearablesRouteImport.update({
+  id: '/wearables',
+  path: '/wearables',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatIdRoute = ChatIdRouteImport.update({
+  id: '/chat_/$id',
+  path: '/chat/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GameIdRoute = GameIdRouteImport.update({
+  id: '/game/$id',
+  path: '/game/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GameSandboxRoute = GameSandboxRouteImport.update({
+  id: '/game/sandbox',
+  path: '/game/sandbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PeopleUsernameRoute = PeopleUsernameRouteImport.update({
+  id: '/people/$username',
+  path: '/people/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/activity': typeof ActivityRoute
+  '/avatar': typeof AvatarRoute
+  '/build': typeof BuildRoute
+  '/chat': typeof ChatRoute
+  '/discover': typeof DiscoverRoute
+  '/events': typeof EventsRoute
+  '/favorites': typeof FavoritesRoute
+  '/fragments': typeof FragmentsRoute
+  '/friends': typeof FriendsRoute
+  '/global-chat': typeof GlobalChatRoute
+  '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/mail': typeof MailRoute
+  '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/preview-settings': typeof PreviewSettingsRoute
+  '/profile': typeof ProfileRoute
+  '/rewards': typeof RewardsRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/shop': typeof ShopRoute
+  '/signup': typeof SignupRoute
+  '/wearables': typeof WearablesRoute
+  '/chat/$id': typeof ChatIdRoute
+  '/game/$id': typeof GameIdRoute
+  '/game/sandbox': typeof GameSandboxRoute
+  '/people/$username': typeof PeopleUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/activity': typeof ActivityRoute
+  '/avatar': typeof AvatarRoute
+  '/build': typeof BuildRoute
+  '/chat': typeof ChatRoute
+  '/discover': typeof DiscoverRoute
+  '/events': typeof EventsRoute
+  '/favorites': typeof FavoritesRoute
+  '/fragments': typeof FragmentsRoute
+  '/friends': typeof FriendsRoute
+  '/global-chat': typeof GlobalChatRoute
+  '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/mail': typeof MailRoute
+  '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/preview-settings': typeof PreviewSettingsRoute
+  '/profile': typeof ProfileRoute
+  '/rewards': typeof RewardsRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/shop': typeof ShopRoute
+  '/signup': typeof SignupRoute
+  '/wearables': typeof WearablesRoute
+  '/chat/$id': typeof ChatIdRoute
+  '/game/$id': typeof GameIdRoute
+  '/game/sandbox': typeof GameSandboxRoute
+  '/people/$username': typeof PeopleUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/activity': typeof ActivityRoute
+  '/avatar': typeof AvatarRoute
+  '/build': typeof BuildRoute
+  '/chat': typeof ChatRoute
+  '/discover': typeof DiscoverRoute
+  '/events': typeof EventsRoute
+  '/favorites': typeof FavoritesRoute
+  '/fragments': typeof FragmentsRoute
+  '/friends': typeof FriendsRoute
+  '/global-chat': typeof GlobalChatRoute
+  '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/mail': typeof MailRoute
+  '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/preview-settings': typeof PreviewSettingsRoute
+  '/profile': typeof ProfileRoute
+  '/rewards': typeof RewardsRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/shop': typeof ShopRoute
+  '/signup': typeof SignupRoute
+  '/wearables': typeof WearablesRoute
+  '/chat_/$id': typeof ChatIdRoute
+  '/game/$id': typeof GameIdRoute
+  '/game/sandbox': typeof GameSandboxRoute
+  '/people/$username': typeof PeopleUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$'
+    | '/activity'
+    | '/avatar'
+    | '/build'
+    | '/chat'
+    | '/discover'
+    | '/events'
+    | '/favorites'
+    | '/fragments'
+    | '/friends'
+    | '/global-chat'
+    | '/inventory'
+    | '/login'
+    | '/mail'
+    | '/notifications'
+    | '/onboarding'
+    | '/preview-settings'
+    | '/profile'
+    | '/rewards'
+    | '/search'
+    | '/settings'
+    | '/shop'
+    | '/signup'
+    | '/wearables'
+    | '/chat/$id'
+    | '/game/$id'
+    | '/game/sandbox'
+    | '/people/$username'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$'
+    | '/activity'
+    | '/avatar'
+    | '/build'
+    | '/chat'
+    | '/discover'
+    | '/events'
+    | '/favorites'
+    | '/fragments'
+    | '/friends'
+    | '/global-chat'
+    | '/inventory'
+    | '/login'
+    | '/mail'
+    | '/notifications'
+    | '/onboarding'
+    | '/preview-settings'
+    | '/profile'
+    | '/rewards'
+    | '/search'
+    | '/settings'
+    | '/shop'
+    | '/signup'
+    | '/wearables'
+    | '/chat/$id'
+    | '/game/$id'
+    | '/game/sandbox'
+    | '/people/$username'
+  id:
+    | '__root__'
+    | '/'
+    | '/$'
+    | '/activity'
+    | '/avatar'
+    | '/build'
+    | '/chat'
+    | '/discover'
+    | '/events'
+    | '/favorites'
+    | '/fragments'
+    | '/friends'
+    | '/global-chat'
+    | '/inventory'
+    | '/login'
+    | '/mail'
+    | '/notifications'
+    | '/onboarding'
+    | '/preview-settings'
+    | '/profile'
+    | '/rewards'
+    | '/search'
+    | '/settings'
+    | '/shop'
+    | '/signup'
+    | '/wearables'
+    | '/chat_/$id'
+    | '/game/$id'
+    | '/game/sandbox'
+    | '/people/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
+  ActivityRoute: typeof ActivityRoute
+  AvatarRoute: typeof AvatarRoute
+  BuildRoute: typeof BuildRoute
+  ChatRoute: typeof ChatRoute
+  DiscoverRoute: typeof DiscoverRoute
+  EventsRoute: typeof EventsRoute
+  FavoritesRoute: typeof FavoritesRoute
+  FragmentsRoute: typeof FragmentsRoute
+  FriendsRoute: typeof FriendsRoute
+  GlobalChatRoute: typeof GlobalChatRoute
+  InventoryRoute: typeof InventoryRoute
+  LoginRoute: typeof LoginRoute
+  MailRoute: typeof MailRoute
+  NotificationsRoute: typeof NotificationsRoute
+  OnboardingRoute: typeof OnboardingRoute
+  PreviewSettingsRoute: typeof PreviewSettingsRoute
+  ProfileRoute: typeof ProfileRoute
+  RewardsRoute: typeof RewardsRoute
+  SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
+  ShopRoute: typeof ShopRoute
+  SignupRoute: typeof SignupRoute
+  WearablesRoute: typeof WearablesRoute
+  ChatIdRoute: typeof ChatIdRoute
+  GameIdRoute: typeof GameIdRoute
+  GameSandboxRoute: typeof GameSandboxRoute
+  PeopleUsernameRoute: typeof PeopleUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +416,235 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activity': {
+      id: '/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/avatar': {
+      id: '/avatar'
+      path: '/avatar'
+      fullPath: '/avatar'
+      preLoaderRoute: typeof AvatarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/build': {
+      id: '/build'
+      path: '/build'
+      fullPath: '/build'
+      preLoaderRoute: typeof BuildRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fragments': {
+      id: '/fragments'
+      path: '/fragments'
+      fullPath: '/fragments'
+      preLoaderRoute: typeof FragmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/friends': {
+      id: '/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/global-chat': {
+      id: '/global-chat'
+      path: '/global-chat'
+      fullPath: '/global-chat'
+      preLoaderRoute: typeof GlobalChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mail': {
+      id: '/mail'
+      path: '/mail'
+      fullPath: '/mail'
+      preLoaderRoute: typeof MailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-settings': {
+      id: '/preview-settings'
+      path: '/preview-settings'
+      fullPath: '/preview-settings'
+      preLoaderRoute: typeof PreviewSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rewards': {
+      id: '/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof RewardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wearables': {
+      id: '/wearables'
+      path: '/wearables'
+      fullPath: '/wearables'
+      preLoaderRoute: typeof WearablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat_/$id': {
+      id: '/chat_/$id'
+      path: '/chat/$id'
+      fullPath: '/chat/$id'
+      preLoaderRoute: typeof ChatIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/game/$id': {
+      id: '/game/$id'
+      path: '/game/$id'
+      fullPath: '/game/$id'
+      preLoaderRoute: typeof GameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/game/sandbox': {
+      id: '/game/sandbox'
+      path: '/game/sandbox'
+      fullPath: '/game/sandbox'
+      preLoaderRoute: typeof GameSandboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/people/$username': {
+      id: '/people/$username'
+      path: '/people/$username'
+      fullPath: '/people/$username'
+      preLoaderRoute: typeof PeopleUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
+  ActivityRoute: ActivityRoute,
+  AvatarRoute: AvatarRoute,
+  BuildRoute: BuildRoute,
+  ChatRoute: ChatRoute,
+  DiscoverRoute: DiscoverRoute,
+  EventsRoute: EventsRoute,
+  FavoritesRoute: FavoritesRoute,
+  FragmentsRoute: FragmentsRoute,
+  FriendsRoute: FriendsRoute,
+  GlobalChatRoute: GlobalChatRoute,
+  InventoryRoute: InventoryRoute,
+  LoginRoute: LoginRoute,
+  MailRoute: MailRoute,
+  NotificationsRoute: NotificationsRoute,
+  OnboardingRoute: OnboardingRoute,
+  PreviewSettingsRoute: PreviewSettingsRoute,
+  ProfileRoute: ProfileRoute,
+  RewardsRoute: RewardsRoute,
+  SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
+  ShopRoute: ShopRoute,
+  SignupRoute: SignupRoute,
+  WearablesRoute: WearablesRoute,
+  ChatIdRoute: ChatIdRoute,
+  GameIdRoute: GameIdRoute,
+  GameSandboxRoute: GameSandboxRoute,
+  PeopleUsernameRoute: PeopleUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

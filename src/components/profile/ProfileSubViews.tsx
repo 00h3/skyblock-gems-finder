@@ -1,0 +1,2107 @@
+import React, { useState } from "react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  User,
+  Lock,
+  FileText,
+  Bell,
+  Shield,
+  HelpCircle,
+  Camera,
+  Crop,
+  Eye,
+  EyeOff,
+  Search,
+  BookOpen,
+  Terminal,
+  Mail,
+  Headphones,
+  Phone,
+  Globe,
+  Palette,
+  Share2,
+  Info,
+  LogIn,
+  Image as ImageIcon,
+  Pencil,
+  Link,
+  Key,
+  UserPlus,
+  MessageSquare,
+  AtSign,
+  Volume2,
+  Smartphone,
+  Check,
+  Sun,
+  Moon,
+  Sparkles,
+  AlertTriangle,
+  LogOut,
+  CheckCircle2,
+  Download,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
+import { APP_VERSION } from "@/components/LegalDocs";
+import { WowDownloadModal } from "@/components/wow-studio/WowDownloadModal";
+import { VerifiedTick } from "@/components/VerifiedTick";
+import { GlossyAvatar, AvatarFrameOverlay } from "@/components/GlossyAvatar";
+import { TextureButton } from "@/components/ui/texture-button";
+import { ShinyButton } from "@/components/ui/shiny-button";
+import { getUserNameClass } from "@/lib/user-style";
+import { toast } from "sonner";
+import type { QBUser } from "@/lib/auth-context";
+import {
+  useEquippedFrame,
+  setEquippedFrame,
+  type AvatarFrameId,
+  CHARACTER_1_GLTF,
+  CHARACTER_2_GLTF,
+} from "@/lib/avatar";
+import { HtmlSpinner } from "@/components/ui/HtmlLoadingScreen";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+
+// ── Reusable Orange Toggle Switch ───────────────────────────────────────────
+export function OrangeToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`press relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none ${
+        checked ? "bg-[#fa4616]" : "bg-[#e2e8f0] dark:bg-neutral-700"
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
+// ── Screen Header ───────────────────────────────────────────────────────────
+export function SubScreenHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <header className="flex items-center gap-3 px-4 pt-[max(env(safe-area-inset-top),14px)] pb-3 border-b border-black/[0.04] dark:border-white/[0.05] bg-[#f8f9fa] dark:bg-[#0c0d11]">
+      <button
+        type="button"
+        onClick={onBack}
+        className="press grid h-9 w-9 place-items-center rounded-[12px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] text-foreground shadow-sm"
+        aria-label="Back"
+      >
+        <ChevronLeft className="h-5 w-5 text-foreground" />
+      </button>
+      <h1 className="text-[17.5px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
+        {title}
+      </h1>
+    </header>
+  );
+}
+
+// ── SCREEN 2: Edit Profile ──────────────────────────────────────────────────
+export function EditProfileView({
+  user,
+  nameDraft,
+  setNameDraft,
+  bioDraft,
+  setBioDraft,
+  nameStyleDraft = "gradient",
+  setNameStyleDraft,
+  characterDraft = "char1",
+  setCharacterDraft,
+  onSave,
+  saving,
+  onOpenAvatarEdit,
+  onBack,
+}: {
+  user: QBUser | null;
+  nameDraft: string;
+  setNameDraft: (v: string) => void;
+  bioDraft: string;
+  setBioDraft: (v: string) => void;
+  nameStyleDraft?: "default" | "gradient";
+  setNameStyleDraft?: (v: "default" | "gradient") => void;
+  characterDraft?: "char1" | "char2";
+  setCharacterDraft?: (v: "char1" | "char2") => void;
+  onSave: () => void;
+  saving: boolean;
+  onOpenAvatarEdit: () => void;
+  onBack: () => void;
+}) {
+  const [usernameDraft, setUsernameDraft] = useState(user?.username || "h3");
+  const [localNameStyle, setLocalNameStyle] = useState<"default" | "gradient">(
+    nameStyleDraft || (user?.useGradientName === false ? "default" : "gradient"),
+  );
+  const [localChar, setLocalChar] = useState<"char1" | "char2">(
+    characterDraft || (user?.avatarSnapshot?.baseCharacter === "char2" ? "char2" : "char1"),
+  );
+
+  const [showStaffModal, setShowStaffModal] = useState(false);
+
+  const handleStyleChange = (style: "default" | "gradient") => {
+    if (style === "gradient") {
+      setShowStaffModal(true);
+      return;
+    }
+    setLocalNameStyle(style);
+    if (setNameStyleDraft) {
+      setNameStyleDraft(style);
+    }
+  };
+
+  const selectedChar = characterDraft ?? localChar;
+  const handleCharSelect = (c: "char1" | "char2") => {
+    setLocalChar(c);
+    setCharacterDraft?.(c);
+  };
+
+  const effectiveStyle = nameStyleDraft ?? localNameStyle;
+
+  return (
+    <div className="min-h-full bg-white pb-24">
+      <SubScreenHeader title="Edit Profile" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {/* Top Identity Card */}
+        <div className="qb-play-card p-3.5 flex items-center gap-3.5">
+          <div
+            onClick={onOpenAvatarEdit}
+            className="relative h-[52px] w-[52px] shrink-0 rounded-[12px] overflow-hidden bg-slate-100 cursor-pointer border border-black/[0.06]"
+            title="Edit Avatar"
+          >
+            <GlossyAvatar
+              snapshot={user?.avatarSnapshot}
+              photoUrl={user?.profilePhoto}
+              height={52}
+              className="h-full w-full object-cover"
+              autoRotate={false}
+            />
+            <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-slate-900 border border-white grid place-items-center text-white shadow-sm">
+              <Camera className="h-2.5 w-2.5" />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[#17191d] font-extrabold text-[15.5px]">
+                {nameDraft || user?.displayName || "Player"}
+              </span>
+              <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />
+            </div>
+            <div className="mt-0.5 truncate text-[11.5px] font-medium text-[#697383]">
+              {bioDraft || user?.bio || "No bio added yet"}
+            </div>
+          </div>
+        </div>
+
+        {/* Form Fields: Nickname, Bio, 3D Avatar */}
+        <div className="space-y-4">
+          <div>
+            <label className="text-[12px] font-extrabold text-[#17191d] mb-1.5 block">
+              Nickname
+            </label>
+            <input
+              type="text"
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              maxLength={24}
+              className="w-full h-11 rounded-[14px] bg-[#f8fafc] border border-black/[0.08] px-3.5 text-[14px] font-semibold text-[#17191d] outline-none focus:border-[#fa4616] transition-colors"
+              placeholder="Enter your nickname"
+            />
+          </div>
+
+          <div>
+            <label className="text-[12px] font-extrabold text-[#17191d] mb-1.5 block">Bio</label>
+            <textarea
+              value={bioDraft}
+              onChange={(e) => setBioDraft(e.target.value)}
+              maxLength={180}
+              rows={3}
+              className="w-full rounded-[14px] bg-[#f8fafc] border border-black/[0.08] p-3 text-[14px] font-medium text-[#17191d] outline-none resize-none focus:border-[#fa4616] transition-colors leading-relaxed"
+              placeholder="Write something about yourself..."
+            />
+          </div>
+
+          {/* 3D Avatar Section with ONLY Ned and Nelly */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[12px] font-extrabold text-[#17191d]">
+                3D Avatar (2 Options)
+              </label>
+              <span className="text-[11px] font-bold text-[#fa4616]">
+                {selectedChar === "char2" ? "Nelly" : "Ned"}
+              </span>
+            </div>
+
+            <div className="h-[210px] rounded-[16px] border border-black/[0.08] bg-[#f8fafc] overflow-hidden relative mb-2.5">
+              <model-viewer
+                src={selectedChar === "char2" ? CHARACTER_2_GLTF : CHARACTER_1_GLTF}
+                alt="3D Avatar Preview"
+                camera-controls
+                auto-rotate
+                rotation-per-second="25deg"
+                camera-orbit="0deg 75deg 3m"
+                field-of-view="30deg"
+                shadow-intensity="1"
+                exposure="1.1"
+                interaction-prompt="none"
+                loading="eager"
+                style={{ width: "100%", height: "100%", outline: "none" }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleCharSelect("char1")}
+                className={`qb-squircle press p-3 text-left transition-all ${
+                  selectedChar === "char1"
+                    ? "ring-2 ring-[#fa4616] bg-white"
+                    : "bg-[#f8fafc] opacity-80"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-[#17191d]">Ned</span>
+                  {selectedChar === "char1" && (
+                    <div className="h-4 w-4 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[10px] font-bold">
+                      ✓
+                    </div>
+                  )}
+                </div>
+                <div className="text-[11px] text-[#697383] mt-0.5">Classic Adventurer</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCharSelect("char2")}
+                className={`qb-squircle press p-3 text-left transition-all ${
+                  selectedChar === "char2"
+                    ? "ring-2 ring-[#fa4616] bg-white"
+                    : "bg-[#f8fafc] opacity-80"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-[#17191d]">Nelly</span>
+                  {selectedChar === "char2" && (
+                    <div className="h-4 w-4 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[10px] font-bold">
+                      ✓
+                    </div>
+                  )}
+                </div>
+                <div className="text-[11px] text-[#697383] mt-0.5">Modern Cyber</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Glossy Save Button */}
+        <div className="pt-2">
+          <ShinyButton
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            loading={saving}
+            variant="orange"
+            className="w-full h-12 text-[14px]"
+          >
+            <Check className="w-4 h-4 text-white stroke-[2.5]" />
+            <span>Save Changes</span>
+          </ShinyButton>
+        </div>
+      </div>
+
+      {showStaffModal && (
+        <div className="redeem-code-shell fixed inset-0 z-[260] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[340px] rounded-[24px] bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-red-100 text-red-600">
+              <Shield className="h-7 w-7 stroke-[2]" />
+            </div>
+            <h3 className="mt-3 text-[19px] font-black text-[#17181b]">Staff Only!</h3>
+            <p className="mt-1 text-[12px] text-[#737982]">
+              You need to be staff to use the{" "}
+              <span className="font-mono font-bold text-red-500">gradient</span> name style.
+            </p>
+            <div className="mt-5">
+              <ShinyButton
+                type="button"
+                variant="orange"
+                onClick={() => setShowStaffModal(false)}
+                className="w-full h-11 text-[13px]"
+              >
+                Okay
+              </ShinyButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SCREEN 14: Edit Avatar ──────────────────────────────────────────────────
+export function EditAvatarView({
+  user,
+  onSave,
+  onOpenFrames,
+  onBack,
+}: {
+  user: QBUser | null;
+  onSave: (photoUrl: string, frameId?: AvatarFrameId) => void;
+  onOpenFrames?: () => void;
+  onBack: () => void;
+}) {
+  const [currentPhoto, setCurrentPhoto] = useState<string>(user?.profilePhoto || "");
+  const equippedFrame = useEquippedFrame();
+  const [selectedFrame, setSelectedFrame] = useState<AvatarFrameId>(
+    (user?.avatarSnapshot?.frameId as AvatarFrameId) || equippedFrame || "none",
+  );
+  const [activeTab, setActiveTab] = useState<"pfp" | "frames">("pfp");
+  const [saving, setSaving] = useState(false);
+
+  const PREVIEWS = [
+    "/qblock-app-icon.png",
+    user?.profilePhoto && user.profilePhoto !== "/qblock-app-icon.png"
+      ? user.profilePhoto
+      : "/qblock-mascot.png",
+    "/cat-costume.png",
+    "/lucky-block-cat.png",
+    "/emojis/face/kirakira.png",
+  ];
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const res = event.target?.result;
+      if (typeof res === "string") {
+        setCurrentPhoto(res);
+        toast.success("Avatar image loaded");
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      setEquippedFrame(selectedFrame);
+      if (user?.uid) {
+        await setDoc(
+          doc(db, "users", user.uid),
+          {
+            profilePhoto: currentPhoto,
+            frameId: selectedFrame,
+            equippedFrame: selectedFrame,
+            avatarSnapshot: {
+              ...(user.avatarSnapshot || {}),
+              frameId: selectedFrame,
+            },
+          },
+          { merge: true },
+        );
+      }
+      onSave(currentPhoto, selectedFrame);
+      toast.success("Avatar & frame saved!");
+      onBack();
+    } catch {
+      toast.error("Could not save avatar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24 transition-colors duration-200">
+      <SubScreenHeader title="Edit Avatar" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        {/* Large Avatar Centerpiece with Frame overlayed OVER it and slightly larger */}
+        <div className="flex flex-col items-center pt-2">
+          <div className="relative h-[132px] w-[132px] flex items-center justify-center">
+            {/* Inner Avatar PFP */}
+            <div className="h-[114px] w-[114px] rounded-[22px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10 shadow-sm">
+              {currentPhoto ? (
+                <img src={currentPhoto} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                <GlossyAvatar
+                  snapshot={user?.avatarSnapshot}
+                  height={114}
+                  className="h-full w-full object-cover"
+                  autoRotate={false}
+                />
+              )}
+            </div>
+
+            {/* Frame overlay placed OVER the PFP, a little big */}
+            <AvatarFrameOverlay frame={selectedFrame} className="scale-[1.18]" />
+
+            {/* Camera badge */}
+            <label className="absolute bottom-0 right-0 z-10 h-8 w-8 rounded-[11px] bg-slate-900 border border-white/80 grid place-items-center text-white shadow-md cursor-pointer press">
+              <Camera className="h-4 w-4" />
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+            </label>
+          </div>
+
+          <div className="mt-3 text-center">
+            <div className="text-[14.5px] font-extrabold text-[#17191d] dark:text-white">
+              {user?.displayName || user?.username || "Player"}
+            </div>
+            <div className="text-[11.5px] font-medium text-[#7d8590] dark:text-[#8e95a0]">
+              Profile Picture
+            </div>
+          </div>
+        </div>
+
+        {/* Tab 1: Preset PFPs & Custom Upload */}
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400">
+                Select Profile Picture
+              </span>
+              <label className="press text-[11.5px] font-bold text-[#fa4616] cursor-pointer flex items-center gap-1">
+                <Camera className="h-3 w-3" />
+                Upload Custom
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3">
+              {PREVIEWS.map((src, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setCurrentPhoto(src)}
+                  className={`press relative rounded-[16px] overflow-hidden aspect-square border-2 transition-all p-1 bg-white dark:bg-[#15171c] ${
+                    currentPhoto === src
+                      ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm"
+                      : "border-black/[0.06] dark:border-white/[0.08]"
+                  }`}
+                >
+                  <img
+                    src={src}
+                    alt={`Preview ${i + 1}`}
+                    className="h-full w-full object-cover rounded-[12px]"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Tab 2: Avatar Frames - EXACT SAME UI AS PFPS! */}
+        {activeTab === "frames" && (
+          <div className="space-y-3">
+            <div className="px-1 text-[12px] font-bold text-[#697383] dark:text-slate-400">
+              Select Frame ({FRAME_LIST.length})
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {FRAME_LIST.map((f) => {
+                const isSelected = selectedFrame === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setSelectedFrame(f.id)}
+                    className={`press relative rounded-[18px] p-2 aspect-square flex flex-col items-center justify-between border-2 transition-all bg-white dark:bg-[#15171c] ${
+                      isSelected
+                        ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm bg-orange-500/[0.03]"
+                        : "border-black/[0.06] dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20"
+                    }`}
+                  >
+                    {/* Squircle preview: Your PFP with frame OVER it, a little big */}
+                    <div className="relative h-[64px] w-[64px] my-auto flex items-center justify-center">
+                      <div className="h-[52px] w-[52px] rounded-[13px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10">
+                        {currentPhoto ? (
+                          <img src={currentPhoto} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <GlossyAvatar
+                            snapshot={user?.avatarSnapshot}
+                            height={52}
+                            className="h-full w-full object-cover"
+                            autoRotate={false}
+                          />
+                        )}
+                      </div>
+                      <AvatarFrameOverlay frame={f.id} className="scale-[1.18]" />
+                    </div>
+
+                    <div className="w-full text-center">
+                      <div className="text-[11.5px] font-extrabold text-[#17191d] dark:text-white truncate">
+                        {f.name}
+                      </div>
+                      <div className="text-[9.5px] font-bold text-[#7d8590] dark:text-[#8e95a0] truncate">
+                        {f.tag}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons with Login/Signup Design Language */}
+        <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+          <ShinyButton
+            type="button"
+            disabled={saving}
+            loading={saving}
+            variant="orange"
+            onClick={handleSaveAll}
+            className="flex-1 h-12 text-[14px]"
+          >
+            <Check className="h-4 w-4 text-white" />
+            <span>Save Image</span>
+          </ShinyButton>
+          <ShinyButton
+            type="button"
+            variant="white"
+            onClick={() => setActiveTab(activeTab === "frames" ? "pfps" : "frames")}
+            className="flex-1 h-12 text-[14px]"
+          >
+            <Sparkles className="h-4 w-4 text-[#fa4616]" />
+            <span>{activeTab === "frames" ? "Avatar Images" : "Avatar Frame"}</span>
+          </ShinyButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── FRAMES VIEW ─────────────────────────────────────────────────────────────
+export const FRAME_LIST: Array<{
+  id: AvatarFrameId;
+  name: string;
+  tag: string;
+  description: string;
+  color: string;
+}> = [
+  {
+    id: "none",
+    name: "Default / None",
+    tag: "Standard",
+    description: "Clean profile avatar with no border overlay",
+    color: "#9ca3af",
+  },
+  {
+    id: "star-program",
+    name: "Star Program",
+    tag: "Exclusive",
+    description: "Official gold star creator frame",
+    color: "#f59e0b",
+  },
+  {
+    id: "blue-gold",
+    name: "Blue Gold",
+    tag: "Prestige",
+    description: "Royal sapphire and gilded crown border",
+    color: "#3b82f6",
+  },
+  {
+    id: "staff",
+    name: "Staff Special",
+    tag: "Official",
+    description: "QBlock staff member badge & crest",
+    color: "#8b5cf6",
+  },
+  {
+    id: "early-beta",
+    name: "Early Beta",
+    tag: "Classic",
+    description: "Pioneer badge for early QBlock testers",
+    color: "#06b6d4",
+  },
+  {
+    id: "gold-treasure",
+    name: "Gold Treasure",
+    tag: "Legendary",
+    description: "Gleaming vault treasure rim and glow",
+    color: "#eab308",
+  },
+  {
+    id: "emerald",
+    name: "Emerald",
+    tag: "Rare",
+    description: "Radiant emerald crystal border",
+    color: "#10b981",
+  },
+  {
+    id: "ice",
+    name: "Ice Glaze",
+    tag: "Frost",
+    description: "Frosted glacier shimmer border",
+    color: "#38bdf8",
+  },
+  {
+    id: "halloween",
+    name: "Halloween Spooky",
+    tag: "Holiday",
+    description: "Carved jack-o'-lantern flame frame",
+    color: "#f97316",
+  },
+  {
+    id: "witch-rose",
+    name: "Witch Rose",
+    tag: "Mythic",
+    description: "Mystic floral crimson essence",
+    color: "#f43f5e",
+  },
+  {
+    id: "neon-cyber",
+    name: "Neon Cyber",
+    tag: "Futuristic",
+    description: "Cyberpunk neon glow border",
+    color: "#00f0ff",
+  },
+];
+
+export function FramesView({ user, onBack }: { user: QBUser | null; onBack: () => void }) {
+  const equippedFrame = useEquippedFrame();
+  const [selectedFrame, setSelectedFrame] = useState<AvatarFrameId>(
+    (user?.avatarSnapshot?.frameId as AvatarFrameId) || equippedFrame || "none",
+  );
+  const [equipping, setEquipping] = useState(false);
+
+  async function handleEquip(frameId: AvatarFrameId) {
+    setEquipping(true);
+    try {
+      setEquippedFrame(frameId);
+      setSelectedFrame(frameId);
+      if (user?.uid) {
+        await setDoc(
+          doc(db, "users", user.uid),
+          {
+            frameId,
+            equippedFrame: frameId,
+            avatarSnapshot: {
+              ...(user.avatarSnapshot || {}),
+              frameId,
+            },
+          },
+          { merge: true },
+        );
+      }
+      toast.success("Frame equipped successfully!");
+    } catch {
+      toast.error("Could not equip frame. Try again.");
+    } finally {
+      setEquipping(false);
+    }
+  }
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24 transition-colors duration-200">
+      <SubScreenHeader title="Frames" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {/* Active Frame Live Showcase */}
+        <div className="rounded-[20px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] p-4 flex items-center gap-4 shadow-sm">
+          <div className="relative h-[72px] w-[72px] shrink-0 flex items-center justify-center">
+            <div className="h-[60px] w-[60px] rounded-[16px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10">
+              {user?.profilePhoto ? (
+                <img src={user.profilePhoto} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                <GlossyAvatar
+                  snapshot={user?.avatarSnapshot}
+                  height={60}
+                  className="h-full w-full object-cover"
+                  autoRotate={false}
+                />
+              )}
+            </div>
+            <AvatarFrameOverlay frame={selectedFrame} className="scale-[1.18]" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#fa4616]">
+              Active Frame
+            </div>
+            <div className="text-[16px] font-black text-[#17191d] dark:text-white tracking-tight truncate">
+              {FRAME_LIST.find((f) => f.id === selectedFrame)?.name || "Default"}
+            </div>
+            <div className="text-[12px] font-medium text-[#7d8590] dark:text-[#8e95a0] truncate mt-0.5">
+              {selectedFrame === "none"
+                ? "No frame equipped"
+                : "Currently previewed on your avatar"}
+            </div>
+          </div>
+        </div>
+
+        {/* Frame Selection Grid - EXACT SAME UI AS PFPS! */}
+        <div className="space-y-2.5">
+          <div className="px-1 text-[12.5px] font-bold text-[#7d8590] dark:text-[#8e95a0]">
+            Available Frames ({FRAME_LIST.length})
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {FRAME_LIST.map((f) => {
+              const isSelected = selectedFrame === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedFrame(f.id);
+                    handleEquip(f.id);
+                  }}
+                  className={`press relative rounded-[18px] p-2.5 aspect-square flex flex-col items-center justify-between border-2 transition-all bg-white dark:bg-[#15171c] ${
+                    isSelected
+                      ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm bg-orange-500/[0.03]"
+                      : "border-black/[0.06] dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20"
+                  }`}
+                >
+                  <div className="relative h-[66px] w-[66px] my-auto flex items-center justify-center">
+                    <div className="h-[54px] w-[54px] rounded-[14px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10">
+                      {user?.profilePhoto ? (
+                        <img
+                          src={user.profilePhoto}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <GlossyAvatar
+                          snapshot={user?.avatarSnapshot}
+                          height={54}
+                          className="h-full w-full object-cover"
+                          autoRotate={false}
+                        />
+                      )}
+                    </div>
+                    <AvatarFrameOverlay frame={f.id} className="scale-[1.18]" />
+                  </div>
+
+                  <div className="w-full text-center">
+                    <div className="text-[12px] font-extrabold text-[#17191d] dark:text-white truncate">
+                      {f.name}
+                    </div>
+                    <div className="text-[10px] font-bold text-[#7d8590] dark:text-[#8e95a0] truncate">
+                      {f.tag}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Avatar Frame Save Button */}
+        <div className="pt-2">
+          <ShinyButton
+            type="button"
+            variant="orange"
+            loading={equipping}
+            onClick={() => handleEquip(selectedFrame)}
+            className="w-full h-12 text-[14px]"
+          >
+            <Sparkles className="h-4 w-4 text-white" />
+            <span>Save Avatar Frame</span>
+          </ShinyButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 15: About Application ──────────────────────
+export function AboutAppView({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24 transition-colors duration-200">
+      <SubScreenHeader title="About application" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {/* Application Details */}
+        <div>
+          <span className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] block px-1 mb-2">
+            Application Details
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 px-4 text-[13.5px]">
+              <span className="font-semibold text-[#7d8590] dark:text-[#8e95a0]">Version</span>
+              <span className="font-bold text-[#17191d] dark:text-white font-mono text-[13px]">
+                2.0
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3.5 px-4 text-[13.5px]">
+              <span className="font-semibold text-[#7d8590] dark:text-[#8e95a0]">Status</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
+                Up to date
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Legal & Privacy */}
+        <div>
+          <span className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] block px-1 mb-2">
+            Legal & Privacy
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toast.info("Terms of Service is up to date.")}
+              className="press w-full flex items-center justify-between p-3.5 px-4 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <span className="text-[14px] font-semibold text-[#17191d] dark:text-white">
+                Terms of Service
+              </span>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.info("Privacy Policy is up to date.")}
+              className="press w-full flex items-center justify-between p-3.5 px-4 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <span className="text-[14px] font-semibold text-[#17191d] dark:text-white">
+                Privacy Policy
+              </span>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Play Bedwars style check updates button - white and smaller, flat glossy squircle */}
+        <button
+          type="button"
+          onClick={() => toast.success("You are running the latest version.")}
+          className="relative w-full h-10 px-4 rounded-[14px] bg-gradient-to-b from-white via-[#fcfcfd] to-[#f4f5f7] dark:from-[#242730] dark:via-[#1c1f26] dark:to-[#16181d] text-[#17191d] dark:text-white text-[12.5px] font-black tracking-tight select-none overflow-hidden transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:rounded-t-[13px] before:bg-gradient-to-b before:from-white/50 dark:before:from-white/10 before:to-transparent before:pointer-events-none shadow-sm"
+        >
+          <span className="relative z-10">Check for updates</span>
+        </button>
+
+        <p className="text-center text-[11.5px] text-[#7d8590] dark:text-[#8e95a0] pt-4">
+          © 2026. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 16: Deactivate Account ──────────────────────
+export function DeactivateAccountView({
+  user,
+  onSignOut,
+  onDeactivate,
+  onBack,
+}: {
+  user: QBUser | null;
+  onSignOut: () => void;
+  onDeactivate: () => void;
+  onBack: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24 transition-colors duration-200">
+      <SubScreenHeader title="Deactivate account" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {/* Warning Notice Card - No icon */}
+        <div className="rounded-[20px] bg-red-500/[0.06] dark:bg-red-500/[0.1] border border-red-500/20 p-4.5 space-y-3">
+          <div>
+            <h3 className="text-[15.5px] font-extrabold text-red-600 dark:text-red-400">
+              Deactivating your account
+            </h3>
+            <p className="text-[11.5px] font-medium text-red-600/80 dark:text-red-400/80 mt-0.5">
+              @{user?.username || user?.displayName || "player"}
+            </p>
+          </div>
+
+          <p className="text-[13px] text-red-900/80 dark:text-red-200/80 leading-relaxed">
+            Deactivation is temporary. Your public presence and username will be hidden, but your
+            data will remain saved if you choose to return.
+          </p>
+
+          <div className="space-y-2 pt-1">
+            <div className="flex items-start gap-2 text-[12.5px] text-red-900/80 dark:text-red-200/80">
+              <span className="font-bold">•</span>
+              <span>Your profile, creations, and avatar will be hidden from other players.</span>
+            </div>
+            <div className="flex items-start gap-2 text-[12.5px] text-red-900/80 dark:text-red-200/80">
+              <span className="font-bold">•</span>
+              <span>You will be immediately logged out of all active sessions.</span>
+            </div>
+            <div className="flex items-start gap-2 text-[12.5px] text-red-900/80 dark:text-red-200/80">
+              <span className="font-bold">•</span>
+              <span>Reactivate at any time simply by signing in again with your email.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Options - Matching login/signup button design language */}
+        <div className="space-y-2.5 pt-2">
+          {/* Safe action: Sign Out */}
+          <ShinyButton
+            type="button"
+            variant="white"
+            onClick={onSignOut}
+            className="w-full h-11 text-[13.5px]"
+          >
+            <img src="/icons/login-3-svgrepo-com.svg" alt="" className="h-4 w-4 dark:invert mr-1.5" />
+            <span>Sign Out Instead</span>
+          </ShinyButton>
+
+          {/* Danger action: Deactivate */}
+          {!confirming ? (
+            <ShinyButton
+              type="button"
+              variant="white"
+              onClick={() => setConfirming(true)}
+              className="w-full h-11 text-[13.5px] text-red-600 dark:text-red-400 hover:text-red-700"
+            >
+              <span>Continue to Deactivate</span>
+            </ShinyButton>
+          ) : (
+            <div className="space-y-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.06]">
+              <p className="text-[12px] font-bold text-center text-red-600 dark:text-red-400">
+                Are you sure you want to deactivate now?
+              </p>
+              <ShinyButton
+                type="button"
+                variant="orange"
+                onClick={onDeactivate}
+                className="w-full h-11 text-[13.5px] bg-red-600 hover:bg-red-700"
+              >
+                <span>Confirm Account Deactivation</span>
+              </ShinyButton>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="press w-full py-2 text-[12.5px] font-bold text-[#7d8590] dark:text-[#8e95a0] text-center cursor-pointer"
+              >
+                Never mind, keep account
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 3: Change Password ───────────────────────────────────────────────
+export function ChangePasswordView({
+  userEmail,
+  onSendReset,
+  onBack,
+}: {
+  userEmail?: string;
+  onSendReset: () => Promise<void>;
+  onBack: () => void;
+}) {
+  const [step, setStep] = useState<"verify" | "new_password" | "success">("verify");
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleVerifyCurrent = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!currentPw) {
+      setErrorMsg("Please enter your current password.");
+      return;
+    }
+    setErrorMsg("");
+    setVerifying(true);
+    try {
+      const user = auth.currentUser;
+      const email = userEmail || user?.email;
+      if (!user || !email) {
+        throw new Error("Unable to identify current account. Please sign in again.");
+      }
+      const cred = EmailAuthProvider.credential(email, currentPw);
+      await reauthenticateWithCredential(user, cred);
+      // Verified successfully! Advance to new password step
+      setStep("new_password");
+      setErrorMsg("");
+    } catch (err: unknown) {
+      console.error("[ChangePassword] Reauth error:", err);
+      const code = (err as { code?: string })?.code || "";
+      if (
+        code.includes("wrong-password") ||
+        code.includes("invalid-credential") ||
+        code.includes("invalid-password")
+      ) {
+        setErrorMsg("Incorrect password. Please try again.");
+      } else if (code.includes("too-many-requests")) {
+        setErrorMsg("Too many attempts. Please wait a moment or send a reset link.");
+      } else {
+        setErrorMsg((err as Error).message || "Verification failed. Please try again.");
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newPw) {
+      setErrorMsg("Please enter a new password.");
+      return;
+    }
+    if (newPw.length < 6) {
+      setErrorMsg("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setErrorMsg("Passwords do not match. Please verify.");
+      return;
+    }
+    if (newPw === currentPw) {
+      setErrorMsg("New password must be different from current password.");
+      return;
+    }
+
+    setErrorMsg("");
+    setUpdating(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("Session expired. Please sign in again.");
+      }
+      await updatePassword(user, newPw);
+      toast.success("Password updated successfully!");
+      setStep("success");
+    } catch (err: unknown) {
+      console.error("[ChangePassword] Update error:", err);
+      const code = (err as { code?: string })?.code || "";
+      if (code.includes("requires-recent-login")) {
+        setErrorMsg("Session timed out. Please verify your current password again.");
+        setStep("verify");
+      } else if (code.includes("weak-password")) {
+        setErrorMsg("Password is too weak. Please use at least 6 characters.");
+      } else {
+        setErrorMsg((err as Error).message || "Failed to update password. Try again.");
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Change Password" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {/* Step 1: Put your password (Verification) */}
+        {step === "verify" && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Clean title */}
+            <div className="pt-1">
+              <h2 className="text-[18px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
+                Put your password
+              </h2>
+              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Enter your current password to continue.
+              </p>
+            </div>
+
+            {/* Verification Form */}
+            <form onSubmit={handleVerifyCurrent} className="space-y-3.5">
+              <div>
+                <label className="text-[12px] font-bold text-[#697383] dark:text-slate-400 mb-1.5 block">
+                  Current password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrent ? "text" : "password"}
+                    value={currentPw}
+                    onChange={(e) => {
+                      setCurrentPw(e.target.value);
+                      if (errorMsg) setErrorMsg("");
+                    }}
+                    placeholder="Enter your current password"
+                    autoFocus
+                    className="w-full h-11 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-foreground outline-none focus:border-[#fa4616] transition-colors shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
+                  >
+                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {errorMsg && (
+                <div className="flex items-center gap-2 p-3 rounded-[12px] bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[12.5px] font-bold">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <ShinyButton
+                  type="submit"
+                  onClick={handleVerifyCurrent}
+                  disabled={verifying || !currentPw.trim()}
+                  className="w-full h-11"
+                >
+                  {verifying ? "Verifying..." : "Verify & Continue"}
+                </ShinyButton>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={onSendReset}
+                  className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 hover:text-[#fa4616] dark:hover:text-[#fa4616] transition-colors cursor-pointer"
+                >
+                  Forgot your password? Send a reset link
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Step 2: New password & Verify passwords */}
+        {step === "new_password" && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Clean title */}
+            <div className="pt-1">
+              <h2 className="text-[18px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
+                New password
+              </h2>
+              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Set and verify your new password below.
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleUpdatePassword} className="space-y-3.5">
+              <div>
+                <label className="text-[12px] font-bold text-[#697383] dark:text-slate-400 mb-1.5 block">
+                  New password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNew ? "text" : "password"}
+                    value={newPw}
+                    onChange={(e) => {
+                      setNewPw(e.target.value);
+                      if (errorMsg) setErrorMsg("");
+                    }}
+                    placeholder="Enter new password (min. 6 chars)"
+                    autoFocus
+                    className="w-full h-11 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-foreground outline-none focus:border-[#fa4616] transition-colors shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(!showNew)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
+                  >
+                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {/* Strength indicator */}
+                {newPw.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          newPw.length < 6
+                            ? "w-1/3 bg-rose-500"
+                            : newPw.length < 10
+                              ? "w-2/3 bg-amber-500"
+                              : "w-full bg-emerald-500"
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`text-[11px] font-extrabold ${
+                        newPw.length < 6
+                          ? "text-rose-500"
+                          : newPw.length < 10
+                            ? "text-amber-500"
+                            : "text-emerald-500"
+                      }`}
+                    >
+                      {newPw.length < 6 ? "Too short" : newPw.length < 10 ? "Good" : "Strong"}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[12px] font-bold text-[#697383] dark:text-slate-400 mb-1.5 block">
+                  Verify password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirm ? "text" : "password"}
+                    value={confirmPw}
+                    onChange={(e) => {
+                      setConfirmPw(e.target.value);
+                      if (errorMsg) setErrorMsg("");
+                    }}
+                    placeholder="Verify new password"
+                    className="w-full h-11 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-foreground outline-none focus:border-[#fa4616] transition-colors shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {confirmPw.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] font-semibold">
+                    {newPw === confirmPw ? (
+                      <span className="text-emerald-500 flex items-center gap-1">
+                        <Check className="h-3.5 w-3.5" /> Passwords match
+                      </span>
+                    ) : (
+                      <span className="text-rose-500 flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" /> Passwords do not match
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {errorMsg && (
+                <div className="flex items-center gap-2 p-3 rounded-[12px] bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[12.5px] font-bold">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <div className="pt-2 space-y-2">
+                <ShinyButton
+                  type="submit"
+                  onClick={handleUpdatePassword}
+                  disabled={updating || !newPw || !confirmPw}
+                  className="w-full h-11"
+                >
+                  {updating ? "Updating..." : "Update Password"}
+                </ShinyButton>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("verify");
+                    setErrorMsg("");
+                  }}
+                  className="w-full py-2 text-[12.5px] font-bold text-slate-500 dark:text-slate-400 hover:text-[#17191d] dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Back to verification
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Step 3: Success */}
+        {step === "success" && (
+          <div className="flex flex-col items-center justify-center py-8 text-center space-y-4 animate-fade-in">
+            <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 grid place-items-center shadow-sm">
+              <CheckCircle2 className="h-9 w-9" strokeWidth={2.4} />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-[20px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
+                Password Updated!
+              </h2>
+              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+                Your password has been changed successfully. You can now use your new password next
+                time you sign in.
+              </p>
+            </div>
+            <div className="w-full max-w-xs pt-4">
+              <ShinyButton onClick={onBack} className="w-full h-11">
+                Done
+              </ShinyButton>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 4: Activity Log ──────────────────────────────────────────────────
+export function ActivityLogView({ onBack }: { onBack: () => void }) {
+  const [tab, setTab] = useState<"All" | "Logins" | "Profile" | "System">("All");
+
+  const LOG_ITEMS = [
+    {
+      id: 1,
+      type: "Logins",
+      title: "Logged in",
+      subtitle: "New York, US",
+      time: "Apr 26, 2025 · 9:42 AM",
+      svgIcon: "/icons/login-3-svgrepo-com.svg",
+    },
+    {
+      id: 2,
+      type: "Profile",
+      title: "Changed profile picture",
+      subtitle: "",
+      time: "Apr 26, 2025 · 2:31 PM",
+      svgIcon: "/icons/user-id-svgrepo-com.svg",
+    },
+    {
+      id: 3,
+      type: "Profile",
+      title: "Updated bio",
+      subtitle: "",
+      time: "Apr 24, 2025 · 11:03 AM",
+      icon: Pencil,
+    },
+    {
+      id: 4,
+      type: "Logins",
+      title: "Logged in",
+      subtitle: "London, UK",
+      time: "Apr 20, 2025 · 8:46 PM",
+      svgIcon: "/icons/login-3-svgrepo-com.svg",
+    },
+    {
+      id: 5,
+      type: "System",
+      title: "Connected Discord",
+      subtitle: "",
+      time: "Apr 20, 2025 · 5:42 PM",
+      icon: Link,
+    },
+    {
+      id: 6,
+      type: "System",
+      title: "Changed password",
+      subtitle: "",
+      time: "Apr 18, 2025 · 3:12 PM",
+      svgIcon: "/icons/key-square-svgrepo-com.svg",
+    },
+  ];
+
+  const filtered = tab === "All" ? LOG_ITEMS : LOG_ITEMS.filter((item) => item.type === tab);
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Activity Log" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {/* Filter Pills */}
+        <div className="flex items-center gap-2">
+          {(["All", "Logins", "Profile", "System"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`press px-3.5 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+                tab === t
+                  ? "bg-[#e0f2fe] dark:bg-sky-950/70 text-sky-600 dark:text-sky-300 ring-1 ring-sky-300 dark:ring-sky-800"
+                  : "bg-white dark:bg-[#15171c] text-[#697383] dark:text-slate-400 border border-black/[0.06] dark:border-white/[0.08]"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* List of items */}
+        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          {filtered.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.id}
+                className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                    {item.svgIcon ? (
+                      <img src={item.svgIcon} alt="" className="h-4 w-4 dark:invert" />
+                    ) : Icon ? (
+                      <Icon className="h-4 w-4" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-bold text-[#17191d] dark:text-white leading-tight truncate">
+                      {item.title}
+                    </div>
+                    {item.subtitle && (
+                      <div className="text-[11.5px] font-medium text-[#697383] dark:text-slate-400">
+                        {item.subtitle}
+                      </div>
+                    )}
+                    <div className="text-[11px] font-medium text-[#9aa1ab] mt-0.5">{item.time}</div>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 5: Notifications ─────────────────────────────────────────────────
+export function NotificationsView({ onBack }: { onBack: () => void }) {
+  const [friendReq, setFriendReq] = useState(true);
+  const [messages, setMessages] = useState(true);
+  const [mentions, setMentions] = useState(true);
+  const [systemUpdates, setSystemUpdates] = useState(true);
+  const [sound, setSound] = useState(true);
+  const [pushNotif, setPushNotif] = useState(true);
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Notifications" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        {/* Main Notifications Card */}
+        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="flex items-center justify-between p-3.5 px-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                <UserPlus className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white block leading-tight">
+                  Friend requests
+                </span>
+                <span className="text-[11.5px] font-medium text-[#697383] dark:text-slate-400 block mt-0.5">
+                  Someone wants to add you
+                </span>
+              </div>
+            </div>
+            <OrangeToggle checked={friendReq} onChange={setFriendReq} />
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 px-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                <MessageSquare className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white block leading-tight">
+                  Messages
+                </span>
+                <span className="text-[11.5px] font-medium text-[#697383] dark:text-slate-400 block mt-0.5">
+                  Direct messages and replies
+                </span>
+              </div>
+            </div>
+            <OrangeToggle checked={messages} onChange={setMessages} />
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 px-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                <AtSign className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white block leading-tight">
+                  Mentions
+                </span>
+                <span className="text-[11.5px] font-medium text-[#697383] dark:text-slate-400 block mt-0.5">
+                  When someone mentions you
+                </span>
+              </div>
+            </div>
+            <OrangeToggle checked={mentions} onChange={setMentions} />
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 px-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                <Bell className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white block leading-tight">
+                  System updates
+                </span>
+                <span className="text-[11.5px] font-medium text-[#697383] dark:text-slate-400 block mt-0.5">
+                  App updates and important news
+                </span>
+              </div>
+            </div>
+            <OrangeToggle checked={systemUpdates} onChange={setSystemUpdates} />
+          </div>
+        </div>
+
+        {/* Sound & Vibration Section */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 uppercase tracking-wider block px-1 mb-2">
+            Sound & Vibration
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                  <Volume2 className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white block">
+                  Sound
+                </span>
+              </div>
+              <OrangeToggle checked={sound} onChange={setSound} />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                  <Smartphone className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white block">
+                  Push notifications
+                </span>
+              </div>
+              <OrangeToggle checked={pushNotif} onChange={setPushNotif} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 6: Privacy ───────────────────────────────────────────────────────
+export function PrivacyView({ onBack }: { onBack: () => void }) {
+  const [visibility, setVisibility] = useState<"Everyone" | "Friends only" | "Only me">("Everyone");
+  const [onlineStatus, setOnlineStatus] = useState(true);
+  const [recentActivity, setRecentActivity] = useState(true);
+  const [directMessages, setDirectMessages] = useState(true);
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Privacy" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        {/* Visibility Section */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Who can see your profile
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            {(["Everyone", "Friends only", "Only me"] as const).map((opt) => {
+              const selected = visibility === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setVisibility(opt)}
+                  className="press w-full flex items-center justify-between p-3.5 px-4 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                >
+                  <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                    {opt}
+                  </span>
+                  <div
+                    className={`h-5 w-5 rounded-full border-2 grid place-items-center transition-colors ${
+                      selected ? "border-[#fa4616]" : "border-slate-300 dark:border-neutral-600"
+                    }`}
+                  >
+                    {selected && <div className="h-2.5 w-2.5 rounded-full bg-[#fa4616]" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 px-1 text-[11px] font-medium text-[#868e96]">
+            Your profile, activity and favorites will be visible according to your selection.
+          </p>
+        </div>
+
+        {/* Activity & Presence Section */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Activity & Presence
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                Show online status
+              </span>
+              <OrangeToggle checked={onlineStatus} onChange={setOnlineStatus} />
+            </div>
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                Show recent activity
+              </span>
+              <OrangeToggle checked={recentActivity} onChange={setRecentActivity} />
+            </div>
+          </div>
+        </div>
+
+        {/* Messages Section */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Messages
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                Allow direct messages
+              </span>
+              <OrangeToggle checked={directMessages} onChange={setDirectMessages} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 7: Help & Support ────────────────────────────────────────────────
+export function HelpSupportView({ onBack }: { onBack: () => void }) {
+  const HELP_ITEMS = [
+    {
+      title: "FAQ",
+      sub: "Get answers to common questions",
+      icon: Search,
+    },
+    {
+      title: "Getting Started",
+      sub: "Learn how to use Sora",
+      icon: BookOpen,
+    },
+    {
+      title: "Account issues",
+      sub: "Login, security, and recovery",
+      icon: Lock,
+    },
+    {
+      title: "Technical Support",
+      sub: "Bug reports and troubleshooting",
+      icon: Terminal,
+    },
+    {
+      title: "Contact Us",
+      sub: "Reach out to our team",
+      icon: Mail,
+    },
+  ];
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Help & Support" onBack={onBack} />
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          {HELP_ITEMS.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={i}
+                onClick={() => toast.info(`${item.title}: Support article opened`)}
+                className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[14px] font-bold text-[#17191d] dark:text-white block leading-tight">
+                      {item.title}
+                    </span>
+                    <span className="text-[11.5px] font-medium text-[#697383] dark:text-slate-400 block mt-0.5">
+                      {item.sub}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Live Chat Button */}
+        <div className="pt-2">
+          <ShinyButton
+            variant="orange"
+            onClick={() => toast.info("Connecting to Live Chat agent...")}
+            className="w-full h-11 text-[13.5px]"
+          >
+            <Headphones className="h-4 w-4 mr-2" />
+            Live Chat
+          </ShinyButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 8: Settings ──────────────────────────────────────────────────────
+export function SettingsView({
+  onNavigate,
+  onBack,
+}: {
+  onNavigate: (
+    screen: "edit_profile" | "appearance" | "notifications" | "privacy" | "change_password",
+  ) => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Settings" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        {/* Account */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Account
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <div
+              onClick={() => onNavigate("edit_profile")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <img
+                    src="/icons/user-id-svgrepo-com.svg"
+                    className="h-[18px] w-[18px] dark:invert"
+                    alt=""
+                  />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Profile information
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+
+            <div
+              onClick={() => toast.info("Email & Phone settings")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Email & phone
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+
+            <div
+              onClick={() => toast.info("Connected Accounts")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <Globe className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Connected accounts
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Preferences */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Preferences
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <div
+              onClick={() => onNavigate("appearance")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <Palette className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Appearance
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+
+            <div
+              onClick={() => onNavigate("notifications")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <img
+                    src="/icons/bell-svgrepo-com.svg"
+                    className="h-[18px] w-[18px] dark:invert"
+                    alt=""
+                  />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Notifications
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+
+            <div
+              onClick={() => onNavigate("privacy")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Privacy
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+
+            <div
+              onClick={() => onNavigate("change_password")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <img
+                    src="/icons/key-square-svgrepo-com.svg"
+                    className="h-[18px] w-[18px] dark:invert"
+                    alt=""
+                  />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Security
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Integrations */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Integrations
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+            <div
+              onClick={() => toast.info("Connections & Webhooks")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <Share2 className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  Connections
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+          </div>
+        </div>
+
+        {/* About */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            About
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+            <div
+              onClick={() => toast.info("QBLOCK Version 1.0.4")}
+              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
+                  <Info className="h-4 w-4" />
+                </div>
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  About the app
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 9: Appearance ────────────────────────────────────────────────────
+export function AppearanceView({
+  dark,
+  onSetDark,
+  onBack,
+}: {
+  dark: boolean;
+  onSetDark: (val: boolean) => void;
+  onBack: () => void;
+}) {
+  const [colorScheme, setColorScheme] = useState<"Light" | "Dark" | "System">(
+    dark ? "Dark" : "Light",
+  );
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [compactMode, setCompactMode] = useState(false);
+
+  const handleSelectScheme = (mode: "Light" | "Dark" | "System") => {
+    setColorScheme(mode);
+    if (mode === "Light") onSetDark(false);
+    else if (mode === "Dark") onSetDark(true);
+    else {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      onSetDark(prefersDark);
+    }
+  };
+
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Appearance" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        {/* Color Scheme */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-3">
+            Color scheme
+          </span>
+
+          <div className="grid grid-cols-3 gap-3">
+            {/* Light Card */}
+            <button
+              type="button"
+              onClick={() => handleSelectScheme("Light")}
+              className={`press flex flex-col items-center p-3 rounded-[18px] bg-white dark:bg-[#15171c] border transition-all ${
+                colorScheme === "Light"
+                  ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-md"
+                  : "border-black/[0.06] dark:border-white/[0.08]"
+              }`}
+            >
+              <div className="h-12 w-12 rounded-[14px] bg-gradient-to-tr from-orange-100 via-sky-50 to-white grid place-items-center shadow-inner mb-2 border border-black/5">
+                <Sun className="h-6 w-6 text-amber-500" />
+              </div>
+              <span className="text-[13px] font-extrabold text-[#17191d] dark:text-white">
+                Light
+              </span>
+            </button>
+
+            {/* Dark Card */}
+            <button
+              type="button"
+              onClick={() => handleSelectScheme("Dark")}
+              className={`press flex flex-col items-center p-3 rounded-[18px] bg-white dark:bg-[#15171c] border transition-all ${
+                colorScheme === "Dark"
+                  ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-md"
+                  : "border-black/[0.06] dark:border-white/[0.08]"
+              }`}
+            >
+              <div className="h-12 w-12 rounded-[14px] bg-slate-900 grid place-items-center shadow-inner mb-2 border border-white/10">
+                <Moon className="h-6 w-6 text-sky-400" />
+              </div>
+              <span className="text-[13px] font-extrabold text-[#17191d] dark:text-white">
+                Dark
+              </span>
+            </button>
+
+            {/* System Card */}
+            <button
+              type="button"
+              onClick={() => handleSelectScheme("System")}
+              className={`press flex flex-col items-center p-3 rounded-[18px] bg-white dark:bg-[#15171c] border transition-all ${
+                colorScheme === "System"
+                  ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-md"
+                  : "border-black/[0.06] dark:border-white/[0.08]"
+              }`}
+            >
+              <div className="h-12 w-12 rounded-[14px] bg-gradient-to-r from-slate-200 to-slate-800 grid place-items-center shadow-inner mb-2 border border-black/5">
+                <Sun className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-[13px] font-extrabold text-[#17191d] dark:text-white">
+                System
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Interface Section */}
+        <div>
+          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
+            Interface
+          </span>
+          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                Reduced motion
+              </span>
+              <OrangeToggle checked={reducedMotion} onChange={setReducedMotion} />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5 px-4">
+              <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                Compact mode
+              </span>
+              <OrangeToggle checked={compactMode} onChange={setCompactMode} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN 10: Beta Features ────────────────────────────────────────────────
+export function BetaFeaturesView({
+  onBack,
+  onLaunchWow,
+}: {
+  onBack: () => void;
+  onLaunchWow: () => void;
+}) {
+  return (
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
+      <SubScreenHeader title="Beta Features" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-3.5 px-4 opacity-60 pointer-events-none">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                  WoW 1.0
+                </span>
+                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-500">
+                  3D ENGINE
+                </span>
+              </div>
+              <span className="text-[11.5px] font-medium text-[#7d8590] dark:text-[#8e95a0] mt-0.5">
+                Voxel Studio &amp; Q_Script Visual Code Engine
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-500 px-2.5 py-1 rounded-full">
+                Unavailable
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

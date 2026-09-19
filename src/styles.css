@@ -1,144 +1,3979 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap");
 @import "tailwindcss" source(none);
-@source "../src";
 @import "tw-animate-css";
+
+:root {
+  --clr-blue: #1890ff;
+  --clr-green: #01c3a8;
+  --clr-orange: #ffb741;
+  --clr-red: #a63d2a;
+  --bg-dark: #232228;
+  --bg-footer: #151419;
+  --color-white: #fff;
+  --color-gray-light: #ddd;
+  --color-gray-medium: #363636;
+  --color-gray-dark: #292929;
+  --color-gray-very-dark: #222127;
+}
+
+/* Course Design Cards & Group Cards Styling */
+.card {
+  position: relative;
+  background-color: var(--color-white);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.card .card-header .date {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: capitalize;
+}
+.card .card-header svg {
+  color: #94a3b8;
+  cursor: pointer;
+}
+.card .card-body h3 {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
+.card .card-body p {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+.card .progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.card .progress > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+.card .progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+.card.green .progress-bar::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 90%;
+  background: var(--clr-green);
+  border-radius: 999px;
+}
+.card.orange .progress-bar::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 30%;
+  background: var(--clr-orange);
+  border-radius: 999px;
+}
+.card.red .progress-bar::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 50%;
+  background: var(--clr-red);
+  border-radius: 999px;
+}
+.card.blue .progress-bar::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 20%;
+  background: var(--clr-blue);
+  border-radius: 999px;
+}
+.card .card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+.card .card-footer ul {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.card .card-footer ul li {
+  margin-right: -8px;
+}
+.card .card-footer ul li img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 2px solid #fff;
+  object-fit: cover;
+}
+.card .card-footer .btn-add {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fa4616;
+  color: #fff;
+  border: 2px solid #fff;
+}
+.card .card-footer .btn-countdown {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #1e293b;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.card .card-footer .btn-countdown:hover {
+  background: #e2e8f0;
+}
+
+@keyframes scaleToggle {
+  0% {
+    scale: 1 1;
+  }
+  50% {
+    scale: 1.1 1;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes scaleToggle2 {
+  0% {
+    scale: 1 1;
+  }
+  50% {
+    scale: 1.2 1;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes scaleToggle3 {
+  0% {
+    scale: 1 1;
+  }
+  50% {
+    scale: 1.1 1;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* Apple Liquid Glass Theme Switcher Styles */
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  border-radius: 9999px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.switcher::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  transition: transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: url(#switcher);
+  pointer-events: none;
+  z-index: 1;
+  transform-origin: center center;
+}
+
+.switcher:has([c-option="1"]:checked)::before {
+  transform: translateX(0);
+}
+.switcher:has([c-option="2"]:checked)::before {
+  transform: translateX(36px);
+}
+.switcher:has([c-option="3"]:checked)::before {
+  transform: translateX(72px);
+}
+
+.switcher[data-previous="1"]:has([c-option="2"]:checked)::before,
+.switcher[data-previous="2"]:has([c-option="3"]:checked)::before,
+.switcher[data-previous="3"]:has([c-option="2"]:checked)::before,
+.switcher[data-previous="2"]:has([c-option="1"]:checked)::before {
+  animation: scaleToggle 440ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.switcher[data-previous="1"]:has([c-option="3"]:checked)::before,
+.switcher[data-previous="3"]:has([c-option="1"]:checked)::before {
+  animation: scaleToggle2 440ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.switcher__option {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 9999px;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.switcher__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  opacity: 0;
+}
+
+.switcher__legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.switcher__icon {
+  width: 20px;
+  height: 20px;
+  --c: #64748b;
+  transition: all 0.25s ease;
+  display: block;
+}
+
+.switcher__option:hover .switcher__icon {
+  --c: #334155;
+  transform: scale(1.08);
+}
+
+.switcher__option:has(.switcher__input:checked) .switcher__icon {
+  --c: #0f172a;
+  transform: scale(1.05);
+}
+
+.switcher__filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Theme Provider classes for demo */
+[data-theme="light"] {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+[data-theme="light"] .article {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] {
+  background-color: #090d16;
+  color: #f8fafc;
+}
+[data-theme="dark"] .article {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+}
+[data-theme="dark"] .switcher {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark"] .switcher::before {
+  background: rgba(51, 65, 85, 0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+[data-theme="dark"] .switcher__icon {
+  --c: #94a3b8;
+}
+[data-theme="dark"] .switcher__option:has(.switcher__input:checked) .switcher__icon {
+  --c: #ffffff;
+}
+
+[data-theme="dim"] {
+  background-color: #171d2b;
+  color: #e2e8f0;
+}
+[data-theme="dim"] .article {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+}
+[data-theme="dim"] .switcher {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+[data-theme="dim"] .switcher::before {
+  background: rgba(71, 85, 105, 0.95);
+}
+[data-theme="dim"] .switcher__icon {
+  --c: #94a3b8;
+}
+[data-theme="dim"] .switcher__option:has(.switcher__input:checked) .switcher__icon {
+  --c: #38bdf8;
+}
+
+@keyframes load {
+  0% {
+    width: 0%;
+  }
+  60% {
+    width: 85%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+@source "../src";
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
+/* Shared white controls for touch gameplay actions. */
+.uiverse-white-control-shell {
+  box-sizing: border-box;
+  padding: 4px;
+  background: linear-gradient(to bottom, rgb(214 211 209 / 0.45), transparent);
+  border: 0;
+  box-shadow: none;
+}
+
+.uiverse-white-control,
+.uiverse-white-control-inner {
+  box-sizing: border-box;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.98), rgb(231 229 228 / 0.72));
+  border: 1px solid rgb(255 255 255 / 0.95);
+  color: #292524;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
+.uiverse-white-control:active {
+  transform: scale(0.995);
+  box-shadow:
+    0 0 1px rgb(0 0 0 / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
+/* Inter font pairings: Inter Bold and Inter Normal */
+.font-inter-bold {
+  font-family:
+    "Inter",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-weight: 800;
+}
+
+.font-inter-normal {
+  font-family:
+    "Inter",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-weight: 400;
+}
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-pixel:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
   --color-primary-foreground: var(--primary-foreground);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--primary-soft);
+  --color-accent-foreground: var(--secondary);
+
+  --color-text: var(--foreground);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: oklch(1 0 0);
+
   --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --color-border-soft: var(--border-soft);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+
+  --shadow-level1-theme: 0 2px 10px rgb(0 0 0 / 0.05);
+  --shadow-level2-theme: 0 12px 28px rgb(0 0 0 / 0.08);
+  --shadow-level3-theme: 0 22px 50px rgb(0 0 0 / 0.12);
+  --shadow-glass:
+    0 8px 28px rgba(40, 30, 10, 0.1), 0 2px 6px rgba(40, 30, 10, 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.72), inset 0 -1px 0 rgba(40, 30, 10, 0.05);
+
+  --animate-fade-in: fade-in 0.18s ease-out;
+  --animate-slide-up: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-sheet-up: sheet-up 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-float-soft: float-soft 4s ease-in-out infinite;
+  --animate-micro-pop: micro-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-water: water-shimmer 7s ease-in-out infinite;
+  --animate-rainbow: rainbow-flow 6s linear infinite;
+  --animate-slide-in-right: slide-in-right 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-heart-burst: heart-burst 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-shimmer: shimmer 2s linear infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes float-soft {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+  @keyframes micro-pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.25);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes float-plate {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  @keyframes water-shimmer {
+    0% {
+      transform: translateX(-30%) translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateX(30%) translateY(-8%) rotate(2deg);
+    }
+    100% {
+      transform: translateX(-30%) translateY(0) rotate(0deg);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+  @keyframes rainbow-flow {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-20px) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(110vh) rotate(360deg);
+      opacity: 0.9;
+    }
+  }
+  @keyframes heart-burst {
+    0% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.45);
+    }
+    65% {
+      transform: scale(0.88);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes worldLoadBar {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scaleY(0.55);
+    }
+    50% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.55;
+      transform: scale(0.85);
+    }
+  }
+  @keyframes fadeSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  /* Clean white palette — crisp, modern, restrained surfaces */
+  --background: #ffffff;
+  --foreground: #15171a;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+
+  --primary: #fa4616;
+  --primary-hover: #d93d10;
+  --primary-soft: #fff0eb;
+  --primary-foreground: #ffffff;
+
+  --secondary: #0f0f0f;
+  --secondary-foreground: #ffffff;
+
+  --text-secondary: #4b5563;
+  --text-muted: #8b929d;
+
+  --border: #e5e7eb;
+  --border-soft: #eef0f3;
+  --divider: #e9ebef;
+
+  --success: #22b45d;
+  --warning: #f1a21a;
+  --danger: #e84848;
+
+  /* Kept for game HUD/sheets; serious app surfaces override these below. */
+  --shadow-level1: 0 1px 4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-level2: 0 2px 10px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-level3: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
+  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-inset-bot: inset 0 -1px 0 rgba(0, 0, 0, 0.03);
 }
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+html.dark {
+  --background: #0e0f12;
+  --foreground: #f4f4f5;
+  --surface: #15171b;
+  --surface-2: #1c1f25;
+
+  --primary: #fa4616;
+  --primary-hover: #ff6a3d;
+  --primary-soft: #4a1c0e;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #0e0f12;
+
+  --text-secondary: #b3b6bd;
+  --text-muted: #7e828a;
+
+  --border: #2a2d34;
+  --border-soft: #1f2229;
+  --divider: #23262d;
+
+  --success: #34c870;
+  --warning: #ffb43a;
+  --danger: #ff5a5a;
+}
+
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
 }
 
 @layer base {
   * {
-    border-color: var(--color-border);
+    border-color: var(--border);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  html,
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    overscroll-behavior-y: contain;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    max-width: 100vw;
+  }
+  body {
+    font-weight: 500;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    font-family: var(--font-heading);
+  }
+  img {
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+  }
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid rgb(250 70 22 / 0.48);
+    outline-offset: 2px;
+  }
+}
+
+@utility press {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms ease-out,
+    background-color 150ms ease-out;
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Flat press feedback (no transform) for rows inside scrollable lists —
+   a transform/scale change mid-touch can make mobile webviews cancel the
+   synthesized click event, so nav rows use this instead of `.press`. */
+@utility press-flat {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    opacity 150ms ease-out;
+  &:active {
+    background-color: rgb(0 0 0 / 0.04);
+  }
+}
+
+/* Android controls should be easy to hit without making the UI feel oversized. */
+@utility android-control {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@utility hide-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility ios-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: auto;
+}
+
+/* A transformed route wrapper can become the containing block for sticky/fixed
+   children. Events owns a sticky header and must remain a plain scroll surface. */
+.page-enter-static {
+  min-height: 100%;
+}
+
+@utility glass {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.05);
+}
+
+@utility liquid-glass {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.08);
+  overflow: hidden;
+  isolation: isolate;
+  &::before {
+    content: none;
+  }
+}
+
+@utility icon-gloss {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: none;
+  border: 1.5px solid rgb(20 28 38 / 0.1);
+}
+
+.icon-gloss::after {
+  content: none;
+}
+
+.close-button {
+  border-radius: 10px !important;
+}
+
+/* Uiverse-inspired controls, adapted to QBLOCK's white / yellow Liquid Glass
+   language. Keep these classes deliberately small so they can be used by
+   buttons, links, and icon controls without changing their layout. */
+.liquid-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.82);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.72);
+  color: #17181b;
+  box-shadow:
+    0 10px 24px rgb(15 23 42 / 0.1),
+    0 2px 7px rgb(15 23 42 / 0.06),
+    0 1px 0 rgb(255 255 255 / 0.95) inset,
+    0 -1px 2px rgb(15 23 42 / 0.06) inset;
+  backdrop-filter: blur(18px) saturate(155%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.liquid-button::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 48%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.52), rgb(255 255 255 / 0));
+  z-index: -1;
+}
+
+.liquid-button:hover {
+  transform: translateY(-1px);
+  background: rgb(255 255 255 / 0.9);
+  box-shadow:
+    0 14px 28px rgb(15 23 42 / 0.13),
+    0 4px 9px rgb(15 23 42 / 0.07),
+    0 1px 0 rgb(255 255 255 / 0.98) inset,
+    0 -1px 2px rgb(15 23 42 / 0.05) inset;
+}
+
+.liquid-button:active {
+  transform: translateY(1px) scale(0.97);
+  transition-duration: 90ms;
+}
+
+.liquid-button:focus-visible,
+.liquid-search:focus-within {
+  outline: 2px solid rgb(244 196 48 / 0.72);
+  outline-offset: 2px;
+}
+
+.liquid-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
+.liquid-button-yellow {
+  border-color: rgb(255 255 255 / 0.78);
+  background: linear-gradient(145deg, #ff8a68 0%, #fa4616 52%, #c9380d 100%);
+  color: #ffffff;
+  box-shadow:
+    0 11px 22px rgba(250, 70, 22, 0.28),
+    0 3px 0 #b32e08,
+    0 1px 0 rgb(255 255 255 / 0.72) inset,
+    0 -2px 4px rgba(140, 30, 0, 0.16) inset;
+}
+
+.liquid-button-yellow:hover {
+  background: linear-gradient(145deg, #ffa082 0%, #ff5722 52%, #db3e0f 100%);
+  box-shadow:
+    0 14px 26px rgba(250, 70, 22, 0.35),
+    0 3px 0 #b32e08,
+    0 1px 0 rgb(255 255 255 / 0.82) inset,
+    0 -2px 4px rgba(140, 30, 0, 0.16) inset;
+}
+
+.liquid-button-ghost {
+  background: rgb(255 255 255 / 0.78);
+}
+
+.liquid-search {
+  border: 1px solid rgb(255 255 255 / 0.92);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.58));
+  box-shadow:
+    0 10px 24px rgb(15 23 42 / 0.08),
+    0 2px 7px rgb(15 23 42 / 0.05),
+    0 1px 0 rgb(255 255 255 / 0.98) inset,
+    0 -1px 2px rgb(15 23 42 / 0.06) inset;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  transition:
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.liquid-search:hover {
+  border-color: rgb(244 196 48 / 0.46);
+  box-shadow:
+    0 13px 28px rgb(15 23 42 / 0.11),
+    0 3px 8px rgb(15 23 42 / 0.06),
+    0 1px 0 rgb(255 255 255 / 0.98) inset,
+    0 -1px 2px rgb(15 23 42 / 0.05) inset;
+}
+
+/* The shell is mounted on every screen. Keep the rich glass treatment, but
+   avoid an animated blurred pseudo-layer on devices that opt into reduced
+   motion or have limited rendering bandwidth. */
+@media (prefers-reduced-motion: reduce), (max-width: 440px) {
+  .mobile-shell .liquid-glass::before {
+    animation: none;
+    filter: none;
+    opacity: 0.45;
+  }
+}
+
+@utility rainbow-glass {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.2)),
+    linear-gradient(90deg, #ff5e5e, #ffb84d, #ffe24d, #5ee06b, #4dc7ff, #8a7dff, #ff7dd1, #ff5e5e);
+  background-size:
+    auto,
+    200% 100%;
+  background-blend-mode: overlay, normal;
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  box-shadow: var(--shadow-glass);
+  animation: var(--animate-rainbow);
+}
+
+@utility font-pixel {
+  font-family: var(--font-pixel);
+  letter-spacing: 0;
+}
+
+@utility glossy {
+  background-image: none;
+}
+
+/* Glossy / shadowy / depthy plate for in-game HUD buttons — a heavier,
+   more sculpted sibling of `liquid-glass` for buttons that sit over a busy
+   3D viewport (top bar, side action rail, hotbar) and need to read as
+   physical, pressable objects rather than a flat tint. */
+@utility hud-plate {
+  position: relative;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.82) 0%, rgb(255 255 255 / 0.5) 100%);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 -2px 3px rgb(0 0 0 / 0.05) inset,
+    0 10px 20px rgb(0 0 0 / 0.22),
+    0 2px 4px rgb(0 0 0 / 0.12);
+  isolation: isolate;
+}
+
+@utility hud-plate-active {
+  background: linear-gradient(180deg, #ffe27a 0%, var(--primary) 100%);
+  border-color: rgb(255 255 255 / 0.85);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.85) inset,
+    0 -2px 3px rgb(0 0 0 / 0.08) inset,
+    0 10px 22px rgb(244 196 48 / 0.5),
+    0 2px 4px rgb(0 0 0 / 0.15);
+}
+
+/* ── Display name outline (2% subtle dark rim on both normal and gradient names) ── */
+@utility qb-name-outline {
+  -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.22);
+  paint-order: stroke fill;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.16));
+}
+
+@utility qb-gradient-name-outline {
+  filter: drop-shadow(0 0 0.75px rgba(0, 0, 0, 0.22)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.14));
+}
+
+/* ── Glossy yellow pill button — recolored from a warm-blue Uiverse
+   reference, kept to a single flat element (no nested wrapper/overlay
+   layers) so it never shows a stray rectangular backing behind a round
+   button. Used for primary actions like "Play". ── */
+@utility btn-glossy-yellow {
+  --btn-c1: #ff9b7d;
+  --btn-c2: #fa4616;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  color: #ffffff;
+  background-size: 280% auto;
+  background-image: linear-gradient(325deg, var(--btn-c2) 0%, var(--btn-c1) 55%, var(--btn-c2) 90%);
+  box-shadow:
+    0 0 16px rgba(250, 70, 22, 0.45),
+    0 5px 5px -1px rgba(179, 46, 8, 0.25),
+    inset 3px 3px 6px rgba(255, 200, 180, 0.55),
+    inset -3px -3px 6px rgba(179, 46, 8, 0.3);
+  transition:
+    background-position 0.6s ease,
+    transform 200ms ease;
+  &:active {
+    background-position: right top;
+    transform: scale(0.96);
+  }
+}
+
+/* Circular bubble version for icon-led actions (Discover's PvP/Explore
+   row) — a true circle, no rectangular hit area bleeding past the ring. */
+@utility btn-bubble {
+  position: relative;
+  cursor: pointer;
+  border: none;
+  border-radius: 9999px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background-size: 280% auto;
+  background-image: linear-gradient(
+    325deg,
+    var(--btn-c2, #fa4616) 0%,
+    var(--btn-c1, #ff9b7d) 55%,
+    var(--btn-c2, #fa4616) 90%
+  );
+  box-shadow:
+    0 0 14px rgba(250, 70, 22, 0.4),
+    0 4px 4px -1px rgba(179, 46, 8, 0.22),
+    inset 2.5px 2.5px 5px rgba(255, 200, 180, 0.55),
+    inset -2.5px -2.5px 5px rgba(179, 46, 8, 0.28);
+  transition:
+    background-position 0.6s ease,
+    transform 200ms ease;
+  &:active {
+    background-position: right top;
+    transform: scale(0.92);
+  }
+}
+
+/* 1% depth card — hairline border + whisper shadow only */
+@utility flat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.045);
+}
+
+/* Shared app surface: a restrained slice of Discovery's editorial catalog
+   language, used on utility screens so every route still feels like QBLOCK. */
+@utility app-page {
+  background: #ffffff;
+  color: #17181b;
+}
+
+@utility app-card {
+  background: #fff;
+  border: 1px solid rgb(23 24 27 / 0.08);
+  box-shadow:
+    0 2px 8px rgb(23 24 27 / 0.05),
+    0 1px 0 rgb(255 255 255 / 0.9) inset;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms ease-out,
+    border-color 180ms ease-out;
+  &:active {
+    transform: scale(0.985);
+    box-shadow: 0 1px 4px rgb(23 24 27 / 0.06);
+  }
+}
+
+@utility frost-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.05);
+}
+
+@utility section-reveal {
+  animation: fadeSlideUp 0.34s ease-out both;
+}
+
+@utility app-eyebrow {
+  color: #858a94;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* Discovery's section labels: compact, grey, and deliberately sharp. */
+@utility discovery-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-inline: 16px;
+}
+
+@utility discovery-section-title {
+  margin-top: 4px;
+  color: #17181b;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+@utility app-accent {
+  color: #e34413;
+}
+
+@utility app-primary {
+  background: #fa4616;
+  color: #ffffff;
+  box-shadow:
+    0 2px 0 #c9380d,
+    0 5px 14px rgb(250 70 22 / 0.18);
+}
+
+/* Discovery is a game catalog, not a toy dashboard. Keep its typography
+   closer to a native Android UI and let the artwork carry the personality. */
+.discover-page,
+.discover-page button,
+.discover-page input {
+  font-family: var(--font-sans);
+}
+
+.discover-page h1,
+.discover-page h2,
+.discover-page h3,
+.discover-page h4 {
+  font-family: var(--font-sans);
+}
+
+.discover-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.045);
+}
+
+.discover-card:active {
+  box-shadow: 0 1px 3px rgb(23 24 27 / 0.07);
+}
+
+/* Small utility icons use a solid silhouette; navigation arrows stay crisp. */
+.settings-filled-icon svg,
+.home-filled-icon svg {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.settings-page .settings-filled-icon svg {
+  color: #6b7280;
+}
+
+/* A small global edge refinement: less pill-like utility surfaces while
+   preserving the larger hero/avatar treatments. */
+.app-card {
+  border-radius: 14px;
+}
+
+/* Focused discovery surfaces: cool grey page field, quiet white cards, and
+   one confident yellow action. */
+.discover-feed {
+  background: #f3f4f6;
+}
+.discover-feed .flat-card {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.98), #ffffff 34%);
+  box-shadow:
+    0 2px 0 rgb(15 23 42 / 0.04),
+    0 8px 18px rgb(15 23 42 / 0.07);
+}
+.discover-feed .section-reveal {
+  animation: fadeSlideUp 0.4s ease-out both;
+}
+.studio-preview {
+  background: #ffffff;
+}
+
+/* Serious UI contract
+   Home, Events, and the avatar catalog should feel editorial rather than
+   toy-like: hierarchy comes from spacing, rules, and type, not floating
+   plates, blur, or glossy highlight layers. */
+.serious-ui {
+  color: #17181b;
+}
+
+.serious-ui [style*="box-shadow"] {
+  box-shadow:
+    0 2px 0 rgb(15 23 42 / 0.04),
+    0 8px 18px rgb(15 23 42 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+}
+
+.serious-ui [style*="drop-shadow"] {
+  filter: none !important;
+}
+
+.serious-ui [style*="backdrop-filter"],
+.serious-ui [style*="-webkit-backdrop-filter"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.serious-ui .flat-card,
+.serious-ui .discover-card {
+  border: 1px solid #dfe3e8;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.98), #ffffff 34%);
+  box-shadow:
+    0 2px 0 rgb(15 23 42 / 0.04),
+    0 8px 18px rgb(15 23 42 / 0.07),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+.serious-ui .flat-card:active,
+.serious-ui .discover-card:active {
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.06);
+}
+
+.serious-ui [class*="bg-gradient"] {
+  box-shadow: none !important;
+}
+
+.serious-ui .section-reveal::before,
+.serious-ui .section-reveal::after {
+  box-shadow: none !important;
+}
+
+.serious-ui .app-primary {
+  box-shadow: none;
+}
+
+/* Product-wide visual contract: white surfaces, Inter, and compact Android
+   control geometry. These selectors also normalize older route-level inline
+   treatments without requiring a risky rewrite of every screen. */
+html,
+body,
+#root {
+  background: #f3f4f6;
+  font-family:
+    "Inter",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.redeem-code-shell,
+.redeem-code-shell button,
+.redeem-code-shell input {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.redeem-code-trigger {
+  color: #5d636e;
+  border: 1px solid rgba(20, 28, 38, 0.08);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 242, 245, 0.92));
+  box-shadow:
+    0 4px 10px rgba(18, 28, 38, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.mobile-shell {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px #eef0f3,
+    0 0 26px rgb(15 23 42 / 0.06);
+}
+
+.ios-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.ios-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.app-gloss {
+  display: none;
+}
+
+.mobile-shell > main > .page-enter {
+  background: #ffffff;
+}
+
+.discover-feed [class~="rounded-[20px]"],
+.discover-feed [class~="rounded-[18px]"],
+.discover-feed [class~="rounded-[16px]"] {
+  border-radius: 12px;
+}
+
+.discover-feed [class~="rounded-[14px]"] {
+  border-radius: 10px;
+}
+
+.discover-feed .flat-card {
+  border-radius: 12px;
+}
+
+.discover-feed button {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.discover-feed .app-eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-preview [class~="rounded-full"] {
+  border-radius: 8px;
+}
+
+@utility page-enter {
+  animation: page-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0.94;
+    transform: translate3d(32px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Smoother global interaction feel */
+@utility smooth-all {
+  transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* QBlock liquid surface contract: DOM-only styling for shared app surfaces. */
+:root {
+  --qb-ink: #20252b;
+  --qb-muted: #77808b;
+  --qb-field: #eef3f5;
+  --qb-pearl: rgb(255 255 255 / 0.68);
+  --qb-yellow: #fa4616;
+  --qb-coral: #ff8b78;
+  --qb-mint: #8ce0c3;
+  --qb-blue: #9bdcf0;
+  --qb-shadow:
+    0 14px 34px rgb(58 77 86 / 0.14), 0 2px 8px rgb(58 77 86 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.82);
+}
+
+html,
+body,
+#root {
+  background: #f3f4f6;
+  color: var(--qb-ink);
+}
+
+.mobile-shell {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px #e7e9ec,
+    0 24px 70px rgb(15 23 42 / 0.1);
+}
+
+.mobile-shell > main > .page-enter,
+.app-page,
+.discover-feed {
+  background: transparent;
+}
+
+.app-gloss {
+  background:
+    radial-gradient(ellipse at 70% -10%, rgb(255 255 255 / 0.82), transparent 38%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.22), transparent 28%);
+}
+
+.liquid-glass,
+.glass {
+  background: rgb(255 255 255 / 0.96);
+  border: 1px solid #e3e6ea;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 10px 28px rgb(15 23 42 / 0.1),
+    inset 0 1px 0 #ffffff;
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: -35% 15% 48% -18%;
+  z-index: -1;
+  border-radius: 999px;
+  background: linear-gradient(110deg, rgb(255 255 255 / 0.5), transparent 70%);
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.flat-card,
+.app-card,
+.discover-card,
+.frost-card {
+  background: linear-gradient(145deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.58));
+  border-color: rgb(255 255 255 / 0.9);
+  box-shadow:
+    0 10px 24px rgb(58 77 86 / 0.09),
+    inset 0 1px 0 rgb(255 255 255 / 0.82);
+}
+
+.discover-feed .flat-card,
+.serious-ui .flat-card,
+.serious-ui .discover-card {
+  background: linear-gradient(145deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.64));
+  border-color: rgb(255 255 255 / 0.9);
+  box-shadow:
+    0 10px 24px rgb(58 77 86 / 0.09),
+    inset 0 1px 0 rgb(255 255 255 / 0.82) !important;
+}
+
+.app-primary,
+.btn-glossy-yellow {
+  background: linear-gradient(145deg, #ff8a68 0%, var(--qb-yellow) 52%, #c9380d 100%);
+  box-shadow:
+    0 8px 18px rgb(250 70 22 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+
+@media (max-width: 440px) {
+  .liquid-glass {
+    backdrop-filter: blur(18px) saturate(145%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
   }
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+  /* Skyblock keeps the game world full-size but makes the surrounding HUD
+     less intrusive on short Android screens. Touch targets remain usable. */
+  .skyblock-game > .absolute:not(:first-child) {
+    font-size: 0.9em;
   }
+
+  .skyblock-game .hud-plate {
+    transform: scale(0.9);
+    transform-origin: bottom center;
+  }
+}
+
+/* ── Soft iOS-inspired polish ─────────────────────────────────────────────
+   Keep the product mostly QBLOCK: white, quiet, and lightly tactile. The
+   highlight is intentionally small so surfaces feel polished without turning
+   the whole app into glassmorphism. */
+:root {
+  --qb-ios-border: rgba(20, 28, 38, 0.075);
+  --qb-ios-shadow: 0 8px 24px rgba(18, 28, 38, 0.065), 0 1px 3px rgba(18, 28, 38, 0.04);
+  --qb-ios-highlight: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(255, 255, 255, 0) 58%
+  );
+}
+
+.ios-gloss,
+.liquid-search,
+.liquid-button,
+.liquid-glass,
+.app-card,
+.discover-card,
+.flat-card {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--qb-ios-border);
+  box-shadow:
+    var(--qb-ios-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.ios-gloss::before,
+.liquid-search::before,
+.liquid-button::before,
+.liquid-glass::before,
+.app-card::before,
+.discover-card::before,
+.flat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 52%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--qb-ios-highlight);
+  opacity: 0.7;
+}
+
+.liquid-search {
+  overflow: hidden;
+  background: rgba(247, 248, 250, 0.94);
+  color: var(--qb-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 10px rgba(18, 28, 38, 0.045);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.liquid-search:focus-within {
+  border-color: rgba(115, 125, 138, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 0 3px rgba(120, 132, 145, 0.08),
+    0 5px 14px rgba(18, 28, 38, 0.06);
+}
+
+.liquid-button {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 12px rgba(18, 28, 38, 0.06);
+}
+
+.liquid-button:hover {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 7px 16px rgba(18, 28, 38, 0.08);
+}
+
+.liquid-button-ghost {
+  background: rgba(246, 247, 249, 0.86);
+  color: #4f5863;
+}
+
+.liquid-button-yellow {
+  background: #eef0f2;
+  color: #3f4650;
+  border-color: rgba(20, 28, 38, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 3px 9px rgba(18, 28, 38, 0.055);
+}
+
+.liquid-button-yellow:hover {
+  background: #e5e8eb;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 5px 12px rgba(18, 28, 38, 0.07);
+}
+
+.ios-chat-header {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 250, 0.88));
+  border-bottom: 1px solid rgba(20, 28, 38, 0.075);
+  box-shadow:
+    0 8px 22px rgba(18, 28, 38, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+/* Compact utility headers share the chat screen's glossy, cool-grey surface
+   without taking over the whole viewport. */
+.compact-gloss-header {
+  margin: 10px 12px 0;
+  border: 1.5px solid rgba(20, 28, 38, 0.12);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.subpage-header {
+  overflow: hidden;
+}
+
+.mail-header,
+.search-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 0 10px 10px;
+}
+
+.mail-header .liquid-search,
+.search-header .liquid-search {
+  background: #eceef0;
+  border-color: rgba(20, 28, 38, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 3px 9px rgba(18, 28, 38, 0.045);
+}
+
+.ios-chat-bubble {
+  position: relative;
+  isolation: isolate;
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border-radius: 18px !important;
+  padding: 10px 14px !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.ios-chat-bubble-me {
+  position: relative;
+  isolation: isolate;
+  background: #fa4616 !important;
+  color: #ffffff !important;
+  border-radius: 20px 20px 6px 20px !important;
+  padding: 10px 14px !important;
+  border: 1px solid rgba(217, 61, 16, 0.32) !important;
+}
+
+.ios-composer {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--qb-ios-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 5px 18px rgba(18, 28, 38, 0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Shared glossy utility surfaces used by the profile, chat, auth and
+   avatar-studio screens. The highlight is intentionally a single clean
+   sweep so the UI feels dimensional without becoming noisy. */
+.qb-gloss-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: #ffffff;
+  border: 1.5px solid rgba(20, 28, 38, 0.12);
+  box-shadow: none;
+}
+
+.dark .qb-gloss-panel {
+  background: #16181d;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  color: #f4f4f5;
+}
+
+.qb-gloss-panel::after {
+  content: none;
+}
+
+.qb-segmented {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  background: rgba(229, 233, 237, 0.74);
+  border: 1px solid rgba(20, 28, 38, 0.055);
+  box-shadow: inset 0 1px 2px rgba(20, 28, 38, 0.05);
+}
+
+.dark .qb-segmented {
+  background: #15181f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.qb-segmented > button {
+  min-height: 36px;
+  border-radius: 12px;
+  color: #858c95;
+  font-size: 12px;
+  font-weight: 800;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dark .qb-segmented > button {
+  color: #717782;
+}
+
+.qb-segmented > button[aria-selected="true"] {
+  color: #20252b;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 4px 10px rgba(58, 77, 86, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.dark .qb-segmented > button[aria-selected="true"] {
+  color: #f4c430;
+  background: #242933;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.qb-avatar-stage {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 76%, rgba(244, 196, 48, 0.25), transparent 44%),
+    linear-gradient(145deg, #fbfcfd 0%, #eef2f5 100%);
+  border: 1px solid rgba(20, 28, 38, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 16px 34px rgba(58, 77, 86, 0.11);
+}
+
+.qb-avatar-stage::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 12%;
+  height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(105, 120, 128, 0.2), transparent 68%);
+  filter: blur(9px);
+  pointer-events: none;
+}
+
+.qb-avatar-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 58%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), transparent);
+}
+
+@keyframes qbAvatarFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+
+.qb-avatar-float {
+  animation: qbAvatarFloat 4.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-avatar-float {
+    animation: none;
+  }
+}
+
+.settings-neutral-button,
+.settings-neutral-button:hover {
+  background: #eceef0 !important;
+  color: #363d46 !important;
+  border-color: rgba(20, 28, 38, 0.07) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 3px 9px rgba(18, 28, 38, 0.045) !important;
+}
+
+.star-loader {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  filter: drop-shadow(0 7px 15px rgba(150, 160, 170, 0.24));
+}
+
+.star-loader span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 30px;
+  transform-origin: 50% 100%;
+  border-radius: 999px 999px 7px 7px;
+  background: linear-gradient(180deg, #fff, #dfe3e7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 1px 4px rgba(120, 130, 140, 0.18);
+  animation: star-loader-pulse 1.15s ease-in-out infinite;
+}
+
+.star-loader span:nth-child(1) {
+  transform: translate(-50%, -100%) rotate(0deg);
+}
+.star-loader span:nth-child(2) {
+  transform: translate(-50%, -100%) rotate(45deg);
+  animation-delay: 0.14s;
+}
+.star-loader span:nth-child(3) {
+  transform: translate(-50%, -100%) rotate(90deg);
+  animation-delay: 0.28s;
+}
+.star-loader span:nth-child(4) {
+  transform: translate(-50%, -100%) rotate(135deg);
+  animation-delay: 0.42s;
+}
+.star-loader span:nth-child(5) {
+  transform: translate(-50%, -100%) rotate(180deg);
+  animation-delay: 0.56s;
+}
+.star-loader span:nth-child(6) {
+  transform: translate(-50%, -100%) rotate(225deg);
+  animation-delay: 0.7s;
+}
+.star-loader span:nth-child(7) {
+  transform: translate(-50%, -100%) rotate(270deg);
+  animation-delay: 0.84s;
+}
+.star-loader span:nth-child(8) {
+  transform: translate(-50%, -100%) rotate(315deg);
+  animation-delay: 0.98s;
+}
+
+@keyframes star-loader-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform-origin: 50% 100%;
+  }
+  35% {
+    opacity: 1;
+    filter: brightness(1.04);
+  }
+}
+
+.game-launch-surface {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border: 1px solid rgba(20, 28, 38, 0.08) !important;
+  box-shadow:
+    0 -12px 42px rgba(18, 28, 38, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-loader span {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* Final QBLOCK mobile contract: restrained Android geometry with a glossy
+   white field and a warm yellow action accent. These rules intentionally sit
+   last so older route-specific polish cannot reintroduce the blue system. */
+:root {
+  --qb-yellow: #fa4616;
+  --qb-yellow-deep: #c9380d;
+  --qb-ink: #17181b;
+  --qb-field: #f5f6f7;
+  --qb-surface: rgba(255, 255, 255, 0.94);
+  --qb-line: rgba(23, 24, 27, 0.08);
+  --qb-gloss-shadow: 0 10px 24px rgba(23, 24, 27, 0.065), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.mobile-shell {
+  background: var(--qb-field);
+  color: var(--qb-ink);
+}
+.mobile-shell > main {
+  background: var(--qb-field);
+}
+.liquid-search {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(23, 24, 27, 0.1);
+  box-shadow:
+    0 5px 15px rgba(23, 24, 27, 0.045),
+    inset 0 1px 0 #fff;
+}
+.liquid-search:focus-within {
+  border-color: rgba(250, 70, 22, 0.42);
+  box-shadow:
+    0 0 0 3px rgba(250, 70, 22, 0.16),
+    var(--qb-gloss-shadow);
+}
+.liquid-button-yellow {
+  background: linear-gradient(145deg, #ff8a68, var(--qb-yellow) 55%, #c9380d);
+  color: #ffffff;
+  border-color: rgba(201, 56, 13, 0.5);
+}
+.liquid-button-yellow:hover {
+  background: linear-gradient(145deg, #ffad94, #fa4616 55%, #b9320b);
+}
+
+/* Shared orange Uiverse-style action button. The supplied blue reference is
+   intentionally recolored to QBLOCK orange while keeping its gloss, depth,
+   hover lift, and press feedback. */
+.uiverse-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid #c9380d;
+  background: linear-gradient(#ff7a52, #fa4616 58%, #c9380d);
+  color: #ffffff;
+  box-shadow:
+    0 5px 0 #a92d0a,
+    0 10px 20px rgba(201, 56, 13, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  text-shadow: 0 1px 1px rgba(84, 20, 5, 0.35);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
+}
+
+.uiverse-button::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 52%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent);
+}
+
+.uiverse-button::after {
+  content: "";
+  position: absolute;
+  inset: -80% -30%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.36) 50%,
+    transparent 65%
+  );
+  transform: translateX(-45%) rotate(12deg);
+  transition: transform 500ms ease;
+}
+
+.uiverse-button:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.08) brightness(1.04);
+  box-shadow:
+    0 6px 0 #a92d0a,
+    0 14px 26px rgba(201, 56, 13, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.uiverse-button:hover::after {
+  transform: translateX(45%) rotate(12deg);
+}
+
+.uiverse-button:active {
+  transform: translateY(3px) scale(0.98);
+  box-shadow:
+    0 2px 0 #a92d0a,
+    0 5px 12px rgba(201, 56, 13, 0.24),
+    inset 0 2px 4px rgba(100, 20, 0, 0.16);
+}
+
+.uiverse-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+.liquid-button-ghost {
+  background: rgba(255, 255, 255, 0.92);
+  color: #50545b;
+}
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: var(--qb-line);
+  box-shadow: var(--qb-gloss-shadow);
+}
+.qb-bottom-nav {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(23, 24, 27, 0.1);
+  box-shadow:
+    0 12px 30px rgba(23, 24, 27, 0.16),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 0 4px rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+}
+.qb-bottom-nav-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 354px;
+}
+.qb-bottom-nav-profile {
+  color: #6b7280;
+  border: 1px solid rgba(23, 24, 27, 0.12);
+  background: linear-gradient(180deg, rgba(243, 245, 248, 0.96), rgba(228, 232, 238, 0.94));
+  box-shadow:
+    0 10px 24px rgba(23, 24, 27, 0.12),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  text-decoration: none;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+.qb-bottom-nav-profile.is-active {
+  color: #111827;
+  background: linear-gradient(180deg, rgba(226, 231, 239, 0.98), rgba(206, 214, 226, 0.96));
+  border-color: rgba(23, 24, 27, 0.2);
+  box-shadow:
+    0 6px 18px rgba(23, 24, 27, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px) scale(1.04);
+}
+.qb-bottom-nav-profile:active {
+  transform: scale(0.96);
+}
+.home-currency-bubble {
+  max-width: 136px;
+  overflow: hidden;
+  padding: 2px 4px;
+  border: 1px solid rgba(23, 24, 27, 0.08);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(246, 248, 251, 0.96), rgba(233, 237, 243, 0.92));
+  box-shadow:
+    0 3px 10px rgba(23, 24, 27, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+.home-currency-bubble .currency-pill {
+  height: 22px;
+  min-width: 0;
+  padding: 0 4px;
+  gap: 3px;
+  background: transparent;
+  box-shadow: none;
+}
+.home-currency-bubble .currency-pill img {
+  height: 13px;
+  width: 13px;
+}
+.home-currency-bubble .currency-pill > span {
+  font-size: 10px;
+  font-weight: 800;
+}
+.home-currency-bubble > div {
+  min-width: 0;
+}
+.home-currency-bubble > div > div {
+  gap: 0;
+}
+.home-currency-bubble .currency-pill + .currency-pill {
+  border-left: 1px solid rgba(23, 24, 27, 0.1);
+}
+.home-currency-bubble .currency-pill {
+  flex: 1 1 0;
+}
+.qb-bottom-nav-item {
+  position: relative;
+  z-index: 0;
+  min-width: 0;
+  color: #6b7280;
+  text-decoration: none;
+  border-radius: 16px;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+.qb-bottom-nav-item::before {
+  content: "";
+  position: absolute;
+  inset: 5px 7px;
+  z-index: 0;
+  border-radius: 14px;
+  background: transparent;
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.qb-bottom-nav-item.is-active {
+  color: #111827;
+}
+.qb-bottom-nav-item.is-active::before {
+  background: linear-gradient(180deg, rgba(226, 231, 239, 0.95), rgba(212, 219, 230, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(23, 24, 27, 0.12);
+}
+.qb-bottom-nav-item:active {
+  transform: scale(0.96);
+}
+.qb-bottom-nav-item svg {
+  position: relative;
+  z-index: 1;
+}
+.qb-bottom-nav-item span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Dark mode bottom navigation */
+html.dark .qb-bottom-nav {
+  background: rgba(26, 28, 34, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.45),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 4px rgba(255, 255, 255, 0.04);
+}
+html.dark .qb-bottom-nav-profile {
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(33, 35, 41, 0.96), rgba(24, 26, 31, 0.94));
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+html.dark .qb-bottom-nav-profile.is-active {
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(45, 49, 58, 0.98), rgba(35, 38, 46, 0.96));
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+html.dark .qb-bottom-nav-item {
+  color: #9ca3af;
+}
+html.dark .qb-bottom-nav-item.is-active {
+  color: #ffffff;
+}
+html.dark .qb-bottom-nav-item.is-active::before {
+  background: linear-gradient(180deg, rgba(45, 49, 58, 0.95), rgba(35, 38, 46, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+html.dark .home-currency-bubble {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(33, 35, 41, 0.96), rgba(24, 26, 31, 0.94));
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.app-card {
+  border-color: var(--qb-line);
+  box-shadow: var(--qb-gloss-shadow);
+}
+.search-header,
+.mail-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 16px 16px 16px;
+  background: rgba(245, 246, 247, 0.92);
+  border-bottom: 1px solid var(--qb-line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.home-quick-action {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  gap: 11px;
+  overflow: hidden;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    0 3px 10px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.home-quick-action:active {
+  transform: scale(0.98);
+}
+.home-quick-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.home-quick-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
+}
+.home-quick-kicker,
+.home-quick-title {
+  display: block;
+}
+.home-quick-kicker {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.home-quick-title {
+  margin-top: 1px;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 900;
+}
+.wearable-card {
+  position: relative;
+  overflow: hidden;
+  padding: 9px;
+  text-align: center;
+  border: 1px solid rgba(23, 24, 27, 0.09);
+  border-radius: 17px;
+  background: linear-gradient(145deg, #fff, #f7f8f9);
+  box-shadow:
+    0 7px 16px rgba(23, 24, 27, 0.055),
+    inset 0 1px 0 #fff;
+}
+.wearable-card-active {
+  border-color: rgba(244, 196, 48, 0.52);
+  background: linear-gradient(145deg, #fff, #fff9dc);
+}
+.wearable-card-locked {
+  opacity: 0.76;
+}
+.wearable-art {
+  position: relative;
+  height: 82px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: radial-gradient(circle at 50% 14%, #fff, #fff7ce 56%, #f0eee7);
+}
+.wearable-art img {
+  max-width: 100%;
+}
+.wearable-lock {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: rgba(23, 24, 27, 0.7);
+  color: white;
+  font-size: 8px;
+  font-weight: 800;
+}
+.wearable-badge-art {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #fff8d8, #f5f6f7);
+}
+.wearable-badge-art img {
+  width: 105%;
+  height: 105%;
+  object-fit: contain;
+}
+
+/* ── Compact wearable catalog ──────────────────────────────────────────────
+   Keep the preview window bounded so avatar canvases and frame artwork never
+   spill into the labels below them. Only the first card uses a live avatar;
+   locked cards use a static mark to avoid stacking multiple WebGL surfaces. */
+.wearables-page {
+  background: #f5f6f7;
+}
+
+.wearables-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 50px;
+  padding: 6px 8px;
+}
+
+.wearables-header .app-eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+.wearables-count {
+  flex: 0 0 auto;
+  color: #858a94;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.wearables-intro {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 10px 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(20, 28, 38, 0.075);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 242, 245, 0.92));
+  box-shadow:
+    0 5px 12px rgba(18, 28, 38, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.wearables-currency {
+  margin: 8px 0 10px;
+  overflow-x: auto;
+  padding: 0 1px 2px;
+}
+
+.wearables-currency > .flex {
+  min-width: max-content;
+}
+
+.wearables-intro-icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e9ecef;
+  color: #737982;
+}
+
+.wearables-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wearables-card {
+  min-width: 0;
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 28, 38, 0.075);
+  border-radius: 13px;
+  background: #f8f9fa;
+  box-shadow:
+    0 5px 12px rgba(18, 28, 38, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.wearables-card:active {
+  transform: scale(0.985);
+}
+
+.wearables-card:disabled {
+  cursor: not-allowed;
+}
+
+.wearables-card-accent {
+  border-color: rgba(20, 28, 38, 0.12);
+  background: #f3f4f5;
+}
+
+.wearables-card-locked {
+  opacity: 0.8;
+}
+
+.wearables-preview {
+  position: relative;
+  height: 112px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 28, 38, 0.055);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #eef0f2, #e3e6e9);
+}
+
+.wearables-preview > .qb-glossy-avatar {
+  position: absolute;
+  inset: 0;
+  min-height: 0 !important;
+  width: 100%;
+  height: 100%;
+}
+
+.wearables-preview .qb-glossy-avatar > div:first-child {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+.wearables-lock {
+  position: absolute;
+  z-index: 4;
+  right: 5px;
+  bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 7px;
+  background: rgba(61, 68, 76, 0.82);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.wearables-equipped {
+  position: absolute;
+  z-index: 4;
+  left: 5px;
+  bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 7px;
+  background: rgba(167, 123, 0, 0.88);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.wearables-card > div:not(.wearables-preview) p {
+  line-height: 1.15;
+}
+
+.wearables-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #737982;
+}
+
+/* Reference-style player profile: dark gallery hero, soft graphite controls,
+   and bright identity accents. Scoped so the rest of the app stays light. */
+.qblock-profile-page {
+  background: #f5f6f7;
+  color: #17181b;
+}
+.qblock-profile-topbar {
+  height: 70px;
+  padding: max(10px, env(safe-area-inset-top)) 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #ffffff, #eef0f2);
+  border-bottom: 1px solid rgba(23, 24, 27, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 4px 14px rgba(23, 24, 27, 0.06);
+}
+.qblock-profile-topbar h1 {
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.profile-icon-button {
+  height: 38px;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #686e77;
+  background: linear-gradient(145deg, #fff, #e2e5e8);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 8px rgba(23, 24, 27, 0.08);
+}
+.profile-character-stage {
+  height: 360px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 36%, #ffffff 0%, #f0f2f4 48%, #dfe2e6 100%);
+  border-bottom: 1px solid rgba(23, 24, 27, 0.08);
+}
+.profile-stage-glow {
+  position: absolute;
+  width: 230px;
+  height: 230px;
+  top: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(178, 185, 194, 0.25), transparent 68%);
+  filter: blur(12px);
+}
+.profile-character {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 350px;
+}
+.profile-3d-pill {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 18px;
+  padding: 15px 18px;
+  border-radius: 13px;
+  background: rgba(51, 54, 64, 0.9);
+  color: white;
+  font-weight: 900;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.profile-identity {
+  padding: 0 20px 18px;
+  background: #101114;
+}
+.profile-identity {
+  background: #f5f6f7;
+}
+.profile-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: -29px;
+  position: relative;
+  z-index: 3;
+}
+.profile-mini-avatar {
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #d9dde2;
+  border: 3px solid #f5f6f7;
+  box-shadow: 0 4px 12px rgba(23, 24, 27, 0.12);
+}
+.profile-identity h2 {
+  font-size: 29px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+.profile-identity p {
+  margin-top: 4px;
+  color: #858b94;
+  font-size: 14px;
+}
+.profile-gradient-name {
+  background: linear-gradient(90deg, #ffcb44, #fff1a1, #f3a51d);
+  background-clip: text;
+  color: transparent;
+}
+.profile-stat-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  overflow-x: auto;
+}
+.profile-stat-row span {
+  white-space: nowrap;
+  padding: 11px 14px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #fff, #e1e4e8);
+  color: #33373d;
+  font-size: 13px;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 9px rgba(23, 24, 27, 0.07);
+}
+.profile-stat-row b {
+  font-size: 16px;
+  margin-right: 4px;
+}
+.profile-stat-row .muted {
+  color: #a0a5ac;
+}
+.profile-bio {
+  min-height: 38px;
+  margin-top: 17px !important;
+  color: #555b64 !important;
+  font-size: 15px !important;
+}
+.profile-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 52px;
+  gap: 10px;
+  margin-top: 14px;
+}
+.profile-action,
+.profile-more,
+.profile-social {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffffff, #dfe2e6);
+  color: #353941;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 4px 10px rgba(23, 24, 27, 0.08);
+}
+.profile-action.primary {
+  background: linear-gradient(145deg, #f0f1f3, #c9ccd1);
+  color: #25272b;
+}
+.profile-more {
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+.profile-social-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.profile-social {
+  height: 42px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(23, 24, 27, 0.1);
+  color: #626872;
+}
+.profile-toast {
+  margin-top: 11px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(244, 196, 48, 0.13);
+  color: #ffd45a;
+  font-size: 11px;
+  font-weight: 800;
+}
+.profile-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.profile-tabs button {
+  height: 55px;
+  color: #9298a1;
+  font-size: 15px;
+  font-weight: 800;
+  position: relative;
+}
+.profile-tabs button.is-active {
+  color: #25282d;
+}
+.profile-tabs button.is-active::after {
+  content: "";
+  position: absolute;
+  height: 3px;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  background: #363b42;
+}
+.profile-wearing {
+  padding: 27px 20px 8px;
+}
+.profile-wearing h3 {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.profile-see-all {
+  color: #6e747d;
+  font-size: 12px;
+  font-weight: 800;
+}
+.profile-wearing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.profile-wear-card {
+  min-width: 0;
+  height: 150px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #484c56, #30333b);
+}
+.profile-wear-card > .qb-glossy-avatar {
+  height: 125px;
+  min-height: 0 !important;
+}
+.profile-wear-card > span {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.profile-utility {
+  margin: 22px 20px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #fff, #e8eaed);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 5px 14px rgba(23, 24, 27, 0.07);
+}
+.profile-utility .press {
+  color: #33373d;
+  border-color: rgba(23, 24, 27, 0.08);
+}
+.profile-utility .text-text-muted {
+  color: #8d939c;
+}
+.profile-signout {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #d65252;
+  font-size: 12px;
+  font-weight: 800;
+  border-top: 1px solid rgba(23, 24, 27, 0.08);
+}
+
+/* Compact version of the supplied Uiverse gearbox loader, sized for the
+   world-entry card while preserving its clockwise/counter-clockwise motion. */
+.gearbox-loader {
+  width: 200px;
+  height: 150px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.gearbox-loader-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  border-radius: 6px;
+  box-shadow: inset 0 0 20px #000;
+  pointer-events: none;
+}
+.gearbox-gear {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  box-shadow:
+    0 -1px 0 #888,
+    0 1px 0 #000;
+}
+.gearbox-gear.one {
+  top: 12px;
+  left: 10px;
+}
+.gearbox-gear.two {
+  top: 61px;
+  left: 60px;
+}
+.gearbox-gear.three {
+  top: 110px;
+  left: 10px;
+}
+.gearbox-gear.four {
+  top: 13px;
+  left: 128px;
+}
+.gearbox-gear.large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+}
+.gearbox-gear-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #555;
+}
+.gearbox-gear-inner::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  margin: -18px;
+  border-radius: 50%;
+  background: #111;
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.1),
+    inset 0 2px 0 #090909,
+    inset 0 -1px 0 #888;
+}
+.gearbox-gear.large .gearbox-gear-inner::after {
+  width: 48px;
+  height: 48px;
+  margin: -24px;
+}
+.gearbox-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76px;
+  height: 16px;
+  margin: -8px 0 0 -38px;
+  border-radius: 2px;
+  background: #555;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+.gearbox-gear.large .gearbox-bar {
+  width: 136px;
+  margin-left: -68px;
+}
+.gearbox-bar:nth-child(2) {
+  transform: rotate(60deg);
+}
+.gearbox-bar:nth-child(3) {
+  transform: rotate(120deg);
+}
+.gearbox-bar:nth-child(4) {
+  transform: rotate(90deg);
+}
+.gearbox-bar:nth-child(5) {
+  transform: rotate(30deg);
+}
+.gearbox-bar:nth-child(6) {
+  transform: rotate(150deg);
+}
+.gearbox-gear.one .gearbox-gear-inner,
+.gearbox-gear.three .gearbox-gear-inner,
+.gearbox-gear.four .gearbox-gear-inner {
+  animation: gearbox-counter 3s linear infinite;
+}
+.gearbox-gear.two .gearbox-gear-inner {
+  animation: gearbox-clockwise 3s linear infinite;
+}
+.gearbox-gear.four .gearbox-gear-inner {
+  animation-duration: 6s;
+}
+@keyframes gearbox-clockwise {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes gearbox-counter {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.ira-staff-badge {
+  width: 21.2px;
+  height: 21.2px;
+  flex: 0 0 21.2px;
+  object-fit: contain;
+}
+
+/* Every frame is a transparent, layered wearable: the live avatar stays
+   inside the frame opening while the artwork remains above it. Different
+   supplied PNGs have different opening geometry, so they get a small,
+   explicit fit profile rather than one inaccurate global inset. */
+/* Avatar Frame & PFP alignment: pfp fills the avatar window flush
+   with no awkward gap, while the wearable frame overlays seamlessly on top. */
+.qb-glossy-avatar {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qb-avatar-window {
+  z-index: 1;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 24%;
+  overflow: hidden;
+  background: #ffffff;
+}
+.dark .qb-avatar-window {
+  background: #1a1d24;
+}
+/* Glossy avatar window (for special frame effects only) */
+.qb-avatar-gloss {
+  background:
+    radial-gradient(circle at 32% 22%, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0) 42%),
+    linear-gradient(160deg, #f4f7fb 0%, #dde6ef 55%, #c9d6e3 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgb(20 28 38 / 0.1);
+}
+.qb-avatar-gloss::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.38), rgb(255 255 255 / 0) 38%);
+  z-index: 2;
+}
+.dark .qb-avatar-gloss {
+  background:
+    radial-gradient(circle at 32% 22%, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0) 42%),
+    linear-gradient(160deg, #262a32 0%, #1a1d24 55%, #121419 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.3);
+}
+
+.qb-avatar-frame {
+  z-index: 2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 128%;
+  height: 128%;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  pointer-events: none;
+}
+.qb-avatar-window.qb-frame-staff,
+.qb-avatar-window.qb-frame-star,
+.qb-avatar-window.qb-frame-bluegold {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 26%;
+}
+.qb-avatar-frame.qb-frame-staff {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -46%) !important;
+  width: 138% !important;
+  height: 138% !important;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+.qb-avatar-frame.qb-frame-star {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+  width: 134% !important;
+  height: 134% !important;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+.qb-avatar-frame.qb-frame-early-beta {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+  width: 130% !important;
+  height: 130% !important;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+/* ── Neutral grey gloss contract for Redeem and Events ─────────────────────
+   These pages intentionally share the same compact visual language as chat:
+   one cool-grey surface, one small highlight, and no colorful shadow effects. */
+.redeem-hero,
+.redeem-panel,
+.events-page .event-surface,
+.events-page .event-hero,
+.events-page .event-cta {
+  border: 1px solid rgba(20, 28, 38, 0.075) !important;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 242, 245, 0.92)) !important;
+  box-shadow:
+    0 7px 16px rgba(18, 28, 38, 0.065),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+}
+
+.redeem-hero {
+  min-height: 76px;
+  padding: 12px 13px;
+  overflow: hidden;
+  border-radius: 13px;
+}
+
+.redeem-panel {
+  box-shadow:
+    0 6px 14px rgba(18, 28, 38, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.redeem-icon,
+.redeem-option {
+  border: 1px solid rgba(20, 28, 38, 0.055);
+  box-shadow: none !important;
+}
+
+.redeem-page .settings-neutral-button,
+.redeem-page .liquid-search {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 3px 9px rgba(18, 28, 38, 0.045) !important;
+}
+
+.events-page {
+  background: #f5f6f7 !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dark .events-page {
+  background: #111317 !important;
+}
+
+.events-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  min-height: 48px;
+  padding: 5px 7px;
+}
+
+.events-header .liquid-button {
+  min-height: 32px;
+}
+
+.event-currency {
+  color: #4f5863;
+  border: 1px solid rgba(20, 28, 38, 0.055);
+  background: #eceef0 !important;
+  box-shadow: none !important;
+}
+
+.event-hero {
+  min-height: 96px !important;
+  padding: 13px 14px !important;
+}
+
+.event-hero h1,
+.event-hero h2,
+.event-hero p,
+.event-hero span {
+  color: #4f5863 !important;
+}
+
+.event-hero h1 {
+  color: #30353b !important;
+  font-size: 18px !important;
+}
+
+.event-hero [style*="background"] {
+  background: #eceef0 !important;
+  box-shadow: none !important;
+}
+
+.event-hero::after,
+.event-surface::after,
+.event-cta::after,
+.events-page .absolute[style*="background"] {
+  display: none !important;
+}
+
+.event-hero img,
+.event-icon-surface img,
+.event-surface img,
+.event-currency img {
+  filter: grayscale(0.7) opacity(0.72) !important;
+}
+
+.event-icon-surface {
+  border: 1px solid rgba(20, 28, 38, 0.055) !important;
+  background: #e9ecef !important;
+  box-shadow: none !important;
+}
+
+.event-progress {
+  background: #dfe3e7 !important;
+}
+
+.event-progress-fill {
+  background: #8b929d !important;
+  box-shadow: none !important;
+}
+
+.events-page .event-surface [style*="color"],
+.events-page .event-cta [style*="color"] {
+  color: #737982 !important;
+}
+
+.events-page .event-surface [style*="background"],
+.events-page .event-cta [style*="background"] {
+  background: #eceef0 !important;
+  box-shadow: none !important;
+}
+
+.events-page .event-surface,
+.events-page .event-cta {
+  border-radius: 13px !important;
+}
+
+/* Blocky Plaza keeps its in-world HUD translucent, but the inventory square
+   intentionally uses the same quiet grey gloss as Search and Redeem so it
+   reads as a reliable utility action instead of another game effect. */
+.bp-inventory-square {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #4f5863;
+  border: 1px solid rgba(20, 28, 38, 0.075);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 242, 245, 0.92));
+  box-shadow:
+    0 4px 10px rgba(18, 28, 38, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.bp-inventory-square::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 52%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), transparent);
+  z-index: -1;
+}
+
+.bp-inventory-square:active {
+  transform: scale(0.94);
+  box-shadow:
+    0 2px 6px rgba(18, 28, 38, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+@media (max-width: 430px) {
+  .bp-topbar > .flex {
+    gap: 4px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .bp-topbar-left {
+    gap: 3px !important;
+  }
+
+  .bp-topbar-left > a,
+  .bp-topbar-actions {
+    height: 36px !important;
+  }
+
+  .bp-topbar-left > a {
+    width: 36px !important;
+    border-radius: 11px !important;
+  }
+
+  .bp-topbar-actions {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+
+  .bp-topbar-actions > button {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+  }
+
+  .bp-topbar-title {
+    max-width: 112px;
+    padding-left: 7px !important;
+    padding-right: 7px !important;
+  }
+
+  .bp-topbar-title span:last-child {
+    display: none;
+  }
+
+  .bp-topbar-currencies {
+    gap: 3px !important;
+  }
+
+  .bp-topbar-currency {
+    height: 36px !important;
+    gap: 4px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    border-radius: 11px !important;
+  }
+
+  .bp-topbar-currency span {
+    font-size: 10px !important;
+  }
+}
+
+/* Entry buttons for Redeem and Events use the same compact grey gloss as
+   their destination headers. Keep these controls quiet: the route artwork
+   should not be repeated in the navigation surface. */
+.home-quick-action,
+.home-section-entry {
+  min-height: 58px !important;
+  height: 58px !important;
+  gap: 10px;
+  padding: 8px 12px !important;
+  border: 1px solid rgba(20, 28, 38, 0.085) !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 242, 245, 0.92)) !important;
+  box-shadow:
+    0 6px 14px rgba(18, 28, 38, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.home-quick-action:active,
+.home-section-entry:active {
+  box-shadow:
+    0 2px 7px rgba(18, 28, 38, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.home-quick-icon,
+.home-section-entry-icon {
+  display: grid;
+  place-items: center;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px;
+  border: 1px solid rgba(20, 28, 38, 0.08);
+  border-radius: 11px !important;
+  background: #e4e7eb !important;
+  color: #5d636e !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.home-quick-icon img,
+.home-section-entry-icon img {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+.home-quick-icon svg,
+.home-section-entry-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.home-quick-kicker {
+  color: #858a94 !important;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+
+.home-quick-title {
+  margin-top: 2px;
+  color: #374151 !important;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.home-section-entry-badge {
+  color: #5d636e;
+  border: 1px solid rgba(20, 28, 38, 0.07);
+  background: #e4e7eb;
+}
+
+/* ---------------------------------------------------------------------
+   Compact home + glossy outlined surfaces.
+   The "squircle" geometry is the app-wide replacement for pill/circle
+   shapes: a rectangle with a soft, consistent corner radius.
+   --------------------------------------------------------------------- */
+.qb-squircle {
+  border-radius: 14px;
+  border: 1px solid rgba(23, 24, 27, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 243, 247, 0.94));
+  box-shadow:
+    0 6px 16px rgba(23, 24, 27, 0.07),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+/* Last-played card: same glossy, outlined material as the profile tab
+   button in the bottom navigation, but rectangular and slim. */
+.qb-play-card {
+  border-radius: 18px;
+  color: #6b7280;
+  border: 1px solid rgba(23, 24, 27, 0.12);
+  background: linear-gradient(180deg, rgba(243, 245, 248, 0.96), rgba(228, 232, 238, 0.94));
+  box-shadow:
+    0 10px 24px rgba(23, 24, 27, 0.12),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.qb-play-card:active {
+  transform: scale(0.985);
+}
+
+.qb-play-thumb {
+  border-radius: 14px;
+  border: 1px solid rgba(23, 24, 27, 0.14);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(226, 231, 238, 0.96));
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.98),
+    0 4px 10px rgba(23, 24, 27, 0.1);
+}
+.qb-play-thumb-gloss {
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.62), transparent 42%);
+}
+
+.qb-play-cta {
+  border-radius: 12px;
+  color: #17181b;
+  border: 1px solid rgba(23, 24, 27, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(222, 228, 236, 0.96));
+  box-shadow:
+    0 6px 14px rgba(23, 24, 27, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+/* ---------------------------------------------------------------------
+   iOS Messages-style chat with a glossy finish.
+   --------------------------------------------------------------------- */
+.ios-chat-bubble {
+  position: relative;
+  isolation: isolate;
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border-radius: 18px !important;
+  padding: 10px 14px !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.ios-chat-bubble-me {
+  position: relative;
+  isolation: isolate;
+  background: #fa4616 !important;
+  color: #ffffff !important;
+  border-radius: 20px 20px 6px 20px !important;
+  padding: 10px 14px !important;
+  border: 1px solid rgba(217, 61, 16, 0.32) !important;
+}
+.ios-composer {
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 245, 248, 0.94));
+  border: 1px solid rgba(23, 24, 27, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 6px 18px rgba(18, 28, 38, 0.08);
+}
+
+/* ---------------------------------------------------------------------
+   Modern profile screen.
+   --------------------------------------------------------------------- */
+.profile-card {
+  border-radius: 18px;
+  border: 1px solid rgba(23, 24, 27, 0.09);
+  background: linear-gradient(180deg, #ffffff, #fbfbfc);
+  box-shadow:
+    0 8px 20px rgba(23, 24, 27, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  overflow: hidden;
+}
+.dark .profile-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #181a20, #131519);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+.profile-upgrade {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #2c2f36, #17181b);
+  color: #fff;
+  box-shadow:
+    0 12px 26px rgba(23, 24, 27, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.profile-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  text-align: left;
+  background: transparent;
+}
+.profile-list-row + .profile-list-row {
+  border-top: 1px solid rgba(23, 24, 27, 0.07);
+}
+.dark .profile-list-row + .profile-list-row {
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+.profile-list-row:active {
+  background: rgba(23, 24, 27, 0.035);
+}
+
+/* ---------------------------------------------------------------------
+   Extra "liquid glass" gloss: used by the Last played card on Home and
+   mirrored by the Discover menu so both surfaces read as the same material.
+   --------------------------------------------------------------------- */
+.qb-play-card--gloss {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.99),
+    rgba(232, 237, 244, 0.92) 52%,
+    rgba(214, 222, 232, 0.94)
+  );
+  box-shadow:
+    0 14px 30px rgba(23, 24, 27, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(26px) saturate(1.6);
+}
+.qb-play-card--gloss::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 55% 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.qb-play-thumb--gloss {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 6px 14px rgba(23, 24, 27, 0.18);
+}
+
+/* Discover menu: same glossy + blurred material as the Last played card. */
+.qb-glossy-menu {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(23, 24, 27, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(228, 234, 242, 0.9));
+  box-shadow:
+    0 14px 30px rgba(23, 24, 27, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  backdrop-filter: blur(26px) saturate(1.6);
+}
+.qb-glossy-menu::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 52% 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.qb-glossy-chip {
+  border: 1px solid rgba(23, 24, 27, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(233, 238, 245, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 3px 8px rgba(23, 24, 27, 0.1);
+}
+
+/* ---------------------------------------------------------------
+   Sandbox menu: 3D boxes loader (Uiverse.io by Nawsome, yellow)
+   --------------------------------------------------------------- */
+.boxes {
+  --size: 32px;
+  --duration: 800ms;
+  height: calc(var(--size) * 2);
+  width: calc(var(--size) * 3);
+  position: relative;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  margin-top: calc(var(--size) * 1.5 * -1);
+  transform: rotateX(60deg) rotateZ(45deg) rotateY(0deg) translateZ(0px);
+}
+
+.boxes .box {
+  width: var(--size);
+  height: var(--size);
+  top: 0;
+  left: 0;
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.boxes .box:nth-child(1) {
+  transform: translate(100%, 0);
+  animation: box1 var(--duration) linear infinite;
+}
+
+.boxes .box:nth-child(2) {
+  transform: translate(0, 100%);
+  animation: box2 var(--duration) linear infinite;
+}
+
+.boxes .box:nth-child(3) {
+  transform: translate(100%, 100%);
+  animation: box3 var(--duration) linear infinite;
+}
+
+.boxes .box:nth-child(4) {
+  transform: translate(200%, 0);
+  animation: box4 var(--duration) linear infinite;
+}
+
+.boxes .box > div {
+  --top: auto;
+  --right: auto;
+  --bottom: auto;
+  --left: auto;
+  --translateZ: calc(var(--size) / 2);
+  --rotateY: 0deg;
+  --rotateX: 0deg;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  top: var(--top);
+  right: var(--right);
+  bottom: var(--bottom);
+  left: var(--left);
+  transform: rotateY(var(--rotateY)) rotateX(var(--rotateX)) translateZ(var(--translateZ));
+}
+
+.boxes .box > div:nth-child(1) {
+  --top: 0;
+  --left: 0;
+}
+
+.boxes .box > div:nth-child(2) {
+  --background: rgba(200, 205, 215, 0.95);
+  --right: 0;
+  --rotateY: 90deg;
+}
+
+.boxes .box > div:nth-child(3) {
+  --background: rgba(240, 245, 250, 0.95);
+  --rotateX: -90deg;
+}
+
+.boxes .box > div:nth-child(4) {
+  --background: rgba(214, 222, 232, 0.5);
+  --top: 0;
+  --left: 0;
+  --translateZ: calc(var(--size) * 3 * -1);
+}
+
+@keyframes box1 {
+  0%,
+  50% {
+    transform: translate(100%, 0);
+  }
+  100% {
+    transform: translate(200%, 0);
+  }
+}
+
+@keyframes box2 {
+  0% {
+    transform: translate(0, 100%);
+  }
+  50% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(100%, 0);
+  }
+}
+
+@keyframes box3 {
+  0%,
+  50% {
+    transform: translate(100%, 100%);
+  }
+  100% {
+    transform: translate(0, 100%);
+  }
+}
+
+@keyframes box4 {
+  0% {
+    transform: translate(200%, 0);
+  }
+  50% {
+    transform: translate(200%, 100%);
+  }
+  100% {
+    transform: translate(100%, 100%);
+  }
+}
+
+/* Uiverse.io by bandirevanth — white variant */
+.custom-btn {
+  min-width: 130px;
+  height: 44px;
+  color: #16181d;
+  border-radius: 5px;
+  padding: 10px 25px;
+  font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.1),
+    4px 4px 5px 0px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.btn-white {
+  background: rgb(255, 255, 255);
+  background: linear-gradient(0deg, rgba(240, 240, 240, 1) 0%, rgba(255, 255, 255, 1) 100%);
+  border: none;
+}
+
+.btn-white:hover {
+  box-shadow:
+    4px 4px 6px 0 rgba(255, 255, 255, 0.5),
+    -4px -4px 6px 0 rgba(116, 125, 136, 0.5),
+    inset -4px -4px 6px 0 rgba(255, 255, 255, 0.2),
+    inset 4px 4px 6px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Final accent pass: flat orange actions with only a barely-there gloss. */
+.uiverse-button {
+  border: none;
+  background: linear-gradient(180deg, #fa4616, #e34413);
+  box-shadow: 0 2px 8px rgba(250, 70, 22, 0.16);
+  text-shadow: none;
+}
+
+.uiverse-button::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+}
+
+.uiverse-button::after {
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.03) 50%,
+    transparent 65%
+  );
+}
+
+.uiverse-button:hover {
+  filter: saturate(1.04) brightness(1.03);
+  box-shadow: 0 4px 12px rgba(250, 70, 22, 0.2);
+}
+
+.uiverse-button:active {
+  box-shadow: 0 1px 5px rgba(250, 70, 22, 0.14);
+}
+
+/* Truck Loader */
+.truck-loader {
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.truckWrapper {
+  width: 200px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  justify-content: flex-end;
+  overflow-x: hidden;
+}
+.truckBody {
+  width: 130px;
+  height: fit-content;
+  margin-bottom: 6px;
+  animation: motion 1s linear infinite;
+}
+.truckTires {
+  width: 130px;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 15px;
+  position: absolute;
+  bottom: 0;
+}
+.wheel {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #222;
+  border: 4px solid #666;
+  animation: wheel-spin 1s linear infinite;
+}
+.road {
+  width: 200%;
+  height: 4px;
+  background: #cbd5e1;
+  position: absolute;
+  bottom: -2px;
+  animation: motion 1s linear infinite;
+}
+.lampPost {
+  width: 6px;
+  height: 60px;
+  background: #94a3b8;
+  position: absolute;
+  right: -20px;
+  bottom: 0;
+  animation: lamp-pass 2s linear infinite;
+}
+@keyframes motion {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(3px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes wheel-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes lamp-pass {
+  0% { transform: translateX(200px); }
+  100% { transform: translateX(-300px); }
+}
+
+/* Words Loader */
+.text-card {
+  --bg-color: transparent;
+  background-color: var(--bg-color);
+  padding: 0.5rem 2rem;
+  border-radius: 1.25rem;
+}
+.text-loader {
+  color: var(--qb-yellow);
+  font-family: inherit;
+  box-sizing: content-box;
+  height: 30px;
+  padding: 10px 10px;
+  display: flex;
+  border-radius: 8px;
+}
+.words {
+  overflow: hidden;
+  position: relative;
+  height: 30px;
+}
+.words::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    var(--bg-color) 10%,
+    transparent 30%,
+    transparent 70%,
+    var(--bg-color) 90%
+  );
+  z-index: 20;
+}
+.word {
+  display: block;
+  height: 100%;
+  padding-left: 6px;
+  animation: spin_4991 2s infinite;
+}
+@keyframes spin_4991 {
+  10% { transform: translateY(-102%); }
+  25% { transform: translateY(-100%); }
+  35% { transform: translateY(-202%); }
+  50% { transform: translateY(-200%); }
+  60% { transform: translateY(-302%); }
+  75% { transform: translateY(-300%); }
+  85% { transform: translateY(-402%); }
+  100% { transform: translateY(-400%); }
+}
+
+/* Orange Text Loader */
+.text-card-orange {
+  --bg-color: #111;
+  background-color: var(--bg-color);
+  padding: 0.5rem 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.text-loader-orange {
+  color: #ff7a52;
+  font-family: inherit;
+  box-sizing: content-box;
+  height: 24px;
+  padding: 6px 6px;
+  display: flex;
+  border-radius: 8px;
+}
+.text-loader-orange .words {
+  overflow: hidden;
+  position: relative;
+  height: 24px;
+}
+.text-loader-orange .words::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    var(--bg-color) 10%,
+    transparent 30%,
+    transparent 70%,
+    var(--bg-color) 90%
+  );
+  z-index: 20;
+}
+.text-loader-orange .word {
+  display: block;
+  height: 100%;
+  padding-left: 6px;
+  animation: spin_4991 3s infinite;
+  font-size: 13px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+/* Glossy white small style outline and fill (matching Avatar cards) for game controls */
+.qb-control-gloss {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(243, 246, 250, 0.93) 50%,
+    rgba(225, 233, 243, 0.91) 100%
+  );
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(210, 220, 232, 0.5);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+
+.qb-control-gloss:hover {
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    rgba(248, 250, 253, 0.97) 50%,
+    rgba(235, 241, 248, 0.95) 100%
+  );
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.22),
+    inset 0 1px 0 #ffffff;
+}
+
+.qb-control-gloss:active {
+  transform: scale(0.92);
+  background: linear-gradient(
+    180deg,
+    rgba(232, 238, 246, 0.98) 0%,
+    rgba(215, 224, 235, 0.94) 100%
+  );
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.2),
+    inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.qb-control-gloss-active {
+  background: linear-gradient(
+    180deg,
+    #fff9e6 0%,
+    #ffecb3 50%,
+    #ffd54f 100%
+  );
+  border: 1.5px solid #ffffff;
+  box-shadow:
+    0 4px 16px rgba(245, 158, 11, 0.38),
+    inset 0 1px 1px #ffffff,
+    inset 0 -1px 0 rgba(217, 119, 6, 0.3);
+}
+
+.qb-control-gloss-blue-active {
+  background: linear-gradient(
+    180deg,
+    #e0f2fe 0%,
+    #bae6fd 50%,
+    #7dd3fc 100%
+  );
+  border: 1.5px solid #ffffff;
+  box-shadow:
+    0 4px 16px rgba(14, 165, 233, 0.38),
+    inset 0 1px 1px #ffffff;
 }

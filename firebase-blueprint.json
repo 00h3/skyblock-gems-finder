@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in QBlock",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "coins": { "type": "number" },
+        "gems": { "type": "number" }
+      },
+      "required": ["uid", "username"]
+    },
+    "GroupChat": {
+      "title": "GroupChat",
+      "description": "Discord-style community squad and group chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "goal": { "type": "string" },
+        "hype": { "type": "number" },
+        "hypeGoal": { "type": "number" },
+        "customPfpUrl": { "type": "string" },
+        "rules": { "type": "array" },
+        "iconId": { "type": "string" },
+        "gradient": { "type": "string" },
+        "iconName": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "members": { "type": "array" },
+        "memberCount": { "type": "number" },
+        "isPublic": { "type": "boolean" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "GroupMessage": {
+      "title": "GroupMessage",
+      "description": "Message within a group chat",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string" },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" }
+      },
+      "required": ["groupId", "senderUid", "text"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profiles"
+    },
+    "/groups/{groupId}": {
+      "schema": "GroupChat",
+      "description": "Stores group chats and communities"
+    },
+    "/groups/{groupId}/messages/{messageId}": {
+      "schema": "GroupMessage",
+      "description": "Stores messages for a group"
+    }
+  }
+}

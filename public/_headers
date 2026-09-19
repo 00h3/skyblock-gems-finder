@@ -1,0 +1,7 @@
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+
+/*.glb
+  Content-Type: model/gltf-binary
+  Access-Control-Allow-Origin: *
