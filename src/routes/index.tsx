@@ -64,8 +64,16 @@ import { FirstTimeSectionLoader } from "@/components/ui/FirstTimeSectionLoader";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Ladybug — Home" },
-      { name: "description", content: "Play, connect, and create." },
+      { title: "QBLOCK V2" },
+      {
+        name: "description",
+        content: "QBLOCK V2 — modern 3D avatar customization and sandbox game platform.",
+      },
+      { property: "og:title", content: "QBLOCK V2" },
+      {
+        property: "og:description",
+        content: "QBLOCK V2 — modern 3D avatar customization and sandbox game platform.",
+      },
     ],
   }),
   component: () => (

@@ -42,6 +42,8 @@ export class Player {
   onGround = false;
   bob = 0;
   isCrouching = false;
+  isDying = false;
+  onDie?: () => void;
   private coyote = 0;
   private jumpBuffer = 0;
 
@@ -60,6 +62,7 @@ export class Player {
   }
 
   respawn(customSpawn?: THREE.Vector3 | number) {
+    this.isDying = false;
     if (customSpawn instanceof THREE.Vector3) {
       this.position.copy(customSpawn);
     } else if (typeof customSpawn === "number") {
@@ -74,6 +77,14 @@ export class Player {
   }
 
   update(dt: number, input: MoveInput) {
+    if (this.isDying) {
+      this.velocity.x *= Math.exp(-6 * dt);
+      this.velocity.z *= Math.exp(-6 * dt);
+      this.velocity.y = Math.max(-1.5, this.velocity.y - 2 * dt);
+      this.position.y += this.velocity.y * dt;
+      return;
+    }
+
     this.isCrouching = Boolean(input.crouch);
     const speed = input.crouch ? CROUCH : input.sprint ? SPRINT : WALK;
 
@@ -121,6 +132,15 @@ export class Player {
       this.onGround = false;
     }
 
+    if (this.isDying) {
+      // Float gently and damp horizontal movement during angel death animation
+      this.velocity.x *= Math.exp(-8 * dt);
+      this.velocity.z *= Math.exp(-8 * dt);
+      this.velocity.y = 0.25;
+      this.moveAxis(1, this.velocity.y * dt);
+      return;
+    }
+
     this.velocity.y -= GRAVITY * dt;
     if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
 
@@ -128,10 +148,16 @@ export class Player {
     this.moveAxis(1, this.velocity.y * dt);
     this.moveAxis(2, this.velocity.z * dt);
 
-    // Instantaneous safe respawn on solid ground when falling into the void
+    // Safe respawn with angel death sequence when falling into the void
     const voidY = Math.min(this.spawnPoint.y - 18, -4);
-    if (this.position.y < voidY) {
-      this.respawn();
+    if (this.position.y < voidY && !this.isDying) {
+      if (this.onDie) {
+        this.isDying = true;
+        this.velocity.set(0, 0.4, 0);
+        this.onDie();
+      } else {
+        this.respawn();
+      }
     }
 
     // head bob

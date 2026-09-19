@@ -57,11 +57,13 @@ import grandMiningArea from "../assets/skyblock-grand-mining-area.json";
 import skyblockMenuIcon from "../assets/ui/home.svg?url";
 import skyblockBoxIcon from "../assets/ui/discover.svg?url";
 const magicSwordUrl = "https://file.garden/alGOOylwpAfCa6qP/biblically_accurate_sword.glb";
-const skyblockNedModelUrl =
-  "https://maxwell.z3ki.dev/bot/_files/avatar-walk-legs-glb/Avatar_Walk_LegsOnly.glb";
+const skyblockUniversalModelUrl = "/avatar_boy_all_anims.glb";
+const skyblockUniversalModelRemoteUrl =
+  "https://file.garden/alGOOylwpAfCa6qP/avatar_boy_all_anims.glb";
+const skyblockNedModelUrl = skyblockUniversalModelUrl;
 const skyblockNellyModelUrl =
   "https://maxwell.z3ki.dev/bot/_files/female-walk-legs-glb/Female_Walk_LegsOnly.glb";
-const skyblockQblockModelUrl = skyblockNedModelUrl;
+const skyblockQblockModelUrl = skyblockUniversalModelUrl;
 import escapeBackroomsUrl from "../assets/imported/wing_379_1786180191578.glb?url";
 import escapeScpUrl from "../assets/imported/wing_379_1786180191578.glb?url";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
@@ -195,7 +197,7 @@ function getCleanName(user: any): string {
 }
 
 export const Route = createFileRoute("/game/$id")({
-  head: () => ({ meta: [{ title: "World — Ladybug" }] }),
+  head: () => ({ meta: [{ title: "World — QBLOCK" }] }),
   component: GamePage,
 });
 
@@ -1918,8 +1920,10 @@ function EngineGame({
   };
 
   // Camera mode: first-person (default), third-person orbit, or top-down
-  const [camMode, setCamMode] = useState<"first" | "third" | "top">("first");
-  const camModeRef = useRef<"first" | "third" | "top">("first");
+  const [camMode, setCamMode] = useState<"first" | "third" | "top">(() =>
+    isSkyblock || isBlockFall ? "third" : "first"
+  );
+  const camModeRef = useRef<"first" | "third" | "top">(isSkyblock || isBlockFall ? "third" : "first");
   camModeRef.current = camMode;
   const cycleCamMode = () =>
     setCamMode((m) => (m === "first" ? "third" : m === "third" ? "top" : "first"));
@@ -6715,10 +6719,49 @@ function EngineGame({
       playerAvatar.root.position.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
       // Use the chosen character model in Skyblock:
       // If Nelly is selected (or female) -> Female_Walk_LegsOnly.glb
-      // If Ned is selected -> Avatar_Walk_LegsOnly.glb
-      // If no selection was made -> defaults to Ned (Avatar_Walk_LegsOnly.glb), replacing the previous model
+      // Universal character model in Skyblock:
       let skyblockQblockModel: THREE.Group | null = null;
       let skyblockQblockMixer: THREE.AnimationMixer | null = null;
+      let skyblockBreatheAction: THREE.AnimationAction | null = null;
+      let skyblockWalkAction: THREE.AnimationAction | null = null;
+      let skyblockJumpAction: THREE.AnimationAction | null = null;
+      let skyblockClimbAction: THREE.AnimationAction | null = null;
+      let skyblockDieAction: THREE.AnimationAction | null = null;
+      let skyblockIsDying = false;
+      let skyblockDeathTimer: number | null = null;
+
+      function triggerSkyblockDeath(afterDeath?: () => void) {
+        if (skyblockIsDying) return;
+        skyblockIsDying = true;
+        playerVel.set(0, 0.4, 0);
+
+        if (skyblockDieAction) {
+          if (skyblockBreatheAction) skyblockBreatheAction.setEffectiveWeight(0);
+          if (skyblockWalkAction) skyblockWalkAction.setEffectiveWeight(0);
+          if (skyblockJumpAction) skyblockJumpAction.setEffectiveWeight(0);
+          if (skyblockClimbAction) skyblockClimbAction.setEffectiveWeight(0);
+
+          skyblockDieAction.reset();
+          skyblockDieAction.setEffectiveWeight(1);
+          skyblockDieAction.play();
+
+          const dur = (skyblockDieAction.getClip().duration || 1.5) * 1000;
+          if (skyblockDeathTimer !== null) clearTimeout(skyblockDeathTimer);
+          skyblockDeathTimer = window.setTimeout(() => {
+            skyblockDeathTimer = null;
+            if (afterDeath) afterDeath();
+            else respawn();
+          }, dur + 60);
+        } else {
+          if (skyblockDeathTimer !== null) clearTimeout(skyblockDeathTimer);
+          skyblockDeathTimer = window.setTimeout(() => {
+            skyblockDeathTimer = null;
+            if (afterDeath) afterDeath();
+            else respawn();
+          }, 1200);
+        }
+      }
+
       {
         const isNelly =
           profileAvatar?.selectedCharacter === "char2" ||
@@ -6731,61 +6774,128 @@ function EngineGame({
              localStorage.getItem("bm-character-preset") === "nelly" ||
              localStorage.getItem("bm-gender") === "female"));
 
-        const modelToLoad = isNelly ? skyblockNellyModelUrl : skyblockNedModelUrl;
+        const modelToLoad = isNelly ? skyblockNellyModelUrl : skyblockUniversalModelUrl;
 
-        new GLTFLoader().load(
-          modelToLoad,
-          (gltf) => {
-            if (disposed) return;
-            const model = skeletonClone(gltf.scene) as THREE.Group;
-            const headGroup = model.getObjectByName("Head");
-            const torsoGroup = model.getObjectByName("TORSO/PANCIA_0");
-            if (headGroup && torsoGroup) {
-              model.updateWorldMatrix(true, true);
-              const headBounds = new THREE.Box3().setFromObject(headGroup);
-              const torsoBounds = new THREE.Box3().setFromObject(torsoGroup);
-              const gap = headBounds.min.y - torsoBounds.max.y;
-              if (gap > 0.05) headGroup.position.y -= gap - 0.02;
-            }
-            const bounds = new THREE.Box3().setFromObject(model);
-            const size = bounds.getSize(new THREE.Vector3());
-            const targetHeight = 5;
-            model.scale.setScalar(targetHeight / Math.max(size.y, 0.001));
-            const scaledBounds = new THREE.Box3().setFromObject(model);
-            model.position.y -= scaledBounds.min.y;
-            model.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
-            model.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
-            model.traverse((object) => {
-              const mesh = object as THREE.Mesh;
-              if (!mesh.isMesh) return;
-              mesh.castShadow = true;
-              mesh.receiveShadow = true;
-              mesh.frustumCulled = false;
-              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-              mesh.material = materials.map((material) => material.clone());
+        const onModelLoaded = (gltf: any) => {
+          if (disposed) return;
+          const model = skeletonClone(gltf.scene) as THREE.Group;
+          const headGroup = model.getObjectByName("Head");
+          const torsoGroup = model.getObjectByName("TORSO/PANCIA_0");
+          if (headGroup && torsoGroup) {
+            model.updateWorldMatrix(true, true);
+            const headBounds = new THREE.Box3().setFromObject(headGroup);
+            const torsoBounds = new THREE.Box3().setFromObject(torsoGroup);
+            const gap = headBounds.min.y - torsoBounds.max.y;
+            if (gap > 0.05) headGroup.position.y -= gap - 0.02;
+          }
+          const bounds = new THREE.Box3().setFromObject(model);
+          const size = bounds.getSize(new THREE.Vector3());
+          const targetHeight = 1.95;
+          model.scale.setScalar(targetHeight / Math.max(size.y, 0.001));
+          const scaledBounds = new THREE.Box3().setFromObject(model);
+          model.position.y -= scaledBounds.min.y;
+          model.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
+          model.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
+          model.traverse((object) => {
+            const mesh = object as THREE.Mesh;
+            if (!mesh.isMesh) return;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.frustumCulled = false;
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            mesh.material = materials.map((material) => {
+              const mat = material.clone();
+              if ("roughness" in mat) mat.roughness = 0.95;
+              if ("metalness" in mat) mat.metalness = 0;
+              return mat;
             });
-            playerAvatar.root.add(model);
-            skyblockQblockModel = model;
-            if (gltf.animations && gltf.animations.length > 0) {
-              skyblockQblockMixer = new THREE.AnimationMixer(model);
-              gltf.animations.forEach((anim) => {
-                const action = skyblockQblockMixer!.clipAction(anim);
+          });
+          playerAvatar.root.add(model);
+          skyblockQblockModel = model;
+
+          if (gltf.animations && gltf.animations.length > 0) {
+            skyblockQblockMixer = new THREE.AnimationMixer(model);
+            for (const anim of gltf.animations) {
+              const name = anim.name.toLowerCase();
+              const action = skyblockQblockMixer.clipAction(anim);
+              if (name.includes("die") || name.includes("death")) {
+                action.setLoop(THREE.LoopOnce, 1);
+                action.clampWhenFinished = true;
+                skyblockDieAction = action;
+              } else if (name.includes("jump") || name.includes("air")) {
                 action.setLoop(THREE.LoopRepeat, Infinity);
-                action.clampWhenFinished = false;
-                action.enabled = true;
-                action.play();
-              });
+                skyblockJumpAction = action;
+              } else if (name.includes("climb")) {
+                action.setLoop(THREE.LoopRepeat, Infinity);
+                skyblockClimbAction = action;
+              } else if (name.includes("walk") || name.includes("run")) {
+                action.setLoop(THREE.LoopRepeat, Infinity);
+                skyblockWalkAction = action;
+              } else if (name.includes("breathe") || name.includes("idle")) {
+                action.setLoop(THREE.LoopRepeat, Infinity);
+                skyblockBreatheAction = action;
+              }
             }
-            // The GLB is now authoritative for the player; the procedural rig
-            // remains hidden underneath as a no-network fallback.
-            playerAvatar.root.children
-              .filter((child) => child !== model)
-              .forEach((child) => {
-                child.visible = false;
-              });
-          },
+
+            if (!skyblockWalkAction && gltf.animations[0]) {
+              skyblockWalkAction = skyblockQblockMixer.clipAction(gltf.animations[0]);
+              skyblockWalkAction.setLoop(THREE.LoopRepeat, Infinity);
+            }
+
+            if (skyblockBreatheAction) {
+              skyblockBreatheAction.play();
+              skyblockBreatheAction.setEffectiveWeight(1);
+            }
+            if (skyblockWalkAction) {
+              skyblockWalkAction.play();
+              skyblockWalkAction.setEffectiveWeight(0);
+            }
+            if (skyblockJumpAction) {
+              skyblockJumpAction.play();
+              skyblockJumpAction.setEffectiveWeight(0);
+            }
+            if (skyblockClimbAction) {
+              skyblockClimbAction.play();
+              skyblockClimbAction.setEffectiveWeight(0);
+            }
+            if (skyblockDieAction) {
+              skyblockDieAction.setEffectiveWeight(0);
+            }
+
+            skyblockQblockMixer.addEventListener("finished", (e: any) => {
+              if (skyblockDieAction && e.action === skyblockDieAction) {
+                if (skyblockDeathTimer !== null) {
+                  clearTimeout(skyblockDeathTimer);
+                  skyblockDeathTimer = null;
+                }
+                skyblockIsDying = false;
+                respawn();
+              }
+            });
+          }
+
+          // The GLB is now authoritative for the player; the procedural rig
+          // remains hidden underneath as a no-network fallback.
+          playerAvatar.root.children
+            .filter((child) => child !== model)
+            .forEach((child) => {
+              child.visible = false;
+            });
+        };
+
+        const loader = new GLTFLoader();
+        loader.load(
+          modelToLoad,
+          onModelLoaded,
           undefined,
-          (error) => console.warn("Skyblock character model unavailable", error),
+          () => {
+            loader.load(
+              skyblockUniversalModelRemoteUrl,
+              onModelLoaded,
+              undefined,
+              (error) => console.warn("Skyblock character model unavailable", error),
+            );
+          },
         );
       }
       const playerVel = new THREE.Vector3();
@@ -6987,6 +7097,22 @@ function EngineGame({
 
       let curHp = 20;
       function respawn() {
+        skyblockIsDying = false;
+        if (skyblockDeathTimer !== null) {
+          clearTimeout(skyblockDeathTimer);
+          skyblockDeathTimer = null;
+        }
+        if (skyblockDieAction) {
+          skyblockDieAction.stop();
+          skyblockDieAction.setEffectiveWeight(0);
+        }
+        if (skyblockBreatheAction) {
+          skyblockBreatheAction.reset();
+          skyblockBreatheAction.setEffectiveWeight(1);
+          skyblockBreatheAction.play();
+        }
+        if (skyblockWalkAction) skyblockWalkAction.setEffectiveWeight(0);
+        if (skyblockJumpAction) skyblockJumpAction.setEffectiveWeight(0);
         playerPos.copy(spawnPoint);
         playerVel.set(0, 0, 0);
         curHp = 20;
@@ -8873,14 +8999,54 @@ function EngineGame({
             // Skyblock's mine is intentionally far below the island. Keep its
             // lower cavern reachable; only respawn after falling well below both
             // the island and the mine.
-            if (playerPos.y < (isSkyblock ? -225 : -20)) respawn();
+            if (playerPos.y < (isSkyblock ? -225 : -20)) {
+              if (!skyblockIsDying) triggerSkyblockDeath();
+            }
           }
         } // end fly else
 
-        const moving = move.lengthSq() > 0 && onGround;
+        if (skyblockIsDying) {
+          playerVel.x *= Math.exp(-6 * dt);
+          playerVel.z *= Math.exp(-6 * dt);
+          playerVel.y = Math.max(-1.5, playerVel.y - 2 * dt);
+          playerPos.y += playerVel.y * dt;
+        }
+
+        const moving = move.lengthSq() > 0 && onGround && !skyblockIsDying;
+        const inAir = (!onGround || Math.abs(playerVel.y) > 2.0) && !skyblockIsDying;
+
+        if (skyblockQblockMixer && !skyblockIsDying) {
+          let targetWalk = 0;
+          let targetBreathe = 0;
+          let targetJump = 0;
+
+          if (inAir && skyblockJumpAction) {
+            targetJump = 1;
+          } else if (moving && skyblockWalkAction) {
+            targetWalk = 1;
+          } else {
+            targetBreathe = 1;
+          }
+
+          const blendFactor = 1 - Math.exp(-14 * dt);
+
+          if (skyblockWalkAction) {
+            const w = THREE.MathUtils.lerp(skyblockWalkAction.getEffectiveWeight(), targetWalk, blendFactor);
+            skyblockWalkAction.setEffectiveWeight(w);
+            skyblockWalkAction.setEffectiveTimeScale(isSprinting ? 1.45 : 1.0);
+          }
+          if (skyblockBreatheAction) {
+            const w = THREE.MathUtils.lerp(skyblockBreatheAction.getEffectiveWeight(), targetBreathe, blendFactor);
+            skyblockBreatheAction.setEffectiveWeight(w);
+          }
+          if (skyblockJumpAction) {
+            const w = THREE.MathUtils.lerp(skyblockJumpAction.getEffectiveWeight(), targetJump, blendFactor);
+            skyblockJumpAction.setEffectiveWeight(w);
+          }
+        }
         skyblockQblockMixer?.update(dt * (isSprinting ? 1.35 : 1.0));
         playerAvatar.root.visible = camModeRef.current === "third";
-        playerAvatar.root.position.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
+        playerAvatar.root.position.set(playerPos.x, playerPos.y, playerPos.z);
         if (moving) {
           playerAvatar.root.rotation.y = Math.atan2(move.x, move.z);
           // Lean forward slightly when sprinting for athletic posture

@@ -1422,6 +1422,18 @@ export function SandboxGame({
       scene.add(highlight);
 
       const player = new Player(world);
+      player.onDie = () => {
+        if (avatar?.loaded) {
+          avatar.triggerDeath(() => {
+            player.respawn();
+            avatar.resetDeath();
+          });
+        } else {
+          setTimeout(() => {
+            player.respawn();
+          }, 1500);
+        }
+      };
       if (blockFall) {
         player.setSpawnPoint(0.5, 37.8, 0.5);
         player.respawn();
@@ -1585,11 +1597,13 @@ export function SandboxGame({
 
       // third-person QBLOCK character (bigger, Roblox-style presence)
       avatar = new Avatar();
+      scene.add(avatar.group);
+      avatar.setVisible(thirdRef.current);
       avatar.load(1.95).then(() => {
         if (disposed || !avatar) return;
-        scene.add(avatar.group);
-        avatar.setVisible(thirdRef.current);
         setAvatarReady(true);
+      }).catch((err) => {
+        console.warn("Avatar model load notice:", err);
       });
       // ── Multiplayer: real players, shared world, name tags, chat bubbles ──
       remotes = new RemotePlayers(scene);
@@ -1849,7 +1863,10 @@ export function SandboxGame({
       };
       window.addEventListener("resize", onResize);
 
-      const onRespawn = () => player.respawn();
+      const onRespawn = () => {
+        player.respawn();
+        avatar?.resetDeath();
+      };
       window.addEventListener("qb-menu-respawn", onRespawn);
 
       // ── Block Fall State & Bot Runners ───────────────────────────────────
@@ -1862,6 +1879,7 @@ export function SandboxGame({
           crumblingBlocks.clear();
           player.setSpawnPoint(0.5, 37.8, 0.5);
           player.respawn();
+          avatar?.resetDeath();
           setSurvivalTime(0);
           setCurrentLevel(1);
           setDeepestFloor(1);
@@ -2036,6 +2054,14 @@ export function SandboxGame({
               setBlockFallState("eliminated");
               BmgoAudio.playDefeat();
               BmgoAudio.stopBgm();
+              if (avatar?.loaded) {
+                avatar.triggerDeath(() => {
+                  player.respawn();
+                  avatar.resetDeath();
+                });
+              } else {
+                player.respawn();
+              }
             }
           }
         }
