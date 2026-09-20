@@ -47,8 +47,11 @@ export class Avatar {
   private deathTimer: number | null = null;
 
   constructor() {
-    // Build an instant procedural rig so the character is NEVER invisible while loading
+    // Build procedural rig as an emergency fallback, but keep it hidden unless GLB fails
     this.buildProceduralRig();
+    if (this.proceduralRig) {
+      this.proceduralRig.visible = false;
+    }
   }
 
   private buildProceduralRig() {
@@ -121,15 +124,15 @@ export class Avatar {
     this.group.add(rig);
   }
 
-  async load(targetHeight = 1.95) {
+  async load(targetHeight = 2.28) {
     const loader = new GLTFLoader();
 
-    // Priority candidates
+    // Priority candidates: Local Avatar_Walk_LegsOnly.glb first, then remote file.garden link
     const candidates = [
-      SANDBOX_AVATAR_MODEL, // "/avatar_boy_all_anims.glb"
-      typeof window !== "undefined" ? `${window.location.origin}${SANDBOX_AVATAR_MODEL}` : "",
-      SANDBOX_AVATAR_FALLBACK_MODEL, // "https://file.garden/alGOOylwpAfCa6qP/avatar_boy_all_anims.glb"
-      "/ned.glb",
+      "/Avatar_Walk_LegsOnly.glb",
+      "https://file.garden/alGOOylwpAfCa6qP/Avatar_Walk_LegsOnly.glb",
+      SANDBOX_AVATAR_MODEL,
+      SANDBOX_AVATAR_FALLBACK_MODEL,
     ].filter(Boolean);
 
     let gltf: any = null;
@@ -143,7 +146,8 @@ export class Avatar {
     }
 
     if (!gltf || !gltf.scene) {
-      console.warn("Universal GLB model could not be loaded; using procedural avatar rig.");
+      console.warn("Universal GLB model could not be loaded; enabling fallback procedural avatar rig.");
+      if (this.proceduralRig) this.proceduralRig.visible = true;
       return this;
     }
 
@@ -165,16 +169,26 @@ export class Avatar {
         if (mat.map) {
           mat.map.colorSpace = THREE.SRGBColorSpace;
           mat.map.anisotropy = 8;
+          mat.map.magFilter = THREE.LinearFilter;
+          mat.map.minFilter = THREE.LinearMipmapLinearFilter;
+          mat.map.generateMipmaps = true;
+          mat.map.needsUpdate = true;
         }
-        if (mat.emissiveMap) mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-        if ("emissive" in mat && mat.emissive && typeof (mat.emissive as any).setRGB === "function") {
-          mat.emissive.setRGB(0, 0, 0);
+        if (mat.emissiveMap) {
+          mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+          mat.emissiveMap.magFilter = THREE.LinearFilter;
+          mat.emissiveMap.minFilter = THREE.LinearMipmapLinearFilter;
+          mat.emissiveMap.needsUpdate = true;
         }
-        if ("emissiveIntensity" in mat) mat.emissiveIntensity = 0;
-        if ("envMapIntensity" in mat) mat.envMapIntensity = 0.1;
-        if ("toneMapped" in mat) mat.toneMapped = true;
-        if ("roughness" in mat) mat.roughness = 0.95;
-        if ("metalness" in mat) mat.metalness = 0;
+        if ("roughness" in mat) {
+          mat.roughness = THREE.MathUtils.clamp(mat.roughness ?? 0.6, 0.2, 0.85);
+        }
+        if ("metalness" in mat) {
+          mat.metalness = THREE.MathUtils.clamp(mat.metalness ?? 0.1, 0, 0.35);
+        }
+        if ("envMapIntensity" in mat) {
+          mat.envMapIntensity = 0.8;
+        }
         mat.needsUpdate = true;
       }
     });
@@ -235,14 +249,19 @@ export class Avatar {
         this.animActions.walk.setLoop(THREE.LoopRepeat, Infinity);
       }
 
-      // Initial playback weights: default to idle breathing
+      // Automatically start the character's walking animation
+      if (this.animActions.walk) {
+        this.animActions.walk.reset();
+        this.animActions.walk.setLoop(THREE.LoopRepeat, Infinity);
+        this.animActions.walk.setEffectiveWeight(1);
+        this.animActions.walk.setEffectiveTimeScale(1.0);
+        this.animActions.walk.play();
+      }
+
+      // Initial playback weights: ensure walk animation is active and started
       if (this.animActions.breathe) {
         this.animActions.breathe.play();
-        this.animActions.breathe.setEffectiveWeight(1);
-      }
-      if (this.animActions.walk) {
-        this.animActions.walk.play();
-        this.animActions.walk.setEffectiveWeight(0);
+        this.animActions.breathe.setEffectiveWeight(this.animActions.walk ? 0.2 : 1);
       }
       if (this.animActions.jump) {
         this.animActions.jump.play();
@@ -375,7 +394,7 @@ export class Avatar {
     const moving = speed > 0.35 && onGround;
     const inAir = !onGround || Math.abs(verticalVelocity) > 2.0;
 
-    let targetWalk = 0;
+    let targetWalk = 1; // Automatically keep walking animation active
     let targetBreathe = 0;
     let targetJump = 0;
     let targetClimb = 0;
@@ -384,10 +403,12 @@ export class Avatar {
       targetClimb = 1;
     } else if (inAir && this.animActions.jump) {
       targetJump = 1;
+      targetWalk = 0.4;
     } else if (moving && this.animActions.walk) {
       targetWalk = 1;
     } else {
-      targetBreathe = 1;
+      targetWalk = 1;
+      targetBreathe = 0.2;
     }
 
     const blendFactor = 1 - Math.exp(-14 * dt);
@@ -398,8 +419,12 @@ export class Avatar {
         targetWalk,
         blendFactor,
       );
-      this.animActions.walk.setEffectiveWeight(w);
-      this.animActions.walk.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / 4.3, 0.6, 2.0));
+      this.animActions.walk.setEffectiveWeight(Math.max(0.9, w));
+      const targetTimeScale = sneaking ? 0.65 : speed > 5 ? 1.55 : 1.0;
+      this.animActions.walk.setEffectiveTimeScale(targetTimeScale);
+      if (!this.animActions.walk.isRunning()) {
+        this.animActions.walk.play();
+      }
     }
 
     if (this.animActions.breathe) {
@@ -442,23 +467,18 @@ export class Avatar {
       if (this.procParts.torso) this.procParts.torso.position.y = 1.05 + breathe;
       if (this.procParts.head) this.procParts.head.position.y = 1.62 + breathe;
 
-      if (moving) {
-        this.walkCycle += dt * (speed * 2.5);
-        const legSwing = Math.sin(this.walkCycle) * 0.6;
+      this.walkCycle += dt * (moving ? Math.max(speed * 2.5, 3.5) : 3.5);
+      const legSwing = Math.sin(this.walkCycle) * 0.6;
+      if (inAir) {
+        if (this.procParts.leftArm) this.procParts.leftArm.rotation.x = -1.2;
+        if (this.procParts.rightArm) this.procParts.rightArm.rotation.x = -1.2;
+        if (this.procParts.leftLeg) this.procParts.leftLeg.rotation.x = 0.3 + legSwing * 0.3;
+        if (this.procParts.rightLeg) this.procParts.rightLeg.rotation.x = -0.3 - legSwing * 0.3;
+      } else {
         if (this.procParts.leftLeg) this.procParts.leftLeg.rotation.x = legSwing;
         if (this.procParts.rightLeg) this.procParts.rightLeg.rotation.x = -legSwing;
         if (this.procParts.leftArm) this.procParts.leftArm.rotation.x = -legSwing;
         if (this.procParts.rightArm) this.procParts.rightArm.rotation.x = legSwing;
-      } else if (inAir) {
-        if (this.procParts.leftArm) this.procParts.leftArm.rotation.x = -1.2;
-        if (this.procParts.rightArm) this.procParts.rightArm.rotation.x = -1.2;
-        if (this.procParts.leftLeg) this.procParts.leftLeg.rotation.x = 0.3;
-        if (this.procParts.rightLeg) this.procParts.rightLeg.rotation.x = -0.3;
-      } else {
-        if (this.procParts.leftLeg) this.procParts.leftLeg.rotation.x = 0;
-        if (this.procParts.rightLeg) this.procParts.rightLeg.rotation.x = 0;
-        if (this.procParts.leftArm) this.procParts.leftArm.rotation.x = 0;
-        if (this.procParts.rightArm) this.procParts.rightArm.rotation.x = 0;
       }
     }
 

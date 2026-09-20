@@ -70,15 +70,15 @@ export class Sky {
     this.group.add(dome);
 
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 1024;
-    this.sunLight.shadow.mapSize.height = 1024;
+    this.sunLight.shadow.mapSize.width = 1536;
+    this.sunLight.shadow.mapSize.height = 1536;
     this.sunLight.shadow.camera.near = 5;
-    this.sunLight.shadow.camera.far = 350;
-    this.sunLight.shadow.camera.left = -80;
-    this.sunLight.shadow.camera.right = 80;
-    this.sunLight.shadow.camera.top = 80;
-    this.sunLight.shadow.camera.bottom = -80;
-    this.sunLight.shadow.bias = -0.0005;
+    this.sunLight.shadow.camera.far = 180;
+    this.sunLight.shadow.camera.left = -45;
+    this.sunLight.shadow.camera.right = 45;
+    this.sunLight.shadow.camera.top = 45;
+    this.sunLight.shadow.camera.bottom = -45;
+    this.sunLight.shadow.bias = -0.0003;
     this.sunLight.shadow.normalBias = 0.02;
 
     this.group.add(this.sunLight);

@@ -207,7 +207,7 @@ function ProfilePage() {
   };
 
   return (
-    <MobileShell>
+    <MobileShell hideNav>
       <AnimatePresence mode="wait" initial={false}>
         {/* 1. EDIT PROFILE VIEW */}
         {activeScreen === "edit_profile" && (
@@ -353,10 +353,11 @@ function ProfilePage() {
               <button
                 type="button"
                 onClick={() => nav({ to: "/" as never })}
-                className="press grid h-10 w-10 place-items-center rounded-[14px] bg-gradient-to-b from-[rgba(243,245,248,0.96)] to-[rgba(228,232,238,0.94)] dark:from-[rgba(33,35,41,0.96)] dark:to-[rgba(24,26,31,0.94)] border border-black/[0.12] dark:border-white/[0.12] text-[#17191d] dark:text-white shadow-[0_4px_12px_rgba(23,24,27,0.08),inset_1px_1px_0_rgba(255,255,255,0.98)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3),inset_1px_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px] transition-all"
-                aria-label="Back"
+                className="press flex items-center gap-1.5 px-3 py-2 rounded-[14px] bg-gradient-to-b from-[rgba(243,245,248,0.96)] to-[rgba(228,232,238,0.94)] dark:from-[rgba(33,35,41,0.96)] dark:to-[rgba(24,26,31,0.94)] border border-black/[0.12] dark:border-white/[0.12] text-[#17191d] dark:text-white shadow-[0_4px_12px_rgba(23,24,27,0.08),inset_1px_1px_0_rgba(255,255,255,0.98)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3),inset_1px_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px] transition-all font-bold text-[13px] cursor-pointer"
+                aria-label="Go Back"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
+                <span>Go Back</span>
               </button>
 
               <h1 className="text-[17.5px] font-black text-[#17191d] dark:text-white tracking-tight">
@@ -364,7 +365,7 @@ function ProfilePage() {
               </h1>
 
               {/* Spacer for centered alignment */}
-              <div className="w-10" />
+              <div className="w-16" />
             </header>
 
             {/* Identity Card: Tapping avatar opens Edit Avatar (Frames), tapping row opens Profile */}

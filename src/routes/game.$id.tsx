@@ -57,12 +57,12 @@ import grandMiningArea from "../assets/skyblock-grand-mining-area.json";
 import skyblockMenuIcon from "../assets/ui/home.svg?url";
 import skyblockBoxIcon from "../assets/ui/discover.svg?url";
 const magicSwordUrl = "https://file.garden/alGOOylwpAfCa6qP/biblically_accurate_sword.glb";
-const skyblockUniversalModelUrl = "/avatar_boy_all_anims.glb";
+const skyblockUniversalModelUrl =
+  "/Avatar_Walk_LegsOnly.glb";
 const skyblockUniversalModelRemoteUrl =
-  "https://file.garden/alGOOylwpAfCa6qP/avatar_boy_all_anims.glb";
+  "https://file.garden/alGOOylwpAfCa6qP/Avatar_Walk_LegsOnly.glb";
 const skyblockNedModelUrl = skyblockUniversalModelUrl;
-const skyblockNellyModelUrl =
-  "https://maxwell.z3ki.dev/bot/_files/female-walk-legs-glb/Female_Walk_LegsOnly.glb";
+const skyblockNellyModelUrl = skyblockUniversalModelUrl;
 const skyblockQblockModelUrl = skyblockUniversalModelUrl;
 import escapeBackroomsUrl from "../assets/imported/wing_379_1786180191578.glb?url";
 import escapeScpUrl from "../assets/imported/wing_379_1786180191578.glb?url";
@@ -1592,9 +1592,9 @@ function GamePage() {
     <>
       {id === "bedwars-golden-days" || id === "bedwars" ? (
         <BedwarsGoldenDays />
-      ) : id === "skyblock" ? (
+      ) : id === "skyblock" || id.startsWith("skyblock") ? (
         <SandboxGame skyblock />
-      ) : id === "block-fall" ? (
+      ) : id === "block-fall" || id.startsWith("block-fall") ? (
         <SandboxGame blockFall />
       ) : id === "sandbox" ? (
         <SandboxGame />
@@ -2252,23 +2252,21 @@ function EngineGame({
       let skyMatRef: THREE.ShaderMaterial | null = null;
       // Quality tier sets the base render scale and DPR cap. Dynamic resolution
       // scaling inside tick() will further adjust curScale based on live FPS.
-      const RENDER_SCALE = qualityPref === "low" ? 0.75 : qualityPref === "medium" ? 0.9 : 1.0;
-      // Cap native pixel ratio at 1.5 to prevent massive fill-rate bottlenecks on mobile devices
-      // (like iPhones which have a native DPR of 3). This improves FPS significantly while keeping quality high.
+      const RENDER_SCALE = qualityPref === "low" ? 0.85 : 1.0;
+      // High-DPI resolution capped at 1.5 for razor-sharp clarity without GPU fill-rate throttling
       const MAX_DPR =
         qualityPref === "low"
-          ? 1.0
-          : qualityPref === "medium"
-            ? 1.25
-            : Math.min(1.5, window.devicePixelRatio || 1);
+          ? 1.2
+          : Math.min(1.5, window.devicePixelRatio || 1);
 
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR) * RENDER_SCALE);
       renderer.setSize(width, height);
       // ACESFilmic tone mapping — compresses highlights and lifts shadows slightly,
       // giving the scene a cinematic, realistic look instead of a raw linear output.
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = qualityPref === "low" ? 1.0 : 1.08;
+      renderer.toneMappingExposure = 1.15;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       // Bright daytime sky background — also set as the actual WebGL clear
       // color (not just a CSS fallback) so if the sky dome/skybox is ever
       // clipped or still loading, the canvas never flashes solid black.
@@ -6714,9 +6712,9 @@ function EngineGame({
         equippedItemIds: gameItems,
         equippedPants: gamePants,
       });
-      playerAvatar.root.scale.setScalar(0.58);
+      playerAvatar.root.scale.setScalar(0.68);
       playerAvatar.root.visible = false;
-      playerAvatar.root.position.set(playerPos.x, playerPos.y + 0.8, playerPos.z);
+      playerAvatar.root.position.set(playerPos.x, playerPos.y + 0.88, playerPos.z);
       // Use the chosen character model in Skyblock:
       // If Nelly is selected (or female) -> Female_Walk_LegsOnly.glb
       // Universal character model in Skyblock:
@@ -6842,13 +6840,16 @@ function EngineGame({
               skyblockWalkAction.setLoop(THREE.LoopRepeat, Infinity);
             }
 
+            if (skyblockWalkAction) {
+              skyblockWalkAction.reset();
+              skyblockWalkAction.setLoop(THREE.LoopRepeat, Infinity);
+              skyblockWalkAction.setEffectiveWeight(1);
+              skyblockWalkAction.setEffectiveTimeScale(1.0);
+              skyblockWalkAction.play();
+            }
             if (skyblockBreatheAction) {
               skyblockBreatheAction.play();
-              skyblockBreatheAction.setEffectiveWeight(1);
-            }
-            if (skyblockWalkAction) {
-              skyblockWalkAction.play();
-              skyblockWalkAction.setEffectiveWeight(0);
+              skyblockBreatheAction.setEffectiveWeight(skyblockWalkAction ? 0.2 : 1);
             }
             if (skyblockJumpAction) {
               skyblockJumpAction.play();
@@ -9016,16 +9017,18 @@ function EngineGame({
         const inAir = (!onGround || Math.abs(playerVel.y) > 2.0) && !skyblockIsDying;
 
         if (skyblockQblockMixer && !skyblockIsDying) {
-          let targetWalk = 0;
+          let targetWalk = 1;
           let targetBreathe = 0;
           let targetJump = 0;
 
           if (inAir && skyblockJumpAction) {
             targetJump = 1;
+            targetWalk = 0.4;
           } else if (moving && skyblockWalkAction) {
             targetWalk = 1;
           } else {
-            targetBreathe = 1;
+            targetWalk = 1;
+            targetBreathe = 0.2;
           }
 
           const blendFactor = 1 - Math.exp(-14 * dt);
@@ -9033,7 +9036,7 @@ function EngineGame({
           if (skyblockWalkAction) {
             const w = THREE.MathUtils.lerp(skyblockWalkAction.getEffectiveWeight(), targetWalk, blendFactor);
             skyblockWalkAction.setEffectiveWeight(w);
-            skyblockWalkAction.setEffectiveTimeScale(isSprinting ? 1.45 : 1.0);
+            skyblockWalkAction.setEffectiveTimeScale(isSprinting ? 1.45 : moving ? 1.0 : 0.85);
           }
           if (skyblockBreatheAction) {
             const w = THREE.MathUtils.lerp(skyblockBreatheAction.getEffectiveWeight(), targetBreathe, blendFactor);

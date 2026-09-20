@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { Box, Settings, MessageSquare, LogOut, RefreshCw } from "lucide-react";
 import { BLOCKS } from "@/engine/world";
+import { FlatSquareGameControls } from "@/components/FlatSquareGameControls";
 
 export const HUD_ASSETS = {
   // Joystick Base Ring & Center Knob
@@ -242,6 +243,23 @@ export function BedwarsHud({
       : currentMode === "run"
         ? HUD_ASSETS.runIcon
         : HUD_ASSETS.walkIcon;
+
+  // For both Skyblock and Blockfall: Remove all UI elements (timers, hotbars, runes, etc.)
+  // and render ONLY flat square joystick, flat square jump button, flat square mode toggle button, and top-left flat square menu.
+  if (isSkyblock || isBlockFall) {
+    return (
+      <FlatSquareGameControls
+        movementMode={currentMode}
+        onMovementModeChange={(mode) => {
+          if (onMovementModeChange) onMovementModeChange(mode);
+          else setInternalMode(mode);
+        }}
+        onJump={onJump}
+        onJoyVector={onJoyVector ?? (() => {})}
+        onLeave={onLeave || onRequestQuit}
+      />
+    );
+  }
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[85] select-none">

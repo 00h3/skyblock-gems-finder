@@ -865,8 +865,12 @@ export function SandboxGame({
           ? []
           : [1, 2, 3, 4, 5, 6, 7, 9, 10],
   );
-  const [blockFallState, setBlockFallState] = useState<"waiting" | "playing" | "eliminated">("waiting");
-  const blockFallStateRef = useRef<"waiting" | "playing" | "eliminated">("waiting");
+  const [blockFallState, setBlockFallState] = useState<"waiting" | "playing" | "eliminated">(
+    blockFall ? "playing" : "waiting",
+  );
+  const blockFallStateRef = useRef<"waiting" | "playing" | "eliminated">(
+    blockFall ? "playing" : "waiting",
+  );
   blockFallStateRef.current = blockFallState;
   const [countdown, setCountdown] = useState(10);
   const [currentLevel, setCurrentLevel] = useState(1);
@@ -1028,8 +1032,10 @@ export function SandboxGame({
   }, []);
 
   const [movementMode, setMovementMode] = useState<MovementMode>("walk");
+  const movementModeRef = useRef<MovementMode>("walk");
   const handleMovementModeChange = (mode: MovementMode) => {
     setMovementMode(mode);
+    movementModeRef.current = mode;
     if (controlsRef.current) {
       controlsRef.current.touch.sprint = mode === "run";
       controlsRef.current.touch.crouch = mode === "crouch";
@@ -1106,25 +1112,30 @@ export function SandboxGame({
             return;
           }
         }
-      // Optimized DPR: Cap at 1.35 for smooth 60fps performance without GPU fill-rate throttling
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+      // Ultra-crisp High-DPI resolution without pixelation, capped at 1.5 for silky-smooth 60fps
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      renderer.setPixelRatio(dpr);
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.22;
+      renderer.toneMappingExposure = 1.18;
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFShadowMap;
-      renderer.shadowMap.autoUpdate = false;
-      renderer.shadowMap.needsUpdate = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.autoUpdate = true;
 
-      // Max anisotropic filtering keeps ground textures sharp at grazing angles
-      // (the main cause of the blurry look in the distance).
-      const maxAniso = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
-      atlas.texture.anisotropy = maxAniso;
+      // GPU anisotropic filtering (8x) and Linear filtering keep textures sharp with zero pixelation
+      const maxAniso = renderer.capabilities.getMaxAnisotropy();
+      atlas.texture.anisotropy = Math.min(8, maxAniso);
+      atlas.texture.magFilter = THREE.LinearFilter;
+      atlas.texture.minFilter = THREE.LinearMipmapLinearFilter;
+      atlas.texture.generateMipmaps = true;
       atlas.texture.needsUpdate = true;
 
       mount.appendChild(renderer.domElement);
       renderer.domElement.style.display = "block";
+      renderer.domElement.style.width = "100%";
+      renderer.domElement.style.height = "100%";
+      renderer.domElement.style.imageRendering = "auto";
       renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 
       const scene = new THREE.Scene();
@@ -1599,7 +1610,7 @@ export function SandboxGame({
       avatar = new Avatar();
       scene.add(avatar.group);
       avatar.setVisible(thirdRef.current);
-      avatar.load(1.95).then(() => {
+      avatar.load(2.28).then(() => {
         if (disposed || !avatar) return;
         setAvatarReady(true);
       }).catch((err) => {
@@ -1906,7 +1917,7 @@ export function SandboxGame({
       const _pivot = new THREE.Vector3();
       const _distV = new THREE.Vector3();
       const _avatarPos = new THREE.Vector3();
-      const _upOffset = new THREE.Vector3(0, 0.45, 0);
+      const _upOffset = new THREE.Vector3(0, 0.54, 0);
 
       const loop = () => {
         raf = requestAnimationFrame(loop);
@@ -1961,13 +1972,13 @@ export function SandboxGame({
           _back.set(0, 0, 1).applyQuaternion(camera.quaternion);
           // pivot sits on the player's own axis (centred), just above the head
           _pivot.copy(_eye).add(_upOffset);
-          // Zoomed in further so the character fills more of the frame.
-          let dist = 2.6;
+          // Zoomed in comfortably so the character fills the frame nicely against blocks.
+          let dist = 2.9;
           const wall = raycastVoxel(world!, _pivot, _back, dist + 0.5);
           if (wall) {
             _distV.set(wall.x + 0.5, wall.y + 0.5, wall.z + 0.5);
             const d = _distV.distanceTo(_pivot);
-            dist = Math.max(1.83, d - 0.8);
+            dist = Math.max(2.0, d - 0.8);
           }
           camera.position.copy(_pivot).addScaledVector(_back, dist);
         }
@@ -1976,13 +1987,14 @@ export function SandboxGame({
         if (avatar?.loaded) {
           const hs = horizontalSpeed;
           _avatarPos.set(player.position.x, player.position.y, player.position.z);
+          const isSneaking = controls?.touch?.crouch || movementModeRef.current === "crouch";
           avatar.update(
             dt,
             _avatarPos,
             input.yaw + Math.PI,
             hs,
             player.onGround,
-            false,
+            isSneaking,
             player.velocity.y,
           );
         }
@@ -2048,19 +2060,18 @@ export function SandboxGame({
               setDeepestFloor((prev) => Math.max(prev, lvl));
             }
 
-            // 5. Player Elimination when falling past Level 5 into bedrock / void
+            // 5. Player fall reset in Block Fall (smooth respawn without intrusive overlay)
             if (py < 5.2 && blockFallStateRef.current === "playing") {
-              blockFallStateRef.current = "eliminated";
-              setBlockFallState("eliminated");
               BmgoAudio.playDefeat();
-              BmgoAudio.stopBgm();
               if (avatar?.loaded) {
                 avatar.triggerDeath(() => {
                   player.respawn();
+                  restartBlockFallRef.current?.();
                   avatar.resetDeath();
                 });
               } else {
                 player.respawn();
+                restartBlockFallRef.current?.();
               }
             }
           }
@@ -2590,7 +2601,7 @@ export function SandboxGame({
       />
 
       {/* ── FLOATING TOP BAR (Filled Icons + Translucent Login / Sign Up) ── */}
-      {ready && (
+      {ready && !skyblock && !blockFall && (
         <header className="fixed top-[max(12px,calc(env(safe-area-inset-top)+8px))] inset-x-3 z-[95] pointer-events-none flex items-center justify-between">
           {/* Top-Left: Sleek Translucent Controls with Filled Icons */}
           <div className="pointer-events-auto flex items-center gap-2">
@@ -2679,164 +2690,6 @@ export function SandboxGame({
             )}
           </div>
         </header>
-      )}
-
-      {/* ── Block Fall Waiting for Players Glossy UI ── */}
-      {blockFall && ready && blockFallState === "waiting" && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/30 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-[420px] rounded-[32px] border border-white/10 bg-zinc-900/60 backdrop-blur-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.5)] text-white select-none flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
-            {/* Top Glossy Badge */}
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11.5px] font-black uppercase tracking-widest text-white/60 mb-4">
-              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span>BLOCK FALL • TNT RUN</span>
-            </div>
-
-            {/* Large Header */}
-            <h2 className="text-[28px] font-black tracking-tight leading-tight mb-2">
-              Get Ready!
-            </h2>
-
-            {/* Countdown Badge - Animated */}
-            <div className="my-6 flex flex-col items-center">
-              <div className="relative w-24 h-24 rounded-full border border-white/10 flex items-center justify-center bg-white/5 backdrop-blur-md">
-                <span className="text-[44px] font-black text-white animate-bounce">
-                  {countdown}
-                </span>
-              </div>
-              <p className="mt-4 text-[16px] font-bold text-white/90 animate-pulse">
-                {countdown} seconds left, you lost
-              </p>
-            </div>
-
-            {/* Match Status Card */}
-            <div className="w-full bg-white/5 rounded-[24px] p-4 border border-white/10 mb-6">
-              <div className="flex items-center justify-between px-1 mb-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/40">Survival Challenge</span>
-                <span className="text-[11px] font-extrabold text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Ready
-                </span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-[16px] bg-white/5 border border-white/10">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-[12px] font-black text-white shadow-xs">
-                  YOU
-                </div>
-                <div className="flex flex-col text-left min-w-0">
-                  <span className="text-[13px] font-bold text-white truncate">{meRef.current.name || "Player"}</span>
-                  <span className="text-[11px] font-semibold text-amber-300">5 Platform Layers • Solo Run</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Instant Start Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setBlockFallState("playing");
-                blockFallStateRef.current = "playing";
-                BmgoAudio.unlock();
-                BmgoAudio.startBlockFallBgm();
-                BmgoAudio.playGameStart();
-              }}
-              className="w-full h-14 rounded-[20px] bg-white text-black font-extrabold text-[15px] hover:bg-white/90 active:scale-[0.98] transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Start Match Now</span>
-              <span>→</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Block Fall Game Over Glossy Modal ── */}
-      {blockFall && ready && blockFallState === "eliminated" && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-[380px] rounded-[28px] border border-white/90 bg-white/95 backdrop-blur-2xl p-7 shadow-[0_25px_60px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,1)] text-[#16181d] select-none flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-red-100 border border-red-200 text-red-600 flex items-center justify-center text-2xl shadow-inner mb-4">
-              ☠️
-            </div>
-
-            <h2 className="text-[24px] font-black tracking-tight text-slate-900 leading-tight">
-              You Fell!
-            </h2>
-            <p className="mt-1 text-[13px] font-medium text-slate-500">
-              You reached the void beneath the platforms.
-            </p>
-
-            {/* Match Stats */}
-            <div className="w-full my-5 p-4 rounded-[20px] bg-slate-50 border border-slate-200/80 flex items-center justify-around shadow-inner">
-              <div className="flex flex-col items-center">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Survived</span>
-                <span className="text-[20px] font-black text-slate-800">{survivalTime}s</span>
-              </div>
-              <div className="w-px h-8 bg-slate-200" />
-              <div className="flex flex-col items-center">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Deepest Floor</span>
-                <span className="text-[20px] font-black text-amber-600">{deepestFloor}/5</span>
-              </div>
-            </div>
-
-            {/* Play Again & Leave Buttons */}
-            <div className="w-full flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  restartBlockFallRef.current?.();
-                }}
-                className="w-full h-12 rounded-[16px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-105 active:scale-[0.98] transition shadow-[0_8px_20px_rgba(245,158,11,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] text-white font-extrabold text-[14px] tracking-wide flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Play Again</span>
-                <span>↻</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.href = "/";
-                }}
-                className="w-full h-10 rounded-[14px] bg-slate-100 hover:bg-slate-200 active:scale-[0.98] transition border border-slate-200/80 text-slate-700 font-bold text-[13px] tracking-wide flex items-center justify-center cursor-pointer"
-              >
-                Exit to Lobby
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {ready && (
-        <BedwarsHud
-          runesTimeLeft={runesTimeLeft}
-          hotbar={hotbar}
-          tileUrls={tileUrls}
-          slot={slot}
-          isTouch={isTouch}
-          thirdPerson={thirdPerson}
-          isSkyblock={skyblock}
-          isBlockFall={blockFall}
-          nearChest={false}
-          onRequestQuit={() => setShowQuitDialog(true)}
-          celestialNight={celestialNight}
-          onToggleCelestialNight={() => setCelestialNight((prev) => !prev)}
-          onLeave={() => {
-            window.location.href = "/";
-          }}
-          onOpenChest={undefined}
-          joyRef={joyRef}
-          joyNub={joyNub}
-          onSelectSlot={selectSlot}
-          // Hide inventory and default HUD controls if using new GameControls
-          onOpenInventory={skyblock || blockFall ? undefined : () => setInventoryOpen(true)}
-          onOpenChat={() => setChatOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onToggleCamera={toggleThird}
-          movementMode={movementMode}
-          onMovementModeChange={handleMovementModeChange}
-          onJoyVector={(x, y) => {
-            if (controlsRef.current) {
-              controlsRef.current.touch.x = x;
-              controlsRef.current.touch.y = -y;
-            }
-          }}
-        />
       )}
 
       {/* ── Settings Overlay ── */}
@@ -3015,7 +2868,7 @@ export function SandboxGame({
       )}
 
       {/* New menu (shown before play, and whenever the pointer is unlocked) */}
-      {ready && !locked && !isTouch && (
+      {ready && !locked && !isTouch && !skyblock && !blockFall && (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-white/95 backdrop-blur-sm">
           <div className="w-full max-w-[360px] px-6 text-center text-[#16181d]">
             <p className="text-[26px] font-extrabold tracking-tight">

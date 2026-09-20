@@ -98,10 +98,11 @@ export function SubScreenHeader({ title, onBack }: { title: string; onBack: () =
       <button
         type="button"
         onClick={onBack}
-        className="press grid h-9 w-9 place-items-center rounded-[12px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] text-foreground shadow-sm"
-        aria-label="Back"
+        className="press flex items-center gap-1 px-3 py-1.5 rounded-[12px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] text-foreground shadow-sm text-[13px] font-bold cursor-pointer"
+        aria-label="Go Back"
       >
-        <ChevronLeft className="h-5 w-5 text-foreground" />
+        <ChevronLeft className="h-4 w-4 text-foreground" />
+        <span>Go Back</span>
       </button>
       <h1 className="text-[17.5px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
         {title}

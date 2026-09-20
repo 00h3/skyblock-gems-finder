@@ -369,10 +369,11 @@ export function ProfileSheet({
               <button
                 type="button"
                 onClick={onClose}
-                className="press grid h-9 w-9 place-items-center rounded-[12px] bg-white/90 dark:bg-[#1a1c24] text-slate-700 dark:text-white border border-black/10 dark:border-white/10 shadow-none cursor-pointer"
-                aria-label="Close profile"
+                className="press flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-white/95 dark:bg-[#1a1c24]/95 text-slate-800 dark:text-white border border-black/10 dark:border-white/10 shadow-sm cursor-pointer font-bold text-[13px]"
+                aria-label="Go Back"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
+                <span>Go Back</span>
               </button>
 
               {!isOwnProfile && (
@@ -684,16 +685,36 @@ export function ProfileSheet({
                   )}
                 </>
               ) : (
+                <div className="flex flex-col gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      navigate({ to: "/profile" as never });
+                    }}
+                    className="press w-full py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-extrabold text-[13px] flex items-center justify-center gap-2 shadow-none active:scale-[0.98] cursor-pointer"
+                  >
+                    <QBlockProfileSettingsIcon className="h-4 w-4" filled />
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="press w-full py-2.5 rounded-[13px] bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span>Go Back</span>
+                  </button>
+                </div>
+              )}
+              {!isOwnProfile && (
                 <button
                   type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate({ to: "/profile" as never });
-                  }}
-                  className="press w-full py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-extrabold text-[13px] flex items-center justify-center gap-2 shadow-none active:scale-[0.98] cursor-pointer"
+                  onClick={onClose}
+                  className="press w-full py-2.5 rounded-[13px] bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer mt-2"
                 >
-                  <QBlockProfileSettingsIcon className="h-4 w-4" filled />
-                  Edit Profile
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>Go Back</span>
                 </button>
               )}
             </div>

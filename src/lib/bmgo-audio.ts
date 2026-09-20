@@ -1,6 +1,16 @@
 // Blockman GO Official Audio Engine for Skyblock
 // Handles authentic SFX and looped background music with low latency.
 
+let masterVolume = 1.0;
+if (typeof window !== "undefined") {
+  try {
+    const saved = localStorage.getItem("qb_sound_volume");
+    if (saved !== null) {
+      masterVolume = Math.max(0, Math.min(1, Number(saved) / 100));
+    }
+  } catch {}
+}
+
 class SoundEffectPool {
   private pool: HTMLAudioElement[] = [];
   private index = 0;
@@ -15,7 +25,7 @@ class SoundEffectPool {
         try {
           const audio = new Audio(url);
           audio.preload = "auto";
-          audio.volume = defaultVolume;
+          audio.volume = defaultVolume * masterVolume;
           this.pool.push(audio);
         } catch {
           // ignore instantiation failure
@@ -25,11 +35,12 @@ class SoundEffectPool {
   }
 
   play(volume?: number) {
+    const effectiveVolume = (volume ?? this.defaultVolume) * masterVolume;
     if (this.pool.length === 0) {
       if (typeof window !== "undefined") {
         try {
           const audio = new Audio(this.url);
-          audio.volume = volume ?? this.defaultVolume;
+          audio.volume = effectiveVolume;
           audio.play().catch(() => {});
         } catch {}
       }
@@ -40,9 +51,7 @@ class SoundEffectPool {
     this.index = (this.index + 1) % this.pool.length;
     try {
       audio.currentTime = 0;
-      if (volume !== undefined) {
-        audio.volume = volume;
-      }
+      audio.volume = effectiveVolume;
       const p = audio.play();
       if (p && typeof p.catch === "function") {
         p.catch(() => {});
@@ -272,6 +281,13 @@ export const BmgoAudio = {
     } catch {}
   },
 
+  setMasterVolume(vol: number) {
+    masterVolume = Math.max(0, Math.min(1, vol));
+    if (bgmAudio) {
+      bgmAudio.volume = 0.5 * masterVolume;
+    }
+  },
+
   toggleBgm(): boolean {
     if (isBgmPlaying) {
       this.stopBgm();
@@ -282,6 +298,16 @@ export const BmgoAudio = {
     }
   },
 };
+
+// Global listener for sound volume changes from settings modal
+if (typeof window !== "undefined") {
+  window.addEventListener("bm-sound-volume", (e: Event) => {
+    const vol = (e as CustomEvent<number>).detail;
+    if (typeof vol === "number") {
+      BmgoAudio.setMasterVolume(vol / 100);
+    }
+  });
+}
 
 // Global unlock on initial user gesture
 if (typeof window !== "undefined") {
