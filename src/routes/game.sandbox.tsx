@@ -15,6 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { SandboxChat } from "@/components/SandboxChat";
 import { openFragments } from "@/lib/fragments-ui";
 import { SandboxSettings } from "@/components/SandboxSettings";
+import { getTargetDpr } from "@/lib/rendering";
 import { GameChatIcon } from "@/components/game-icons";
 import { BedwarsHud, type MovementMode } from "@/components/BedwarsHud";
 import { GameControls } from "@/components/GameControls";
@@ -937,9 +938,31 @@ export function SandboxGame({
   const touchLook = useRef<{ id: number; x: number; y: number } | null>(null);
   const joyRef = useRef<HTMLDivElement>(null);
   const [joyNub, setJoyNub] = useState({ x: 0, y: 0 });
-  const [thirdPerson, setThirdPerson] = useState(true);
+  const [thirdPerson, setThirdPerson] = useState(() => {
+    try {
+      const stored = localStorage.getItem("qb_first_person");
+      // If stored is "true" (meaning first person ON), thirdPerson should be false
+      if (stored === "true") return false;
+      if (stored === "false") return true;
+    } catch {}
+    return true;
+  });
   const [avatarReady, setAvatarReady] = useState(false);
   const thirdRef = useRef(true);
+  
+  // Update thirdRef whenever thirdPerson changes
+  useEffect(() => {
+    thirdRef.current = thirdPerson;
+  }, [thirdPerson]);
+  
+  // Listen for the custom event from settings
+  useEffect(() => {
+    const handleToggle = (e: any) => {
+      setThirdPerson(!e.detail);
+    };
+    window.addEventListener("bm-first-person", handleToggle);
+    return () => window.removeEventListener("bm-first-person", handleToggle);
+  }, []);
 
   const mineBarRef = useRef<HTMLDivElement>(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -1112,9 +1135,8 @@ export function SandboxGame({
             return;
           }
         }
-      // Ultra-crisp High-DPI resolution without pixelation, capped at 1.5 for silky-smooth 60fps
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      renderer.setPixelRatio(dpr);
+      const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high";
+      renderer.setPixelRatio(getTargetDpr(qualityPref));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1870,6 +1892,8 @@ export function SandboxGame({
         if (!renderer) return;
         camera.aspect = mount.clientWidth / mount.clientHeight;
         camera.updateProjectionMatrix();
+        const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high";
+        renderer.setPixelRatio(getTargetDpr(qualityPref));
         renderer.setSize(mount.clientWidth, mount.clientHeight);
       };
       window.addEventListener("resize", onResize);

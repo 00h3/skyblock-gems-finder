@@ -5,15 +5,23 @@
 :root {
   --clr-blue: #1890ff;
   --clr-green: #01c3a8;
-  --clr-orange: #ffb741;
+  --clr-orange: #f97316; /* Orange outline */
   --clr-red: #a63d2a;
-  --bg-dark: #232228;
-  --bg-footer: #151419;
+  
+  --bjork-border: #000;
+  --bjork-surface-muted: #fff;
+  --bjork-shadow-surface: inset 0 0 0 1px #000;
+  --bjork-outline: #f97316;
+
   --color-white: #fff;
-  --color-gray-light: #ddd;
-  --color-gray-medium: #363636;
-  --color-gray-dark: #292929;
-  --color-gray-very-dark: #222127;
+  --color-black: #000;
+}
+
+.dark {
+  --bjork-border: #fff;
+  --bjork-surface-muted: #000;
+  --bjork-shadow-surface: inset 0 0 0 1px #fff;
+  --bjork-outline: #f97316;
 }
 
 /* Course Design Cards & Group Cards Styling */

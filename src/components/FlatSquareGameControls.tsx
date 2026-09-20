@@ -178,18 +178,10 @@ export function FlatSquareGameControls({
             e.stopPropagation();
             setMenuOpen((prev) => !prev);
           }}
-          className="flex items-center justify-center cursor-pointer select-none p-0 outline-none active:brightness-85 transition-[filter]"
+          className="flex items-center justify-center cursor-pointer select-none p-0 outline-none active:bg-neutral-200 transition-colors bg-black border border-[color:var(--bjork-outline)] rounded-[18px]"
           style={{
             width: "52px",
             height: "52px",
-            backgroundColor: "#7c7c7c",
-            opacity: 1,
-            borderRadius: 0,
-            border: "1.5px solid #585858",
-            boxShadow: "none",
-            filter: "none",
-            backdropFilter: "none",
-            WebkitBackdropFilter: "none",
           }}
           aria-label="Menu"
           title="Menu"

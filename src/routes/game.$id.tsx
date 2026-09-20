@@ -41,6 +41,7 @@ import {
   type SkyblockChatMessage,
 } from "@/lib/skyblock-multiplayer";
 import { GameUiChrome } from "@/components/GameUiChrome";
+import { getTargetDpr } from "@/lib/rendering";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { createHpBar, type HpBar } from "@/engine/hpbar";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -1772,7 +1773,7 @@ function EngineGame({
   const [motionBlurState, setMotionBlurState] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     const stored = localStorage.getItem("bm-motion-blur");
-    return stored === null ? true : stored === "true";
+    return stored === null ? false : stored === "true";
   });
   const [visitingUserId, setVisitingUserId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -1920,11 +1921,27 @@ function EngineGame({
   };
 
   // Camera mode: first-person (default), third-person orbit, or top-down
-  const [camMode, setCamMode] = useState<"first" | "third" | "top">(() =>
-    isSkyblock || isBlockFall ? "third" : "first"
-  );
+  const [camMode, setCamMode] = useState<"first" | "third" | "top">(() => {
+    try {
+      const stored = localStorage.getItem("qb_first_person");
+      if (stored === "true") return "first";
+      if (stored === "false") return "third";
+    } catch {}
+    return isSkyblock || isBlockFall ? "third" : "first";
+  });
   const camModeRef = useRef<"first" | "third" | "top">(isSkyblock || isBlockFall ? "third" : "first");
   camModeRef.current = camMode;
+  
+  // Listen for the custom event from settings
+  useEffect(() => {
+    const handleToggle = (e: any) => {
+      const nextMode = e.detail ? "first" : "third";
+      setCamMode(nextMode);
+    };
+    window.addEventListener("bm-first-person", handleToggle);
+    return () => window.removeEventListener("bm-first-person", handleToggle);
+  }, []);
+  
   const cycleCamMode = () =>
     setCamMode((m) => (m === "first" ? "third" : m === "third" ? "top" : "first"));
 
@@ -2252,14 +2269,8 @@ function EngineGame({
       let skyMatRef: THREE.ShaderMaterial | null = null;
       // Quality tier sets the base render scale and DPR cap. Dynamic resolution
       // scaling inside tick() will further adjust curScale based on live FPS.
-      const RENDER_SCALE = qualityPref === "low" ? 0.85 : 1.0;
-      // High-DPI resolution capped at 1.5 for razor-sharp clarity without GPU fill-rate throttling
-      const MAX_DPR =
-        qualityPref === "low"
-          ? 1.2
-          : Math.min(1.5, window.devicePixelRatio || 1);
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR) * RENDER_SCALE);
+      renderer.setPixelRatio(getTargetDpr(qualityPref));
       renderer.setSize(width, height);
       // ACESFilmic tone mapping — compresses highlights and lifts shadows slightly,
       // giving the scene a cinematic, realistic look instead of a raw linear output.
@@ -8058,6 +8069,7 @@ function EngineGame({
         camera.aspect = w / h;
         camera.fov = fovForAspect(BASE_FOV, w / h);
         camera.updateProjectionMatrix();
+        renderer.setPixelRatio(getTargetDpr(qualityPref));
         renderer.setSize(w, h);
         composer?.setSize(w, h);
       }
@@ -10061,7 +10073,7 @@ function EngineGame({
           </p>
           <p className="mt-1 text-[11.5px] font-medium text-white/50">
             {visitingUserId && visitingUserId !== qbUser?.uid
-              ? "Connecting to friend realm & preparing island blocks…"
+              ? "Preparing island blocks…"
               : "Generating floating realm…"}
           </p>
         </div>

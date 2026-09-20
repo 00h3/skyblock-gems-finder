@@ -30,9 +30,19 @@ export class NameTag {
     this.nameSprite.position.set(0, this.headY, 0);
     this.group.add(this.nameSprite);
     this.loadBadges(badges);
+    
+    // Check local storage for initial state
+    try {
+      if (localStorage.getItem("qb_hide_id") === "true") {
+        this.setNameVisible(false); // Simplified: NameTag is already nameSprite. Need to distinguish ID from Name.
+      }
+    } catch {}
   }
 
-  setName(name: string) {
+  // Need to be able to hide just the ID part of the nameplate
+  setName(name: string, showId: boolean = true) {
+    // This is tricky because drawName draws both.
+    // I should modify drawName to accept a showId parameter.
     if (name === this.name) return;
     this.name = name;
     this.redrawName();

@@ -80,6 +80,23 @@ export function FlatSquareSettingsModal({
     }
   });
 
+  const [hideId, setHideId] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("qb_hide_id");
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const [firstPerson, setFirstPerson] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_first_person") === "true";
+    } catch {
+      return false;
+    }
+  });
+
   const [joystickDeadzone, setJoystickDeadzone] = useState<number>(() => {
     try {
       const saved = localStorage.getItem("qb_joystick_deadzone");
@@ -127,6 +144,26 @@ export function FlatSquareSettingsModal({
       localStorage.setItem("qb_invert_y", String(next));
     } catch {}
     window.dispatchEvent(new CustomEvent("bm-invert-y", { detail: next }));
+  };
+
+  // Apply Hide ID
+  const handleHideIdToggle = () => {
+    const next = !hideId;
+    setHideId(next);
+    try {
+      localStorage.setItem("qb_hide_id", String(next));
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-hide-id", { detail: next }));
+  };
+
+  // Apply First Person
+  const handleFirstPersonToggle = () => {
+    const next = !firstPerson;
+    setFirstPerson(next);
+    try {
+      localStorage.setItem("qb_first_person", String(next));
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-first-person", { detail: next }));
   };
 
   // Apply Controls scale change
@@ -229,15 +266,15 @@ export function FlatSquareSettingsModal({
   return createPortal(
     <div
       id="flat-square-settings-fullscreen"
-      className="fixed inset-0 z-[99999] pointer-events-auto flex flex-col bg-[#747474] text-white select-none overflow-hidden"
+      className="fixed inset-0 z-[99999] pointer-events-auto flex flex-col bg-white text-black select-none overflow-hidden"
       style={{ borderRadius: 0 }}
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      {/* ── Top Header: Flat, Square, Grey ── */}
+      {/* ── Top Header: Flat, Square, White/Black ── */}
       <div
-        className="h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-[#636363] border-b-2 border-[#505050]"
+        className="h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-black border-b border-[color:var(--bjork-outline)]"
         style={{ borderRadius: 0 }}
       >
         <span className="text-[17px] font-bold tracking-wider text-white uppercase">
@@ -249,8 +286,8 @@ export function FlatSquareSettingsModal({
           id="btn-settings-modal-close"
           type="button"
           onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center bg-[#7c7c7c] hover:bg-[#686868] active:bg-[#4f4f4f] text-white text-[22px] font-bold cursor-pointer select-none transition-colors border-[1.5px] border-[#505050] outline-none"
-          style={{ borderRadius: 0 }}
+          className="w-10 h-10 flex items-center justify-center bg-white hover:bg-neutral-200 active:bg-neutral-300 text-black text-[22px] font-bold cursor-pointer select-none transition-colors border border-[color:var(--bjork-outline)] outline-none"
+          style={{ borderRadius: "12px" }}
           aria-label="Close settings"
           title="Close settings"
         >
@@ -259,10 +296,10 @@ export function FlatSquareSettingsModal({
       </div>
 
       {/* ── Main Body: Side Nav with 3 voci + Content Area ── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-white">
         {/* ── Left Sidebar (3 voci: Game, Controls, Players) ── */}
         <div
-          className="w-36 sm:w-52 shrink-0 bg-[#636363] border-r-2 border-[#505050] p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto"
+          className="w-36 sm:w-52 shrink-0 bg-neutral-100 border-r border-[color:var(--bjork-outline)] p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto"
           style={{ borderRadius: 0 }}
         >
           {/* Voce 1: Game */}
@@ -270,12 +307,11 @@ export function FlatSquareSettingsModal({
             id="btn-settings-tab-game"
             type="button"
             onClick={() => setActiveTab("game")}
-            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border-[1.5px] ${
+            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border rounded-[12px] ${
               activeTab === "game"
-                ? "bg-[#4e4e4e] text-white border-[#383838]"
-                : "bg-[#757575] text-white/80 border-[#5a5a5a] hover:bg-[#686868]"
+                ? "bg-black text-white border-[color:var(--bjork-outline)]"
+                : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
             }`}
-            style={{ borderRadius: 0 }}
           >
             Game
           </button>
@@ -285,12 +321,11 @@ export function FlatSquareSettingsModal({
             id="btn-settings-tab-controls"
             type="button"
             onClick={() => setActiveTab("controls")}
-            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border-[1.5px] ${
+            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border rounded-[12px] ${
               activeTab === "controls"
-                ? "bg-[#4e4e4e] text-white border-[#383838]"
-                : "bg-[#757575] text-white/80 border-[#5a5a5a] hover:bg-[#686868]"
+                ? "bg-black text-white border-[color:var(--bjork-outline)]"
+                : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
             }`}
-            style={{ borderRadius: 0 }}
           >
             Controls
           </button>
@@ -300,29 +335,78 @@ export function FlatSquareSettingsModal({
             id="btn-settings-tab-players"
             type="button"
             onClick={() => setActiveTab("players")}
-            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border-[1.5px] ${
+            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border rounded-[12px] ${
               activeTab === "players"
-                ? "bg-[#4e4e4e] text-white border-[#383838]"
-                : "bg-[#757575] text-white/80 border-[#5a5a5a] hover:bg-[#686868]"
+                ? "bg-black text-white border-[color:var(--bjork-outline)]"
+                : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
             }`}
-            style={{ borderRadius: 0 }}
           >
             Players
           </button>
         </div>
 
         {/* ── Right Content Area ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-[#6a6a6a]">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-white">
           {/* ═════════ TAB 1: GAME ═════════ */}
           {activeTab === "game" && (
             <div className="max-w-xl space-y-6">
-              <div className="border-b border-white/15 pb-2">
-                <h2 className="text-[18px] font-bold uppercase tracking-wider text-white">
+              <div className="border-b border-black pb-2">
+                <h2 className="text-[18px] font-bold uppercase tracking-wider text-black">
                   Game Settings
                 </h2>
-                <p className="text-[13px] text-white/60 mt-0.5">
+                <p className="text-[13px] text-neutral-600 mt-0.5">
                   Adjust sensitivity, maximum sound, and visual settings.
                 </p>
+              </div>
+
+              {/* First Person / Third Person Toggle */}
+              <div
+                className="p-4 bg-neutral-100 border border-[color:var(--bjork-border)] flex items-center justify-between rounded-[18px]"
+              >
+                <div>
+                  <span className="text-[14px] font-bold tracking-wide text-black block">
+                    First Person Camera
+                  </span>
+                  <span className="text-[12px] text-neutral-600">
+                    Switch between first and third person view
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFirstPersonToggle}
+                  className={`h-9 px-5 font-mono font-bold text-[13px] tracking-wider border rounded-[12px] cursor-pointer select-none transition-colors ${
+                    firstPerson
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
+                  }`}
+                >
+                  {firstPerson ? "ON" : "OFF"}
+                </button>
+              </div>
+
+              {/* Hide Player ID Toggle */}
+              <div
+                className="p-4 bg-neutral-100 border border-[color:var(--bjork-border)] flex items-center justify-between rounded-[18px]"
+              >
+                <div>
+                  <span className="text-[14px] font-bold tracking-wide text-black block">
+                    Hide Player ID
+                  </span>
+                  <span className="text-[12px] text-neutral-600">
+                    Hides the unique player ID on nametags and player list
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleHideIdToggle}
+                  className={`h-9 px-5 font-mono font-bold text-[13px] tracking-wider border rounded-[12px] cursor-pointer select-none transition-colors ${
+                    hideId
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
+                  }`}
+                >
+                  {hideId ? "ON" : "OFF"}
+                </button>
               </div>
 
               {/* Look Sensitivity */}
@@ -605,9 +689,11 @@ export function FlatSquareSettingsModal({
                         </div>
 
                         {/* Player ID: clean monospace font, strictly iconless */}
-                        <div className="text-[12px] font-mono text-white/70 mt-0.5 truncate">
-                          ID: {p.uid}
-                        </div>
+                        {!hideId && (
+                          <div className="text-[12px] font-mono text-white/70 mt-0.5 truncate">
+                            ID: {p.uid}
+                          </div>
+                        )}
                       </div>
 
                       {/* Status label: strictly iconless text badge */}
