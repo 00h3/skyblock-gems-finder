@@ -7,6 +7,12 @@ import { buildAtlas, type Atlas } from "@/engine/textures";
 import { World, BLOCKS, WATER_ID, WIND } from "@/engine/world";
 import { GrassField } from "@/engine/v2/grass-field";
 import { CinematicPost } from "@/engine/v2/cinematic-post";
+import {
+  BEDWARS_LOBBY_BOUNDS,
+  BEDWARS_LOBBY_SPAWN,
+  BEDWARS_MATCHMAKER_POS,
+  buildBedwarsLobby,
+} from "@/engine/v2/bedwars-lobby";
 import { Player } from "@/engine/player";
 import { Controls } from "@/engine/controls";
 import { BlockFx, createHighlight, raycastVoxel } from "@/engine/interact";
@@ -66,7 +72,7 @@ import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
 import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
 import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
-import { CinematicVignette, Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
+import { CinematicVignette, Crosshair, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
 import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
 
 
@@ -894,10 +900,12 @@ export function SandboxGame({
   goldenDays = false,
   skyblock = false,
   blockFall = false,
+  bedwars = false,
 }: {
   goldenDays?: boolean;
   skyblock?: boolean;
   blockFall?: boolean;
+  bedwars?: boolean;
 } = {}) {
   const mountRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<Controls | null>(null);
@@ -911,7 +919,7 @@ export function SandboxGame({
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
       : skyblock
         ? [7, 9, 2, 4, 6, 13, 1, 3]
-        : blockFall
+        : blockFall || bedwars
           ? []
           : [1, 2, 3, 4, 5, 6, 7, 9, 10],
   );
@@ -1114,6 +1122,9 @@ export function SandboxGame({
     let workbenchTags: NameTag[] = [];
     let remotes: RemotePlayers | null = null;
     let selfTag: NameTag | null = null;
+    let matchmaker: Avatar | null = null;
+    let matchmakerTag: NameTag | null = null;
+    const matchmakerPos = new THREE.Vector3(BEDWARS_MATCHMAKER_POS.x, BEDWARS_MATCHMAKER_POS.y, BEDWARS_MATCHMAKER_POS.z);
     let unsubPresence: (() => void) | null = null;
     let unsubWorld: (() => void) | null = null;
     let unsubChat: (() => void) | null = null;
@@ -1248,9 +1259,18 @@ export function SandboxGame({
       }
 
       // Chunk render distance: tuned per mode for rock-solid performance
-      world = new World(atlas, goldenDays ? 16 : skyblock ? 10 : blockFall ? 6 : 8);
+      if (bedwars) {
+        sky.setGoldenHour();
+        sky.paused = true;
+        sky.setCloudCover(0.38);
+        renderer.toneMappingExposure = 1.08;
+      }
 
-      if (blockFall) {
+      world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);
+
+      if (bedwars) {
+        buildBedwarsLobby(world);
+      } else if (blockFall) {
         buildBlockFallArena(world);
       } else if (goldenDays) {
         buildForestArena(world);
@@ -1271,12 +1291,15 @@ export function SandboxGame({
       }
 
       const grassField =
-        skyblock && qualityPref !== "low"
-          ? new GrassField(world, { minX: -15, maxX: 16, minZ: -15, maxZ: 16, minY: 4, maxY: 40 })
+        (skyblock || bedwars) && qualityPref !== "low"
+          ? new GrassField(
+              world,
+              bedwars ? BEDWARS_LOBBY_BOUNDS : { minX: -15, maxX: 16, minZ: -15, maxZ: 16, minY: 4, maxY: 40 },
+            )
           : null;
       if (grassField) scene.add(grassField.mesh);
       const cinematicPost =
-        (skyblock || blockFall) && qualityPref !== "low" ? new CinematicPost(renderer, scene, camera) : null;
+        (skyblock || blockFall || bedwars) && qualityPref !== "low" ? new CinematicPost(renderer, scene, camera) : null;
 
       if (skyblock) {
         // Chest completely removed per user request
@@ -1556,6 +1579,9 @@ export function SandboxGame({
       } else if (skyblock) {
         player.setSpawnPoint(0.5, 17.5, 0.5);
         player.respawn();
+      } else if (bedwars) {
+        player.setSpawnPoint(BEDWARS_LOBBY_SPAWN.x, BEDWARS_LOBBY_SPAWN.y, BEDWARS_LOBBY_SPAWN.z);
+        player.respawn();
       } else {
         player.setSpawnPoint(0.5, GROUND + 2, 0.5);
         player.respawn();
@@ -1723,6 +1749,15 @@ export function SandboxGame({
       remotes = new RemotePlayers(scene);
       selfTag = new NameTag(meRef.current.name, 2.05, meRef.current.badges);
       scene.add(selfTag.group);
+
+      if (bedwars) {
+        matchmaker = new Avatar();
+        matchmakerTag = new NameTag("Matchmaker", 2.55, [], "#ffd76a");
+        const { x, y, z } = BEDWARS_MATCHMAKER_POS;
+        matchmakerTag.group.position.set(x, y, z);
+        scene.add(matchmaker.group, matchmakerTag.group);
+        matchmaker.load(2.28).catch(() => {});
+      }
 
       // ── Floating HP bars (20/20) above every hittable entity ─────────────
       const names = new Map<string, string>();
@@ -2140,7 +2175,7 @@ export function SandboxGame({
       setReady(true);
       setVeilToken((v) => v + 1);
       announce(
-        skyblock ? "Welcome to Skyblock" : blockFall ? "Welcome to Block Fall" : "Welcome to QBlock",
+        skyblock ? "Welcome to Skyblock" : blockFall ? "Welcome to Block Fall" : bedwars ? "Welcome to Bedwars" : "Welcome to QBlock",
         skyblock ? "Build your island, reach new levels" : blockFall ? "Last one standing wins the round" : undefined,
       );
 
@@ -2599,6 +2634,11 @@ export function SandboxGame({
         world!.update(3);
         WIND.uTime.value += dt;
         grassField?.update(dt);
+        if (matchmaker && matchmakerTag) {
+          const toPlayer = Math.atan2(player.position.x - matchmakerPos.x, player.position.z - matchmakerPos.z);
+          matchmaker.update(dt, matchmakerPos, toPlayer, 0, true, false);
+          matchmakerTag.update(camera.position);
+        }
         if (cinematicPost) cinematicPost.render(dt);
         else renderer!.render(scene, camera);
 
@@ -2638,6 +2678,8 @@ export function SandboxGame({
         particles.dispose();
         skyEnv?.dispose();
         grassField?.dispose();
+        matchmaker?.dispose();
+        matchmakerTag?.dispose();
         cinematicPost?.dispose();
         match.onPhaseChange = undefined;
         worldEvents.onStart = undefined;
@@ -2908,7 +2950,7 @@ export function SandboxGame({
     }
   };
 
-  const isV2 = skyblock || blockFall;
+  const isV2 = skyblock || blockFall || bedwars;
   const matchState = useStore(match.store);
   const setMoveVector = (x: number, y: number) => {
     const c = controlsRef.current;
@@ -3114,6 +3156,10 @@ export function SandboxGame({
           topCenter={
             blockFall ? (
               <BlockFallStatus match={match} />
+            ) : bedwars ? (
+              <span className="rounded-md bg-black/35 px-3 py-1 text-[13px] font-black tracking-wide text-[#ffd76a] [text-shadow:0_1px_0_rgba(0,0,0,.6)]">
+                BEDWARS LOBBY
+              </span>
             ) : (
               <SkyblockStatus progression={progression} events={worldEvents} />
             )
@@ -3146,7 +3192,6 @@ export function SandboxGame({
           {skyblock && (
             <>
               <CinematicVignette />
-              <MilestoneTracker progression={progression} />
               <V2Hotbar hotbar={hotbar} tileUrls={tileUrls} slot={slot} onSelect={selectSlot} isTouch={isTouch} />
               <Crosshair />
             </>
@@ -3162,8 +3207,14 @@ export function SandboxGame({
       {ready && isV2 && veilToken > 0 && <V2Veil token={veilToken} />}
       {showClickToPlay && (
         <V2ClickToPlay
-          title={skyblock ? "Skyblock" : "Block Fall"}
-          hint={skyblock ? "Build, mine and grow your island" : "Stay on the platforms longer than everyone else"}
+          title={skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
+          hint={
+            skyblock
+              ? "Build, mine and grow your island"
+              : bedwars
+                ? "Explore the lobby and meet the Matchmaker"
+                : "Stay on the platforms longer than everyone else"
+          }
           onPlay={() => controlsRef.current?.requestLock()}
         />
       )}
@@ -3275,7 +3326,7 @@ export function SandboxGame({
       )}
 
       {/* New menu (shown before play, and whenever the pointer is unlocked) */}
-      {ready && !locked && !isTouch && !skyblock && !blockFall && (
+      {ready && !locked && !isTouch && !isV2 && (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-white/95 backdrop-blur-sm">
           <div className="w-full max-w-[360px] px-6 text-center text-[#16181d]">
             <p className="text-[26px] font-extrabold tracking-tight">
@@ -3320,8 +3371,8 @@ export function SandboxGame({
       {/* Loading menu */}
       {!ready && !graphicsError && isV2 && (
         <V2LoadingScreen
-          title={skyblock ? "Skyblock" : "Block Fall"}
-          subtitle={skyblock ? "Loading your island" : "Preparing the arena"}
+          title={skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
+          subtitle={skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
           progress={progress}
         />
       )}

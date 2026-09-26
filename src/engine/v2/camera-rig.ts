@@ -4,17 +4,18 @@ import { raycastVoxel } from "../interact";
 
 /**
  * Vertical FOV tuned to match Block Fall's grounded, mobile-native perspective.
- * Clamps to 56°-72° across landscape and portrait to eliminate wide fisheye
- * distortion while keeping comfortable peripheral vision.
+ * Kept deliberately narrow (~50°-60° at default settings) so the world
+ * doesn't look fisheyed in first or third person.
  */
 export function fovForAspect(aspect: number, horizontalDeg = 88, baseTargetFov = 68): number {
+  // The settings slider scales the result relative to its 70° default.
+  const userScale = THREE.MathUtils.clamp(baseTargetFov / 70, 0.85, 1.3);
   if (aspect >= 1.0) {
-    const h = THREE.MathUtils.degToRad(horizontalDeg);
+    const h = THREE.MathUtils.degToRad(horizontalDeg * 0.88);
     const v = 2 * Math.atan(Math.tan(h / 2) / Math.max(0.2, aspect));
-    return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(v), 56, 70);
+    return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(v) * userScale, 48, 80);
   }
-  // Portrait phones: keep focused, grounded view identical to Block Fall
-  return THREE.MathUtils.clamp(baseTargetFov, 64, 70);
+  return THREE.MathUtils.clamp(58 * userScale, 50, 80);
 }
 
 /**

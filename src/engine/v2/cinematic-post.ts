@@ -66,7 +66,7 @@ export class CinematicPost {
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
     private readonly camera: THREE.PerspectiveCamera,
-    private readonly strength = 1,
+    private readonly strength = 0.72,
   ) {
     const size = renderer.getSize(new THREE.Vector2());
     const target = new THREE.WebGLRenderTarget(size.x, size.y, {

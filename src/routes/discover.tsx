@@ -76,6 +76,20 @@ const GAMES: DiscoveryGame[] = [
     players: "890",
     likes: "3.1K",
     popularity: 88,
+  },  {
+    id: "bedwars",
+    title: "Bedwars",
+    subtitle: "Protect your bed",
+    bio: "Defend your bed and break everyone else's. Queue up in the golden-hour lobby.",
+    img: baseplateIcon,
+    hue: "from-amber-300 via-orange-300 to-rose-300",
+    mode: "PvP",
+    modeColor: "#d97706",
+    mood: "voxel",
+    players: "1.4K",
+    likes: "4.8K",
+    badge: "NEW",
+    popularity: 92,
   },
 ];
 
@@ -97,7 +111,7 @@ function UploadedDiscoverPage() {
   const games = useMemo(() => {
     const activeTab = UPLOADED_DISCOVER_TABS[tab];
     if (activeTab === "Party") return GAMES;
-    if (activeTab === "PvP") return GAMES.filter((g) => g.id === "block-fall");
+    if (activeTab === "PvP") return GAMES.filter((g) => g.id === "block-fall" || g.id === "bedwars");
     if (activeTab === "Building") return GAMES.filter((g) => g.id === "skyblock");
     if (activeTab === "Fantasy") return GAMES.filter((g) => g.id === "skyblock");
     return GAMES;

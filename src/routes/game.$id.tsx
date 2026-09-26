@@ -188,13 +188,13 @@ function fovForAspect(baseFovDeg: number, aspect: number): number {
     const refHorizHalf = Math.atan(Math.tan(baseHalfRad) * FOV_REF_ASPECT);
     const vertHalf = Math.atan(Math.tan(refHorizHalf) / aspect);
     const calculated = (vertHalf * 360) / Math.PI;
-    return Math.min(84, Math.max(baseFovDeg, calculated));
+    return Math.min(72, Math.max(baseFovDeg, calculated));
   }
   // Portrait mode (aspect < 1.0, e.g. phones held vertically):
   // Expand vertical FOV gently so the viewport feels spacious and high-end,
   // clamped at 82° to eliminate spherical edge distortion and fisheye stretching.
-  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 12;
-  return Math.min(82, Math.max(baseFovDeg, baseFovDeg + portraitExpansion));
+  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 8;
+  return Math.min(70, Math.max(baseFovDeg, baseFovDeg + portraitExpansion));
 }
 
 function getCleanName(user: any): string {
@@ -1605,8 +1605,10 @@ function GamePage() {
   });
   return (
     <>
-      {id === "bedwars-golden-days" || id === "bedwars" ? (
+      {id === "bedwars-golden-days" ? (
         <BedwarsGoldenDays />
+      ) : id === "bedwars" ? (
+        <SandboxGame bedwars />
       ) : id === "skyblock" || id.startsWith("skyblock") ? (
         <SandboxGame skyblock />
       ) : id === "block-fall" || id.startsWith("block-fall") ? (
@@ -2099,7 +2101,7 @@ function EngineGame({
       bwToastTimerRef.current = null;
     }, ms);
   }
-  // ── EggWars-only state ───────────────────────────────────────────────────
+  // ── EggWars-only state ─────────────────────────────────────���─────────────
   const EGG_TEAMS: EggwarsTeam[] = [
     { id: "ruby", label: "Ruby", color: "#ef4444", eggAlive: true, playerAlive: true },
     { id: "azure", label: "Azure", color: "#38bdf8", eggAlive: true, playerAlive: true },
@@ -2229,7 +2231,7 @@ function EngineGame({
     // *vertical* FOV tuned for landscape (16:9); fovForAspect widens it on
     // narrower/portrait aspect ratios so the horizontal field of view stays
     // constant instead of the world looking "zoomed in" on phones.
-    const BASE_FOV = isSpleef ? 75 : 72; // Blockmango 2019-2020 signature narrow FOV — feels grounded and mobile-native
+    const BASE_FOV = isSpleef ? 64 : 62; // Blockmango 2019-2020 signature narrow FOV — feels grounded and mobile-native
     const isMobileUA =
       typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const camera = new THREE.PerspectiveCamera(
@@ -6132,7 +6134,7 @@ function EngineGame({
         }
 
         // Returns the canonical integer terrain height at (x, z).
-        // Mountains get 3-block step quantization → dramatic vertical cliff
+        // Mountains get 3-block step quantization �� dramatic vertical cliff
         // faces instead of diagonal slopes. Every height consumer (terrain
         // gen, ore scatter, tree placer, spawn hub) must use this function
         // so all layers stay in sync.
@@ -6319,7 +6321,7 @@ function EngineGame({
           addBlock(fx, fh + 1, fz, flowerType);
         }
 
-        // ── Desert cacti ─────────────────────────────────────────────────────
+        // ── Desert cacti ────────────────────────────────────────────────���────
         for (let i = 0; i < 50; i++) {
           const cx2 = ((Math.random() * SIZE * 2) | 0) - SIZE;
           const cz2 = ((Math.random() * SIZE * 2) | 0) - SIZE;
