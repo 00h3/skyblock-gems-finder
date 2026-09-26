@@ -4,7 +4,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinnedModel } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { buildAtlas, type Atlas } from "@/engine/textures";
-import { World, BLOCKS, WATER_ID } from "@/engine/world";
+import { World, BLOCKS, WATER_ID, WIND } from "@/engine/world";
+import { GrassField } from "@/engine/v2/grass-field";
+import { CinematicPost } from "@/engine/v2/cinematic-post";
 import { Player } from "@/engine/player";
 import { Controls } from "@/engine/controls";
 import { BlockFx, createHighlight, raycastVoxel } from "@/engine/interact";
@@ -1268,6 +1270,14 @@ export function SandboxGame({
         sky.setCloudCover(0.42);
       }
 
+      const grassField =
+        skyblock && qualityPref !== "low"
+          ? new GrassField(world, { minX: -15, maxX: 16, minZ: -15, maxZ: 16, minY: 4, maxY: 40 })
+          : null;
+      if (grassField) scene.add(grassField.mesh);
+      const cinematicPost =
+        (skyblock || blockFall) && qualityPref !== "low" ? new CinematicPost(renderer, scene, camera) : null;
+
       if (skyblock) {
         // Chest completely removed per user request
 
@@ -2015,6 +2025,7 @@ export function SandboxGame({
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(getTargetDpr(readQualityPref()));
         renderer.setSize(w, h, false);
+        cinematicPost?.setSize(w, h, renderer.getPixelRatio());
       };
       const resizeObserver = new ResizeObserver(onResize);
       resizeObserver.observe(mount);
@@ -2586,7 +2597,10 @@ export function SandboxGame({
 
         fx!.update(dt);
         world!.update(3);
-        renderer!.render(scene, camera);
+        WIND.uTime.value += dt;
+        grassField?.update(dt);
+        if (cinematicPost) cinematicPost.render(dt);
+        else renderer!.render(scene, camera);
 
         frames++;
         acc += dt;
@@ -2623,6 +2637,8 @@ export function SandboxGame({
         if (stopWaterAudio) stopWaterAudio();
         particles.dispose();
         skyEnv?.dispose();
+        grassField?.dispose();
+        cinematicPost?.dispose();
         match.onPhaseChange = undefined;
         worldEvents.onStart = undefined;
         worldEvents.onEnd = undefined;

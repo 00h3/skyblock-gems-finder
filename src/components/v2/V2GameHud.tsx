@@ -84,11 +84,11 @@ export function V2GameHud({
     onMenuChange?.(open);
   };
 
-  const topButtons: { label: string; onClick: () => void }[] = [
-    { label: "Menu", onClick: () => setMenu(!menuOpen) },
-    { label: "Chat", onClick: onOpenChat },
-    { label: "Emote", onClick: onEmote },
-    { label: "View", onClick: onToggleCamera },
+  const topButtons: { label: string; icon: string; onClick: () => void }[] = [
+    { label: "Menu", icon: UI.menu, onClick: () => setMenu(!menuOpen) },
+    { label: "Chat", icon: UI.chat, onClick: onOpenChat },
+    { label: "Emote", icon: UI.smile, onClick: onEmote },
+    { label: "Camera", icon: UI.video, onClick: onToggleCamera },
   ];
 
   return (
@@ -99,14 +99,17 @@ export function V2GameHud({
       <header className="absolute inset-x-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] flex flex-wrap items-start justify-between gap-1.5 sm:inset-x-5">
         <nav aria-label="Game" className="pointer-events-auto flex gap-1.5">
           {topButtons.map((b) => (
-            <V2Button
+            <button
               key={b.label}
+              type="button"
               onClick={b.onClick}
+              aria-label={b.label}
+              title={b.label}
               aria-expanded={b.label === "Menu" ? menuOpen : undefined}
-              className="h-8 min-w-[42px] px-2.5 text-[12px] sm:h-9 sm:min-w-[50px] sm:text-[13px] rounded-lg shadow-sm"
+              className="grid h-10 w-10 place-items-center transition-transform duration-100 active:scale-90 sm:h-11 sm:w-11"
             >
-              {b.label}
-            </V2Button>
+              <img src={b.icon} alt="" draggable={false} className="h-full w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]" />
+            </button>
           ))}
         </nav>
         {topCenter && (
@@ -233,7 +236,6 @@ function DPad({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const key = "v2-key text-[calc(var(--k)*0.26)]";
   const size = { width: "var(--k)", height: "var(--k)" };
 
   return (
@@ -261,9 +263,9 @@ function DPad({
         onPointerCancel={release}
       >
         <span style={size} />
-        <span className={key} style={size} data-active={dir.y === 1}>Up</span>
+        <PadArrow label="Up" rotate={-90} active={dir.y === 1} />
         <span style={size} />
-        <span className={key} style={size} data-active={dir.x === -1}>Left</span>
+        <PadArrow label="Left" rotate={180} active={dir.x === -1} />
         <button
           type="button"
           data-center="true"
@@ -272,18 +274,45 @@ function DPad({
             e.stopPropagation();
             onToggleRun();
           }}
-          className={cn(key, "text-[calc(var(--k)*0.22)]")}
-          style={size}
-          data-active={running}
+          className={cn("blockman-key text-[calc(var(--k)*0.22)]", running && "is-active")}
+          style={{ ...size, backgroundImage: `url(${UI.blank})` }}
         >
           {running ? "Run" : "Walk"}
         </button>
-        <span className={key} style={size} data-active={dir.x === 1}>Right</span>
+        <PadArrow label="Right" rotate={0} active={dir.x === 1} />
         <span style={size} />
-        <span className={key} style={size} data-active={dir.y === -1}>Down</span>
+        <PadArrow label="Down" rotate={90} active={dir.y === -1} />
         <span style={size} />
       </div>
     </div>
+  );
+}
+
+export const UI = {
+  menu: "/ui/menu-icon.png",
+  chat: "/ui/chat-icon.png",
+  smile: "/ui/smile-icon.png",
+  video: "/ui/video-icon.png",
+  arrow: "/ui/arrow-icon.png",
+  blank: "/ui/blank-button.png",
+};
+
+function PadArrow({ label, rotate, active }: { label: string; rotate: number; active: boolean }) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className={cn("blockman-key", active && "is-active")}
+      style={{ width: "var(--k)", height: "var(--k)" }}
+    >
+      <img
+        src={UI.arrow}
+        alt=""
+        draggable={false}
+        className="pointer-events-none h-full w-full object-contain"
+        style={{ transform: `rotate(${rotate}deg)` }}
+      />
+    </span>
   );
 }
 
@@ -316,12 +345,12 @@ function ActionKey({ action, scale, isPrimary = false }: { action: HudAction; sc
       type="button"
       aria-label={action.label}
       data-active={down}
-      className={`v2-key touch-none shadow-md ${isPrimary ? "font-black border-amber-400/40" : "font-bold text-white/80"}`}
+      className={cn("blockman-key touch-none", isPrimary && "font-black", down && "is-active")}
       style={{
         width: `calc(var(--k) * ${scale})`,
         height: `calc(var(--k) * ${scale})`,
-        fontSize: `calc(var(--k) * ${0.25 + (scale - 1) * 0.08})`,
-        borderRadius: isPrimary ? 999 : 12,
+        fontSize: `calc(var(--k) * ${0.24 + (scale - 1) * 0.08})`,
+        backgroundImage: `url(${UI.blank})`,
       }}
       onPointerDown={(e) => {
         e.preventDefault();

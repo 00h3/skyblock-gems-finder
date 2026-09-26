@@ -26,6 +26,12 @@ export type BlockDef = {
 
 export const WATER_ID = 50;
 
+/** Shared wind clock for foliage shaders; advance `uTime` once per frame. */
+export const WIND = {
+  uTime: { value: 0 },
+  uStrength: { value: 1 },
+};
+
 export const BLOCKS: BlockDef[] = [
   { id: 0, name: "Air", top: "", side: "", bottom: "", hardness: 0 },
   {
@@ -525,6 +531,28 @@ export class World {
       depthWrite: true,
       side: THREE.DoubleSide,
     });
+    // Leaves sway in the wind: per-vertex `aSway` marks foliage so glass stays still.
+    this.transparentMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uWindTime = WIND.uTime;
+      shader.uniforms.uWindStrength = WIND.uStrength;
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          "#include <common>\nattribute float aSway;\nuniform float uWindTime;\nuniform float uWindStrength;",
+        )
+        .replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+          if (aSway > 0.5) {
+            float ph = position.x * 0.55 + position.z * 0.45 + position.y * 0.3;
+            float gust = 0.6 + 0.4 * sin(uWindTime * 0.35 + position.x * 0.05);
+            transformed.x += sin(uWindTime * 1.6 + ph) * 0.05 * gust * uWindStrength;
+            transformed.z += cos(uWindTime * 1.25 + ph * 1.3) * 0.04 * gust * uWindStrength;
+            transformed.y += sin(uWindTime * 2.1 + ph * 0.8) * 0.015 * uWindStrength;
+          }`,
+        );
+    };
+    this.transparentMaterial.customProgramCacheKey = () => "voxel-foliage-wind";
     this.waterMaterial = new THREE.MeshStandardMaterial({
       map: atlas.texture,
       vertexColors: true,
@@ -738,6 +766,12 @@ export class World {
     const tUvs: number[] = [];
     const tColors: number[] = [];
     const tIndices: number[] = [];
+    const tSway: number[] = [];
+    const pushSway = (def: BlockDef, tile: string) => {
+      if (!def.transparent || def.liquid) return;
+      const s = tile.includes("leaves") ? 1 : 0;
+      tSway.push(s, s, s, s);
+    };
 
     const wPositions: number[] = [];
     const wNormals: number[] = [];
@@ -781,6 +815,7 @@ export class World {
         const tile = f.dir[1] === 1 ? def.top : f.dir[1] === -1 ? def.bottom : def.side;
         const [u0, v0, u1, v1] = this.atlas.uv(tile);
         const base = P.length / 3;
+        pushSway(def, tile);
         for (let i = 0; i < 4; i++) {
           const cn = f.corners[i];
           P.push(wx + minX + cn[0] * sizeX, y + minY + cn[1] * sizeY, wz + minZ + cn[2] * sizeZ);
@@ -829,6 +864,7 @@ export class World {
             const C = def.liquid ? wColors : def.transparent ? tColors : colors;
             const I = def.liquid ? wIndices : def.transparent ? tIndices : indices;
             const base = P.length / 3;
+            pushSway(def, tile);
             // tangent axes of this face (the two axes where dir === 0)
             const ax = f.dir[0] !== 0 ? 0 : f.dir[1] !== 0 ? 1 : 2;
             const t1 = (ax + 1) % 3;
@@ -895,6 +931,7 @@ export class World {
         makeGeom(tPositions, tNormals, tUvs, tColors, tIndices),
         this.transparentMaterial,
       );
+      tm.geometry.setAttribute("aSway", new THREE.Float32BufferAttribute(tSway, 1));
       tm.castShadow = true;
       tm.receiveShadow = true;
       tm.frustumCulled = false;
