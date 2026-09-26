@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronUp, LogOut, Menu, MessageSquare, Settings, Smile, Video } from "lucide-react";
+import { LogOut, MessageSquare, Settings } from "lucide-react";
 import { FlatSquareChatModal } from "@/components/FlatSquareChatModal";
 import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
 
@@ -15,10 +15,35 @@ interface FlatSquareGameControlsProps {
   onLeave?: () => void;
 }
 
-const glass = "border border-white/10 bg-black/65 text-white shadow-[0_8px_24px_rgba(0,0,0,0.35)]";
-const topBtn = `${glass} relative flex h-11 w-11 items-center justify-center rounded-2xl outline-none touch-none active:scale-90 transition-transform cursor-pointer`;
+// The PNGs are 1744x902 canvases with the button art centered; these sizes crop to the art.
+const SPRITE_SIZE = {
+  purple: "459% 247%",
+  gray: "329% 198%",
+  blank: "206% 124%",
+} as const;
+
+type SpriteKind = keyof typeof SPRITE_SIZE;
+type Dir = "up" | "down" | "left" | "right";
+
+const ARROW_ROTATION: Record<Dir, number> = { right: 0, down: 90, left: 180, up: -90 };
+
+const glass = "border border-white/10 bg-black/70 text-white shadow-[0_8px_24px_rgba(0,0,0,0.35)]";
 const menuItem =
   "flex h-10 w-full items-center justify-between rounded-xl px-3 text-left text-[14px] tracking-wide outline-none transition-colors cursor-pointer";
+
+function Sprite({ src, kind, rotate = 0 }: { src: string; kind: SpriteKind; rotate?: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `url(${src})`,
+        backgroundSize: SPRITE_SIZE[kind],
+        transform: rotate ? `rotate(${rotate}deg)` : undefined,
+      }}
+    />
+  );
+}
 
 export function FlatSquareGameControls({
   movementMode: controlledMode,
@@ -32,6 +57,8 @@ export function FlatSquareGameControls({
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pressed, setPressed] = useState<Record<Dir, boolean>>({ up: false, down: false, left: false, right: false });
+  const pressedRef = useRef(pressed);
 
   const [controlsScale, setControlsScale] = useState<number>(() => {
     try {
@@ -59,58 +86,33 @@ export function FlatSquareGameControls({
     window.dispatchEvent(new CustomEvent("bm-movement-mode", { detail: { mode: nextMode } }));
   }, [currentMode, onMovementModeChange]);
 
-  const [joystickActive, setJoystickActive] = useState(false);
-  const [knobOffset, setKnobOffset] = useState({ x: 0, y: 0 });
-  const joystickBaseRef = useRef<HTMLDivElement>(null);
-  const activePointerId = useRef<number | null>(null);
-
-  const BASE_SIZE = 124;
-  const KNOB_SIZE = 50;
-  const MAX_TRAVEL = (BASE_SIZE - KNOB_SIZE) / 2;
-
-  const updateKnobAndVector = (clientX: number, clientY: number) => {
-    if (!joystickBaseRef.current) return;
-    const rect = joystickBaseRef.current.getBoundingClientRect();
-    const dx = clientX - (rect.left + rect.width / 2);
-    const dy = clientY - (rect.top + rect.height / 2);
-    const len = Math.hypot(dx, dy);
-    const k = len > MAX_TRAVEL ? MAX_TRAVEL / len : 1;
-    const cx = dx * k;
-    const cy = dy * k;
-    setKnobOffset({ x: cx, y: cy });
-    onJoyVector(cx / MAX_TRAVEL, -(cy / MAX_TRAVEL));
+  const setDir = (dir: Dir, down: boolean) => {
+    if (pressedRef.current[dir] === down) return;
+    const next = { ...pressedRef.current, [dir]: down };
+    pressedRef.current = next;
+    setPressed(next);
+    const x = (next.right ? 1 : 0) - (next.left ? 1 : 0);
+    const y = (next.up ? 1 : 0) - (next.down ? 1 : 0);
+    const len = Math.hypot(x, y) || 1;
+    onJoyVector(x / len, y / len);
   };
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-    activePointerId.current = e.pointerId;
-    setJoystickActive(true);
-    updateKnobAndVector(e.clientX, e.clientY);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!joystickActive || e.pointerId !== activePointerId.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-    updateKnobAndVector(e.clientX, e.clientY);
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerId !== activePointerId.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
-    activePointerId.current = null;
-    setJoystickActive(false);
-    setKnobOffset({ x: 0, y: 0 });
-    onJoyVector(0, 0);
-  };
+  const dirHandlers = (dir: Dir) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {}
+      setDir(dir, true);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setDir(dir, false);
+    },
+    onPointerCancel: () => setDir(dir, false),
+    onLostPointerCapture: () => setDir(dir, false),
+  });
 
   const handleJumpDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -131,6 +133,11 @@ export function FlatSquareGameControls({
     fn();
   };
 
+  const topBtn =
+    "relative h-12 w-12 outline-none touch-none cursor-pointer transition-transform active:scale-90 sm:h-14 sm:w-14";
+  const padBtn = (dir: Dir) =>
+    `relative h-14 w-14 touch-none outline-none transition-transform ${pressed[dir] ? "scale-90 brightness-125" : ""}`;
+
   return (
     <div
       id="flat-square-game-controls"
@@ -139,7 +146,7 @@ export function FlatSquareGameControls({
     >
       <div
         id="flat-square-menu-container"
-        className="pointer-events-auto absolute left-4 top-[max(16px,calc(env(safe-area-inset-top)+10px))] z-40 flex items-center gap-2 sm:left-6"
+        className="pointer-events-auto absolute left-3 top-[max(12px,calc(env(safe-area-inset-top)+8px))] z-40 flex items-center gap-1.5 sm:left-6"
       >
         <div className="relative">
           <button
@@ -150,7 +157,7 @@ export function FlatSquareGameControls({
             aria-label="Menu"
             aria-expanded={menuOpen}
           >
-            <Menu className="h-5 w-5" />
+            <Sprite src="/qblock/ui/menu.png" kind="purple" />
           </button>
 
           {menuOpen && (
@@ -197,7 +204,7 @@ export function FlatSquareGameControls({
         </div>
 
         <button type="button" onPointerDown={tap(() => setChatOpen(true))} className={topBtn} aria-label="Chat">
-          <MessageSquare className="h-5 w-5" />
+          <Sprite src="/qblock/ui/chat.png" kind="purple" />
         </button>
         <button
           type="button"
@@ -205,7 +212,7 @@ export function FlatSquareGameControls({
           className={topBtn}
           aria-label="Wave"
         >
-          <Smile className="h-5 w-5" />
+          <Sprite src="/qblock/ui/smile.png" kind="purple" />
         </button>
         <button
           type="button"
@@ -213,55 +220,49 @@ export function FlatSquareGameControls({
           className={topBtn}
           aria-label="Toggle camera view"
         >
-          <Video className="h-5 w-5" />
+          <Sprite src="/qblock/ui/video.png" kind="purple" />
         </button>
       </div>
 
       <div
-        className="pointer-events-auto absolute bottom-[max(24px,calc(env(safe-area-inset-bottom)+16px))] left-6 flex flex-col items-center gap-3"
+        className="pointer-events-auto absolute bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] left-4 flex flex-col items-center gap-2 sm:left-6"
         style={{ transform: `scale(${controlsScale})`, transformOrigin: "bottom left" }}
       >
         <button
           id="btn-movement-mode-toggle"
           type="button"
           onPointerDown={tap(cycleMovementMode)}
-          className={`${glass} flex h-10 items-center justify-center rounded-2xl px-4 text-[13px] uppercase tracking-wider active:scale-95 transition-transform`}
+          className={`${glass} flex h-9 items-center justify-center rounded-2xl px-4 text-[13px] uppercase tracking-wider active:scale-95 transition-transform`}
           aria-label={`Switch movement mode. Current: ${currentMode}`}
         >
           {currentMode}
         </button>
 
-        <div
-          id="flat-square-joystick-base"
-          ref={joystickBaseRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className="relative flex touch-none items-center justify-center rounded-[36px] border border-white/10 bg-black/45"
-          style={{ width: BASE_SIZE, height: BASE_SIZE }}
-          aria-label="Joystick"
-        >
-          <ChevronUp className="pointer-events-none absolute top-1.5 h-4 w-4 text-white/35" />
-          <ChevronUp className="pointer-events-none absolute bottom-1.5 h-4 w-4 rotate-180 text-white/35" />
-          <ChevronUp className="pointer-events-none absolute left-1.5 h-4 w-4 -rotate-90 text-white/35" />
-          <ChevronUp className="pointer-events-none absolute right-1.5 h-4 w-4 rotate-90 text-white/35" />
-          <div
-            id="flat-square-joystick-knob"
-            className={`pointer-events-none absolute rounded-[18px] border border-white/20 ${joystickActive ? "bg-white/90" : "bg-white/75"} shadow-lg`}
-            style={{
-              width: KNOB_SIZE,
-              height: KNOB_SIZE,
-              left: "50%",
-              top: "50%",
-              transform: `translate(calc(-50% + ${knobOffset.x}px), calc(-50% + ${knobOffset.y}px))`,
-            }}
-          />
+        <div id="flat-square-dpad" className="grid grid-cols-3 grid-rows-3 gap-0.5" aria-label="Movement pad">
+          <span />
+          <button type="button" className={padBtn("up")} aria-label="Move forward" {...dirHandlers("up")}>
+            <Sprite src="/qblock/ui/arrow.png" kind="gray" rotate={ARROW_ROTATION.up} />
+          </button>
+          <span />
+          <button type="button" className={padBtn("left")} aria-label="Move left" {...dirHandlers("left")}>
+            <Sprite src="/qblock/ui/arrow.png" kind="gray" rotate={ARROW_ROTATION.left} />
+          </button>
+          <span className="relative h-14 w-14 opacity-80">
+            <Sprite src="/qblock/ui/button.png" kind="blank" />
+          </span>
+          <button type="button" className={padBtn("right")} aria-label="Move right" {...dirHandlers("right")}>
+            <Sprite src="/qblock/ui/arrow.png" kind="gray" rotate={ARROW_ROTATION.right} />
+          </button>
+          <span />
+          <button type="button" className={padBtn("down")} aria-label="Move back" {...dirHandlers("down")}>
+            <Sprite src="/qblock/ui/arrow.png" kind="gray" rotate={ARROW_ROTATION.down} />
+          </button>
+          <span />
         </div>
       </div>
 
       <div
-        className="pointer-events-auto absolute bottom-[max(24px,calc(env(safe-area-inset-bottom)+16px))] right-6"
+        className="pointer-events-auto absolute bottom-[max(28px,calc(env(safe-area-inset-bottom)+20px))] right-5 sm:right-8"
         style={{ transform: `scale(${controlsScale})`, transformOrigin: "bottom right" }}
       >
         <button
@@ -271,11 +272,11 @@ export function FlatSquareGameControls({
           onPointerUp={handleJumpUp}
           onPointerLeave={handleJumpUp}
           onPointerCancel={handleJumpUp}
-          className={`${glass} flex h-20 w-20 flex-col items-center justify-center rounded-[28px] text-[15px] tracking-wider active:scale-90 transition-transform`}
+          className="relative flex h-20 w-20 items-center justify-center text-[15px] tracking-wider text-white/90 outline-none touch-none transition-transform active:scale-90"
           aria-label="Jump"
         >
-          <ChevronUp className="h-6 w-6" />
-          JUMP
+          <Sprite src="/qblock/ui/button.png" kind="blank" />
+          <span className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">JUMP</span>
         </button>
       </div>
 

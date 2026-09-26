@@ -2107,7 +2107,6 @@ export function SandboxGame({
           bots.push({ mesh, x: 0, y: 37, z: 0, vy: 0, tx: 0, tz: 0, retarget: 0, phase: 0, alive: true, skill: 0.55 + Math.random() * 0.45 });
         });
         resetBots();
-        (window as unknown as { __v0bots: Bot[] }).__v0bots = bots;
         setBlockFallBotTotal(bots.length);
         restartBlockFallRef.current = () => {
           if (!world) return;
