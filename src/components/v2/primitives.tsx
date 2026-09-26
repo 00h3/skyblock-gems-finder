@@ -76,14 +76,14 @@ export function V2Announcer() {
         {msg.tone && msg.tone !== "info" && (
           <p
             className={cn(
-              "text-[11px] uppercase tracking-[0.2em]",
-              msg.tone === "event" ? "text-v2-plum" : "text-[#b8860b]",
+              "text-[10.5px] font-semibold uppercase tracking-[0.16em]",
+              msg.tone === "event" ? "text-v2-plum" : "text-emerald-600",
             )}
           >
             {msg.tone === "event" ? "World event" : "Reward"}
           </p>
         )}
-        <p className="text-balance text-[22px] leading-tight sm:text-[30px]">{msg.title}</p>
+        <p className="text-balance text-[20px] font-bold leading-tight tracking-tight sm:text-[26px]">{msg.title}</p>
         {msg.detail && (
           <p className="mt-1 text-pretty font-sans text-[13px] font-semibold text-v2-ink/60 sm:text-[14px]">
             {msg.detail}

@@ -49,12 +49,25 @@ const firebaseConfig = {
 
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({}),
-  ...(appletConfig.firestoreDatabaseId && appletConfig.firestoreDatabaseId !== "(default)"
-    ? { databaseId: appletConfig.firestoreDatabaseId }
-    : {}),
-});
+const customDatabaseId =
+  appletConfig.firestoreDatabaseId && appletConfig.firestoreDatabaseId !== "(default)"
+    ? appletConfig.firestoreDatabaseId
+    : undefined;
+
+// Dev-server HMR and SSR re-evaluate this module against the same app
+// instance; initializeFirestore throws on the second call, so reuse it.
+function createDb() {
+  try {
+    return initializeFirestore(
+      app,
+      typeof window !== "undefined" ? { localCache: persistentLocalCache({}) } : {},
+      customDatabaseId,
+    );
+  } catch {
+    return customDatabaseId ? getFirestore(app, customDatabaseId) : getFirestore(app);
+  }
+}
+export const db = createDb();
 export const storage = getStorage(app);
 
 // Analytics — browser only (SSR guard)

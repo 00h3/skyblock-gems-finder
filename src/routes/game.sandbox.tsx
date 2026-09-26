@@ -59,11 +59,12 @@ import { MatchController, now as matchNow } from "@/engine/v2/match";
 import { Progression } from "@/engine/v2/progression";
 import { WorldEvents } from "@/engine/v2/world-events";
 import { AmbientParticles } from "@/engine/v2/ambient-particles";
+import { SkyblockEnvironment } from "@/engine/v2/skyblock-environment";
 import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
 import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
 import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
-import { Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
+import { CinematicVignette, Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
 import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
 
 
@@ -436,17 +437,42 @@ function buildSkyblockIsland(world: World) {
   world.set(-1, 17, 4, 26); // Starter Pumpkin
   world.set(5, 16, 2, 17); // Starter Ice Block
   world.set(-4, 25, -4, 18); // Tree-top Glowstone Lantern
+
+  // Small spring pond on the east lobe; the shader water surface sits in it.
+  const { x: px, z: pz, radius } = SKYBLOCK_POND;
+  for (let dx = -3; dx <= 3; dx++) {
+    for (let dz = -3; dz <= 3; dz++) {
+      const d = Math.hypot(dx, dz);
+      if (d > radius) continue;
+      world.set(px + dx, 16, pz + dz, 0);
+      if (d < 1.6) {
+        world.set(px + dx, 15, pz + dz, 0);
+        world.set(px + dx, 14, pz + dz, 6);
+      } else {
+        world.set(px + dx, 15, pz + dz, 6);
+      }
+    }
+  }
 }
+
+const SKYBLOCK_POND = { x: 6, z: 5, radius: 2.7 };
+/** Water plane: 7x7 so its edges tuck under the surrounding grass blocks. */
+const SKYBLOCK_POND_SURFACE = { x: SKYBLOCK_POND.x + 0.5, y: 16.82, z: SKYBLOCK_POND.z + 0.5, size: 7 };
 
 export const BLOCK_FALL_PLATFORM_LEVELS = [36, 29, 22, 15, 8] as const;
 
 export const BLOCK_FALL_BOT_CONFIGS: { name: string; color: string }[] = [];
 
+// Wide-format arena: the long axis runs left-right (X) so the whole floor
+// reads at a glance from the spawn camera instead of stretching away.
+const BLOCK_FALL_HALF_X = 30;
+const BLOCK_FALL_HALF_Z = 15;
+
 export function buildBlockFallArena(world: World) {
-  const minX = -10;
-  const maxX = 10;
-  const minZ = -26;
-  const maxZ = 26;
+  const minX = -BLOCK_FALL_HALF_X;
+  const maxX = BLOCK_FALL_HALF_X;
+  const minZ = -BLOCK_FALL_HALF_Z;
+  const maxZ = BLOCK_FALL_HALF_Z;
   const minY = 2;
   const maxY = 42;
 
@@ -498,10 +524,10 @@ export function buildBlockFallArena(world: World) {
 }
 
 export function rebuildBlockFallPlatforms(world: World) {
-  const pMinX = -8;
-  const pMaxX = 8;
-  const pMinZ = -24;
-  const pMaxZ = 24;
+  const pMinX = -(BLOCK_FALL_HALF_X - 2);
+  const pMaxX = BLOCK_FALL_HALF_X - 2;
+  const pMinZ = -(BLOCK_FALL_HALF_Z - 2);
+  const pMaxZ = BLOCK_FALL_HALF_Z - 2;
 
   for (let x = pMinX; x <= pMaxX; x++) {
     for (let z = pMinZ; z <= pMaxZ; z++) {
@@ -1194,6 +1220,14 @@ export function SandboxGame({
       }
       world.meshAll();
       scene.add(world.group);
+
+      const skyEnv = skyblock
+        ? new SkyblockEnvironment(scene, { pond: SKYBLOCK_POND_SURFACE, lowQuality: qualityPref === "low" })
+        : null;
+      if (skyblock) {
+        renderer.toneMappingExposure = 1.04;
+        sky.setCloudCover(0.42);
+      }
 
       if (skyblock) {
         // Chest completely removed per user request
@@ -2312,6 +2346,7 @@ export function SandboxGame({
         sky!.follow(camera.position);
         particles.update(dt, camera.position);
         sky!.update(dt);
+        skyEnv?.update(dt, camera, sky!, scene);
 
         // ── SkyBlock: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
         if (skyblock) {
@@ -2500,6 +2535,7 @@ export function SandboxGame({
         window.removeEventListener("orientationchange", onResize);
         window.removeEventListener("qb-menu-respawn", onRespawn);
         particles.dispose();
+        skyEnv?.dispose();
         match.onPhaseChange = undefined;
         worldEvents.onStart = undefined;
         worldEvents.onEnd = undefined;
@@ -3001,6 +3037,7 @@ export function SandboxGame({
           running={movementMode === "run"}
           thirdPerson={thirdPerson}
           muted={bgmMuted}
+          hasHotbar={skyblock && hotbar.length > 0}
           actions={v2Actions}
           topCenter={
             blockFall ? (
@@ -3036,6 +3073,7 @@ export function SandboxGame({
         >
           {skyblock && (
             <>
+              <CinematicVignette />
               <MilestoneTracker progression={progression} />
               <V2Hotbar hotbar={hotbar} tileUrls={tileUrls} slot={slot} onSelect={selectSlot} isTouch={isTouch} />
               <Crosshair />

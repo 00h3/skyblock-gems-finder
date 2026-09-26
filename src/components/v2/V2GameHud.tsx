@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import WetPaintButton from "@/components/ui/wet-paint-button";
 import { V2Announcer, V2Button } from "./primitives";
 
 export type HudAction = {
@@ -16,6 +17,8 @@ type Props = {
   running: boolean;
   thirdPerson: boolean;
   muted: boolean;
+  /** When true, touch controls sit above the bottom-pinned inventory bar. */
+  hasHotbar?: boolean;
   /** Mode-specific overlays (status bars, hotbar, countdown...). */
   topCenter?: ReactNode;
   children?: ReactNode;
@@ -42,6 +45,7 @@ export function V2GameHud({
   running,
   thirdPerson,
   muted,
+  hasHotbar = false,
   topCenter,
   children,
   actions,
@@ -71,7 +75,10 @@ export function V2GameHud({
   ];
 
   return (
-    <div className="v2-ui pointer-events-none fixed inset-0 z-[100] select-none">
+    <div
+      className="v2-ui pointer-events-none fixed inset-0 z-[100] select-none"
+      style={{ ["--hb" as string]: hasHotbar ? "66px" : "0px" }}
+    >
       <header className="absolute inset-x-3 top-[max(12px,calc(env(safe-area-inset-top)+8px))] flex flex-wrap items-start justify-between gap-2 sm:inset-x-5">
         <nav aria-label="Game" className="pointer-events-auto flex gap-2">
           {topButtons.map((b) => (
@@ -116,11 +123,12 @@ export function V2GameHud({
             aria-label="Game menu"
             className="v2-panel v2-anim-pop w-full max-w-[340px] p-5"
           >
-            <p className="v2-text-stroke mb-4 text-center text-[26px]">Paused</p>
+            <p className="v2-eyebrow text-center">Game menu</p>
+            <p className="mb-5 mt-1 text-center text-[24px] font-bold tracking-tight">Paused</p>
             <div className="flex flex-col gap-3">
-              <V2Button variant="sun" className="h-12 text-[17px]" onClick={() => setMenu(false)}>
+              <WetPaintButton className="mb-6 h-12 w-full rounded-[12px] text-[15px]" onClick={() => setMenu(false)} autoFocus>
                 Resume
-              </V2Button>
+              </WetPaintButton>
               <div className="grid grid-cols-2 gap-3">
                 <V2Button className="h-11 text-[14px]" onClick={() => { setMenu(false); onOpenSettings(); }}>
                   Settings
@@ -213,7 +221,7 @@ function DPad({
 
   return (
     <div
-      className="pointer-events-auto absolute bottom-[max(18px,calc(env(safe-area-inset-bottom)+12px))] left-[max(14px,env(safe-area-inset-left))] sm:left-8"
+      className="pointer-events-auto absolute bottom-[calc(max(18px,calc(env(safe-area-inset-bottom)+12px))+var(--hb,0px))] left-[max(14px,env(safe-area-inset-left))] sm:left-8"
     >
       <div
         ref={padRef}
@@ -266,7 +274,7 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
   const primary = actions.find((a) => a.primary) ?? actions[0];
   const secondary = actions.filter((a) => a !== primary);
   return (
-    <div className="pointer-events-auto absolute bottom-[max(18px,calc(env(safe-area-inset-bottom)+12px))] right-[max(14px,env(safe-area-inset-right))] flex items-end gap-2 sm:right-8">
+    <div className="pointer-events-auto absolute bottom-[calc(max(18px,calc(env(safe-area-inset-bottom)+12px))+var(--hb,0px))] right-[max(14px,env(safe-area-inset-right))] flex items-end gap-2 sm:right-8">
       {secondary.length > 0 && (
         <div className="mb-1 flex flex-col gap-2">
           {secondary.map((a) => (
@@ -296,7 +304,7 @@ function ActionKey({ action, scale }: { action: HudAction; scale: number }) {
         width: `calc(var(--k) * ${scale})`,
         height: `calc(var(--k) * ${scale})`,
         fontSize: `calc(var(--k) * ${0.24 + (scale - 1) * 0.08})`,
-        borderRadius: scale > 1.2 ? 22 : 16,
+        borderRadius: scale > 1.2 ? 999 : 14,
       }}
       onPointerDown={(e) => {
         e.preventDefault();
