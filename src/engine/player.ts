@@ -185,7 +185,10 @@ export class Player {
       this.velocity.x *= Math.exp(-2.5 * dt);
       this.velocity.z *= Math.exp(-2.5 * dt);
     } else {
-      const g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
+      let g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
+      // Soft apex hang reads as weight rather than float; releasing jump early cuts the arc.
+      if (!this.onGround && Math.abs(this.velocity.y) < 1.4) g *= 0.72;
+      else if (this.velocity.y > 0 && !wantsJump) g *= 1.55;
       this.velocity.y -= g * dt;
       if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
     }

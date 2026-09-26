@@ -69,6 +69,7 @@ import { WorldEvents } from "@/engine/v2/world-events";
 import { AmbientParticles } from "@/engine/v2/ambient-particles";
 import { SkyblockEnvironment } from "@/engine/v2/skyblock-environment";
 import { CosmicSky } from "@/engine/v2/cosmic-sky";
+import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
 import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
 import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
@@ -1263,10 +1264,10 @@ export function SandboxGame({
 
       // Chunk render distance: tuned per mode for rock-solid performance
       if (bedwars) {
-        sky.setNormalDay();
+        sky.setGoldenHour();
         sky.paused = true;
-        sky.setCloudCover(0.22);
-        renderer.toneMappingExposure = 1.16;
+        sky.setCloudCover(0.34);
+        renderer.toneMappingExposure = 1.12;
       }
 
       world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);
@@ -3309,7 +3310,21 @@ export function SandboxGame({
         </div>
       )}
 
-      {inventoryOpen && (
+      {inventoryOpen && bedwars && (
+        <BlockmanInventory
+          hotbar={hotbar}
+          tileUrls={tileUrls}
+          slot={slot}
+          onSelect={(i) => {
+            setSlot(i);
+            const v = hotbar[i];
+            if (v !== undefined) api()?.setHeldTile(v);
+          }}
+          onClose={() => setInventoryOpen(false)}
+        />
+      )}
+
+      {inventoryOpen && !bedwars && (
         <div className="fixed inset-0 z-[100]">
           <AdvancedInventoryModal
             onClose={() => setInventoryOpen(false)}

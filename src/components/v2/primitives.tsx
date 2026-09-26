@@ -70,25 +70,34 @@ export function V2Announcer() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-[26%] z-[120] flex justify-center px-4"
+      className="pointer-events-none fixed inset-x-0 top-[max(64px,calc(env(safe-area-inset-top)+56px))] z-[120] flex justify-center px-4"
     >
-      <div key={msg.id} className="v2-paper v2-anim-pop max-w-[min(560px,92vw)] px-6 py-3 text-center sm:px-10 sm:py-4">
-        {msg.tone && msg.tone !== "info" && (
-          <p
+      <div key={msg.id} className="blockman-panel v2-anim-pop flex max-w-[min(340px,90vw)] items-center gap-2.5 p-1.5 pr-3.5">
+        <span
+          aria-hidden="true"
+          className="blockman-slot grid h-9 w-9 shrink-0 place-items-center rounded-[4px] text-[15px] font-black"
+        >
+          <span
             className={cn(
-              "text-[10.5px] font-semibold uppercase tracking-[0.16em]",
-              msg.tone === "event" ? "text-v2-plum" : "text-emerald-600",
+              "h-3.5 w-3.5 rotate-45 rounded-[2px]",
+              msg.tone === "event" ? "bg-v2-plum" : msg.tone === "reward" ? "bg-v2-sun" : "bg-white/80",
             )}
-          >
-            {msg.tone === "event" ? "World event" : "Reward"}
-          </p>
-        )}
-        <p className="text-balance text-[20px] font-bold leading-tight tracking-tight sm:text-[26px]">{msg.title}</p>
-        {msg.detail && (
-          <p className="mt-1 text-pretty font-sans text-[13px] font-semibold text-v2-ink/60 sm:text-[14px]">
-            {msg.detail}
-          </p>
-        )}
+          />
+        </span>
+        <div className="min-w-0 text-left">
+          {msg.tone && msg.tone !== "info" && (
+            <p
+              className={cn(
+                "text-[9px] font-black uppercase tracking-[0.14em]",
+                msg.tone === "event" ? "text-v2-plum" : "text-v2-sun",
+              )}
+            >
+              {msg.tone === "event" ? "World event" : "Quest complete"}
+            </p>
+          )}
+          <p className="truncate text-[13px] font-black leading-tight text-white">{msg.title}</p>
+          {msg.detail && <p className="truncate text-[11px] font-semibold text-white/60">{msg.detail}</p>}
+        </div>
       </div>
     </div>
   );
