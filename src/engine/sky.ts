@@ -1,219 +1,320 @@
 import * as THREE from "three";
 
 /**
- * Sky dome + sun/moon + drifting volumetric-ish cloud layer, with a slow
- * day/night cycle. Everything is driven from `update(dt)` so the game loop
- * just ticks it.
+ * V2 atmosphere: gradient sky dome with a sun disc, procedural drifting
+ * clouds, stars at night and a day/night cycle that drives every light in
+ * the scene. All clouds are evaluated in the dome shader (no extra geometry),
+ * which keeps the cost to a single draw call.
  */
 
 const VERT = /* glsl */ `
-varying vec3 vWorld;
+varying vec3 vDir;
 void main() {
-  vWorld = normalize((modelMatrix * vec4(position, 1.0)).xyz);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vDir = normalize(position);
+  vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  // Pin the dome to the far plane so the camera's far distance can stay
+  // short (better depth precision) without ever clipping the sky.
+  gl_Position = vec4(p.xy, p.w * 0.99999, p.w);
 }
 `;
 
 const FRAG = /* glsl */ `
-varying vec3 vWorld;
+precision highp float;
+varying vec3 vDir;
 uniform vec3 uTop;
 uniform vec3 uMid;
 uniform vec3 uHorizon;
 uniform vec3 uSunDir;
 uniform vec3 uSunColor;
+uniform vec3 uCloudLit;
+uniform vec3 uCloudShade;
+uniform float uTime;
+uniform float uCloudCover;
+uniform float uNight;
+
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+float fbm(vec2 p) {
+  float v = 0.0;
+  float a = 0.5;
+  for (int i = 0; i < CLOUD_OCTAVES; i++) {
+    v += a * noise(p);
+    p = p * 2.03 + vec2(17.1, 9.2);
+    a *= 0.5;
+  }
+  return v;
+}
 
 void main() {
-  float h = clamp(vWorld.y * 0.5 + 0.5, 0.0, 1.0);
-  vec3 col = mix(uHorizon, uMid, smoothstep(0.48, 0.62, h));
-  col = mix(col, uTop, smoothstep(0.6, 0.95, h));
+  vec3 dir = normalize(vDir);
+  float h = clamp(dir.y, -1.0, 1.0);
 
-  float sun = max(dot(normalize(vWorld), normalize(uSunDir)), 0.0);
-  col += uSunColor * pow(sun, 220.0) * 1.6;          // disc
-  col += uSunColor * pow(sun, 8.0) * 0.16;           // glow
-  col += uSunColor * pow(sun, 2.0) * 0.05;           // wide haze
+  vec3 col = mix(uHorizon, uMid, smoothstep(0.0, 0.22, h));
+  col = mix(col, uTop, smoothstep(0.18, 0.85, h));
+  col = mix(col, uHorizon * 0.82, smoothstep(0.0, -0.25, h));
+
+  vec3 sunDir = normalize(uSunDir);
+  float sunDot = max(dot(dir, sunDir), 0.0);
+  float sunVisible = smoothstep(-0.08, 0.05, sunDir.y);
+  col += uSunColor * pow(sunDot, 900.0) * 3.0 * sunVisible;
+  col += uSunColor * pow(sunDot, 24.0) * 0.22 * sunVisible;
+  col += uSunColor * pow(sunDot, 3.0) * 0.08 * sunVisible;
+
+  if (uNight > 0.01 && h > 0.0) {
+    vec2 sp = floor(dir.xz / (dir.y + 0.35) * 220.0);
+    float star = step(0.9965, hash(sp));
+    float twinkle = 0.6 + 0.4 * sin(uTime * 2.0 + hash(sp + 3.1) * 40.0);
+    col += vec3(star * twinkle * uNight * smoothstep(0.05, 0.4, h));
+  }
+
+  if (h > 0.0) {
+    vec2 uv = dir.xz / (h + 0.12) * 1.35;
+    vec2 wind = vec2(uTime * 0.012, uTime * 0.004);
+    float base = fbm(uv + wind);
+    float detail = fbm(uv * 2.4 - wind * 1.7);
+    float d = base * 0.72 + detail * 0.28;
+    float threshold = mix(0.72, 0.42, uCloudCover);
+    float density = smoothstep(threshold, threshold + 0.22, d);
+    density *= smoothstep(0.02, 0.22, h);
+
+    float light = clamp(0.55 + (d - threshold) * 1.6, 0.0, 1.0);
+    vec3 cloud = mix(uCloudShade, uCloudLit, light);
+    cloud += uSunColor * pow(sunDot, 10.0) * 0.35 * sunVisible;
+    col = mix(col, cloud, density * 0.92);
+  }
 
   gl_FragColor = vec4(col, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }
 `;
+
+const SKY_RADIUS = 1000;
+
+const C = {
+  topDay: new THREE.Color("#2f6fd0"),
+  midDay: new THREE.Color("#6fb1ee"),
+  horizonDay: new THREE.Color("#cfe6fb"),
+  topNight: new THREE.Color("#060b1c"),
+  midNight: new THREE.Color("#0e1a38"),
+  horizonNight: new THREE.Color("#1a2a4d"),
+  dusk: new THREE.Color("#f5a25d"),
+  sunDay: new THREE.Color("#fff6de"),
+  sunDusk: new THREE.Color("#ff9448"),
+  moon: new THREE.Color("#9cc4ff"),
+  cloudLitDay: new THREE.Color("#ffffff"),
+  cloudShadeDay: new THREE.Color("#b7c6d8"),
+  cloudLitNight: new THREE.Color("#3a4768"),
+  cloudShadeNight: new THREE.Color("#141c33"),
+  cloudLitDusk: new THREE.Color("#ffd7b0"),
+  hemiSkyDay: new THREE.Color("#e3f1ff"),
+  hemiSkyNight: new THREE.Color("#23385f"),
+  hemiGroundDay: new THREE.Color("#5b6a4f"),
+  hemiGroundNight: new THREE.Color("#0a1220"),
+};
+
+export type SkyOptions = {
+  dayLength?: number;
+  shadowMapSize?: number;
+  cloudOctaves?: number;
+};
 
 export class Sky {
   readonly group = new THREE.Group();
   readonly sunLight = new THREE.DirectionalLight(0xfff2d4, 1.7);
   readonly hemi = new THREE.HemisphereLight(0xbfe3ff, 0x71805c, 1.1);
-  readonly ambient = new THREE.AmbientLight(0xffffff, 0.34);
+  readonly ambient = new THREE.AmbientLight(0xffffff, 0.3);
+
+  public isGoldenHour = false;
+  public paused = false;
 
   private mat: THREE.ShaderMaterial;
   private fog: THREE.Fog;
-  private t = 0.28; // 0..1 through the day, start mid-morning
-  public isGoldenHour = false;
+  private scene: THREE.Scene;
+  private dayLength: number;
+  private t = 0.3;
+  private elapsed = 0;
+  private cloudCover = 0.5;
+  private cloudCoverTarget = 0.5;
+  private tint = new THREE.Color("#ffffff");
+  private tintAmount = 0;
+  private tintTarget = 0;
 
-  constructor(scene: THREE.Scene, dayLength = 420) {
-    this.dayLength = dayLength;
+  private _sunDir = new THREE.Vector3();
+  private _top = new THREE.Color();
+  private _mid = new THREE.Color();
+  private _horizon = new THREE.Color();
+  private _sun = new THREE.Color();
+
+  constructor(scene: THREE.Scene, dayLengthOrOptions: number | SkyOptions = 600) {
+    const opts: SkyOptions =
+      typeof dayLengthOrOptions === "number" ? { dayLength: dayLengthOrOptions } : dayLengthOrOptions;
+    this.dayLength = opts.dayLength ?? 600;
+    this.scene = scene;
 
     this.mat = new THREE.ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
+      defines: { CLOUD_OCTAVES: opts.cloudOctaves ?? 5 },
       side: THREE.BackSide,
       depthWrite: false,
+      fog: false,
       uniforms: {
-        uTop: { value: new THREE.Color("#3f7fd6") },
-        uMid: { value: new THREE.Color("#79b6ee") },
-        uHorizon: { value: new THREE.Color("#cfe6fb") },
+        uTop: { value: C.topDay.clone() },
+        uMid: { value: C.midDay.clone() },
+        uHorizon: { value: C.horizonDay.clone() },
         uSunDir: { value: new THREE.Vector3(0.4, 0.7, 0.2) },
-        uSunColor: { value: new THREE.Color("#fff4d2") },
+        uSunColor: { value: C.sunDay.clone() },
+        uCloudLit: { value: C.cloudLitDay.clone() },
+        uCloudShade: { value: C.cloudShadeDay.clone() },
+        uTime: { value: 0 },
+        uCloudCover: { value: this.cloudCover },
+        uNight: { value: 0 },
       },
     });
 
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(3000, 48, 28), this.mat);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(SKY_RADIUS, 48, 24), this.mat);
     dome.frustumCulled = false;
     dome.renderOrder = -1000;
     this.group.add(dome);
 
+    const shadowSize = opts.shadowMapSize ?? 2048;
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 1536;
-    this.sunLight.shadow.mapSize.height = 1536;
+    this.sunLight.shadow.mapSize.set(shadowSize, shadowSize);
     this.sunLight.shadow.camera.near = 5;
-    this.sunLight.shadow.camera.far = 180;
-    this.sunLight.shadow.camera.left = -45;
-    this.sunLight.shadow.camera.right = 45;
-    this.sunLight.shadow.camera.top = 45;
-    this.sunLight.shadow.camera.bottom = -45;
-    this.sunLight.shadow.bias = -0.0003;
-    this.sunLight.shadow.normalBias = 0.02;
+    this.sunLight.shadow.camera.far = 200;
+    this.sunLight.shadow.camera.left = -40;
+    this.sunLight.shadow.camera.right = 40;
+    this.sunLight.shadow.camera.top = 40;
+    this.sunLight.shadow.camera.bottom = -40;
+    this.sunLight.shadow.bias = -0.0004;
+    this.sunLight.shadow.normalBias = 0.03;
+    this.sunLight.shadow.radius = 3;
 
     this.group.add(this.sunLight);
     this.group.add(this.sunLight.target);
     scene.add(this.hemi, this.ambient, this.group);
 
-    this.fog = new THREE.Fog(0xcfe6fb, 700, 1900);
-
+    this.fog = new THREE.Fog(0xcfe6fb, 90, 520);
     scene.fog = this.fog;
-    this.scene = scene;
     this.apply();
   }
 
-  private scene: THREE.Scene;
-  private dayLength: number;
-
-  /** Adjusts how far you can see before fog takes over. */
   setRange(near: number, far: number) {
     this.fog.near = near;
     this.fog.far = far;
   }
 
+  setTimeOfDay(t: number) {
+    this.t = ((t % 1) + 1) % 1;
+    this.apply();
+  }
+
+  get timeOfDay() {
+    return this.t;
+  }
+
+  setCloudCover(cover: number) {
+    this.cloudCoverTarget = THREE.MathUtils.clamp(cover, 0, 1);
+  }
+
+  /** Temporary colour grade used by world events; amount 0 clears it. */
+  setTint(color: THREE.ColorRepresentation, amount: number) {
+    this.tint.set(color);
+    this.tintTarget = THREE.MathUtils.clamp(amount, 0, 1);
+  }
+
   setNormalDay() {
     this.isGoldenHour = false;
-    this.t = 0.28;
-    this.mat.uniforms.uTop.value.set("#3f7fd6");
-    this.mat.uniforms.uMid.value.set("#79b6ee");
-    this.mat.uniforms.uHorizon.value.set("#cfe6fb");
-    this.mat.uniforms.uSunDir.value.set(0.38, 0.76, 0.22).normalize();
-    this.mat.uniforms.uSunColor.value.set("#fffdf5");
-    this.sunLight.position.set(45, 95, 28);
-    this.sunLight.color.set("#fffdf5");
-    this.sunLight.intensity = 1.75;
-    this.sunLight.shadow.bias = -0.0005;
-    this.sunLight.shadow.normalBias = 0.02;
-    this.hemi.color.set("#e3f1ff");
-    this.hemi.groundColor.set("#52614b");
-    this.hemi.intensity = 0.85;
-    this.ambient.color.set("#eaf2fa");
-    this.ambient.intensity = 0.35;
-    this.fog.color.set("#cfe6fb");
-    this.fog.near = 500;
-    this.fog.far = 2200;
-    if (this.scene.background instanceof THREE.Color) this.scene.background.set("#cfe6fb");
+    this.setTimeOfDay(0.3);
   }
 
   setGoldenHour() {
     this.isGoldenHour = true;
-    this.mat.uniforms.uTop.value.set("#2c2448");
-    this.mat.uniforms.uMid.value.set("#cf6055");
-    this.mat.uniforms.uHorizon.value.set("#ffb368");
-    this.mat.uniforms.uSunDir.value.set(-0.52, 0.44, -0.73).normalize();
-    this.mat.uniforms.uSunColor.value.set("#ffb45a");
-    this.sunLight.position.set(-68, 52, -84);
-    this.sunLight.color.set("#ffad50");
-    this.sunLight.intensity = 2.4;
-    this.sunLight.shadow.bias = -0.0008;
-    this.hemi.color.set("#ffd2a8");
-    this.hemi.groundColor.set("#4a2e26");
-    this.hemi.intensity = 0.88;
-    this.ambient.color.set("#ffe2c9");
-    this.ambient.intensity = 0.32;
-    this.fog.color.set("#e89569");
-    this.fog.near = 280;
-    this.fog.far = 1600;
-    if (this.scene.background instanceof THREE.Color) this.scene.background.set("#e89569");
+    this.setTimeOfDay(0.47);
   }
 
   setNight() {
     this.isGoldenHour = false;
-    this.t = 0.75;
-    this.mat.uniforms.uTop.value.set("#050b1a");
-    this.mat.uniforms.uMid.value.set("#0d1833");
-    this.mat.uniforms.uHorizon.value.set("#152445");
-    this.mat.uniforms.uSunDir.value.set(-0.4, -0.6, -0.2).normalize();
-    this.mat.uniforms.uSunColor.value.set("#5ba2e0");
-    this.sunLight.position.set(-68, 78, -42);
-    this.sunLight.color.set("#7dd3fc");
-    this.sunLight.intensity = 0.4;
-    this.hemi.color.set("#1a3055");
-    this.hemi.groundColor.set("#081220");
-    this.hemi.intensity = 0.45;
-    this.ambient.color.set("#182844");
-    this.ambient.intensity = 0.3;
-    this.fog.color.set("#101a33");
-    this.fog.near = 200;
-    this.fog.far = 1200;
-    if (this.scene.background instanceof THREE.Color) this.scene.background.set("#101a33");
+    this.setTimeOfDay(0.8);
   }
 
-  /** Keeps the dome/clouds centred on the camera. */
   follow(pos: THREE.Vector3) {
-    this.group.position.set(pos.x, 0, pos.z);
+    this.group.position.set(pos.x, pos.y, pos.z);
   }
 
   update(dt: number) {
-    if (this.isGoldenHour) {
-      // Keep rich golden hour lighting locked while smoothly following camera
-      return;
+    this.elapsed += dt;
+    this.mat.uniforms.uTime.value = this.elapsed;
+    const k = 1 - Math.exp(-0.6 * dt);
+    this.cloudCover += (this.cloudCoverTarget - this.cloudCover) * k;
+    this.tintAmount += (this.tintTarget - this.tintAmount) * k;
+    this.mat.uniforms.uCloudCover.value = this.cloudCover;
+    if (!this.paused && !this.isGoldenHour) {
+      this.t = (this.t + dt / this.dayLength) % 1;
     }
-    this.t = (this.t + dt / this.dayLength) % 1;
     this.apply();
   }
 
   private apply() {
-    // sun travels across the sky; angle 0 = sunrise, PI = sunset
     const a = this.t * Math.PI * 2 - Math.PI / 2;
-    const sunDir = new THREE.Vector3(
-      Math.cos(a) * 0.6,
-      Math.sin(a),
-      Math.cos(a) * 0.35,
-    ).normalize();
-    // Keep the cartoon atlas readable even during the moving day/night cycle.
-    // The old curve let the voxel faces fall almost black at mid-morning.
-    const day = THREE.MathUtils.clamp(sunDir.y * 1.25 + 0.68, 0, 1);
-    const dusk = THREE.MathUtils.clamp(1 - Math.abs(sunDir.y) * 4, 0, 1);
+    const sunDir = this._sunDir.set(Math.cos(a) * 0.62, Math.sin(a), Math.cos(a) * 0.32 + 0.18).normalize();
 
-    const top = new THREE.Color("#0b1330").lerp(new THREE.Color("#3f7fd6"), day);
-    const mid = new THREE.Color("#131c3d").lerp(new THREE.Color("#7ab8ef"), day);
-    const horizon = new THREE.Color("#1b2244")
-      .lerp(new THREE.Color("#d3e9fc"), day)
-      .lerp(new THREE.Color("#f6a55f"), dusk * 0.55);
-    const sunColor = new THREE.Color("#fff4d2").lerp(new THREE.Color("#ff9b4d"), dusk * 0.8);
+    // Voxel textures must stay readable, so "night" never goes pitch black.
+    const day = THREE.MathUtils.clamp(sunDir.y * 2.2 + 0.35, 0, 1);
+    const dusk = THREE.MathUtils.clamp(1 - Math.abs(sunDir.y) * 3.2, 0, 1);
+    const night = 1 - day;
 
-    this.mat.uniforms.uTop.value.copy(top);
-    this.mat.uniforms.uMid.value.copy(mid);
-    this.mat.uniforms.uHorizon.value.copy(horizon);
-    this.mat.uniforms.uSunDir.value.copy(sunDir);
-    this.mat.uniforms.uSunColor.value.copy(sunColor);
+    const top = this._top.copy(C.topNight).lerp(C.topDay, day);
+    const mid = this._mid.copy(C.midNight).lerp(C.midDay, day);
+    const horizon = this._horizon.copy(C.horizonNight).lerp(C.horizonDay, day).lerp(C.dusk, dusk * 0.6);
+    const sun = this._sun.copy(C.sunDay).lerp(C.sunDusk, dusk * 0.85);
 
-    this.sunLight.position.copy(sunDir).multiplyScalar(120);
-    this.sunLight.intensity = 0.45 + day * 1.35;
-    this.sunLight.color.copy(sunColor);
-    this.hemi.intensity = 0.58 + day * 0.72;
-    this.ambient.intensity = 0.24 + day * 0.2;
+    if (this.tintAmount > 0.001) {
+      top.lerp(this.tint, this.tintAmount * 0.35);
+      mid.lerp(this.tint, this.tintAmount * 0.5);
+      horizon.lerp(this.tint, this.tintAmount * 0.6);
+      sun.lerp(this.tint, this.tintAmount * 0.4);
+    }
+
+    const u = this.mat.uniforms;
+    u.uTop.value.copy(top);
+    u.uMid.value.copy(mid);
+    u.uHorizon.value.copy(horizon);
+    u.uSunDir.value.copy(sunDir);
+    u.uSunColor.value.copy(sun);
+    u.uNight.value = night;
+    u.uCloudLit.value.copy(C.cloudLitNight).lerp(C.cloudLitDay, day).lerp(C.cloudLitDusk, dusk * 0.55);
+    u.uCloudShade.value.copy(C.cloudShadeNight).lerp(C.cloudShadeDay, day);
+
+    // Below the horizon the key light becomes the moon from the opposite side.
+    if (sunDir.y >= -0.05) {
+      this.sunLight.position.copy(sunDir).multiplyScalar(120);
+      this.sunLight.color.copy(sun);
+      this.sunLight.intensity = 0.35 + day * 1.55;
+    } else {
+      this.sunLight.position.copy(sunDir).multiplyScalar(-120);
+      this.sunLight.color.copy(C.moon);
+      this.sunLight.intensity = 0.42;
+    }
+    if (this.sunLight.position.y < 20) this.sunLight.position.y = 20;
+
+    this.hemi.color.copy(C.hemiSkyNight).lerp(C.hemiSkyDay, day);
+    this.hemi.groundColor.copy(C.hemiGroundNight).lerp(C.hemiGroundDay, day);
+    this.hemi.intensity = 0.55 + day * 0.4;
+    this.ambient.intensity = 0.22 + day * 0.14;
 
     this.fog.color.copy(horizon);
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);
@@ -221,6 +322,10 @@ export class Sky {
 
   dispose() {
     this.mat.dispose();
+    this.group.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) m.geometry.dispose();
+    });
     this.group.clear();
   }
 }

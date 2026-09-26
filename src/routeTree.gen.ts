@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as AvatarRouteImport } from './routes/avatar'
 import { Route as BuildRouteImport } from './routes/build'
@@ -48,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountsRoute = AccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityRoute = ActivityRouteImport.update({
@@ -194,6 +200,7 @@ const PeopleUsernameRoute = PeopleUsernameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/accounts': typeof AccountsRoute
   '/activity': typeof ActivityRoute
   '/avatar': typeof AvatarRoute
   '/build': typeof BuildRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/accounts': typeof AccountsRoute
   '/activity': typeof ActivityRoute
   '/avatar': typeof AvatarRoute
   '/build': typeof BuildRoute
@@ -259,6 +267,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/accounts': typeof AccountsRoute
   '/activity': typeof ActivityRoute
   '/avatar': typeof AvatarRoute
   '/build': typeof BuildRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/accounts'
     | '/activity'
     | '/avatar'
     | '/build'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/accounts'
     | '/activity'
     | '/avatar'
     | '/build'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
+    | '/accounts'
     | '/activity'
     | '/avatar'
     | '/build'
@@ -390,6 +402,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  AccountsRoute: typeof AccountsRoute
   ActivityRoute: typeof ActivityRoute
   AvatarRoute: typeof AvatarRoute
   BuildRoute: typeof BuildRoute
@@ -434,6 +447,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accounts': {
+      id: '/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity': {
@@ -638,6 +658,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  AccountsRoute: AccountsRoute,
   ActivityRoute: ActivityRoute,
   AvatarRoute: AvatarRoute,
   BuildRoute: BuildRoute,

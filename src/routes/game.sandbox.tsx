@@ -52,6 +52,19 @@ import {
 import { db } from "@/lib/firebase";
 import { subscribeSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
 import { subscribeBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
+import { getShadowMapSize, readQualityPref } from "@/lib/rendering";
+import { COMPETITIVE_PHYSICS } from "@/engine/player";
+import { MovementFacing, ThirdPersonRig, fovForAspect } from "@/engine/v2/camera-rig";
+import { MatchController, now as matchNow } from "@/engine/v2/match";
+import { Progression } from "@/engine/v2/progression";
+import { WorldEvents } from "@/engine/v2/world-events";
+import { AmbientParticles } from "@/engine/v2/ambient-particles";
+import { announce } from "@/engine/v2/announcer";
+import { useStore } from "@/engine/v2/store";
+import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
+import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
+import { Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
+import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
 
 
 
@@ -874,51 +887,17 @@ export function SandboxGame({
           ? []
           : [1, 2, 3, 4, 5, 6, 7, 9, 10],
   );
-  const [blockFallState, setBlockFallState] = useState<"waiting" | "playing" | "eliminated">(
-    blockFall ? "playing" : "waiting",
-  );
-  const blockFallStateRef = useRef<"waiting" | "playing" | "eliminated">(
-    blockFall ? "playing" : "waiting",
-  );
-  blockFallStateRef.current = blockFallState;
-  const [countdown, setCountdown] = useState(10);
-  const [currentLevel, setCurrentLevel] = useState(1);
-  const currentLevelRef = useRef(1);
-  const [survivalTime, setSurvivalTime] = useState(0);
-  const [deepestFloor, setDeepestFloor] = useState(1);
-  const [aliveBotsCount, setAliveBotsCount] = useState(0);
+  const hotbarRef = useRef(hotbar);
+  hotbarRef.current = hotbar;
   const [bgmMuted, setBgmMuted] = useState(false);
   const restartBlockFallRef = useRef<(() => void) | null>(null);
 
-  // Countdown timer for Waiting for Players lobby
-  useEffect(() => {
-    if (!blockFall || blockFallState !== "waiting") return;
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setBlockFallState("playing");
-          blockFallStateRef.current = "playing";
-          BmgoAudio.unlock();
-          BmgoAudio.startBlockFallBgm();
-          BmgoAudio.playGameStart();
-          return 0;
-        }
-        playSound("pop");
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [blockFall, blockFallState]);
-
-  // Survival timer during match
-  useEffect(() => {
-    if (!blockFall || blockFallState !== "playing") return;
-    const timer = setInterval(() => {
-      setSurvivalTime((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [blockFall, blockFallState]);
+  // V2 game systems — created once per mounted game, ticked by the render loop.
+  const [match] = useState(() => new MatchController(3));
+  const [progression] = useState(() => new Progression());
+  const [worldEvents] = useState(() => new WorldEvents());
+  const [veilToken, setVeilToken] = useState(0);
+  const [pauseMenuOpen, setPauseMenuOpen] = useState(false);
 
   // Cleanup BGM on unmount
   useEffect(() => {
@@ -1005,7 +984,7 @@ export function SandboxGame({
       if (phoenixModelRef.current) phoenixModelRef.current.visible = true;
     } else {
       skyRef.current.setNormalDay();
-      skyRef.current.setRange(10, 350);
+      skyRef.current.setRange(70, 520);
       if (celestialSunRef.current) celestialSunRef.current.visible = true;
       if (celestialMoonRef.current) celestialMoonRef.current.visible = false;
       if (auroraGroupRef.current) auroraGroupRef.current.visible = false;
@@ -1143,19 +1122,20 @@ export function SandboxGame({
             return;
           }
         }
-      const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high";
+      const qualityPref = readQualityPref();
       renderer.setPixelRatio(getTargetDpr(qualityPref));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.18;
+      renderer.toneMappingExposure = 1.12;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.shadowMap.autoUpdate = true;
 
-      // GPU anisotropic filtering (8x) and Linear filtering keep textures sharp with zero pixelation
+      // Full anisotropic filtering keeps grazing-angle (distant floor) texels
+      // crisp instead of smearing into blocky mip levels.
       const maxAniso = renderer.capabilities.getMaxAnisotropy();
-      atlas.texture.anisotropy = Math.min(8, maxAniso);
+      atlas.texture.anisotropy = maxAniso;
       atlas.texture.magFilter = THREE.LinearFilter;
       atlas.texture.minFilter = THREE.LinearMipmapLinearFilter;
       atlas.texture.generateMipmaps = true;
@@ -1174,19 +1154,27 @@ export function SandboxGame({
       // Wider FOV = zoomed out, you see much more of the world at once.
       // Far plane must sit well beyond the sky dome, otherwise the dome gets
       // clipped and shows up as a giant pale circle in the sky.
-      const camera = new THREE.PerspectiveCamera(
-        88,
-        mount.clientWidth / mount.clientHeight,
-        0.05,
-        8000,
-      );
+      // Near/far kept tight for depth precision (the old 0.05..8000 range
+      // caused distant z-fighting shimmer). The sky dome renders at the far
+      // plane in its shader, so it never needs a huge far distance.
+      const aspect0 = mount.clientWidth / Math.max(1, mount.clientHeight);
+      const camera = new THREE.PerspectiveCamera(fovForAspect(aspect0), aspect0, 0.1, 900);
+      let baseFov = camera.fov;
 
-      // Skyblock sky dome (owns the lighting + fog — no second lighting rig).
-      sky = new Sky(scene);
+      sky = new Sky(scene, {
+        dayLength: skyblock ? 720 : 600,
+        shadowMapSize: getShadowMapSize(qualityPref),
+        cloudOctaves: qualityPref === "low" ? 3 : 5,
+      });
       skyRef.current = sky;
-      if (skyblock || blockFall) {
+      if (skyblock) {
         sky.setNormalDay();
-        sky.setRange(10, 380);
+        sky.setRange(70, 520);
+      } else if (blockFall) {
+        sky.setNormalDay();
+        sky.paused = true;
+        sky.setCloudCover(0.4);
+        sky.setRange(80, 400);
       } else {
         // Fog pushed to the very edge so far chunks render at full quality.
         sky.setRange(10, goldenDays ? 640 : 120);
@@ -1476,6 +1464,7 @@ export function SandboxGame({
         }
       };
       if (blockFall) {
+        player.profile = COMPETITIVE_PHYSICS;
         player.setSpawnPoint(0.5, 37.8, 0.5);
         player.respawn();
       } else if (goldenDays) {
@@ -1561,6 +1550,7 @@ export function SandboxGame({
         item: { px: 0.24, py: -0.2, pz: -0.43, rx: -0.12, ry: 0.2, rz: 0.08 },
       };
       let swing = 0;
+      let placePulse = 0;
 
       // Melee damage of whatever is in hand (bare hand / block = 1).
       let meleeDamage = 1;
@@ -1618,7 +1608,7 @@ export function SandboxGame({
           });
         }
       };
-      setHeldTile(hotbar[0]);
+      setHeldTile(hotbarRef.current[0] ?? 0);
 
       // block-breaking crack overlay
       const crackTex = atlas.crack.clone();
@@ -1779,14 +1769,15 @@ export function SandboxGame({
         if (isLocked) {
           BmgoAudio.unlock();
           if (skyblock) BmgoAudio.startBgm();
-          if (blockFall && blockFallStateRef.current === "playing") BmgoAudio.startBlockFallBgm();
+          if (blockFall) BmgoAudio.startBlockFallBgm();
         }
       };
       controls.onSlot = (i) => {
-        if (i < hotbar.length) {
+        const bar = hotbarRef.current;
+        if (i < bar.length) {
           slotRef.current = i;
           setSlot(i);
-          setHeldTile(hotbar[i]);
+          setHeldTile(bar[i]);
         }
       };
 
@@ -1854,7 +1845,8 @@ export function SandboxGame({
           // Chest removed
         }
 
-        const id = hotbar[slotRef.current];
+        const id = hotbarRef.current[slotRef.current];
+        if (id === undefined) return;
         // Any swing tries to hit an entity first — with a weapon in hand you
         // never place blocks.
         const landed = tryMelee();
@@ -1900,6 +1892,8 @@ export function SandboxGame({
         playSound("place");
         if (renderer) renderer.shadowMap.needsUpdate = true;
         fx.spawn("place", new THREE.Vector3(px, py, pz), BLOCKS.find((b) => b.id === id)!.side);
+        placePulse = 1;
+        if (skyblock) progression.recordPlace(py);
       };
 
       type Api = {
@@ -1934,23 +1928,36 @@ export function SandboxGame({
         },
       };
 
+      // ResizeObserver catches orientation changes after layout settles.
+      // A plain window "resize" can fire with the old portrait size, leaving
+      // a portrait-resolution canvas stretched across a landscape screen —
+      // the root cause of the blurry/pixelated horizon in landscape.
       const onResize = () => {
         if (!renderer) return;
-        camera.aspect = mount.clientWidth / mount.clientHeight;
+        const w = Math.max(1, mount.clientWidth);
+        const h = Math.max(1, mount.clientHeight);
+        camera.aspect = w / h;
+        baseFov = fovForAspect(camera.aspect);
+        camera.fov = baseFov;
         camera.updateProjectionMatrix();
-        const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high";
-        renderer.setPixelRatio(getTargetDpr(qualityPref));
-        renderer.setSize(mount.clientWidth, mount.clientHeight);
+        renderer.setPixelRatio(getTargetDpr(readQualityPref()));
+        renderer.setSize(w, h, false);
       };
-      window.addEventListener("resize", onResize);
+      const resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(mount);
+      window.addEventListener("orientationchange", onResize);
+      renderer.domElement.style.width = "100%";
+      renderer.domElement.style.height = "100%";
 
       const onRespawn = () => {
         player.respawn();
         avatar?.resetDeath();
+        rig.snap(new THREE.Vector3(player.position.x, player.eyeY + 0.54, player.position.z));
+        setVeilToken((v) => v + 1);
       };
       window.addEventListener("qb-menu-respawn", onRespawn);
 
-      // ── Block Fall State & Bot Runners ───────────────────────────────────
+      // ── Block Fall round flow ────────────────────────────────────────────
       const crumblingBlocks = new Map<string, { x: number; y: number; z: number; timer: number; blockId: number }>();
       if (blockFall) {
         restartBlockFallRef.current = () => {
@@ -1961,17 +1968,64 @@ export function SandboxGame({
           player.setSpawnPoint(0.5, 37.8, 0.5);
           player.respawn();
           avatar?.resetDeath();
-          setSurvivalTime(0);
-          setCurrentLevel(1);
-          setDeepestFloor(1);
-          setAliveBotsCount(0);
-          setCountdown(10);
-          blockFallStateRef.current = "waiting";
-          setBlockFallState("waiting");
+          rig.snap(new THREE.Vector3(player.position.x, player.eyeY + 0.54, player.position.z));
+          setVeilToken((v) => v + 1);
+        };
+        match.onPhaseChange = (phase, state) => {
+          if (phase === "lobby") restartBlockFallRef.current?.();
+          else if (phase === "countdown") playSound("pop");
+          else if (phase === "playing") {
+            BmgoAudio.unlock();
+            BmgoAudio.startBlockFallBgm();
+            BmgoAudio.playGameStart();
+          } else if (phase === "roundEnd" && state.lastRound?.survived) {
+            BmgoAudio.playGameStart();
+          }
         };
       }
 
+      // ── Skyblock progression + world events ─────────────────────────────
+      const particles = new AmbientParticles(qualityPref === "low" ? 80 : 160);
+      particles.setMode(skyblock ? "motes" : "off");
+      scene.add(particles.points);
+      if (skyblock) {
+        progression.onUnlockBlock = (blockId) => {
+          setHotbar((prev) => (prev.includes(blockId) ? prev : [...prev, blockId]));
+          const def = BLOCKS.find((b) => b.id === blockId);
+          if (def && atlas) {
+            const url = atlas.url(def.side);
+            setTileUrls((prev) => ({ ...prev, [blockId]: url }));
+          }
+        };
+        worldEvents.onStart = (ev) => {
+          progression.xpMultiplier = ev.xpMultiplier;
+          sky?.setCloudCover(ev.cloudCover);
+          if (ev.tint) sky?.setTint(ev.tint, ev.tintAmount ?? 0.4);
+          particles.setMode(ev.particles ?? "motes");
+          announce(ev.name, ev.description, "event");
+          playSound("pop");
+        };
+        worldEvents.onEnd = (ev) => {
+          progression.xpMultiplier = 1;
+          sky?.setCloudCover(0.5);
+          sky?.setTint("#ffffff", 0);
+          particles.setMode("motes");
+          progression.recordEvent(ev.completionXp);
+          announce(`${ev.name} ended`, `+${ev.completionXp} XP for taking part`, "reward");
+        };
+      }
+      const rig = new ThirdPersonRig();
+      const facing = new MovementFacing();
+      facing.heading = controls.state.yaw + Math.PI;
+      let lastNotice = 0;
+      let sprintFov = 0;
+
       setReady(true);
+      setVeilToken((v) => v + 1);
+      announce(
+        skyblock ? "Welcome to Skyblock" : blockFall ? "Welcome to Block Fall" : "Welcome to QBlock",
+        skyblock ? "Build your island, reach new levels" : blockFall ? "Last one standing wins the round" : undefined,
+      );
 
       const clock = new THREE.Clock();
       let acc = 0;
@@ -1983,9 +2037,7 @@ export function SandboxGame({
       const euler = new THREE.Euler(0, 0, 0, "YXZ");
       // Pre-allocated scratch vectors to eliminate garbage collection stutters on mobile
       const _eye = new THREE.Vector3();
-      const _back = new THREE.Vector3();
       const _pivot = new THREE.Vector3();
-      const _distV = new THREE.Vector3();
       const _avatarPos = new THREE.Vector3();
       const _upOffset = new THREE.Vector3(0, 0.54, 0);
 
@@ -1999,9 +2051,32 @@ export function SandboxGame({
         const dt = Math.min(raw, 0.05);
 
         const input = controls!.read();
+        const tNow = matchNow();
+
+        if (blockFall) {
+          let alive = 0;
+          let total = 1;
+          if (remotes) {
+            for (const [, e] of remotes.list()) {
+              total++;
+              if (e.current.y > 5.2) alive++;
+            }
+          }
+          match.tick(tNow, { total, alive: alive + (match.state.eliminated ? 0 : 1) });
+          player.frozen = !match.canMove;
+        } else if (skyblock) {
+          worldEvents.tick(tNow);
+          const notice = progression.state.notice;
+          if (notice && notice.id !== lastNotice) {
+            lastNotice = notice.id;
+            announce(notice.title, notice.detail, "reward");
+            playSound("pop");
+          }
+        }
 
         const wasOnGround = player.onGround;
-        player.update(dt, { ...input, yaw: input.yaw });
+        player.update(dt, input);
+        if (player.landedImpact > 9) playSound("place");
         const horizontalSpeed = Math.hypot(player.velocity.x, player.velocity.z);
         if (goldenDays && horizontalSpeed > 0.15) {
           const drainRate = input.sprint ? 0.0038 : 0.0022;
@@ -2037,32 +2112,30 @@ export function SandboxGame({
         _eye.set(player.position.x + bobX * 0.3, player.eyeY + bobY, player.position.z);
         camera.position.copy(_eye);
 
-        // Third-person orbit: character stays centred in frame.
+        // Third-person: smoothed orbit rig with collision.
         if (thirdRef.current) {
-          _back.set(0, 0, 1).applyQuaternion(camera.quaternion);
-          // pivot sits on the player's own axis (centred), just above the head
-          _pivot.copy(_eye).add(_upOffset);
-          // Zoomed in comfortably so the character fills the frame nicely against blocks.
-          let dist = 2.9;
-          const wall = raycastVoxel(world!, _pivot, _back, dist + 0.5);
-          if (wall) {
-            _distV.set(wall.x + 0.5, wall.y + 0.5, wall.z + 0.5);
-            const d = _distV.distanceTo(_pivot);
-            dist = Math.max(2.0, d - 0.8);
-          }
-          camera.position.copy(_pivot).addScaledVector(_back, dist);
+          _pivot.set(player.position.x, player.eyeY, player.position.z).add(_upOffset);
+          rig.update(dt, camera, _pivot, world!);
         }
 
-        // 3D character
+        // Subtle sprint FOV kick for speed feel.
+        const sprinting = input.sprint && horizontalSpeed > 4.5 && !player.frozen;
+        sprintFov += ((sprinting ? 4 : 0) - sprintFov) * (1 - Math.exp(-8 * dt));
+        if (Math.abs(camera.fov - (baseFov + sprintFov)) > 0.05) {
+          camera.fov = baseFov + sprintFov;
+          camera.updateProjectionMatrix();
+        }
+
+        // Character faces the direction it is actually moving, never the camera.
+        const heading = facing.update(player.velocity.x, player.velocity.z, input.yaw + Math.PI);
         if (avatar?.loaded) {
-          const hs = horizontalSpeed;
           _avatarPos.set(player.position.x, player.position.y, player.position.z);
           const isSneaking = controls?.touch?.crouch || movementModeRef.current === "crouch";
           avatar.update(
             dt,
             _avatarPos,
-            input.yaw + Math.PI,
-            hs,
+            heading,
+            horizontalSpeed,
             player.onGround,
             isSneaking,
             player.velocity.y,
@@ -2077,7 +2150,7 @@ export function SandboxGame({
 
         // ── Block Fall Mechanics ───────────────────────────────────────────
         if (blockFall && world) {
-          if (blockFallStateRef.current === "playing") {
+          if (match.canMove) {
             // 1. Detect player foot on platform blocks
             const footY = Math.floor(player.position.y - 0.08);
             if (footY === 36 || footY === 29 || footY === 22 || footY === 15 || footY === 8) {
@@ -2124,24 +2197,21 @@ export function SandboxGame({
             else if (py >= 6) lvl = 5;
             else lvl = 0;
 
-            if (lvl > 0 && lvl !== currentLevelRef.current) {
-              currentLevelRef.current = lvl;
-              setCurrentLevel(lvl);
-              setDeepestFloor((prev) => Math.max(prev, lvl));
-            }
+            if (lvl > 0) match.setFloor(lvl);
 
-            // 5. Player fall reset in Block Fall (smooth respawn without intrusive overlay)
-            if (py < 5.2 && blockFallStateRef.current === "playing") {
+            // Eliminated: fell past the last floor. Placement is decided by
+            // how many other players are still standing.
+            if (py < 5.2) {
               BmgoAudio.playDefeat();
+              const othersAlive = Math.max(0, match.state.playersAlive - 1);
+              match.eliminate(tNow, othersAlive);
               if (avatar?.loaded) {
                 avatar.triggerDeath(() => {
                   player.respawn();
-                  restartBlockFallRef.current?.();
                   avatar.resetDeath();
                 });
               } else {
                 player.respawn();
-                restartBlockFallRef.current?.();
               }
             }
           }
@@ -2185,7 +2255,7 @@ export function SandboxGame({
               x: player.position.x,
               y: player.position.y,
               z: player.position.z,
-              rotY: input.yaw + Math.PI,
+              rotY: heading,
               photo: meRef.current.photo,
               frame: meRef.current.frame,
               badges: meRef.current.badges,
@@ -2199,7 +2269,7 @@ export function SandboxGame({
               x: player.position.x,
               y: player.position.y,
               z: player.position.z,
-              rotY: input.yaw + Math.PI,
+              rotY: heading,
               photo: meRef.current.photo,
               frame: meRef.current.frame,
               badges: meRef.current.badges,
@@ -2240,6 +2310,7 @@ export function SandboxGame({
 
         // sky (owns fog + lighting)
         sky!.follow(camera.position);
+        particles.update(dt, camera.position);
         sky!.update(dt);
 
         // ── SkyBlock: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
@@ -2297,6 +2368,8 @@ export function SandboxGame({
         } else if (hit) {
           highlight.visible = true;
           highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+          placePulse = Math.max(0, placePulse - dt * 6);
+          highlight.scale.setScalar(1 + placePulse * 0.1);
         } else {
           highlight.visible = false;
         }
@@ -2352,6 +2425,7 @@ export function SandboxGame({
               playSound("break");
               fx!.spawn("break", new THREE.Vector3(hit.x, hit.y, hit.z), def!.side);
               world!.set(hit.x, hit.y, hit.z, 0);
+              if (skyblock) progression.recordMine();
               if (renderer) renderer.shadowMap.needsUpdate = true;
               if (blockFall) {
                 void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
@@ -2422,8 +2496,14 @@ export function SandboxGame({
 
       (mount as HTMLDivElement & { __cleanup?: () => void }).__cleanup = () => {
         cancelAnimationFrame(raf);
-        window.removeEventListener("resize", onResize);
+        resizeObserver.disconnect();
+        window.removeEventListener("orientationchange", onResize);
         window.removeEventListener("qb-menu-respawn", onRespawn);
+        particles.dispose();
+        match.onPhaseChange = undefined;
+        worldEvents.onStart = undefined;
+        worldEvents.onEnd = undefined;
+        progression.onUnlockBlock = undefined;
       };
       } catch (err) {
         console.error("Sandbox engine initialization error:", err);
@@ -2670,7 +2750,7 @@ export function SandboxGame({
     const c = controlsRef.current;
     if (c) {
       c.touch.x = dx;
-      c.touch.y = dy;
+      c.touch.y = -dy;
       c.touch.sprint = len > 0.85;
     }
   };
@@ -2688,6 +2768,61 @@ export function SandboxGame({
       c.touch.sprint = false;
     }
   };
+
+  const isV2 = skyblock || blockFall;
+  const matchState = useStore(match.store);
+  const setMoveVector = (x: number, y: number) => {
+    const c = controlsRef.current;
+    if (!c) return;
+    c.touch.x = x;
+    c.touch.y = y;
+  };
+  const setJump = (down: boolean) => {
+    if (controlsRef.current) controlsRef.current.touch.jump = down;
+  };
+  const toggleMute = () => {
+    const next = !bgmMuted;
+    setBgmMuted(next);
+    BmgoAudio.setMuted(next);
+  };
+  const v2Actions: HudAction[] = skyblock
+    ? [
+        { id: "jump", label: "Jump", kind: "hold", primary: true, onPress: setJump },
+        {
+          id: "mine",
+          label: "Mine",
+          kind: "hold",
+          onPress: (down) => {
+            api()?.setAim(null);
+            api()?.setMining(down);
+          },
+        },
+        {
+          id: "build",
+          label: "Build",
+          kind: "tap",
+          onPress: () => {
+            api()?.setAim(null);
+            api()?.place();
+          },
+        },
+      ]
+    : [{ id: "jump", label: "Jump", kind: "hold", primary: true, onPress: setJump }];
+
+  useEffect(() => {
+    if (blockFall && matchState.phase === "results") controlsRef.current?.exitLock();
+  }, [blockFall, matchState.phase]);
+
+  const showClickToPlay =
+    ready &&
+    isV2 &&
+    !isTouch &&
+    !locked &&
+    !pauseMenuOpen &&
+    !chatOpen &&
+    !settingsOpen &&
+    !showQuitDialog &&
+    !(blockFall && matchState.phase === "results");
 
   return (
     <div className="fixed inset-0 select-none overflow-hidden bg-[#0d1117]">
@@ -2746,18 +2881,6 @@ export function SandboxGame({
                 )}
               </button>
 
-              {/* In Block Fall: Compact floor & survival time chips */}
-              {blockFall && blockFallState === "playing" && (
-                <div className="flex items-center gap-2 pl-2 pr-2.5 border-l border-white/15 text-xs font-black">
-                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/25 border border-amber-400/40 text-amber-300">
-                    FL {currentLevel}/5
-                  </span>
-                  <div className="flex items-center gap-1 font-mono text-white/90">
-                    <Clock className="w-3.5 h-3.5 fill-white text-white" />
-                    <span>{survivalTime}s</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -2793,7 +2916,7 @@ export function SandboxGame({
       )}
 
       {/* ── Settings Overlay ── */}
-      {settingsOpen && (
+      {settingsOpen && !isV2 && (
         <div
           className="fixed inset-0 z-[500] bg-white p-6 flex flex-col items-center justify-center"
           onClick={() => setSettingsOpen(false)}
@@ -2824,7 +2947,17 @@ export function SandboxGame({
       )}
 
       {/* ── Leave Dialog ── */}
-      {showQuitDialog && (
+      {showQuitDialog && isV2 && (
+        <V2ConfirmDialog
+          title="Leave this game?"
+          onCancel={() => setShowQuitDialog(false)}
+          onConfirm={() => {
+            setShowQuitDialog(false);
+            window.location.href = "/";
+          }}
+        />
+      )}
+      {showQuitDialog && !isV2 && (
         <div
           className="fixed inset-0 z-[600] bg-black/75 flex items-center justify-center p-4 backdrop-blur-[2px]"
           onClick={() => setShowQuitDialog(false)}
@@ -2861,8 +2994,72 @@ export function SandboxGame({
         </div>
       )}
 
+      {/* ── V2 HUD (Skyblock + Block Fall) ── */}
+      {ready && isV2 && (
+        <V2GameHud
+          isTouch={isTouch}
+          running={movementMode === "run"}
+          thirdPerson={thirdPerson}
+          muted={bgmMuted}
+          actions={v2Actions}
+          topCenter={
+            blockFall ? (
+              <BlockFallStatus match={match} />
+            ) : (
+              <SkyblockStatus progression={progression} events={worldEvents} />
+            )
+          }
+          menuExtra={
+            skyblock ? [{ label: "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) }] : []
+          }
+          onMove={setMoveVector}
+          onToggleRun={() => handleMovementModeChange(movementMode === "run" ? "walk" : "run")}
+          onOpenChat={() => {
+            controlsRef.current?.exitLock();
+            setChatOpen(true);
+          }}
+          onOpenSettings={() => {
+            controlsRef.current?.exitLock();
+            setSettingsOpen(true);
+          }}
+          onToggleCamera={toggleThird}
+          onToggleMute={toggleMute}
+          onEmote={() => window.dispatchEvent(new CustomEvent("qb-self-say", { detail: "Hello!" }))}
+          onLeave={() => {
+            controlsRef.current?.exitLock();
+            setShowQuitDialog(true);
+          }}
+          onMenuChange={(open) => {
+            setPauseMenuOpen(open);
+            if (open) controlsRef.current?.exitLock();
+          }}
+        >
+          {skyblock && (
+            <>
+              <MilestoneTracker progression={progression} />
+              <V2Hotbar hotbar={hotbar} tileUrls={tileUrls} slot={slot} onSelect={selectSlot} isTouch={isTouch} />
+              <Crosshair />
+            </>
+          )}
+        </V2GameHud>
+      )}
+      {ready && blockFall && (
+        <BlockFallOverlays
+          match={match}
+          onLeave={() => setShowQuitDialog(true)}
+        />
+      )}
+      {ready && isV2 && veilToken > 0 && <V2Veil token={veilToken} />}
+      {showClickToPlay && (
+        <V2ClickToPlay
+          title={skyblock ? "Skyblock" : "Block Fall"}
+          hint={skyblock ? "Build, mine and grow your island" : "Stay on the platforms longer than everyone else"}
+          onPlay={() => controlsRef.current?.requestLock()}
+        />
+      )}
+
       {/* ── Bedwars HUD (Main HUD) ── */}
-      {ready && (
+      {ready && !isV2 && (
         <BedwarsHud
           runesTimeLeft={runesTimeLeft}
           hotbar={hotbar}
@@ -2890,7 +3087,7 @@ export function SandboxGame({
           onJoyVector={(x, y) => {
             if (controlsRef.current) {
               controlsRef.current.touch.x = x;
-              controlsRef.current.touch.y = -y;
+              controlsRef.current.touch.y = y;
             }
           }}
           onJump={(down) => {
@@ -3011,7 +3208,14 @@ export function SandboxGame({
       )}
 
       {/* Loading menu */}
-      {!ready && !graphicsError && (
+      {!ready && !graphicsError && isV2 && (
+        <V2LoadingScreen
+          title={skyblock ? "Skyblock" : "Block Fall"}
+          subtitle={skyblock ? "Loading your island" : "Preparing the arena"}
+          progress={progress}
+        />
+      )}
+      {!ready && !graphicsError && !isV2 && (
         <div className="fixed inset-0 z-[95] grid place-items-center bg-white">
           <div className="flex flex-col items-center">
             <p className="mb-16 text-[24px] font-extrabold tracking-tight text-[#16181d]">
