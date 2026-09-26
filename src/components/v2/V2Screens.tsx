@@ -3,21 +3,21 @@ import { V2Button } from "./primitives";
 
 export function V2LoadingScreen({ title, subtitle, progress }: { title: string; subtitle: string; progress: number }) {
   return (
-    <div className="v2-ui fixed inset-0 z-[150] grid place-items-center bg-[radial-gradient(120%_80%_at_50%_0%,#1e2140_0%,#0b0b12_70%)] px-6">
-      <div className="w-full max-w-[320px] text-center text-white">
-        <p className="v2-eyebrow">{subtitle}</p>
+    <div className="v2-ui fixed inset-0 z-[150] grid place-items-center bg-white px-6">
+      <div className="w-full max-w-[320px] text-center text-[#16181d]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">{subtitle}</p>
         <p className="mt-1 text-[34px] font-bold leading-tight tracking-tight">{title}</p>
         <div
-          className="mt-6 h-1 overflow-hidden rounded-full bg-white/10"
+          className="mt-6 h-1 overflow-hidden rounded-full bg-black/[0.07]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={progress}
           aria-label="Loading world"
         >
-          <div className="h-full rounded-full bg-v2-plum transition-[width] duration-300" style={{ width: `${progress}%` }} />
+          <div className="h-full rounded-full bg-[#16181d] transition-[width] duration-300" style={{ width: `${progress}%` }} />
         </div>
-        <p className="mt-2.5 text-[12px] font-medium tabular-nums text-white/50">{progress}%</p>
+        <p className="mt-2.5 text-[12px] font-medium tabular-nums text-black/40">{progress}%</p>
       </div>
     </div>
   );
@@ -25,7 +25,7 @@ export function V2LoadingScreen({ title, subtitle, progress }: { title: string; 
 
 /** Fades the world in after spawns, respawns and new rounds. */
 export function V2Veil({ token }: { token: number }) {
-  return <div key={token} aria-hidden="true" className="v2-anim-veil pointer-events-none fixed inset-0 z-[125] bg-[#0b0b12]" />;
+  return <div key={token} aria-hidden="true" className="v2-anim-veil pointer-events-none fixed inset-0 z-[125] bg-white" />;
 }
 
 const CONTROLS: [string, string][] = [

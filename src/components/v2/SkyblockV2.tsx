@@ -110,7 +110,7 @@ export function V2Hotbar({
       <div
         role="toolbar"
         aria-label="Inventory"
-        className="v2-glass flex max-w-[min(94vw,620px)] gap-1 overflow-x-auto rounded-[16px] p-1.5 [scrollbar-width:none]"
+        className="flex max-w-[min(94vw,620px)] gap-0.5 overflow-x-auto [scrollbar-width:none]"
       >
         {hotbar.map((id, i) => {
           const active = slot === i;
@@ -122,8 +122,7 @@ export function V2Hotbar({
               aria-label={`Slot ${i + 1}`}
               aria-pressed={active}
               className={cn(
-                "relative grid h-11 w-11 shrink-0 place-items-center rounded-[11px] transition-[background-color,transform] duration-100 active:scale-95",
-                active ? "bg-white/90 ring-2 ring-v2-plum" : "bg-white/[0.06] hover:bg-white/12",
+                "blockman-slot relative grid h-11 w-11 shrink-0 place-items-center rounded-[4px] transition-transform duration-100 active:scale-95",
               )}
             >
               {tileUrls[id] ? (
@@ -138,7 +137,7 @@ export function V2Hotbar({
                 <span
                   className={cn(
                     "absolute left-1 top-0.5 text-[9.5px] font-semibold tabular-nums",
-                    active ? "text-v2-ink/60" : "text-white/50",
+                    active ? "text-white" : "text-white/50",
                   )}
                 >
                   {i + 1}
