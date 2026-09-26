@@ -637,13 +637,8 @@ export function ProfileSheet({
                         addingFriend ||
                         Boolean(friendError)
                       }
-                      className="press flex-1 py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-extrabold text-[12.5px] flex items-center justify-center gap-1.5 shadow-none active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                      className="press flex-1 py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-medium text-[12.5px] flex items-center justify-center shadow-none active:scale-[0.98] disabled:opacity-60 cursor-pointer"
                     >
-                      {friendStatus === "received" ? (
-                        <Check className="h-4 w-4 text-[#fa4616]" />
-                      ) : (
-                        <UserPlus className="h-4 w-4" />
-                      )}
                       {addingFriend
                         ? "Sending…"
                         : friendStatus === "friends"

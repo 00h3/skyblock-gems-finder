@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/MobileShell";
-import { Check, X, Users, UserPlus, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
@@ -11,32 +10,39 @@ import {
   subscribeIncomingRequests,
   acceptFriendRequest,
   rejectFriendRequest,
+  sendFriendRequest,
   areFriends,
   ensureChatMeta,
-  uidColor,
   type Friend,
   type FriendRequest,
 } from "@/lib/friends-utils";
 
 export const Route = createFileRoute("/friends")({
-  head: () => ({ meta: [{ title: "Requests — QBlock" }] }),
+  head: () => ({ meta: [{ title: "Friends — QBlock" }] }),
   component: FriendsPage,
 });
+
+const FRIENDS_TABS = ["Requests", "All Friends", "Add Friend"] as const;
 
 function FriendsPage() {
   const nav = useNavigate();
   const { qbUser } = useAuth();
+  const [tab, setTab] = useState<number>(0);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [requestModal, setRequestModal] = useState<FriendRequest | null>(null);
   const [accepting, setAccepting] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<ProfileUser | null>(null);
 
+  // Add friend state
+  const [targetQuery, setTargetQuery] = useState("");
+  const [sendingFriend, setSendingFriend] = useState(false);
+
   useEffect(() => {
     if (!qbUser) return;
-    const unsub = subscribeIncomingRequests(qbUser.uid, (realRequests) => {
+    const unsubReq = subscribeIncomingRequests(qbUser.uid, (realRequests) => {
       if (realRequests.length === 0) {
-        // Show some mock requests for preview purposes if real ones are empty
         setRequests([
           {
             id: "mock-1",
@@ -47,26 +53,21 @@ function FriendsPage() {
             fromDisplayName: "ProGamer99",
             fromUsername: "progamer99",
             fromBio: "I love playing Skyblock!",
-            fromColor: "#3b82f6",
-          },
-          {
-            id: "mock-2",
-            from: "user_b",
-            to: qbUser.uid,
-            status: "pending",
-            createdAt: Date.now(),
-            fromDisplayName: "xX_Dragon_Xx",
-            fromUsername: "dragon_slayer",
-            fromBio: "Let's build together.",
-            fromColor: "#ef4444",
+            fromColor: "#000000",
           },
         ]);
       } else {
         setRequests(realRequests);
       }
     });
+
+    const unsubFriends = subscribeFriends(qbUser.uid, (list) => {
+      setFriends(list);
+    });
+
     return () => {
-      unsub();
+      unsubReq();
+      unsubFriends();
     };
   }, [qbUser]);
 
@@ -104,187 +105,291 @@ function FriendsPage() {
     }
   }
 
+  async function handleSendRequest() {
+    if (!qbUser || !targetQuery.trim() || sendingFriend) return;
+    setSendingFriend(true);
+    try {
+      await sendFriendRequest(qbUser.uid, targetQuery.trim());
+      toast.success("Friend request sent");
+      setTargetQuery("");
+    } catch {
+      toast.error("Could not find user or send request.");
+    } finally {
+      setSendingFriend(false);
+    }
+  }
+
   return (
     <MobileShell>
-      <div className="px-5 pt-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#d97706]">
-              Notifications
-            </p>
-            <h1 className="mt-1 text-[26px] font-extrabold text-slate-900 dark:text-white">
-              Requests
-            </h1>
+      <div className="min-h-full bg-white dark:bg-[#000000] pb-24 text-black dark:text-white">
+        <div className="px-5 pt-6">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-[10.5px] font-normal uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400">
+                Community
+              </p>
+              <h1 className="mt-1 text-[22px] font-medium tracking-tight">
+                {tab === 0 ? "Requests" : tab === 1 ? "Friends" : "Add Friend"}
+              </h1>
+            </div>
+            {tab === 0 && (
+              <span className="mb-1 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/10 dark:border-white/10 px-3 py-1 text-[11px] font-normal text-neutral-700 dark:text-neutral-300">
+                {requests.length} pending
+              </span>
+            )}
           </div>
-          <span className="mb-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200/60 dark:border-amber-800/40 px-3 py-1 text-[11px] font-extrabold text-amber-800 dark:text-amber-400">
-            {requests.length} pending
-          </span>
         </div>
-      </div>
 
-      <div className="mt-5 px-5 pb-6">
-        {requests.length === 0 ? (
-          <div className="mt-12 flex flex-col items-center gap-3 text-center p-8 rounded-3xl bg-white dark:bg-[#17191e] border border-slate-100 dark:border-white/10 shadow-sm">
-            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 grid place-items-center shadow-inner">
-              <UserPlus className="h-8 w-8 stroke-[2.2]" />
-            </div>
-            <div className="text-[17px] font-extrabold text-slate-900 dark:text-white">
-              No Pending Requests
-            </div>
-            <p className="text-[12.5px] text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
-              When other players send you a friend request, they will appear right here so you can
-              accept and play together!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {requests.map((r) => (
-              <div
-                key={r.id}
-                onClick={() => setRequestModal(r)}
-                className="p-4 flex items-center gap-3 bg-white dark:bg-[#17191e] border border-slate-100 dark:border-white/10 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all active:scale-[0.99]"
-              >
-                {/* Avatar */}
-                <div className="relative shrink-0">
-                  <div
-                    className="h-12 w-12 rounded-[14px]"
-                    style={{ background: r.fromColor ?? "#F4C430" }}
-                  >
-                    <GlossyAvatar
-                      snapshot={r.fromAvatar}
-                      frame={r.fromAvatar?.frameId}
-                      portrait={r.fromUsername?.toLowerCase() === "ira"}
-                      height={48}
-                      className="h-full w-full"
-                      autoRotate={false}
-                      focusZone="head"
-                    />
-                  </div>
+        {/* Tab 0: Requests */}
+        {tab === 0 && (
+          <div className="mt-5 px-5 pb-6">
+            {requests.length === 0 ? (
+              <div className="mt-12 flex flex-col items-center gap-3 text-center p-8 rounded-[20px] bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 shadow-xs">
+                <div className="text-[16px] font-medium text-black dark:text-white">
+                  No Pending Requests
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[15px] font-black truncate text-slate-900 dark:text-white">
-                    {r.fromDisplayName ?? r.from}
-                  </div>
-                  <div className="text-[12px] font-semibold text-slate-400 truncate">
-                    @{r.fromUsername}
-                  </div>
-                </div>
-                <div
-                  className="flex items-center gap-2 shrink-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setRequestModal(r)}
-                    disabled={accepting.has(r.id) || rejecting.has(r.id)}
-                    className="press-flat px-4 h-9 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[12.5px] font-black flex items-center gap-1.5 shadow-sm active:scale-95"
-                  >
-                    Respond
-                  </button>
-                </div>
+                <p className="text-[12px] font-normal text-neutral-500 dark:text-neutral-400 max-w-xs leading-relaxed">
+                  When other players send you a friend request, they will appear right here so you can accept and play together.
+                </p>
               </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map((r) => (
+                  <div
+                    key={r.id}
+                    onClick={() => setRequestModal(r)}
+                    className="p-3.5 flex items-center gap-3 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 rounded-[18px] shadow-xs cursor-pointer transition-all active:scale-[0.99]"
+                  >
+                    <div className="relative shrink-0">
+                      <div
+                        className="h-11 w-11 rounded-[14px]"
+                        style={{ background: r.fromColor ?? "#000000" }}
+                      >
+                        <GlossyAvatar
+                          snapshot={r.fromAvatar}
+                          frame={r.fromAvatar?.frameId}
+                          portrait={r.fromUsername?.toLowerCase() === "ira"}
+                          height={44}
+                          className="h-full w-full"
+                          autoRotate={false}
+                          focusZone="head"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-medium truncate text-black dark:text-white">
+                        {r.fromDisplayName ?? r.from}
+                      </div>
+                      <div className="text-[11.5px] font-normal text-neutral-500 dark:text-neutral-400 truncate">
+                        @{r.fromUsername}
+                      </div>
+                    </div>
+                    <div
+                      className="flex items-center gap-2 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setRequestModal(r)}
+                        disabled={accepting.has(r.id) || rejecting.has(r.id)}
+                        className="press px-3.5 h-8 rounded-[11px] bg-black text-white dark:bg-white dark:text-black text-[12px] font-normal flex items-center shadow-xs cursor-pointer"
+                      >
+                        Respond
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 1: All Friends */}
+        {tab === 1 && (
+          <div className="mt-5 px-5 pb-6">
+            {friends.length === 0 ? (
+              <div className="mt-12 flex flex-col items-center gap-3 text-center p-8 rounded-[20px] bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 shadow-xs">
+                <div className="text-[16px] font-medium text-black dark:text-white">
+                  No Friends Yet
+                </div>
+                <p className="text-[12px] font-normal text-neutral-500 dark:text-neutral-400 max-w-xs leading-relaxed">
+                  Add friends to team up in SkyBlock, message directly, and play together.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {friends.map((f) => (
+                  <div
+                    key={f.id}
+                    onClick={() => {
+                      setSelected({
+                        id: f.id,
+                        username: f.username || "player",
+                        displayName: f.displayName || "Player",
+                        color: f.color || "#000",
+                        bio: f.bio,
+                        avatarSnapshot: f.avatarSnapshot,
+                        customId: f.customId,
+                      });
+                    }}
+                    className="p-3 flex items-center gap-3 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 rounded-[18px] cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition"
+                  >
+                    <div
+                      className="h-10 w-10 rounded-[12px] shrink-0"
+                      style={{ background: f.color || "#000" }}
+                    >
+                      <GlossyAvatar
+                        snapshot={f.avatarSnapshot}
+                        height={40}
+                        className="h-full w-full"
+                        autoRotate={false}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13.5px] font-medium text-black dark:text-white truncate">
+                        {f.displayName}
+                      </div>
+                      <div className="text-[11px] font-normal text-neutral-500 dark:text-neutral-400 truncate">
+                        @{f.username}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: Add Friend */}
+        {tab === 2 && (
+          <div className="mt-5 px-5 pb-6">
+            <div className="rounded-[20px] p-4 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 space-y-3">
+              <div className="text-[14px] font-medium text-black dark:text-white">
+                Find Player by Username or ID
+              </div>
+              <input
+                type="text"
+                value={targetQuery}
+                onChange={(e) => setTargetQuery(e.target.value)}
+                placeholder="Enter player username or custom ID"
+                className="w-full h-10 px-3 rounded-[12px] bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 text-[13px] font-normal outline-none placeholder:text-neutral-400"
+              />
+              <button
+                type="button"
+                onClick={handleSendRequest}
+                disabled={!targetQuery.trim() || sendingFriend}
+                className="press w-full h-10 rounded-[12px] bg-black text-white dark:bg-white dark:text-black text-[13px] font-normal flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-xs"
+              >
+                {sendingFriend ? "Sending…" : "Add Friend"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Bottom Glossy Tabs */}
+        <div className="fixed bottom-[calc(56px+max(env(safe-area-inset-bottom),8px))] left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
+          <div className="qb-glossy-menu pointer-events-auto flex max-w-full gap-1 overflow-x-auto rounded-full px-2 py-1 shadow-md hide-scrollbar">
+            {FRIENDS_TABS.map((label, index) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setTab(index)}
+                className={`press relative z-10 h-7 shrink-0 rounded-full px-3 text-[11px] font-normal transition-colors cursor-pointer ${
+                  index === tab
+                    ? "bg-foreground text-background shadow-xs"
+                    : "qb-glossy-chip text-foreground"
+                }`}
+              >
+                {label}
+              </button>
             ))}
+          </div>
+        </div>
+
+        {selected && (
+          <ProfileSheet
+            user={selected}
+            onClose={() => setSelected(null)}
+            onChat={async () => {
+              const uid = selected.id;
+              setSelected(null);
+              if (!qbUser) return;
+              try {
+                const friendsNow = await areFriends(qbUser.uid, uid);
+                if (!friendsNow) return;
+                const chatId = await ensureChatMeta(qbUser.uid, uid);
+                nav({ to: "/chat/$id" as never, params: { id: chatId } as never });
+              } catch (error) {
+                toast.error("Friend status could not be verified yet.");
+                console.error("Could not open friend chat:", error);
+              }
+            }}
+          />
+        )}
+
+        {requestModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setRequestModal(null)}
+          >
+            <div
+              className="w-full max-w-sm rounded-[22px] bg-white dark:bg-neutral-950 p-5 shadow-2xl border border-black/10 dark:border-white/15 text-black dark:text-white relative animate-in zoom-in-95 duration-200 text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3">
+                <span className="inline-block rounded-full bg-neutral-100 dark:bg-neutral-900 px-3 py-0.5 text-[10px] font-normal text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
+                  Friend Request
+                </span>
+                <h2 className="mt-2 text-[18px] font-medium leading-tight">
+                  {requestModal.fromDisplayName ?? requestModal.from}
+                </h2>
+                {requestModal.fromUsername && (
+                  <p className="text-[12px] font-normal text-neutral-500">@{requestModal.fromUsername}</p>
+                )}
+              </div>
+
+              {requestModal.fromBio && (
+                <div className="mb-4 rounded-[14px] bg-neutral-50 dark:bg-neutral-900 p-3 text-[12px] font-normal text-neutral-600 dark:text-neutral-300 border border-black/5 dark:border-white/5">
+                  {requestModal.fromBio}
+                </div>
+              )}
+
+              <p className="text-[12.5px] font-normal leading-relaxed text-neutral-600 dark:text-neutral-300 mb-5">
+                Would you like to accept this friend request from{" "}
+                {requestModal.fromDisplayName ?? requestModal.from}?
+              </p>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  disabled={accepting.has(requestModal.id) || rejecting.has(requestModal.id)}
+                  onClick={async () => {
+                    const req = requestModal;
+                    setRequestModal(null);
+                    await handleReject(req);
+                  }}
+                  className="press h-10 rounded-[12px] bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-normal text-[12.5px] flex items-center justify-center transition disabled:opacity-50 cursor-pointer"
+                >
+                  Decline
+                </button>
+
+                <button
+                  type="button"
+                  disabled={accepting.has(requestModal.id) || rejecting.has(requestModal.id)}
+                  onClick={async () => {
+                    const req = requestModal;
+                    setRequestModal(null);
+                    await handleAccept(req);
+                  }}
+                  className="press h-10 rounded-[12px] bg-black text-white dark:bg-white dark:text-black font-normal text-[12.5px] flex items-center justify-center transition disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  Accept
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {selected && (
-        <ProfileSheet
-          user={selected}
-          onClose={() => setSelected(null)}
-          onChat={async () => {
-            const uid = selected.id;
-            setSelected(null);
-            if (!qbUser) return;
-            try {
-              const friendsNow = await areFriends(qbUser.uid, uid);
-              if (!friendsNow) return;
-              const chatId = await ensureChatMeta(qbUser.uid, uid);
-              nav({ to: "/chat/$id" as never, params: { id: chatId } as never });
-            } catch (error) {
-              toast.error("Friend status could not be verified yet.");
-              console.error("Could not open friend chat:", error);
-            }
-          }}
-        />
-      )}
-      {requestModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setRequestModal(null)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#17191e] p-6 shadow-2xl border border-slate-100 dark:border-white/10 text-slate-800 dark:text-white relative animate-in zoom-in-95 duration-200 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setRequestModal(null)}
-              className="absolute top-4 right-4 h-8 w-8 grid place-items-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="mb-3">
-              <span className="inline-block rounded-full bg-amber-100 dark:bg-amber-950/60 px-3 py-0.5 text-[10px] font-extrabold text-amber-800 dark:text-amber-400 uppercase tracking-wider">
-                Friend Request
-              </span>
-              <h2 className="mt-2 text-[20px] font-black text-slate-900 dark:text-white leading-tight">
-                {requestModal.fromDisplayName ?? requestModal.from}
-              </h2>
-              {requestModal.fromUsername && (
-                <p className="text-[12px] font-bold text-slate-400">@{requestModal.fromUsername}</p>
-              )}
-            </div>
-
-            {requestModal.fromBio && (
-              <div className="mb-4 rounded-2xl bg-slate-50 dark:bg-white/5 p-3 text-[12px] text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-white/5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-                  About
-                </span>
-                {requestModal.fromBio}
-              </div>
-            )}
-
-            <p className="text-[13px] font-medium leading-relaxed text-slate-600 dark:text-slate-300 mb-5">
-              Would you like to accept this friend request from{" "}
-              {requestModal.fromDisplayName ?? requestModal.from}? Accepting allows you to send
-              instant messages and join games together!
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-white/10">
-              <button
-                type="button"
-                disabled={accepting.has(requestModal.id) || rejecting.has(requestModal.id)}
-                onClick={async () => {
-                  const req = requestModal;
-                  setRequestModal(null);
-                  await handleReject(req);
-                }}
-                className="press h-11 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-slate-200 font-bold text-[13px] flex items-center justify-center gap-1.5 transition disabled:opacity-50"
-              >
-                <X className="h-4 w-4 text-slate-500" /> Decline
-              </button>
-
-              <button
-                type="button"
-                disabled={accepting.has(requestModal.id) || rejecting.has(requestModal.id)}
-                onClick={async () => {
-                  const req = requestModal;
-                  setRequestModal(null);
-                  await handleAccept(req);
-                }}
-                className="press h-11 rounded-2xl text-[13px] font-extrabold text-slate-950 flex items-center justify-center gap-1.5 shadow-md transition disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(145deg, #ffe47a, #f4c430)",
-                  border: "1px solid rgba(245,158,11,0.3)",
-                }}
-              >
-                <Check className="h-4 w-4 text-slate-950" /> Accept
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </MobileShell>
   );
 }

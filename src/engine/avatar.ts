@@ -129,8 +129,8 @@ export class Avatar {
 
     // Priority candidates: Local Avatar_Walk_LegsOnly.glb first, then remote file.garden link
     const candidates = [
-      "/Avatar_Walk_LegsOnly.glb",
-      "https://file.garden/alGOOylwpAfCa6qP/Avatar_Walk_LegsOnly.glb",
+      "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_walk.gltf",
+      "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_walk.gltf",
       SANDBOX_AVATAR_MODEL,
       SANDBOX_AVATAR_FALLBACK_MODEL,
     ].filter(Boolean);

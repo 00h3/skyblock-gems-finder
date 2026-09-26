@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/MobileShell";
 import { ChevronLeft, Check, X, RefreshCw, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { MetallicButton } from "@/components/ui/button-metallic";
 import {
   acceptFriendRequest,
   rejectFriendRequest,
@@ -27,6 +28,7 @@ interface RealNotification {
 }
 
 function NotificationsPage() {
+  const navigate = useNavigate();
   const { qbUser } = useAuth();
   const [activeTab, setActiveTab] = useState<"email" | "requests">("email");
   const [requests, setRequests] = useState<FriendRequest[]>([]);
@@ -207,64 +209,80 @@ function NotificationsPage() {
           /* Requests Section - Real Requests Only */
           <div className="space-y-2">
             {requests.length > 0 ? (
-              requests.map((request) => (
-                <div
-                  key={request.id}
-                  className="p-3 rounded-[15px] border border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#16181f] flex items-center justify-between gap-2.5 shadow-xs"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-black text-slate-900 dark:text-white truncate">
-                      {request.fromDisplayName || request.fromUsername || "Player"}
-                    </div>
-                    <div className="text-[11px] font-medium text-slate-500 truncate">
-                      @{request.fromUsername || "user"} • Sent you a friend request
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => updateRequest(request.id, "accept")}
-                      disabled={busyId === request.id}
-                      className="press h-8 px-3 rounded-[10px] bg-[#fa4616] text-white flex items-center gap-1 text-[11.5px] font-black shadow-xs active:scale-95 disabled:opacity-50"
-                    >
-                      {busyId === request.id ? (
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <>
-                          <Check className="h-3.5 w-3.5 stroke-[3]" />
-                          <span>Accept</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateRequest(request.id, "reject")}
-                      disabled={busyId === request.id}
-                      className="press h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 grid place-items-center disabled:opacity-50"
-                      aria-label="Decline request"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+              <>
+                <div className="flex items-center justify-between pb-1 px-0.5">
+                  <span className="text-[12px] font-bold text-slate-500">
+                    Incoming Requests ({requests.length})
+                  </span>
+                  <MetallicButton
+                    onClick={() => navigate({ to: "/search" as never })}
+                    size="sm"
+                    className="rounded-xl px-3 py-1.5 text-[11.5px] font-bold gap-1.5 h-8.5 shadow-sm"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    <span>Find Players</span>
+                  </MetallicButton>
                 </div>
-              ))
+                {requests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-3 rounded-[15px] border border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#16181f] flex items-center justify-between gap-2.5 shadow-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-black text-slate-900 dark:text-white truncate">
+                        {request.fromDisplayName || request.fromUsername || "Player"}
+                      </div>
+                      <div className="text-[11px] font-medium text-slate-500 truncate">
+                        @{request.fromUsername || "user"} • Sent you a friend request
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => updateRequest(request.id, "accept")}
+                        disabled={busyId === request.id}
+                        className="press h-8 px-3 rounded-[10px] bg-[#fa4616] text-white flex items-center gap-1 text-[11.5px] font-black shadow-xs active:scale-95 disabled:opacity-50"
+                      >
+                        {busyId === request.id ? (
+                          <RefreshCw className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="h-3.5 w-3.5 stroke-[3]" />
+                            <span>Accept</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateRequest(request.id, "reject")}
+                        disabled={busyId === request.id}
+                        className="press h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 grid place-items-center disabled:opacity-50"
+                        aria-label="Decline request"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
             ) : (
-              <div className="py-10 px-4 rounded-[18px] border border-dashed border-black/[0.08] dark:border-white/[0.08] text-center space-y-2 bg-slate-50/50 dark:bg-white/[0.02]">
+              <div className="py-10 px-4 rounded-[18px] border border-dashed border-black/[0.08] dark:border-white/[0.08] text-center space-y-3 bg-slate-50/50 dark:bg-white/[0.02]">
                 <p className="text-[13px] font-bold text-slate-700 dark:text-slate-300">
                   No Pending Requests
                 </p>
                 <p className="text-[11.5px] text-slate-400 max-w-[240px] mx-auto">
                   When players add you by ID or username, their requests will appear here.
                 </p>
-                <div className="pt-1">
-                  <Link
-                    to={"/search" as never}
-                    className="press inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[11.5px] font-black shadow-xs"
+                <div className="pt-2 flex justify-center">
+                  <MetallicButton
+                    onClick={() => navigate({ to: "/search" as never })}
+                    size="sm"
+                    className="rounded-xl px-4 py-2 font-bold text-[12px] gap-2 shadow-sm text-foreground"
                   >
-                    <UserPlus className="h-3.5 w-3.5" />
+                    <UserPlus className="h-4 w-4" />
                     <span>Find Players</span>
-                  </Link>
+                  </MetallicButton>
                 </div>
               </div>
             )}

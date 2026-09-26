@@ -111,6 +111,7 @@ export function Avatar3D({
   height,
   width,
   onClick,
+  interactive = false,
 }: Avatar3DProps) {
   const iframeSrc =
     gender === "female"
@@ -132,7 +133,7 @@ export function Avatar3D({
       <iframe
         src={iframeSrc}
         className="w-full h-full border-0 absolute inset-0 bg-transparent"
-        style={{ pointerEvents: "auto", border: "none" }}
+        style={{ pointerEvents: interactive ? "auto" : "none", border: "none" }}
         allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
         sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
       />

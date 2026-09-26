@@ -1,9 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Menu, MessageSquare, Settings, LogOut } from "lucide-react";
+import { MessageSquare, Settings, LogOut } from "lucide-react";
 import { FlatSquareChatModal } from "@/components/FlatSquareChatModal";
 import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
+
+const HUD_ASSETS = {
+  menu: "https://maxwell.z3ki.dev/bot/_files/menu-icon/menu-icon.png",
+  video: "https://maxwell.z3ki.dev/bot/_files/video-icon/video-icon.png",
+  smile: "https://maxwell.z3ki.dev/bot/_files/smile-icon/smile-icon.png",
+  chat: "https://maxwell.z3ki.dev/bot/_files/chat-icon-83/chat-icon.png",
+  arrow: "https://maxwell.z3ki.dev/bot/_files/arrow-icon/arrow-icon.png",
+  button: "https://maxwell.z3ki.dev/bot/_files/blank-button/blank-button.png",
+};
 
 export type MovementMode = "walk" | "crouch" | "run";
 
@@ -17,13 +26,11 @@ interface FlatSquareGameControlsProps {
 
 /**
  * Flat square controls for Skyblock and Blockfall:
- * - Top-left flat, square menu button opening a flat square dropdown (Chat, Settings, Leave)
- * - Full-screen Flat Square Chat page (real-time chat, squared pfps, rectangular bubbles)
- * - Full-screen Flat Square Settings page (3 voci: Game, Controls, Players)
- * - Flat, square joystick (grey, fully opaque, not blurry)
- * - Flat, square jump button (grey, fully opaque, not blurry, NO icon)
- * - Flat, square button above joystick (grey, fully opaque, not blurry, NO icon)
- *   to switch between walking, crouching, and running
+ * - Grey with 18% opacity, NOT blur (backdropFilter: none)
+ * - Bold italic white font (cursive markdown style: ***text***)
+ * - Mode toggle button displays bold italic white mode (WALK / CROUCH / RUN)
+ * - Jump button displays bold italic white JUMP
+ * - Menu button displays bold italic white MENU
  */
 export function FlatSquareGameControls({
   movementMode: controlledMode,
@@ -62,7 +69,6 @@ export function FlatSquareGameControls({
   }, [menuOpen]);
 
   const cycleMovementMode = useCallback(() => {
-    // Switch between walking, crouching, and running
     const nextMode: MovementMode =
       currentMode === "walk" ? "crouch" : currentMode === "crouch" ? "run" : "walk";
 
@@ -72,7 +78,6 @@ export function FlatSquareGameControls({
       setInternalMode(nextMode);
     }
 
-    // Also dispatch global event if needed by engine
     window.dispatchEvent(
       new CustomEvent("bm-movement-mode", { detail: { mode: nextMode } }),
     );
@@ -84,9 +89,6 @@ export function FlatSquareGameControls({
   const joystickBaseRef = useRef<HTMLDivElement>(null);
   const activePointerId = useRef<number | null>(null);
 
-  // Outer square base: 120px x 120px
-  // Inner square knob: 48px x 48px
-  // Max travel: (120 - 48) / 2 = 36px from center
   const BASE_SIZE = 120;
   const KNOB_SIZE = 48;
   const MAX_TRAVEL = (BASE_SIZE - KNOB_SIZE) / 2;
@@ -100,14 +102,13 @@ export function FlatSquareGameControls({
     const dx = clientX - centerX;
     const dy = clientY - centerY;
 
-    // Clamp inside square bounds
     const clampedX = Math.max(-MAX_TRAVEL, Math.min(MAX_TRAVEL, dx));
     const clampedY = Math.max(-MAX_TRAVEL, Math.min(MAX_TRAVEL, dy));
 
     setKnobOffset({ x: clampedX, y: clampedY });
 
     const normX = clampedX / MAX_TRAVEL;
-    const normY = -(clampedY / MAX_TRAVEL); // up on screen is positive forward (Y+)
+    const normY = -(clampedY / MAX_TRAVEL);
     onJoyVector(normX, normY);
   };
 
@@ -142,7 +143,6 @@ export function FlatSquareGameControls({
     onJoyVector(0, 0);
   };
 
-  // Jump button handlers
   const handleJumpDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -165,121 +165,188 @@ export function FlatSquareGameControls({
         WebkitUserSelect: "none",
       }}
     >
-      {/* ── Top Left: Flat, square menu button opening flat square dropdown ── */}
+      {/* ── Top Left: [Menu] [Chat] [Smile] [Video] hosted PNG button bar ── */}
       <div
         id="flat-square-menu-container"
-        className="absolute left-6 top-[max(20px,calc(env(safe-area-inset-top)+14px))] pointer-events-auto select-none"
+        className="absolute left-4 sm:left-6 top-[max(16px,calc(env(safe-area-inset-top)+10px))] z-40 flex items-center gap-2 pointer-events-auto select-none"
       >
+        {/* 1. Menu Button */}
+        <div className="relative">
+          <button
+            id="btn-flat-square-menu"
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
+            className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            aria-label="Menu"
+            title="Menu"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Menu"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.menu}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
+
+          {/* Dropdown menu */}
+          {menuOpen && (
+            <div
+              id="flat-square-dropdown-menu"
+              className="absolute left-0 top-[calc(100%+6px)] w-44 flex flex-col z-50 select-none animate-in fade-in zoom-in-95 duration-100 rounded-xl overflow-hidden border border-white/20 bg-[#1e2025]/95 backdrop-blur-xl shadow-2xl p-1"
+            >
+              {/* Settings button */}
+              <button
+                id="btn-flat-menu-settings"
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  setSettingsOpen(true);
+                }}
+                className="w-full h-10 px-3 flex items-center justify-between text-left cursor-pointer select-none outline-none rounded-lg text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+              >
+                <span className="font-bold text-[13px] tracking-wide">
+                  Settings
+                </span>
+                <Settings className="w-4 h-4 text-amber-400" />
+              </button>
+
+              {/* Chat button */}
+              <button
+                id="btn-flat-menu-chat"
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  setChatOpen(true);
+                }}
+                className="w-full h-10 px-3 flex items-center justify-between text-left cursor-pointer select-none outline-none rounded-lg text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+              >
+                <span className="font-bold text-[13px] tracking-wide">
+                  Chat
+                </span>
+                <MessageSquare className="w-4 h-4 text-sky-400" />
+              </button>
+
+              {/* Leave button */}
+              <button
+                id="btn-flat-menu-leave"
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  if (onLeave) {
+                    onLeave();
+                  } else {
+                    window.location.href = "/";
+                  }
+                }}
+                className="w-full h-10 px-3 flex items-center justify-between text-left cursor-pointer select-none outline-none rounded-lg text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors border-t border-white/10 mt-1"
+              >
+                <span className="font-bold text-[13px] tracking-wide">
+                  Leave
+                </span>
+                <LogOut className="w-4 h-4 text-red-400" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Chat Button */}
         <button
-          id="btn-flat-square-menu"
+          id="btn-flat-top-chat"
           type="button"
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setMenuOpen((prev) => !prev);
+            setChatOpen(true);
           }}
-          className="flex items-center justify-center cursor-pointer select-none p-0 outline-none active:bg-neutral-200 transition-colors bg-black border border-[color:var(--bjork-outline)] rounded-[18px]"
-          style={{
-            width: "52px",
-            height: "52px",
-          }}
-          aria-label="Menu"
-          title="Menu"
+          className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+          title="Chat"
+          aria-label="Chat"
         >
-          {/* Classic clean 3-line flat square bars */}
-          <div className="flex flex-col gap-[4px] items-center justify-center pointer-events-none">
-            <span className="w-5 h-[3px] bg-white block" />
-            <span className="w-5 h-[3px] bg-white block" />
-            <span className="w-5 h-[3px] bg-white block" />
-          </div>
+          <img
+            src={HUD_ASSETS.button}
+            alt="Chat"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+            draggable={false}
+          />
+          <img
+            src={HUD_ASSETS.chat}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+            draggable={false}
+          />
         </button>
 
-        {/* Dropdown menu: same style (flat, square, grey, fully opaque) */}
-        {menuOpen && (
-          <div
-            id="flat-square-dropdown-menu"
-            className="absolute left-0 top-[calc(100%+6px)] w-44 flex flex-col z-50 select-none animate-in fade-in zoom-in-95 duration-100"
-            style={{
-              backgroundColor: "#7c7c7c",
-              opacity: 1,
-              borderRadius: 0,
-              border: "1.5px solid #585858",
-              boxShadow: "0 8px 20px rgba(0,0,0,0.4)",
-              filter: "none",
-              backdropFilter: "none",
-              WebkitBackdropFilter: "none",
-            }}
-          >
-            {/* Chat button */}
-            <button
-              id="btn-flat-menu-chat"
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMenuOpen(false);
-                setChatOpen(true);
-              }}
-              className="w-full h-11 px-3.5 flex items-center justify-between text-left text-[14px] font-semibold tracking-wide text-white hover:bg-[#686868] active:bg-[#525252] cursor-pointer select-none outline-none transition-colors"
-              style={{
-                backgroundColor: "#7c7c7c",
-                borderRadius: 0,
-                border: "none",
-                borderBottom: "1.5px solid #585858",
-              }}
-            >
-              <span>Chat</span>
-              <MessageSquare className="w-4 h-4 text-white" />
-            </button>
+        {/* 3. Smile / Emote Button */}
+        <button
+          id="btn-flat-top-smile"
+          type="button"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.dispatchEvent(
+              new CustomEvent("bm-chat-say", { detail: { text: "👋 Hello!" } })
+            );
+          }}
+          className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+          title="Emote / Wave"
+          aria-label="Emotes"
+        >
+          <img
+            src={HUD_ASSETS.button}
+            alt="Smile"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+            draggable={false}
+          />
+          <img
+            src={HUD_ASSETS.smile}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+            draggable={false}
+          />
+        </button>
 
-            {/* Settings button */}
-            <button
-              id="btn-flat-menu-settings"
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMenuOpen(false);
-                setSettingsOpen(true);
-              }}
-              className="w-full h-11 px-3.5 flex items-center justify-between text-left text-[14px] font-semibold tracking-wide text-white hover:bg-[#686868] active:bg-[#525252] cursor-pointer select-none outline-none transition-colors"
-              style={{
-                backgroundColor: "#7c7c7c",
-                borderRadius: 0,
-                border: "none",
-                borderBottom: "1.5px solid #585858",
-              }}
-            >
-              <span>Settings</span>
-              <Settings className="w-4 h-4 text-white" />
-            </button>
-
-            {/* Leave button - only Leave works */}
-            <button
-              id="btn-flat-menu-leave"
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMenuOpen(false);
-                if (onLeave) {
-                  onLeave();
-                } else {
-                  window.location.href = "/";
-                }
-              }}
-              className="w-full h-11 px-3.5 flex items-center justify-between text-left text-[14px] font-semibold tracking-wide text-white hover:bg-[#686868] active:bg-[#525252] cursor-pointer select-none outline-none transition-colors"
-              style={{
-                backgroundColor: "#7c7c7c",
-                borderRadius: 0,
-                border: "none",
-              }}
-            >
-              <span>Leave</span>
-              <LogOut className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        )}
+        {/* 4. Video / Camera Perspective Button */}
+        <button
+          id="btn-flat-top-video"
+          type="button"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.dispatchEvent(new Event("bm-toggle-cam"));
+          }}
+          className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+          title="Toggle Camera View"
+          aria-label="Camera Mode"
+        >
+          <img
+            src={HUD_ASSETS.button}
+            alt="Video"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+            draggable={false}
+          />
+          <img
+            src={HUD_ASSETS.video}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+            draggable={false}
+          />
+        </button>
       </div>
 
       {/* ── Left Side: Mode Toggle Button + Flat Square Joystick ── */}
@@ -290,9 +357,8 @@ export function FlatSquareGameControls({
           transformOrigin: "bottom left",
         }}
       >
-        {/* Above the joystick: flat, square button with NO icon.
-            Switches between walking, crouching, and running.
-            Grey, fully opaque, not blurry. */}
+        {/* Above the joystick: flat square button, grey with 18% opacity, NOT blur,
+            bold italic white font (cursive markdown style) */}
         <button
           id="btn-movement-mode-toggle"
           type="button"
@@ -301,14 +367,13 @@ export function FlatSquareGameControls({
             e.stopPropagation();
             cycleMovementMode();
           }}
-          className="cursor-pointer select-none p-0 outline-none active:brightness-85 transition-[filter]"
+          className="flex items-center justify-center cursor-pointer select-none p-0 outline-none active:brightness-90 transition-[filter]"
           style={{
             width: "56px",
             height: "56px",
-            backgroundColor: "#7c7c7c",
-            opacity: 1,
+            backgroundColor: "rgba(128, 128, 128, 0.18)",
             borderRadius: 0,
-            border: "1.5px solid #585858",
+            border: "1.5px solid rgba(255, 255, 255, 0.3)",
             boxShadow: "none",
             filter: "none",
             backdropFilter: "none",
@@ -316,9 +381,13 @@ export function FlatSquareGameControls({
           }}
           aria-label={`Switch movement mode. Current: ${currentMode}`}
           title={`Movement Mode: ${currentMode} (Tap to switch)`}
-        />
+        >
+          <span className="font-bold italic text-white text-[11px] tracking-wider uppercase select-none pointer-events-none">
+            {currentMode}
+          </span>
+        </button>
 
-        {/* Flat, square joystick. Grey, fully opaque, not blurry. */}
+        {/* Joystick base with directional arrows outside and button knob for pole */}
         <div
           id="flat-square-joystick-base"
           ref={joystickBaseRef}
@@ -326,14 +395,13 @@ export function FlatSquareGameControls({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="relative touch-none cursor-pointer select-none p-0"
+          className="relative touch-none cursor-pointer select-none p-0 flex items-center justify-center"
           style={{
             width: `${BASE_SIZE}px`,
             height: `${BASE_SIZE}px`,
-            backgroundColor: "#7c7c7c",
-            opacity: 1,
+            backgroundColor: "rgba(128, 128, 128, 0.18)",
             borderRadius: 0,
-            border: "1.5px solid #585858",
+            border: "1.5px solid rgba(255, 255, 255, 0.3)",
             boxShadow: "none",
             filter: "none",
             backdropFilter: "none",
@@ -341,31 +409,67 @@ export function FlatSquareGameControls({
           }}
           aria-label="Joystick"
         >
-          {/* Inner square knob: grey, fully opaque, not blurry */}
+          {/* Directional arrows around joystick */}
+          {/* Up arrow */}
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
+            <img
+              src={HUD_ASSETS.arrow}
+              alt=""
+              className="w-full h-full object-contain drop-shadow"
+              draggable={false}
+            />
+          </div>
+          {/* Down arrow */}
+          <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
+            <img
+              src={HUD_ASSETS.arrow}
+              alt=""
+              className="w-full h-full object-contain drop-shadow rotate-180"
+              draggable={false}
+            />
+          </div>
+          {/* Left arrow */}
+          <div className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
+            <img
+              src={HUD_ASSETS.arrow}
+              alt=""
+              className="w-full h-full object-contain drop-shadow -rotate-90"
+              draggable={false}
+            />
+          </div>
+          {/* Right arrow */}
+          <div className="absolute -right-7 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
+            <img
+              src={HUD_ASSETS.arrow}
+              alt=""
+              className="w-full h-full object-contain drop-shadow rotate-90"
+              draggable={false}
+            />
+          </div>
+
+          {/* Pole Knob using blank button PNG */}
           <div
             id="flat-square-joystick-knob"
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none flex items-center justify-center"
             style={{
               width: `${KNOB_SIZE}px`,
               height: `${KNOB_SIZE}px`,
               left: "50%",
               top: "50%",
               transform: `translate(calc(-50% + ${knobOffset.x}px), calc(-50% + ${knobOffset.y}px))`,
-              backgroundColor: joystickActive ? "#424242" : "#505050",
-              opacity: 1,
-              borderRadius: 0,
-              border: "1.5px solid #303030",
-              boxShadow: "none",
-              filter: "none",
-              backdropFilter: "none",
-              WebkitBackdropFilter: "none",
             }}
-          />
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Pole Knob"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+          </div>
         </div>
       </div>
 
-      {/* ── Right Side: Flat, square jump button with NO icon.
-          Grey, fully opaque, not blurry. ── */}
+      {/* ── Right Side: Jump button using hosted blank-button PNG (no text) ── */}
       <div
         className="absolute right-6 bottom-[max(24px,calc(env(safe-area-inset-bottom)+16px))] pointer-events-auto"
         style={{
@@ -380,22 +484,17 @@ export function FlatSquareGameControls({
           onPointerUp={handleJumpUp}
           onPointerLeave={handleJumpUp}
           onPointerCancel={handleJumpUp}
-          className="cursor-pointer select-none p-0 outline-none active:brightness-85 transition-[filter]"
-          style={{
-            width: "76px",
-            height: "76px",
-            backgroundColor: "#7c7c7c",
-            opacity: 1,
-            borderRadius: 0,
-            border: "1.5px solid #585858",
-            boxShadow: "none",
-            filter: "none",
-            backdropFilter: "none",
-            WebkitBackdropFilter: "none",
-          }}
+          className="relative w-20 h-20 flex items-center justify-center cursor-pointer select-none p-0 outline-none active:scale-90 transition-transform border-0 bg-transparent"
           aria-label="Jump"
           title="Jump"
-        />
+        >
+          <img
+            src={HUD_ASSETS.button}
+            alt="Jump"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-lg select-none"
+            draggable={false}
+          />
+        </button>
       </div>
 
       {/* ── Fullscreen Flat Square Chat Page ── */}

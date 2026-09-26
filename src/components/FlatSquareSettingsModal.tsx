@@ -6,13 +6,22 @@ import { collection, query, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 
+export const SETTINGS_ASSETS = {
+  menu: "https://maxwell.z3ki.dev/bot/_files/menu-icon/menu-icon.png",
+  video: "https://maxwell.z3ki.dev/bot/_files/video-icon/video-icon.png",
+  smile: "https://maxwell.z3ki.dev/bot/_files/smile-icon/smile-icon.png",
+  chat: "https://maxwell.z3ki.dev/bot/_files/chat-icon-83/chat-icon.png",
+  arrow: "https://maxwell.z3ki.dev/bot/_files/arrow-icon/arrow-icon.png",
+  button: "https://maxwell.z3ki.dev/bot/_files/blank-button/blank-button.png",
+};
+
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
   controlsScale: number;
   onControlsScaleChange: (scale: number) => void;
 }
 
-type SettingTab = "game" | "controls" | "players";
+type SettingTab = "game" | "video" | "controls" | "players";
 
 interface GamePlayerInfo {
   uid: string;
@@ -272,153 +281,172 @@ export function FlatSquareSettingsModal({
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      {/* ── Top Header: Flat, Square, White/Black ── */}
+      {/* ── Top Header with Hosted PNG Assets ── */}
       <div
-        className="h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-black border-b border-[color:var(--bjork-outline)]"
-        style={{ borderRadius: 0 }}
+        className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-[#15181e] border-b border-white/10"
       >
-        <span className="text-[17px] font-bold tracking-wider text-white uppercase">
-          Settings
-        </span>
+        <div className="flex items-center gap-3">
+          {/* Menu button icon badge */}
+          <div className="w-14 h-14 flex items-center justify-center shrink-0">
+            <img
+              src={SETTINGS_ASSETS.menu}
+              alt=""
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+          </div>
+          <div>
+            <h1 className="text-[18px] font-black tracking-wide text-white uppercase leading-none">
+              Game Settings
+            </h1>
+            <p className="text-[11px] text-white/50 mt-1">
+              Customize controls, video camera, sound, and player preferences
+            </p>
+          </div>
+        </div>
 
-        {/* Flat square close button */}
+        {/* Close button with blank-button background */}
         <button
           id="btn-settings-modal-close"
           type="button"
           onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center bg-white hover:bg-neutral-200 active:bg-neutral-300 text-black text-[22px] font-bold cursor-pointer select-none transition-colors border border-[color:var(--bjork-outline)] outline-none"
-          style={{ borderRadius: "12px" }}
+          className="relative w-11 h-11 flex items-center justify-center p-0 border-0 bg-transparent cursor-pointer select-none active:scale-90 transition-transform outline-none"
           aria-label="Close settings"
           title="Close settings"
         >
-          ×
+          <img
+            src={SETTINGS_ASSETS.button}
+            alt=""
+            className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+            draggable={false}
+          />
+          <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-black drop-shadow-sm select-none">
+            ✕
+          </span>
         </button>
       </div>
 
-      {/* ── Main Body: Side Nav with 3 voci + Content Area ── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden bg-white">
-        {/* ── Left Sidebar (3 voci: Game, Controls, Players) ── */}
+      {/* ── Main Body: Side Nav with 4 tabs + Content Area ── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-[#0d1015]">
+        {/* ── Left Sidebar (Game, Video, Controls, Players) ── */}
         <div
-          className="w-36 sm:w-52 shrink-0 bg-neutral-100 border-r border-[color:var(--bjork-outline)] p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto"
-          style={{ borderRadius: 0 }}
+          className="w-40 sm:w-56 shrink-0 bg-[#161a22] border-r border-white/10 p-3 sm:p-4 flex flex-col gap-2 overflow-y-auto"
         >
-          {/* Voce 1: Game */}
+          {/* Tab 1: Game (with Menu Icon) */}
           <button
             id="btn-settings-tab-game"
             type="button"
             onClick={() => setActiveTab("game")}
-            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border rounded-[12px] ${
+            className={`w-full p-2 rounded-xl flex items-center gap-2.5 text-left text-[13px] sm:text-[14px] font-extrabold tracking-wide transition-all cursor-pointer select-none outline-none border ${
               activeTab === "game"
-                ? "bg-black text-white border-[color:var(--bjork-outline)]"
-                : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
+                ? "bg-white/15 text-white border-white/30 shadow-sm"
+                : "bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white"
             }`}
           >
-            Game
+            <div className="w-9 h-9 shrink-0 flex items-center justify-center">
+              <img
+                src={SETTINGS_ASSETS.menu}
+                alt=""
+                className="w-full h-full object-contain pointer-events-none drop-shadow"
+                draggable={false}
+              />
+            </div>
+            <span>Game</span>
           </button>
 
-          {/* Voce 2: Controls */}
+          {/* Tab 2: Video / Camera (with Video Icon) */}
+          <button
+            id="btn-settings-tab-video"
+            type="button"
+            onClick={() => setActiveTab("video")}
+            className={`w-full p-2 rounded-xl flex items-center gap-2.5 text-left text-[13px] sm:text-[14px] font-extrabold tracking-wide transition-all cursor-pointer select-none outline-none border ${
+              activeTab === "video"
+                ? "bg-white/15 text-white border-white/30 shadow-sm"
+                : "bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <div className="w-9 h-9 shrink-0 flex items-center justify-center">
+              <img
+                src={SETTINGS_ASSETS.video}
+                alt=""
+                className="w-full h-full object-contain pointer-events-none drop-shadow"
+                draggable={false}
+              />
+            </div>
+            <span>Video</span>
+          </button>
+
+          {/* Tab 3: Controls (with Arrow Icon) */}
           <button
             id="btn-settings-tab-controls"
             type="button"
             onClick={() => setActiveTab("controls")}
-            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border rounded-[12px] ${
+            className={`w-full p-2 rounded-xl flex items-center gap-2.5 text-left text-[13px] sm:text-[14px] font-extrabold tracking-wide transition-all cursor-pointer select-none outline-none border ${
               activeTab === "controls"
-                ? "bg-black text-white border-[color:var(--bjork-outline)]"
-                : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
+                ? "bg-white/15 text-white border-white/30 shadow-sm"
+                : "bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white"
             }`}
           >
-            Controls
+            <div className="w-9 h-9 shrink-0 flex items-center justify-center">
+              <img
+                src={SETTINGS_ASSETS.arrow}
+                alt=""
+                className="w-full h-full object-contain pointer-events-none drop-shadow"
+                draggable={false}
+              />
+            </div>
+            <span>Controls</span>
           </button>
 
-          {/* Voce 3: Players */}
+          {/* Tab 4: Players & Chat (with Chat Icon) */}
           <button
             id="btn-settings-tab-players"
             type="button"
             onClick={() => setActiveTab("players")}
-            className={`w-full h-12 px-4 flex items-center text-left text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors cursor-pointer select-none outline-none border rounded-[12px] ${
+            className={`w-full p-2 rounded-xl flex items-center gap-2.5 text-left text-[13px] sm:text-[14px] font-extrabold tracking-wide transition-all cursor-pointer select-none outline-none border ${
               activeTab === "players"
-                ? "bg-black text-white border-[color:var(--bjork-outline)]"
-                : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
+                ? "bg-white/15 text-white border-white/30 shadow-sm"
+                : "bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white"
             }`}
           >
-            Players
+            <div className="w-9 h-9 shrink-0 flex items-center justify-center">
+              <img
+                src={SETTINGS_ASSETS.chat}
+                alt=""
+                className="w-full h-full object-contain pointer-events-none drop-shadow"
+                draggable={false}
+              />
+            </div>
+            <span>Players</span>
           </button>
         </div>
 
         {/* ── Right Content Area ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-white">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-7 text-white">
           {/* ═════════ TAB 1: GAME ═════════ */}
           {activeTab === "game" && (
-            <div className="max-w-xl space-y-6">
-              <div className="border-b border-black pb-2">
-                <h2 className="text-[18px] font-bold uppercase tracking-wider text-black">
-                  Game Settings
-                </h2>
-                <p className="text-[13px] text-neutral-600 mt-0.5">
-                  Adjust sensitivity, maximum sound, and visual settings.
-                </p>
-              </div>
-
-              {/* First Person / Third Person Toggle */}
-              <div
-                className="p-4 bg-neutral-100 border border-[color:var(--bjork-border)] flex items-center justify-between rounded-[18px]"
-              >
-                <div>
-                  <span className="text-[14px] font-bold tracking-wide text-black block">
-                    First Person Camera
-                  </span>
-                  <span className="text-[12px] text-neutral-600">
-                    Switch between first and third person view
-                  </span>
+            <div className="max-w-xl space-y-5">
+              <div className="border-b border-white/10 pb-3 flex items-center gap-3.5">
+                <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                  <img src={SETTINGS_ASSETS.menu} alt="" className="w-full h-full object-contain drop-shadow-md" />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleFirstPersonToggle}
-                  className={`h-9 px-5 font-mono font-bold text-[13px] tracking-wider border rounded-[12px] cursor-pointer select-none transition-colors ${
-                    firstPerson
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
-                  }`}
-                >
-                  {firstPerson ? "ON" : "OFF"}
-                </button>
-              </div>
-
-              {/* Hide Player ID Toggle */}
-              <div
-                className="p-4 bg-neutral-100 border border-[color:var(--bjork-border)] flex items-center justify-between rounded-[18px]"
-              >
                 <div>
-                  <span className="text-[14px] font-bold tracking-wide text-black block">
-                    Hide Player ID
-                  </span>
-                  <span className="text-[12px] text-neutral-600">
-                    Hides the unique player ID on nametags and player list
-                  </span>
+                  <h2 className="text-[19px] font-black uppercase tracking-wider text-white">
+                    Game Preferences
+                  </h2>
+                  <p className="text-[12px] text-white/50">
+                    Adjust camera look sensitivity, master volume, and nametag privacy.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleHideIdToggle}
-                  className={`h-9 px-5 font-mono font-bold text-[13px] tracking-wider border rounded-[12px] cursor-pointer select-none transition-colors ${
-                    hideId
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-black border-[color:var(--bjork-border)] hover:bg-neutral-100"
-                  }`}
-                >
-                  {hideId ? "ON" : "OFF"}
-                </button>
               </div>
 
               {/* Look Sensitivity */}
-              <div
-                className="p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] space-y-2"
-                style={{ borderRadius: 0 }}
-              >
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-bold tracking-wide text-white">
+                  <span className="text-[14px] font-bold text-white">
                     Look Sensitivity
                   </span>
-                  <span className="text-[13px] font-mono font-bold text-[#facc15] bg-[#4a4a4a] px-2 py-0.5 border border-[#3c3c3c]">
+                  <span className="text-[12px] font-mono font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
                     {(sensitivity / 50).toFixed(1)}x ({sensitivity}%)
                   </span>
                 </div>
@@ -428,13 +456,10 @@ export function FlatSquareSettingsModal({
                   max={150}
                   step={5}
                   value={sensitivity}
-                  onChange={(e) =>
-                    handleSensitivityChange(Number(e.target.value))
-                  }
-                  className="w-full h-3 bg-[#444444] accent-[#7c7c7c] cursor-pointer"
-                  style={{ borderRadius: 0 }}
+                  onChange={(e) => handleSensitivityChange(Number(e.target.value))}
+                  className="w-full h-2.5 bg-white/20 accent-amber-400 rounded-lg cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] font-mono text-white/50">
+                <div className="flex justify-between text-[11px] font-mono text-white/40">
                   <span>Slow (0.2x)</span>
                   <span>Default (1.0x)</span>
                   <span>Fast (3.0x)</span>
@@ -442,15 +467,12 @@ export function FlatSquareSettingsModal({
               </div>
 
               {/* Max Sound / Volume */}
-              <div
-                className="p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] space-y-2"
-                style={{ borderRadius: 0 }}
-              >
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-bold tracking-wide text-white">
-                    Max Sound / Volume
+                  <span className="text-[14px] font-bold text-white">
+                    Master Volume
                   </span>
-                  <span className="text-[13px] font-mono font-bold text-[#a3e635] bg-[#4a4a4a] px-2 py-0.5 border border-[#3c3c3c]">
+                  <span className="text-[12px] font-mono font-bold text-emerald-400 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
                     {soundVolume}%
                   </span>
                 </div>
@@ -460,29 +482,88 @@ export function FlatSquareSettingsModal({
                   max={100}
                   step={5}
                   value={soundVolume}
-                  onChange={(e) =>
-                    handleSoundVolumeChange(Number(e.target.value))
-                  }
-                  className="w-full h-3 bg-[#444444] accent-[#7c7c7c] cursor-pointer"
-                  style={{ borderRadius: 0 }}
+                  onChange={(e) => handleSoundVolumeChange(Number(e.target.value))}
+                  className="w-full h-2.5 bg-white/20 accent-emerald-400 rounded-lg cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] font-mono text-white/50">
+                <div className="flex justify-between text-[11px] font-mono text-white/40">
                   <span>Mute (0%)</span>
                   <span>50%</span>
                   <span>Max (100%)</span>
                 </div>
               </div>
 
+              {/* Hide Player ID Toggle */}
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-[14px] font-bold text-white block">
+                    Hide Player ID
+                  </span>
+                  <span className="text-[12px] text-white/50">
+                    Hides the unique player ID on nametags and player lists
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleHideIdToggle}
+                  className={`h-9 px-4 font-mono font-bold text-[13px] rounded-xl cursor-pointer select-none transition-all ${
+                    hideId
+                      ? "bg-amber-400 text-black font-black shadow-md"
+                      : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/15"
+                  }`}
+                >
+                  {hideId ? "ON" : "OFF"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═════════ TAB 2: VIDEO / CAMERA ═════════ */}
+          {activeTab === "video" && (
+            <div className="max-w-xl space-y-5">
+              <div className="border-b border-white/10 pb-3 flex items-center gap-3.5">
+                <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                  <img src={SETTINGS_ASSETS.video} alt="" className="w-full h-full object-contain drop-shadow-md" />
+                </div>
+                <div>
+                  <h2 className="text-[19px] font-black uppercase tracking-wider text-white">
+                    Video & Camera Settings
+                  </h2>
+                  <p className="text-[12px] text-white/50">
+                    Switch perspectives, adjust Field of View (FOV), and display options.
+                  </p>
+                </div>
+              </div>
+
+              {/* First Person / Third Person Toggle */}
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-[14px] font-bold text-white block">
+                    First Person Camera
+                  </span>
+                  <span className="text-[12px] text-white/50">
+                    Toggle between immersive 1st person and 3rd person perspective
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFirstPersonToggle}
+                  className={`h-9 px-4 font-mono font-bold text-[13px] rounded-xl cursor-pointer select-none transition-all ${
+                    firstPerson
+                      ? "bg-sky-400 text-black font-black shadow-md"
+                      : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/15"
+                  }`}
+                >
+                  {firstPerson ? "1ST PERSON" : "3RD PERSON"}
+                </button>
+              </div>
+
               {/* Field of View (FOV) */}
-              <div
-                className="p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] space-y-2"
-                style={{ borderRadius: 0 }}
-              >
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-bold tracking-wide text-white">
+                  <span className="text-[14px] font-bold text-white">
                     Field of View (FOV)
                   </span>
-                  <span className="text-[13px] font-mono font-bold text-white bg-[#4a4a4a] px-2 py-0.5 border border-[#3c3c3c]">
+                  <span className="text-[12px] font-mono font-bold text-sky-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
                     {fov}°
                   </span>
                 </div>
@@ -493,45 +574,137 @@ export function FlatSquareSettingsModal({
                   step={5}
                   value={fov}
                   onChange={(e) => handleFovChange(Number(e.target.value))}
-                  className="w-full h-3 bg-[#444444] accent-[#7c7c7c] cursor-pointer"
-                  style={{ borderRadius: 0 }}
+                  className="w-full h-2.5 bg-white/20 accent-sky-400 rounded-lg cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] font-mono text-white/50">
+                <div className="flex justify-between text-[11px] font-mono text-white/40">
                   <span>Narrow (60°)</span>
-                  <span>Normal (75°)</span>
+                  <span>Standard (75°)</span>
                   <span>Wide (95°)</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ═════════ TAB 2: CONTROLS ═════════ */}
+          {/* ═════════ TAB 3: CONTROLS & LIVE BUTTON PREVIEW ═════════ */}
           {activeTab === "controls" && (
-            <div className="max-w-xl space-y-6">
-              <div className="border-b border-white/15 pb-2">
-                <h2 className="text-[18px] font-bold uppercase tracking-wider text-white">
-                  Controls Settings
-                </h2>
-                <p className="text-[13px] text-white/60 mt-0.5">
-                  Resize and customize on-screen buttons, joystick, and touch behavior.
-                </p>
+            <div className="max-w-xl space-y-5">
+              <div className="border-b border-white/10 pb-3 flex items-center gap-3.5">
+                <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                  <img src={SETTINGS_ASSETS.arrow} alt="" className="w-full h-full object-contain drop-shadow-md" />
+                </div>
+                <div>
+                  <h2 className="text-[19px] font-black uppercase tracking-wider text-white">
+                    Controls & Button Customization
+                  </h2>
+                  <p className="text-[12px] text-white/50">
+                    Resize and customize on-screen buttons, joystick, and touch behavior.
+                  </p>
+                </div>
               </div>
 
-              {/* Resize Controls (Scale Slider) */}
-              <div
-                className="p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] space-y-2"
-                style={{ borderRadius: 0 }}
-              >
+              {/* Live Interactive Preview Box of Buttons */}
+              <div className="p-4 bg-white/[0.03] border border-white/15 rounded-2xl">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-amber-300">
+                    Live Button Layout Preview
+                  </span>
+                  <span className="text-[11px] text-white/40">
+                    Hosted PNG Button Assets
+                  </span>
+                </div>
+
+                {/* Preview Frame */}
+                <div className="relative w-full h-44 rounded-xl bg-gradient-to-b from-[#11141a] to-[#0a0c10] border border-white/10 p-3 overflow-hidden flex flex-col justify-between select-none">
+                  {/* Top Bar Preview: [Menu] [Chat] [Smile] [Video] */}
+                  <div className="flex items-center gap-2">
+                    {/* Menu */}
+                    <div className="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                      <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain drop-shadow" />
+                      <img src={SETTINGS_ASSETS.menu} alt="" className="absolute inset-0 w-full h-full object-contain p-1.5 drop-shadow" />
+                    </div>
+                    {/* Chat */}
+                    <div className="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                      <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain drop-shadow" />
+                      <img src={SETTINGS_ASSETS.chat} alt="" className="absolute inset-0 w-full h-full object-contain p-1.5 drop-shadow" />
+                    </div>
+                    {/* Smile */}
+                    <div className="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                      <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain drop-shadow" />
+                      <img src={SETTINGS_ASSETS.smile} alt="" className="absolute inset-0 w-full h-full object-contain p-1.5 drop-shadow" />
+                    </div>
+                    {/* Video */}
+                    <div className="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                      <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain drop-shadow" />
+                      <img src={SETTINGS_ASSETS.video} alt="" className="absolute inset-0 w-full h-full object-contain p-1.5 drop-shadow" />
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: D-Pad (Left) and Jump/Action (Right) scaled */}
+                  <div className="flex items-end justify-between w-full">
+                    {/* D-Pad Preview */}
+                    <div
+                      className="grid grid-cols-3 grid-rows-3 gap-0.5 w-24 h-24 origin-bottom-left transition-transform"
+                      style={{ transform: `scale(${Math.min(1.2, Math.max(0.7, controlsScale * 0.75))})` }}
+                    >
+                      <div />
+                      {/* Up */}
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain" />
+                        <img src={SETTINGS_ASSETS.arrow} alt="" className="absolute inset-0 w-full h-full object-contain p-1" />
+                      </div>
+                      <div />
+
+                      {/* Left */}
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain" />
+                        <img src={SETTINGS_ASSETS.arrow} alt="" className="absolute inset-0 w-full h-full object-contain p-1 -rotate-90" />
+                      </div>
+                      <div className="flex items-center justify-center opacity-30">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      </div>
+                      {/* Right */}
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain" />
+                        <img src={SETTINGS_ASSETS.arrow} alt="" className="absolute inset-0 w-full h-full object-contain p-1 rotate-90" />
+                      </div>
+
+                      <div />
+                      {/* Down */}
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <img src={SETTINGS_ASSETS.button} alt="" className="w-full h-full object-contain" />
+                        <img src={SETTINGS_ASSETS.arrow} alt="" className="absolute inset-0 w-full h-full object-contain p-1 rotate-180" />
+                      </div>
+                      <div />
+                    </div>
+
+                    {/* Jump / Action Button Preview */}
+                    <div
+                      className="flex flex-col items-center gap-1.5 origin-bottom-right transition-transform"
+                      style={{ transform: `scale(${Math.min(1.2, Math.max(0.7, controlsScale * 0.8))})` }}
+                    >
+                      <div className="relative w-11 h-11 flex items-center justify-center">
+                        <img src={SETTINGS_ASSETS.button} alt="Jump" className="w-full h-full object-contain drop-shadow-md" />
+                      </div>
+                      <div className="relative w-10 h-10 flex items-center justify-center">
+                        <img src={SETTINGS_ASSETS.button} alt="Action" className="w-full h-full object-contain drop-shadow-md" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resize Controls Slider */}
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[14px] font-bold tracking-wide text-white block">
-                      Resize Controls
+                    <span className="text-[14px] font-bold text-white block">
+                      Resize Controls Size
                     </span>
-                    <span className="text-[12px] text-white/60">
-                      Scales joystick, jump button, and mode switch
+                    <span className="text-[12px] text-white/50">
+                      Scales D-pad, joystick, and action buttons on screen
                     </span>
                   </div>
-                  <span className="text-[13px] font-mono font-bold text-[#facc15] bg-[#4a4a4a] px-2.5 py-1 border border-[#3c3c3c]">
+                  <span className="text-[12px] font-mono font-bold text-amber-300 bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
                     {Math.round(controlsScale * 100)}%
                   </span>
                 </div>
@@ -541,56 +714,46 @@ export function FlatSquareSettingsModal({
                   max={1.5}
                   step={0.05}
                   value={controlsScale}
-                  onChange={(e) =>
-                    handleControlsScaleSlider(Number(e.target.value))
-                  }
-                  className="w-full h-3 bg-[#444444] accent-[#7c7c7c] cursor-pointer mt-2"
-                  style={{ borderRadius: 0 }}
+                  onChange={(e) => handleControlsScaleSlider(Number(e.target.value))}
+                  className="w-full h-2.5 bg-white/20 accent-amber-400 rounded-lg cursor-pointer mt-2"
                 />
-                <div className="flex justify-between text-[11px] font-mono text-white/50">
-                  <span>Small (70%)</span>
-                  <span>Standard (100%)</span>
+                <div className="flex justify-between text-[11px] font-mono text-white/40">
+                  <span>Compact (70%)</span>
+                  <span>Default (100%)</span>
                   <span>Large (150%)</span>
                 </div>
               </div>
 
               {/* Invert Look Y-Axis */}
-              <div
-                className="p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] flex items-center justify-between"
-                style={{ borderRadius: 0 }}
-              >
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-between">
                 <div>
-                  <span className="text-[14px] font-bold tracking-wide text-white block">
+                  <span className="text-[14px] font-bold text-white block">
                     Invert Look Y-Axis
                   </span>
-                  <span className="text-[12px] text-white/60">
+                  <span className="text-[12px] text-white/50">
                     Reverse vertical pitch drag direction
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleInvertYToggle}
-                  className={`h-9 px-5 font-mono font-bold text-[13px] tracking-wider border-[1.5px] cursor-pointer select-none transition-colors ${
+                  className={`h-9 px-4 font-mono font-bold text-[13px] rounded-xl cursor-pointer select-none transition-all ${
                     invertY
-                      ? "bg-[#a3e635] text-black border-[#65a30d]"
-                      : "bg-[#4a4a4a] text-white/70 border-[#383838] hover:bg-[#525252]"
+                      ? "bg-amber-400 text-black font-black shadow-md"
+                      : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/15"
                   }`}
-                  style={{ borderRadius: 0 }}
                 >
                   {invertY ? "ON" : "OFF"}
                 </button>
               </div>
 
               {/* Joystick Deadzone */}
-              <div
-                className="p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] space-y-2"
-                style={{ borderRadius: 0 }}
-              >
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-bold tracking-wide text-white">
+                  <span className="text-[14px] font-bold text-white">
                     Joystick Deadzone
                   </span>
-                  <span className="text-[13px] font-mono font-bold text-white bg-[#4a4a4a] px-2 py-0.5 border border-[#3c3c3c]">
+                  <span className="text-[12px] font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
                     {joystickDeadzone}%
                   </span>
                 </div>
@@ -607,8 +770,7 @@ export function FlatSquareSettingsModal({
                       localStorage.setItem("qb_joystick_deadzone", String(v));
                     } catch {}
                   }}
-                  className="w-full h-3 bg-[#444444] accent-[#7c7c7c] cursor-pointer"
-                  style={{ borderRadius: 0 }}
+                  className="w-full h-2.5 bg-white/20 accent-amber-400 rounded-lg cursor-pointer"
                 />
               </div>
 
@@ -617,8 +779,7 @@ export function FlatSquareSettingsModal({
                 <button
                   type="button"
                   onClick={handleResetControls}
-                  className="w-full h-11 bg-[#7c7c7c] hover:bg-[#686868] active:bg-[#4f4f4f] text-white font-bold text-[13px] uppercase tracking-wider border-[1.5px] border-[#505050] cursor-pointer select-none transition-colors"
-                  style={{ borderRadius: 0 }}
+                  className="w-full h-11 bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white font-extrabold text-[13px] uppercase tracking-wider rounded-xl border border-white/15 cursor-pointer select-none transition-all"
                 >
                   Reset Controls to Default (100%)
                 </button>
@@ -626,88 +787,79 @@ export function FlatSquareSettingsModal({
             </div>
           )}
 
-          {/* ═════════ TAB 3: PLAYERS (Iconless, Rectangle with Photo, ID, Name) ═════════ */}
+          {/* ═════════ TAB 4: PLAYERS ═════════ */}
           {activeTab === "players" && (
             <div className="max-w-2xl space-y-5">
-              <div className="border-b border-white/15 pb-2 flex items-baseline justify-between">
-                <div>
-                  <h2 className="text-[18px] font-bold uppercase tracking-wider text-white">
-                    Players in this Game
-                  </h2>
-                  <p className="text-[13px] text-white/60 mt-0.5">
-                    List of players currently present in this session.
-                  </p>
+              <div className="border-b border-white/10 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                    <img src={SETTINGS_ASSETS.chat} alt="" className="w-full h-full object-contain drop-shadow-md" />
+                  </div>
+                  <div>
+                    <h2 className="text-[19px] font-black uppercase tracking-wider text-white">
+                      Players in Session
+                    </h2>
+                    <p className="text-[12px] text-white/50">
+                      Players currently present in this game world.
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[13px] font-mono font-bold text-white bg-[#525252] px-2.5 py-1 border border-[#424242]">
+                <span className="text-[12px] font-mono font-bold text-amber-300 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
                   {playersList.length} {playersList.length === 1 ? "PLAYER" : "PLAYERS"}
                 </span>
               </div>
 
-              {/* Player Rectangles List - Strictly Iconless */}
-              <div className="space-y-3">
-                {playersList.map((p) => {
-                  return (
-                    <div
-                      key={p.uid}
-                      className="w-full p-3.5 sm:p-4 bg-[#5c5c5c] border-[1.5px] border-[#4c4c4c] flex items-center gap-3.5"
-                      style={{ borderRadius: 0 }}
-                    >
-                      {/* Square Player ofo (pfp) */}
-                      <div
-                        className="w-12 h-12 shrink-0 bg-[#484848] border-[1.5px] border-[#3a3a3a] flex items-center justify-center overflow-hidden"
-                        style={{ borderRadius: 0 }}
-                      >
-                        {p.photo ? (
-                          <img
-                            src={p.photo}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                            style={{ borderRadius: 0 }}
-                          />
-                        ) : (
-                          <span className="text-[17px] font-bold text-white/80">
-                            {p.name.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Player Details: Name & Player ID ("olayer if") */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[15px] font-bold text-white tracking-wide truncate">
-                            {p.name}
-                          </span>
-                          {p.isSelf && (
-                            <span
-                              className="px-1.5 py-0.2 text-[10px] font-mono font-bold bg-[#484848] text-[#a3e635] border border-[#383838]"
-                              style={{ borderRadius: 0 }}
-                            >
-                              YOU
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Player ID: clean monospace font, strictly iconless */}
-                        {!hideId && (
-                          <div className="text-[12px] font-mono text-white/70 mt-0.5 truncate">
-                            ID: {p.uid}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Status label: strictly iconless text badge */}
-                      <div className="shrink-0 text-right">
-                        <span
-                          className="px-2 py-1 text-[11px] font-mono font-bold tracking-wider text-[#a3e635] bg-[#4a4a4a] border border-[#3a3a3a] uppercase"
-                          style={{ borderRadius: 0 }}
-                        >
-                          ONLINE
+              {/* Player List */}
+              <div className="space-y-2.5">
+                {playersList.map((p) => (
+                  <div
+                    key={p.uid}
+                    className="w-full p-3.5 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center gap-3.5 transition-colors hover:bg-white/[0.07]"
+                  >
+                    {/* Square Player photo */}
+                    <div className="w-11 h-11 shrink-0 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center overflow-hidden">
+                      {p.photo ? (
+                        <img
+                          src={p.photo}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <span className="text-[16px] font-black text-white/80">
+                          {p.name.charAt(0).toUpperCase()}
                         </span>
-                      </div>
+                      )}
                     </div>
-                  );
-                })}
+
+                    {/* Player Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[15px] font-bold text-white tracking-wide truncate">
+                          {p.name}
+                        </span>
+                        {p.isSelf && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/40 rounded-md">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+
+                      {!hideId && (
+                        <div className="text-[11px] font-mono text-white/50 mt-0.5 truncate">
+                          ID: {p.uid}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Online status badge */}
+                    <div className="shrink-0 text-right">
+                      <span className="px-2.5 py-1 text-[10px] font-mono font-black tracking-wider text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 rounded-lg uppercase">
+                        ONLINE
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

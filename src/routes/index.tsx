@@ -101,34 +101,6 @@ export type Game = {
 
 export const GAMES: Game[] = [
   {
-    id: "sandbox",
-    t: "Sandbox",
-    hue: "from-emerald-400 via-lime-300 to-sky-300",
-    bio: "First-person voxel sandbox. Walk, jump, break and place blocks in a fresh flat world.",
-    mode: "Sandbox",
-    modeColor: "text-emerald-600",
-    icon: baseplateIcon,
-    players: "1.2K",
-    playable: true,
-    likes: "980",
-    updated: true,
-    progress: 0,
-  },
-  {
-    id: "bedwars-golden-days",
-    t: "Bedwars",
-    hue: "from-orange-300 via-rose-300 to-amber-200",
-    bio: "Four-base Bedwars on a giant balloon arena. Defend your bed and bridge to the End.",
-    mode: "Bedwars",
-    modeColor: "text-orange-600",
-    icon: baseplateIcon,
-    players: "842",
-    playable: true,
-    likes: "4.8K",
-    updated: true,
-    progress: 0,
-  },
-  {
     id: "skyblock",
     t: "SkyBlock",
     hue: "from-sky-300 via-emerald-300 to-emerald-200",
@@ -218,8 +190,11 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
           >
             <span className="block h-10 w-10 overflow-hidden rounded-[12px] bg-[#e2e6ec] shadow-level1 ring-1 ring-slate-300/70">
               <GlossyAvatar
+                photoUrl={qbUser?.profilePhoto}
+                snapshot={qbUser?.avatarSnapshot}
+                imageFallbackOnly={true}
                 height={40}
-                className="h-full w-full"
+                className="h-full w-full pointer-events-none"
                 autoRotate={false}
                 focusZone="head"
               />

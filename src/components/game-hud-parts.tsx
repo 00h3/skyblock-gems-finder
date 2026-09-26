@@ -110,6 +110,15 @@ export function GameCubeBubbleMenu({
 }
 
 /** Touch joystick surface — the engine wires movement through these refs. */
+export const HUD_ASSETS = {
+  menu: "https://maxwell.z3ki.dev/bot/_files/menu-icon/menu-icon.png",
+  video: "https://maxwell.z3ki.dev/bot/_files/video-icon/video-icon.png",
+  smile: "https://maxwell.z3ki.dev/bot/_files/smile-icon/smile-icon.png",
+  chat: "https://maxwell.z3ki.dev/bot/_files/chat-icon-83/chat-icon.png",
+  arrow: "https://maxwell.z3ki.dev/bot/_files/arrow-icon/arrow-icon.png",
+  button: "https://maxwell.z3ki.dev/bot/_files/blank-button/blank-button.png",
+};
+
 export function JoystickVisual({
   containerRef,
   baseRef,
@@ -133,11 +142,11 @@ export function JoystickVisual({
         transform: "translate(-50%, 50%)",
       }}
     >
-      {/* Directional arrows positioned independently OUTSIDE the joystick */}
+      {/* Directional arrows using hosted arrow-icon */}
       {/* Up -> top side */}
-      <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-7 h-6 flex items-center justify-center pointer-events-none">
+      <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
         <img
-          src="/assets/hud/pitch_black/dark_arrow_key_shang.png"
+          src={HUD_ASSETS.arrow}
           alt="Up"
           className="w-full h-full object-contain drop-shadow-md"
           draggable={false}
@@ -145,76 +154,59 @@ export function JoystickVisual({
       </div>
 
       {/* Down -> bottom side */}
-      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-7 h-6 flex items-center justify-center pointer-events-none">
+      <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
         <img
-          src="/assets/hud/pitch_black/dark_arrow_key_xia.png"
+          src={HUD_ASSETS.arrow}
           alt="Down"
-          className="w-full h-full object-contain drop-shadow-md"
+          className="w-full h-full object-contain drop-shadow-md rotate-180"
           draggable={false}
         />
       </div>
 
       {/* Left -> left side */}
-      <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-7 flex items-center justify-center pointer-events-none">
+      <div className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
         <img
-          src="/assets/hud/pitch_black/dark_arrow_key_zuo.png"
+          src={HUD_ASSETS.arrow}
           alt="Left"
-          className="w-full h-full object-contain drop-shadow-md"
+          className="w-full h-full object-contain drop-shadow-md -rotate-90"
           draggable={false}
         />
       </div>
 
       {/* Right -> right side */}
-      <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-7 flex items-center justify-center pointer-events-none">
+      <div className="absolute -right-7 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center pointer-events-none">
         <img
-          src="/assets/hud/pitch_black/dark_arrow_key_you.png"
+          src={HUD_ASSETS.arrow}
           alt="Right"
-          className="w-full h-full object-contain drop-shadow-md"
+          className="w-full h-full object-contain drop-shadow-md rotate-90"
           draggable={false}
         />
       </div>
 
-      {/* Diagonal Up-Left */}
-      <div className="absolute -top-4 -left-4 w-5 h-5 flex items-center justify-center pointer-events-none">
-        <img
-          src="/assets/hud/pitch_black/dark_arrow_key_zuoxieshang.png"
-          alt="Up-Left"
-          className="w-full h-full object-contain drop-shadow-md"
-          draggable={false}
-        />
-      </div>
-
-      {/* Diagonal Up-Right */}
-      <div className="absolute -top-4 -right-4 w-5 h-5 flex items-center justify-center pointer-events-none">
-        <img
-          src="/assets/hud/pitch_black/dark_arrow_key_youxieshang.png"
-          alt="Up-Right"
-          className="w-full h-full object-contain drop-shadow-md"
-          draggable={false}
-        />
-      </div>
-
-      {/* D-Pad Base Ring / Pole */}
+      {/* D-Pad Base Ring / Button */}
       <div
         ref={baseRef}
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
       >
         <img
-          src="https://maxwell.z3ki.dev/bot/_files/dark-gui-btn-blue/dark_gui_material_btn_bg_blue.png"
-          alt="Joystick Pole"
+          src={HUD_ASSETS.button}
+          alt="Joystick Base"
           className="h-full w-full object-contain pointer-events-none drop-shadow-md select-none rounded-full"
           draggable={false}
         />
       </div>
 
-      {/* Knob (Circle joystick thumb) */}
+      {/* Knob (Pole knob using button PNG) */}
       <div
         ref={knobRef}
-        className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-transform duration-75 select-none"
+        className="absolute left-1/2 top-1/2 h-13 w-13 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-transform duration-75 select-none"
       >
-        <div className="w-10 h-10 rounded-full bg-gradient-to-b from-white/95 via-slate-100/90 to-slate-300/90 border-2 border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.9)] flex items-center justify-center">
-          <div className="w-4 h-4 rounded-full bg-blue-500/30 border border-blue-400/50" />
-        </div>
+        <img
+          src={HUD_ASSETS.button}
+          alt="Pole Knob"
+          className="w-full h-full object-contain pointer-events-none drop-shadow-lg select-none"
+          draggable={false}
+        />
       </div>
     </div>
   );
@@ -244,7 +236,7 @@ export function SkyblockTutorial({
   return (
     <div className="absolute inset-0 z-40 grid place-items-end bg-black/35 p-4 pb-[max(28px,env(safe-area-inset-bottom))]">
       <div className="w-full rounded-[18px] border border-white/15 bg-[#171b22] p-4 text-white">
-        <div className="text-[15px] font-extrabold">{s.title}</div>
+        <div className="text-[15px] font-extrabold font-lilita">{s.title}</div>
         <p className="mt-1 text-[13px] leading-relaxed text-white/70">{s.body}</p>
         <div className="mt-3 flex gap-2">
           <button
@@ -289,7 +281,7 @@ function ModalShell({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-[15px] font-extrabold">{title}</div>
+          <div className="text-[15px] font-extrabold font-lilita">{title}</div>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -361,12 +353,17 @@ export function GameSettingsModal({
       >
         {/* Top Header Bar */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400/30 to-amber-600/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-sm">
-              <Settings className="w-5 h-5" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+              <img
+                src={HUD_ASSETS.menu}
+                alt=""
+                className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+                draggable={false}
+              />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white font-lilita">
                 Game Settings
               </h1>
               <p className="text-[12px] text-zinc-400">
@@ -377,9 +374,17 @@ export function GameSettingsModal({
           <button
             onClick={onClose}
             aria-label="Close Settings"
-            className="press flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white/80 hover:text-white transition cursor-pointer"
+            className="relative w-11 h-11 p-0 border-0 bg-transparent flex items-center justify-center active:scale-90 transition-transform cursor-pointer outline-none"
           >
-            <X className="w-5 h-5" />
+            <img
+              src={HUD_ASSETS.button}
+              alt=""
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <span className="absolute inset-0 flex items-center justify-center text-white text-lg font-black select-none pointer-events-none">
+              ✕
+            </span>
           </button>
         </div>
 
@@ -387,9 +392,11 @@ export function GameSettingsModal({
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
           {/* Section 1: Camera & View */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-              <Eye className="w-4 h-4" />
-              <span>Camera & Perspective</span>
+            <div className="flex items-center gap-3 text-amber-400 font-bold text-sm">
+              <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+                <img src={HUD_ASSETS.video} alt="" className="w-full h-full object-contain drop-shadow-md" />
+              </div>
+              <span className="text-base font-extrabold">Camera & Perspective</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {modes.map((m) => {
@@ -414,9 +421,11 @@ export function GameSettingsModal({
 
           {/* Section 2: Controls & Joystick Direction */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
-              <Compass className="w-4 h-4" />
-              <span>Joystick & Movement</span>
+            <div className="flex items-center gap-3 text-sky-400 font-bold text-sm">
+              <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+                <img src={HUD_ASSETS.arrow} alt="" className="w-full h-full object-contain drop-shadow-md" />
+              </div>
+              <span className="text-base font-extrabold">Joystick & Movement</span>
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/10">

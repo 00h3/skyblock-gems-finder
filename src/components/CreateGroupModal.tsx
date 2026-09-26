@@ -1,9 +1,14 @@
 import React, { useState } from "react";
-import { X, Plus, Trash2, ArrowLeft, Flame, Upload, Link2 } from "lucide-react";
-import { DEFAULT_RULES_TEMPLATES, createGroupChat } from "@/lib/group-chat";
-import { auth } from "@/lib/firebase";
-import { ShinyButton } from "@/components/ui/shiny-button";
+import { ArrowLeft } from "lucide-react";
+import {
+  DEFAULT_RULES_TEMPLATES,
+  SERVER_ICON_PACK,
+  createGroupChat,
+} from "@/lib/group-chat";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "motion/react";
+
+const RUNNING_CAT_GIF = "https://maxwell.z3ki.dev/bot/_files/running-cat-transparent/running_cat_transparent.gif";
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -16,54 +21,14 @@ interface CreateGroupModalProps {
   onGroupCreated: (groupId: string) => void;
 }
 
-type WizardStep = "name" | "custom_pfp" | "rules" | "review";
+type WizardStep = "identity" | "icon" | "rules" | "review";
 
-const STEPS: { id: WizardStep; label: string }[] = [
-  { id: "name", label: "Name" },
-  { id: "custom_pfp", label: "Avatar" },
-  { id: "rules", label: "Rules" },
-  { id: "review", label: "Review" },
+const HYPE_PRESETS = [
+  { label: "500 Hype", value: "Reach 500 Hype & assemble our starter squad" },
+  { label: "1,000 Hype", value: "Reach 1,000 Hype & level up the squad" },
+  { label: "2,500 Hype", value: "Reach 2,500 Hype & unlock squad tournaments" },
+  { label: "5,000 Hype", value: "Reach 5,000 Hype & establish elite server status" },
 ];
-
-/**
- * Resizes and compresses image to safely fit Firestore size limits (~20-30KB)
- */
-function compressAvatar(file: File, maxSize = 256): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > maxSize) {
-            height = Math.round((height * maxSize) / width);
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width = Math.round((width * maxSize) / height);
-            height = maxSize;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", 0.85));
-        } else {
-          resolve(e.target?.result as string);
-        }
-      };
-      img.onerror = () => resolve(e.target?.result as string);
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 export function CreateGroupModal({
   isOpen,
@@ -71,33 +36,29 @@ export function CreateGroupModal({
   currentUser,
   onGroupCreated,
 }: CreateGroupModalProps) {
-  const [step, setStep] = useState<WizardStep>("name");
+  const [step, setStep] = useState<WizardStep>("identity");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [goal, setGoal] = useState("Reach 1,000 Hype & level up the squad");
+  const [selectedIconId, setSelectedIconId] = useState<string>(SERVER_ICON_PACK[0].id);
   const [customPfpUrl, setCustomPfpUrl] = useState<string>(
     "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&auto=format&fit=crop&q=80",
   );
-  const [customPfpInput, setCustomPfpInput] = useState("");
+  const [useCustomUrl, setUseCustomUrl] = useState(false);
+  const [goal, setGoal] = useState("Reach 1,000 Hype & level up the squad");
   const [selectedRules, setSelectedRules] = useState<string[]>([
     DEFAULT_RULES_TEMPLATES[0],
     DEFAULT_RULES_TEMPLATES[1],
-    DEFAULT_RULES_TEMPLATES[2],
   ]);
-  const [customRuleInput, setCustomRuleInput] = useState("");
+  const [newRuleInput, setNewRuleInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const currentStepIndex = STEPS.findIndex((s) => s.id === step);
+  const effectiveUid = currentUser?.uid || "guest-owner";
+  const effectiveName = currentUser?.displayName || currentUser?.username || "Player";
+  const activeIcon = SERVER_ICON_PACK.find((i) => i.id === selectedIconId) || SERVER_ICON_PACK[0];
 
-  const effectiveUid =
-    currentUser?.uid || auth.currentUser?.uid || "player_" + Math.random().toString(36).slice(2, 9);
-
-  const effectiveName =
-    currentUser?.displayName || currentUser?.username || auth.currentUser?.displayName || "Player";
-
-  function toggleTemplateRule(rule: string) {
+  function toggleRule(rule: string) {
     if (selectedRules.includes(rule)) {
       setSelectedRules(selectedRules.filter((r) => r !== rule));
     } else {
@@ -106,33 +67,17 @@ export function CreateGroupModal({
   }
 
   function handleAddCustomRule() {
-    const trimmed = customRuleInput.trim();
-    if (!trimmed) return;
-    const numberedRule = `${selectedRules.length + 1}. ${trimmed}`;
-    setSelectedRules([...selectedRules, numberedRule]);
-    setCustomRuleInput("");
-  }
-
-  function handleRemoveRule(index: number) {
-    setSelectedRules(selectedRules.filter((_, i) => i !== index));
-  }
-
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const compressed = await compressAvatar(file, 256);
-      setCustomPfpUrl(compressed);
-      toast.success("Custom avatar uploaded!");
-    } catch {
-      toast.error("Could not process image file.");
+    if (!newRuleInput.trim()) return;
+    if (!selectedRules.includes(newRuleInput.trim())) {
+      setSelectedRules([...selectedRules, newRuleInput.trim()]);
     }
+    setNewRuleInput("");
   }
 
   async function handleFinishCreate() {
     if (!name.trim()) {
       toast.error("Please enter a group name.");
-      setStep("name");
+      setStep("identity");
       return;
     }
 
@@ -140,16 +85,17 @@ export function CreateGroupModal({
     try {
       const newGroupId = await createGroupChat({
         name: name.trim(),
-        description: description.trim() || "Active community squad",
-        goal: goal.trim(),
-        customPfpUrl,
+        description: description.trim() || "Active squad hangout",
+        goal: goal.trim() || "Reach 1,000 Hype & level up the squad",
+        customPfpUrl: useCustomUrl ? customPfpUrl : "",
+        iconId: selectedIconId,
         rules: selectedRules,
         ownerUid: effectiveUid,
         ownerName: effectiveName,
         isPublic: true,
       });
 
-      toast.success(`Group "${name.trim()}" created!`);
+      toast.success(`Server "${name.trim()}" created!`);
       onGroupCreated(newGroupId);
       onClose();
     } catch (err) {
@@ -161,394 +107,539 @@ export function CreateGroupModal({
   }
 
   function handleNext() {
-    if (step === "name") {
+    if (step === "identity") {
       if (!name.trim()) {
-        toast.error("Please enter a group name!");
+        toast.error("Please enter a server name");
         return;
       }
-      setStep("custom_pfp");
-    } else if (step === "custom_pfp") {
+      setStep("icon");
+    } else if (step === "icon") {
       setStep("rules");
     } else if (step === "rules") {
       setStep("review");
-    } else if (step === "review") {
-      handleFinishCreate();
     }
   }
 
-  function getButtonLabel() {
-    if (loading) return "Creating Group...";
-    if (step === "name") return "Continue to Avatar";
-    if (step === "custom_pfp") return "Continue to Rules";
-    if (step === "rules") return "Review Group";
-    return "Create Group";
-  }
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FULL PAGE 4-STEP SERVER CREATOR: FRAGMENTS & EVENTS STYLE (NO POPUP, ZERO FLUFF)
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
-      {/* Crisp, clean, pure white container */}
-      <div className="w-full h-full sm:h-auto sm:max-w-[480px] bg-white dark:bg-[#12141a] rounded-none sm:rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-black/[0.08] dark:border-white/[0.08] overflow-hidden flex flex-col sm:max-h-[90vh]">
-        {/* Header: Pure white with clean typography */}
-        <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-black/[0.05] dark:border-white/[0.05] bg-white dark:bg-[#12141a]">
-          <div className="flex items-center gap-2.5">
-            {step !== "name" && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (step === "custom_pfp") setStep("name");
-                  else if (step === "rules") setStep("custom_pfp");
-                  else if (step === "review") setStep("rules");
-                }}
-                className="press h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-[#1b1e26] hover:bg-slate-200 dark:hover:bg-[#232732] grid place-items-center text-slate-700 dark:text-slate-200 cursor-pointer transition-colors"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-            )}
-            <div>
-              <h2 className="text-[17px] font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Create Group
-              </h2>
-              <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">
-                Step {currentStepIndex + 1} of 4: {STEPS[currentStepIndex].label}
-              </p>
-            </div>
-          </div>
+    <div className="fixed inset-0 z-[999] w-screen h-screen bg-[#060709] text-white flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200">
+      {/* Full Screen Header */}
+      <header className="w-full px-5 sm:px-8 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-md">
+        {step !== "identity" ? (
           <button
             type="button"
-            onClick={onClose}
-            className="press h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-[#1b1e26] hover:bg-slate-200 dark:hover:bg-[#232732] grid place-items-center text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors"
-            aria-label="Close"
+            onClick={() => {
+              if (step === "icon") setStep("identity");
+              else if (step === "rules") setStep("icon");
+              else if (step === "review") setStep("rules");
+            }}
+            className="press h-9 px-4 rounded-[14px] bg-white/10 hover:bg-white/15 flex items-center gap-2 text-[12.5px] font-medium text-white cursor-pointer transition"
           >
-            <X className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
           </button>
+        ) : (
+          <div className="w-16" />
+        )}
+
+        <div className="flex items-center gap-2 text-[12.5px] font-semibold tracking-wider text-neutral-300 uppercase">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Server Setup</span>
         </div>
 
-        {/* Step-by-Step Indicator: Clean text & numbers, NO ICONS */}
-        <div className="px-5 pt-3 pb-1 bg-white dark:bg-[#12141a]">
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-[13px] bg-slate-100 dark:bg-[#1a1d25] border border-black/[0.03] dark:border-white/[0.04]">
-            {STEPS.map((s, idx) => {
-              const isCurrent = step === s.id;
-              const isCompleted = idx < currentStepIndex;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  disabled={idx > currentStepIndex}
-                  onClick={() => {
-                    if (idx <= currentStepIndex) setStep(s.id);
-                  }}
-                  className={`py-1.5 px-1 rounded-[9px] text-center transition-all ${
-                    isCurrent
-                      ? "bg-white dark:bg-[#262b37] text-slate-900 dark:text-white shadow-xs font-bold"
-                      : isCompleted
-                        ? "text-slate-700 dark:text-slate-300 font-medium hover:text-slate-900 cursor-pointer"
-                        : "text-slate-400 dark:text-slate-600 font-normal cursor-not-allowed"
-                  }`}
-                >
-                  <div className="text-[9.5px] uppercase tracking-wider opacity-65">{idx + 1}</div>
-                  <div className="text-[11.5px] truncate">{s.label}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="press h-9 px-4 rounded-[14px] bg-white/10 hover:bg-white/15 text-[12.5px] font-medium text-neutral-300 hover:text-white cursor-pointer transition"
+        >
+          Close
+        </button>
+      </header>
 
-        {/* Modal Body: Clean white background, no clutter */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-white dark:bg-[#12141a]">
-          {/* STEP 1: NAME & SQUAD GOAL */}
-          {step === "name" && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 block">
-                  Group Name <span className="text-[#fa4616]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. BedWars Elite Squad"
-                  maxLength={40}
-                  autoFocus
-                  className="w-full h-11 px-3.5 rounded-[13px] border border-black/[0.1] dark:border-white/[0.1] bg-white dark:bg-[#161922] text-[14px] font-semibold text-slate-900 dark:text-white outline-none focus:border-[#fa4616] transition-colors shadow-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 block">
-                  Squad Goal
-                </label>
-                <input
-                  type="text"
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  placeholder="e.g. Win 100 matches & reach 1,000 Hype"
-                  maxLength={75}
-                  className="w-full h-11 px-3.5 rounded-[13px] border border-black/[0.1] dark:border-white/[0.1] bg-white dark:bg-[#161922] text-[13.5px] font-medium text-slate-900 dark:text-white outline-none focus:border-[#fa4616] transition-colors shadow-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 block">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What is this squad focused on?"
-                  rows={2}
-                  maxLength={120}
-                  className="w-full p-3 rounded-[13px] border border-black/[0.1] dark:border-white/[0.1] bg-white dark:bg-[#161922] text-[13px] font-medium text-slate-900 dark:text-white outline-none focus:border-[#fa4616] transition-colors resize-none shadow-xs"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: CUSTOM PFP ONLY (WITH AVATAR GLOSSINESS) */}
-          {step === "custom_pfp" && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Clean White Card with Glossy Avatar Preview */}
-              <div className="p-4 rounded-[18px] bg-white dark:bg-[#161922] border border-black/[0.08] dark:border-white/[0.08] shadow-xs flex items-center gap-4">
-                {/* Square PFP with Avatar Glossiness Sheen */}
-                <div className="relative h-20 w-20 rounded-[18px] overflow-hidden border border-black/10 dark:border-white/15 bg-slate-100 shadow-sm shrink-0">
-                  <img
-                    src={customPfpUrl}
-                    alt="Custom PFP"
-                    className="h-full w-full object-cover"
-                    onError={() =>
-                      setCustomPfpUrl(
-                        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&auto=format&fit=crop&q=80",
-                      )
-                    }
-                  />
-                  {/* Signature Gloss Reflection Overlay */}
-                  <div className="absolute inset-0 pointer-events-none rounded-[18px] bg-gradient-to-b from-white/45 via-transparent to-black/15 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.85),inset_0_-1px_1px_rgba(0,0,0,0.15)]" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#fa4616]">
-                    Custom Avatar
-                  </span>
-                  <h3 className="text-[15px] font-extrabold text-slate-900 dark:text-white truncate">
-                    {name || "Squad Avatar"}
-                  </h3>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Custom square avatar with authentic depth glossiness.
+      {/* Full Screen Fragment Canvas */}
+      <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-8 flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          {/* STEP 1: NAME & TOPIC (FRAGMENTS) */}
+          {step === "identity" && (
+            <motion.div
+              key="step-identity"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-5 my-auto"
+            >
+              <motion.div
+                initial={{ opacity: 0, x: -60, y: -20, rotate: -3, scale: 0.92, filter: "blur(18px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.05 }}
+                className="md:col-span-7 p-6 sm:p-8 rounded-[28px] bg-white/[0.04] border border-white/10 space-y-4 hover:border-white/20 transition shadow-xl"
+              >
+                <div className="space-y-1">
+                  <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight text-white">
+                    Name Your Server
+                  </h1>
+                  <p className="text-[13px] text-neutral-400">
+                    Give your community a name and description
                   </p>
                 </div>
-              </div>
 
-              {/* Upload Local Image Button */}
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 block">
-                  Upload Local Image
-                </label>
-                <label className="flex items-center justify-center gap-2 h-16 border border-dashed border-black/[0.15] dark:border-white/[0.15] rounded-[14px] bg-white dark:bg-[#161922] hover:bg-slate-50 dark:hover:bg-[#1a1e29] cursor-pointer transition-colors">
-                  <Upload className="h-4 w-4 text-[#fa4616]" />
-                  <span className="text-[12.5px] font-bold text-slate-800 dark:text-slate-200">
-                    Choose image file (PNG, JPG, WebP)
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {/* Or Direct URL Input */}
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 block">
-                  Or Paste Image URL
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="url"
-                      value={customPfpInput}
-                      onChange={(e) => setCustomPfpInput(e.target.value)}
-                      placeholder="https://.../avatar.png"
-                      className="w-full h-10 px-3.5 pl-9 rounded-[12px] border border-black/[0.1] dark:border-white/[0.1] bg-white dark:bg-[#161922] text-[13px] font-medium text-slate-900 dark:text-white outline-none focus:border-[#fa4616] transition-colors"
-                    />
-                    <Link2 className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (customPfpInput.trim()) {
-                        setCustomPfpUrl(customPfpInput.trim());
-                        setCustomPfpInput("");
-                        toast.success("Avatar updated!");
-                      }
-                    }}
-                    className="press px-3.5 h-10 rounded-[12px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 text-white font-bold text-[12px] transition-colors cursor-pointer"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: SERVER RULES (FULL PAGE) */}
-          {step === "rules" && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Custom Rule Input */}
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 block">
-                  Add Rule
-                </label>
-                <div className="flex gap-2">
+                <div>
+                  <label className="block text-[12px] font-semibold text-neutral-300 uppercase tracking-wider mb-2">
+                    Server Name
+                  </label>
                   <input
                     type="text"
-                    value={customRuleInput}
-                    onChange={(e) => setCustomRuleInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddCustomRule()}
-                    placeholder="e.g. Respect all members and play fair"
-                    maxLength={90}
-                    className="flex-1 h-10 px-3.5 rounded-[12px] border border-black/[0.1] dark:border-white/[0.1] bg-white dark:bg-[#161922] text-[13px] font-medium text-slate-900 dark:text-white outline-none focus:border-[#fa4616] transition-colors"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Phoenix Builders"
+                    maxLength={40}
+                    autoFocus
+                    className="w-full h-12 px-4 rounded-[16px] bg-white/5 border border-white/10 text-[14px] text-white outline-none placeholder:text-neutral-500 focus:border-white/30 transition"
                   />
+                  <div className="text-right text-[11px] text-neutral-500 mt-1">
+                    {name.length}/40
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-neutral-300 uppercase tracking-wider mb-2">
+                    Topic / About
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="What is your squad about? Base building, sky wars, tournaments..."
+                    rows={3}
+                    className="w-full p-4 rounded-[16px] bg-white/5 border border-white/10 text-[13.5px] text-white outline-none placeholder:text-neutral-500 resize-none focus:border-white/30 transition"
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 60, y: 30, rotate: 4, scale: 0.92, filter: "blur(18px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.12 }}
+                className="md:col-span-5 p-6 sm:p-8 rounded-[28px] bg-white/[0.04] border border-white/10 flex flex-col justify-between gap-6 hover:border-white/20 transition shadow-xl"
+              >
+                <div>
+                  <div className="text-[12px] font-semibold text-neutral-400 uppercase tracking-wider mb-4">
+                    Live Crest Preview
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-[20px] overflow-hidden border border-white/15 bg-white/5 shrink-0 flex items-center justify-center shadow-md">
+                      <div className={`h-full w-full bg-gradient-to-br ${activeIcon.gradient} flex items-center justify-center text-white text-[20px] font-bold`}>
+                        {name ? name.slice(0, 2).toUpperCase() : "SV"}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[17px] font-bold text-white truncate">
+                        {name || "Untitled Server"}
+                      </div>
+                      <div className="text-[12.5px] text-neutral-400 line-clamp-2 mt-0.5">
+                        {description || "Community squad hangout"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between text-[12px] text-neutral-300">
+                    <span>Founder</span>
+                    <span className="font-semibold text-white">{effectiveName}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[12px] text-neutral-300">
+                    <span>Access</span>
+                    <span className="text-emerald-400 font-semibold">Public Server</span>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* STEP 2: ICON & STYLE (FRAGMENTS) */}
+          {step === "icon" && (
+            <motion.div
+              key="step-icon"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-5 my-auto"
+            >
+              <motion.div
+                initial={{ opacity: 0, x: -60, y: -20, rotate: -4, scale: 0.92, filter: "blur(18px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.05 }}
+                className="md:col-span-5 p-6 sm:p-8 rounded-[28px] bg-white/[0.04] border border-white/10 flex flex-col items-center justify-center text-center gap-4 hover:border-white/20 transition shadow-xl"
+              >
+                <div className="h-24 w-24 rounded-[26px] overflow-hidden border border-white/20 bg-white/5 shadow-2xl flex items-center justify-center">
+                  {useCustomUrl && customPfpUrl ? (
+                    <img src={customPfpUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div
+                      className={`h-full w-full bg-gradient-to-br ${activeIcon.gradient} flex items-center justify-center text-white text-[28px] font-bold`}
+                    >
+                      {name ? name.slice(0, 2).toUpperCase() : activeIcon.name.slice(0, 2)}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-[18px] font-bold text-white truncate max-w-[220px]">
+                    {name || "Your Server"}
+                  </h2>
+                  <p className="text-[12.5px] text-neutral-400 mt-0.5">
+                    {useCustomUrl ? "Custom Image Link" : activeIcon.name}
+                  </p>
+                </div>
+
+                <div className="flex gap-2 w-full pt-2">
                   <button
                     type="button"
-                    onClick={handleAddCustomRule}
-                    className="press px-3.5 h-10 rounded-[12px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white font-bold text-[12px] flex items-center gap-1 cursor-pointer transition-colors"
+                    onClick={() => setUseCustomUrl(false)}
+                    className={`press flex-1 h-9 rounded-[14px] text-[12px] font-semibold cursor-pointer transition ${
+                      !useCustomUrl ? "bg-white text-black" : "bg-white/10 text-neutral-300 hover:bg-white/15"
+                    }`}
                   >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Add</span>
+                    Themes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUseCustomUrl(true)}
+                    className={`press flex-1 h-9 rounded-[14px] text-[12px] font-semibold cursor-pointer transition ${
+                      useCustomUrl ? "bg-white text-black" : "bg-white/10 text-neutral-300 hover:bg-white/15"
+                    }`}
+                  >
+                    Image URL
                   </button>
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Active Rules List */}
-              <div className="space-y-1.5">
-                <label className="text-[11.5px] font-bold text-slate-600 dark:text-slate-400 block">
-                  Rules ({selectedRules.length})
-                </label>
-                <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-0.5">
-                  {selectedRules.map((rule, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2.5 rounded-[12px] bg-white dark:bg-[#161922] border border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between gap-2 shadow-2xs"
-                    >
-                      <span className="text-[12px] font-medium text-slate-800 dark:text-slate-200 leading-snug">
-                        {rule}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRule(idx)}
-                        className="press p-1 text-slate-400 hover:text-rose-500 rounded-md shrink-0 cursor-pointer transition-colors"
-                        aria-label="Remove rule"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+              <motion.div
+                initial={{ opacity: 0, x: 60, y: 30, rotate: 4, scale: 0.92, filter: "blur(18px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.12 }}
+                className="md:col-span-7 p-6 sm:p-8 rounded-[28px] bg-white/[0.04] border border-white/10 flex flex-col justify-between hover:border-white/20 transition shadow-xl"
+              >
+                {!useCustomUrl ? (
+                  <div className="space-y-3">
+                    <div className="text-[13px] font-bold tracking-wide uppercase text-white">
+                      Choose Theme Crest
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {SERVER_ICON_PACK.map((icon) => {
+                        const isSelected = selectedIconId === icon.id;
+                        return (
+                          <button
+                            key={icon.id}
+                            type="button"
+                            onClick={() => setSelectedIconId(icon.id)}
+                            className={`press p-3 rounded-[18px] border flex flex-col items-center gap-2 cursor-pointer transition ${
+                              isSelected
+                                ? "border-white bg-white/15 shadow-md"
+                                : "border-white/5 bg-white/5 hover:border-white/20"
+                            }`}
+                          >
+                            <div
+                              className={`h-11 w-11 rounded-[14px] bg-gradient-to-br ${icon.gradient} flex items-center justify-center text-white text-[14px] font-bold shadow-sm`}
+                            >
+                              {icon.name.slice(0, 1)}
+                            </div>
+                            <span className="text-[11px] font-medium truncate w-full text-center text-neutral-200">
+                              {icon.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 my-auto">
+                    <div className="text-[13px] font-bold tracking-wide uppercase text-white">
+                      Custom Image Link
+                    </div>
+                    <input
+                      type="text"
+                      value={customPfpUrl}
+                      onChange={(e) => setCustomPfpUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full h-12 px-4 rounded-[16px] bg-white/5 border border-white/10 text-[13.5px] text-white outline-none focus:border-white/30"
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
 
-              {/* Standard Templates */}
-              <div className="pt-1 space-y-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
-                  Quick Templates:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {DEFAULT_RULES_TEMPLATES.map((tmpl, i) => {
-                    const isPicked = selectedRules.includes(tmpl);
+          {/* STEP 3: RULES / PACT (FRAGMENTS) */}
+          {step === "rules" && (
+            <motion.div
+              key="step-rules"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-5 my-auto"
+            >
+              <motion.div
+                initial={{ opacity: 0, x: -60, y: -20, rotate: -3, scale: 0.92, filter: "blur(18px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.05 }}
+                className="md:col-span-7 p-6 sm:p-8 rounded-[28px] bg-white/[0.04] border border-white/10 space-y-4 hover:border-white/20 transition shadow-xl"
+              >
+                <div className="flex items-center justify-between">
+                  <h1 className="text-[20px] sm:text-[24px] font-bold tracking-tight text-white">
+                    Community Pact
+                  </h1>
+                  <span className="text-[11.5px] font-semibold px-2.5 py-0.5 rounded-[8px] bg-white/10 text-neutral-300">
+                    {selectedRules.length} Active
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-h-[300px] overflow-y-auto hide-scrollbar pr-1">
+                  {DEFAULT_RULES_TEMPLATES.map((rule, idx) => {
+                    const active = selectedRules.includes(rule);
                     return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => toggleTemplateRule(tmpl)}
-                        className={`press text-[11px] px-2.5 py-1.5 rounded-[9px] font-semibold transition-colors text-left cursor-pointer ${
-                          isPicked
-                            ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                            : "bg-slate-100 hover:bg-slate-200 dark:bg-[#1c1f2a] dark:hover:bg-[#252834] text-slate-700 dark:text-slate-300"
+                      <div
+                        key={idx}
+                        onClick={() => toggleRule(rule)}
+                        className={`p-3.5 rounded-[16px] border text-[13px] font-normal cursor-pointer transition flex items-center justify-between gap-3 ${
+                          active
+                            ? "bg-white/10 border-white/20 text-white"
+                            : "bg-white/5 border-white/5 text-neutral-400 hover:border-white/15"
                         }`}
                       >
-                        Rule #{i + 1}
-                      </button>
+                        <span className="leading-snug">{rule}</span>
+                        <span
+                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-[10px] shrink-0 ${
+                            active
+                              ? "bg-white text-black"
+                              : "bg-white/10 text-neutral-400"
+                          }`}
+                        >
+                          {active ? "Active" : "Off"}
+                        </span>
+                      </div>
                     );
                   })}
                 </div>
-              </div>
-            </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 60, y: 30, rotate: 3, scale: 0.92, filter: "blur(18px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.12 }}
+                className="md:col-span-5 p-6 sm:p-8 rounded-[28px] bg-white/[0.04] border border-white/10 flex flex-col justify-between gap-4 hover:border-white/20 transition shadow-xl"
+              >
+                <div>
+                  <div className="text-[13px] font-bold tracking-wide uppercase text-white mb-2">
+                    Add Custom Rule
+                  </div>
+                  <p className="text-[12.5px] text-neutral-400 mb-4">
+                    Create rules tailored specifically to your squad's expectations.
+                  </p>
+
+                  <textarea
+                    value={newRuleInput}
+                    onChange={(e) => setNewRuleInput(e.target.value)}
+                    placeholder="e.g. Always share loot in dungeons..."
+                    rows={3}
+                    className="w-full p-3.5 rounded-[16px] bg-white/5 border border-white/10 text-[13px] text-white outline-none resize-none focus:border-white/30"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleAddCustomRule}
+                    className="press mt-3 w-full h-11 rounded-[16px] bg-white/10 hover:bg-white/15 text-white text-[12.5px] font-semibold cursor-pointer transition"
+                  >
+                    Add Rule
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-[16px] bg-emerald-500/10 border border-emerald-500/20 text-[12px] text-emerald-300">
+                  Members must scroll and agree to active rules before chatting.
+                </div>
+              </motion.div>
+            </motion.div>
           )}
 
-          {/* STEP 4: REVIEW & LAUNCH */}
+          {/* STEP 4: LAUNCH REVIEW & LIVE EVENTS (FRAGMENTS) */}
           {step === "review" && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              <div className="bg-white dark:bg-[#161922] border border-black/[0.08] dark:border-white/[0.08] rounded-[20px] p-4 shadow-sm">
-                {/* Header preview with glossy avatar */}
-                <div className="flex items-center gap-3.5 mb-3">
-                  <div className="relative h-13 w-13 rounded-[14px] overflow-hidden border border-black/10 dark:border-white/15 bg-slate-100 shadow-sm shrink-0">
-                    <img src={customPfpUrl} alt={name} className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 pointer-events-none rounded-[14px] bg-gradient-to-b from-white/45 via-transparent to-black/15 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.85)]" />
+            <motion.div
+              key="step-review"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-4 my-auto"
+            >
+              {/* FRAGMENT 1: SERVER CREST */}
+              <motion.div
+                initial={{ opacity: 0, x: -80, y: -40, rotate: -5, scale: 0.88, filter: "blur(20px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.05 }}
+                className="md:col-span-7 p-6 rounded-[24px] bg-white/[0.04] border border-white/10 flex flex-col justify-between gap-4 hover:border-white/20 transition shadow-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-[22px] overflow-hidden border border-white/15 bg-white/5 shrink-0 flex items-center justify-center shadow-md">
+                    {useCustomUrl && customPfpUrl ? (
+                      <img src={customPfpUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div
+                        className={`h-full w-full bg-gradient-to-br ${activeIcon.gradient} flex items-center justify-center text-white text-[24px] font-bold`}
+                      >
+                        {name ? name.slice(0, 2).toUpperCase() : "SV"}
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-[16px] font-extrabold text-slate-900 dark:text-white truncate">
-                      {name}
-                    </h3>
-                    <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">
-                      {description || "Community Squad"}
+                    <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight truncate text-white">
+                      {name || "Untitled Server"}
+                    </h1>
+                    <p className="text-[13px] text-neutral-400 line-clamp-2 mt-0.5">
+                      {description || "Squad hangout"}
                     </p>
                   </div>
                 </div>
 
-                {/* Squad Goal Box */}
-                <div className="p-3 rounded-[13px] bg-slate-50 dark:bg-[#1b1e27] border border-black/[0.04] dark:border-white/[0.05] mb-3">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Unique Squad Goal
+                <div className="flex items-center gap-2 pt-3 border-t border-white/5">
+                  <span className="text-[11.5px] font-medium px-3 py-1 rounded-[10px] bg-white/10 text-neutral-200">
+                    {effectiveName}
+                  </span>
+                  <span className="text-[11.5px] font-medium px-3 py-1 rounded-[10px] bg-emerald-500/20 text-emerald-300">
+                    Public
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* FRAGMENT 2: HYPE RUSH EVENT */}
+              <motion.div
+                initial={{ opacity: 0, x: 80, y: -30, rotate: 5, scale: 0.88, filter: "blur(20px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.1 }}
+                className="md:col-span-5 p-6 rounded-[24px] bg-white/[0.04] border border-white/10 flex flex-col justify-between gap-3 hover:border-white/20 transition shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <img src={RUNNING_CAT_GIF} alt="" className="h-4 w-4 object-contain" />
+                    <span className="text-[13px] font-bold tracking-wide uppercase text-white">Hype Rush</span>
                   </div>
-                  <div className="text-[12.5px] font-bold text-slate-800 dark:text-slate-200 mt-0.5">
-                    {goal}
+
+                  <input
+                    type="text"
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    placeholder="Hype goal..."
+                    className="w-full h-11 px-3.5 rounded-[14px] bg-white/5 border border-white/10 text-[13px] text-white outline-none focus:border-white/30"
+                  />
+
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    {HYPE_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setGoal(preset.value)}
+                        className={`press text-[11px] px-2.5 py-1 rounded-[10px] cursor-pointer transition ${
+                          goal === preset.value
+                            ? "bg-white text-black font-semibold"
+                            : "bg-white/10 hover:bg-white/15 text-neutral-300"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
+              </motion.div>
 
-                {/* Depth Glossy Hype Progress Bar starting at 0% */}
-                <div className="space-y-1.5 mb-2">
-                  <div className="flex justify-between text-[11.5px] font-bold">
-                    <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <img
-                        src="https://maxwell.z3ki.dev/bot/_files/running-cat-transparent/running_cat_transparent.gif"
-                        alt="Hype"
-                        className="h-4 w-4 object-contain inline-block"
-                      />
-                      <span>Hype Progress</span>
-                    </span>
-                    <span className="text-[#fa4616] font-mono">0% (0 / 1,000)</span>
-                  </div>
-
-                  {/* Glossy Bar */}
-                  <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-[#1a1d25] overflow-hidden relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
-                    <div className="h-full w-[4%] bg-gradient-to-r from-red-500 via-[#fa4616] to-amber-400 rounded-full relative">
-                      <div className="absolute inset-x-0 top-0 h-[45%] bg-white/40 rounded-t-full pointer-events-none" />
+              {/* FRAGMENT 3: COMMUNITY PACT */}
+              <motion.div
+                initial={{ opacity: 0, x: -70, y: 50, rotate: 4, scale: 0.88, filter: "blur(20px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.15 }}
+                className="md:col-span-6 p-6 rounded-[24px] bg-white/[0.04] border border-white/10 flex flex-col justify-between gap-3 hover:border-white/20 transition shadow-lg"
+              >
+                <div className="text-[13px] font-bold tracking-wide uppercase text-white">
+                  Community Pact
+                </div>
+                <div className="space-y-2 max-h-[160px] overflow-y-auto hide-scrollbar">
+                  {selectedRules.map((rule, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-[14px] bg-white/5 border border-white/5 text-[12.5px] text-neutral-200"
+                    >
+                      {rule}
                     </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* FRAGMENT 4: LIVE EVENTS */}
+              <motion.div
+                initial={{ opacity: 0, x: 70, y: 50, rotate: -4, scale: 0.88, filter: "blur(20px)" }}
+                animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.2 }}
+                className="md:col-span-6 p-6 rounded-[24px] bg-white/[0.04] border border-white/10 flex flex-col justify-between gap-3 hover:border-white/20 transition shadow-lg"
+              >
+                <div className="text-[13px] font-bold tracking-wide uppercase text-white">
+                  Live Events
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="p-3.5 rounded-[16px] bg-white/5 border border-white/5">
+                    <div className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-400">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Genesis Launch
+                    </div>
+                    <div className="text-[11px] text-neutral-400 mt-1">Instant squad chat</div>
+                  </div>
+                  <div className="p-3.5 rounded-[16px] bg-white/5 border border-white/5">
+                    <div className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-400">
+                      <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                      Squad Arena
+                    </div>
+                    <div className="text-[11px] text-neutral-400 mt-1">Arcade & hype boosts</div>
                   </div>
                 </div>
-
-                <div className="pt-3 border-t border-black/[0.05] dark:border-white/[0.05] flex justify-between items-center text-[11.5px] font-semibold text-slate-500 dark:text-slate-400">
-                  <span>{selectedRules.length} rules set</span>
-                  <span>Owner: {effectiveName}</span>
-                </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
-        </div>
-
-        {/* Action Button using the Change Password button style (<ShinyButton>) */}
-        <div className="p-4 border-t border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#12141a]">
-          <ShinyButton
-            type="button"
-            onClick={handleNext}
-            disabled={loading}
-            loading={loading}
-            className="w-full h-11"
-          >
-            {getButtonLabel()}
-          </ShinyButton>
-        </div>
+        </AnimatePresence>
       </div>
+
+      {/* Full Screen Footer */}
+      <footer className="w-full px-5 sm:px-8 py-4 border-t border-white/10 flex items-center justify-between shrink-0 bg-black/50 backdrop-blur-md">
+        {step !== "identity" ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (step === "icon") setStep("identity");
+              else if (step === "rules") setStep("icon");
+              else if (step === "review") setStep("rules");
+            }}
+            className="press h-12 px-6 rounded-[16px] bg-white/10 hover:bg-white/15 text-[13px] font-medium text-white cursor-pointer transition"
+          >
+            Back
+          </button>
+        ) : (
+          <div />
+        )}
+
+        <button
+          type="button"
+          disabled={loading}
+          onClick={step === "review" ? handleFinishCreate : handleNext}
+          className="press h-12 px-8 rounded-[16px] bg-white text-black text-[13.5px] font-bold cursor-pointer transition hover:opacity-90 disabled:opacity-50"
+        >
+          {loading
+            ? "Launching..."
+            : step === "review"
+              ? "Launch Server"
+              : "Continue"}
+        </button>
+      </footer>
     </div>
   );
 }

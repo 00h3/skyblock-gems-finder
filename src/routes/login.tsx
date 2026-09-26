@@ -4,6 +4,7 @@ import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Users } from "lucide-r
 import { motion, AnimatePresence } from "motion/react";
 import { MobileShell } from "@/components/MobileShell";
 import { qbSignIn, qbSignUp, qbResetPassword } from "@/lib/auth-utils";
+import { getSavedAccounts } from "@/lib/saved-accounts";
 import { useAuth } from "@/lib/auth-context";
 import { BlurReveal } from "@/components/ui/blur-reveal";
 import AnimatedGradientBackground from "@/components/ui/animated-gradient-background";
@@ -210,8 +211,9 @@ function WelcomeScreen({
 }: {
   onLogin: () => void;
   onSignup: () => void;
-  onJoinGroup: () => void;
+  onJoinGroup?: () => void;
 }) {
+  const nav = useNavigate();
   return (
     <div className="flex flex-col h-dvh px-6 justify-between pt-[max(36px,env(safe-area-inset-top))] pb-[max(32px,env(safe-area-inset-bottom))]">
       {/* Top spacer */}
@@ -247,6 +249,16 @@ function WelcomeScreen({
         </WhiteGlossSquircleButton>
 
         <OrangeSignInButton onClick={onLogin}>Sign In</OrangeSignInButton>
+
+        {typeof window !== "undefined" && getSavedAccounts().length > 0 && (
+          <button
+            type="button"
+            onClick={() => nav({ to: "/accounts" as never })}
+            className="press mt-1 text-center text-[12.5px] font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            Switch saved account ({getSavedAccounts().length})
+          </button>
+        )}
       </div>
     </div>
   );

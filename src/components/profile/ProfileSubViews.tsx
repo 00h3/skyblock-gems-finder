@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ChevronRight,
   ChevronLeft,
@@ -42,6 +43,7 @@ import {
   Download,
   ShieldCheck,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { APP_VERSION } from "@/components/LegalDocs";
 import { WowDownloadModal } from "@/components/wow-studio/WowDownloadModal";
@@ -91,6 +93,228 @@ export function OrangeToggle({
   );
 }
 
+// ── NICKNAME STYLE FULL PAGE VIEW ───────────────────────────────────────────
+export function NicknameStyleView({
+  user,
+  name,
+  selectedStyle = "default",
+  onSelectStyle,
+  onSave,
+  saving = false,
+  onBack,
+}: {
+  user: QBUser | null;
+  name?: string;
+  selectedStyle?: string;
+  onSelectStyle: (style: string) => void;
+  onSave?: () => void;
+  saving?: boolean;
+  onBack: () => void;
+}) {
+  const [activePreview, setActivePreview] = useState<"default" | "orange" | "rainbow">(
+    selectedStyle === "orange" || selectedStyle === "rainbow"
+      ? (selectedStyle as "orange" | "rainbow")
+      : "default",
+  );
+  const [animKey, setAnimKey] = useState(0);
+
+  const displayName = name || user?.displayName || user?.username || "Player";
+
+  const handleChooseStyle = (style: "default" | "orange" | "rainbow") => {
+    setActivePreview(style);
+    setAnimKey((prev) => prev + 1);
+
+    if (style === "orange") {
+      toast.error("Orange nickname style is locked", {
+        description: "Special event reward required to unlock this style.",
+      });
+      return;
+    }
+    if (style === "rainbow") {
+      toast.error("Rainbow nickname style is locked", {
+        description: "Elite server rank required to unlock this style.",
+      });
+      return;
+    }
+
+    onSelectStyle("default");
+    toast.success("Default nickname style active");
+  };
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-[#0c0d11] pb-24 text-slate-900 dark:text-white">
+      <SubScreenHeader title="Nickname Style" onBack={onBack} />
+
+      <div className="p-4 space-y-5 max-w-lg mx-auto">
+        {/* Preview Card */}
+        <div>
+          <label className="text-[12px] font-extrabold text-[#17191d] dark:text-slate-300 mb-1.5 block">
+            Preview
+          </label>
+          <div className="qb-play-card p-4 rounded-[20px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.06)] flex items-center gap-3.5">
+            <div className="relative h-[56px] w-[56px] shrink-0 rounded-[14px] overflow-hidden bg-slate-100 dark:bg-slate-800 border border-black/[0.08] dark:border-white/[0.1] shadow-xs">
+              <GlossyAvatar
+                snapshot={user?.avatarSnapshot}
+                photoUrl={user?.profilePhoto}
+                imageFallbackOnly={true}
+                height={56}
+                className="h-full w-full object-cover"
+                autoRotate={false}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {activePreview === "default" ? (
+                  // Default has NO blur/fadeout effect
+                  <span className="text-[#17191d] dark:text-white font-extrabold text-[16px] tracking-tight">
+                    {displayName}
+                  </span>
+                ) : (
+                  // ONLY coloured nicknames have the login and signup blur and fadeout animation
+                  <motion.span
+                    key={`${activePreview}-${animKey}`}
+                    initial={{ opacity: 0, filter: "blur(12px)", y: 6 }}
+                    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    className={`inline-block font-black text-[16px] tracking-tight ${
+                      activePreview === "orange"
+                        ? "bg-gradient-to-r from-[#fa4616] via-[#ff7a00] to-[#fa4616] bg-clip-text text-transparent"
+                        : "bg-gradient-to-r from-red-500 via-amber-400 via-emerald-400 via-sky-400 to-purple-500 bg-clip-text text-transparent"
+                    }`}
+                  >
+                    {displayName}
+                  </motion.span>
+                )}
+                <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />
+              </div>
+              <div className="mt-1 text-[13px] font-medium text-[#697383] dark:text-slate-400 italic">
+                Hehe this is a preview ig
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Styles Selection List */}
+        <div>
+          <label className="text-[12px] font-extrabold text-[#17191d] dark:text-slate-300 mb-2 block">
+            Choose Style
+          </label>
+
+          <div className="space-y-2.5">
+            {/* 1. Default Style */}
+            <button
+              type="button"
+              onClick={() => handleChooseStyle("default")}
+              className={`press w-full p-4 rounded-[18px] border text-left transition-all flex items-center justify-between cursor-pointer ${
+                activePreview === "default"
+                  ? "bg-white dark:bg-[#15171c] border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-sm"
+                  : "bg-[#f8fafc] dark:bg-[#121418] border-black/[0.08] dark:border-white/[0.08] hover:bg-neutral-100 dark:hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
+                    Default
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    Unlocked
+                  </span>
+                </div>
+                <div className="text-[13px] font-medium text-neutral-600 dark:text-neutral-400">
+                  {displayName}
+                </div>
+              </div>
+
+              {activePreview === "default" && (
+                <div className="h-6 w-6 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[12px] font-bold shadow-xs">
+                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                </div>
+              )}
+            </button>
+
+            {/* 2. Orange Style (LOCKED) */}
+            <button
+              type="button"
+              onClick={() => handleChooseStyle("orange")}
+              className={`press w-full p-4 rounded-[18px] border text-left transition-all flex items-center justify-between cursor-pointer ${
+                activePreview === "orange"
+                  ? "bg-white dark:bg-[#15171c] border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-sm"
+                  : "bg-[#f8fafc] dark:bg-[#121418] border-black/[0.08] dark:border-white/[0.08] hover:bg-neutral-100 dark:hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-bold text-[#fa4616]">Orange</span>
+                  <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Lock className="h-2.5 w-2.5" /> Locked
+                  </span>
+                </div>
+                <div className="text-[13px] font-black bg-gradient-to-r from-[#fa4616] to-[#ff7a00] bg-clip-text text-transparent">
+                  {displayName}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-neutral-400" />
+              </div>
+            </button>
+
+            {/* 3. Rainbow Style (LOCKED) */}
+            <button
+              type="button"
+              onClick={() => handleChooseStyle("rainbow")}
+              className={`press w-full p-4 rounded-[18px] border text-left transition-all flex items-center justify-between cursor-pointer ${
+                activePreview === "rainbow"
+                  ? "bg-white dark:bg-[#15171c] border-purple-500 ring-2 ring-purple-500/20 shadow-sm"
+                  : "bg-[#f8fafc] dark:bg-[#121418] border-black/[0.08] dark:border-white/[0.08] hover:bg-neutral-100 dark:hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-bold text-purple-600 dark:text-purple-400">
+                    Rainbow
+                  </span>
+                  <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Lock className="h-2.5 w-2.5" /> Locked
+                  </span>
+                </div>
+                <div className="text-[13px] font-black bg-gradient-to-r from-red-500 via-amber-400 via-emerald-400 via-sky-400 to-purple-500 bg-clip-text text-transparent">
+                  {displayName}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-neutral-400" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="pt-2">
+          <ShinyButton
+            type="button"
+            onClick={async () => {
+              if (onSave) {
+                await onSave();
+              }
+              onBack();
+            }}
+            disabled={saving}
+            loading={saving}
+            variant="orange"
+            className="w-full h-12 text-[14px]"
+          >
+            <Check className="w-4 h-4 text-white stroke-[2.5]" />
+            <span>Save Changes</span>
+          </ShinyButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Screen Header ───────────────────────────────────────────────────────────
 export function SubScreenHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
@@ -132,43 +356,64 @@ export function EditProfileView({
   setNameDraft: (v: string) => void;
   bioDraft: string;
   setBioDraft: (v: string) => void;
-  nameStyleDraft?: "default" | "gradient";
-  setNameStyleDraft?: (v: "default" | "gradient") => void;
+  nameStyleDraft?: string;
+  setNameStyleDraft?: (v: string) => void;
   characterDraft?: "char1" | "char2";
   setCharacterDraft?: (v: "char1" | "char2") => void;
   onSave: () => void;
   saving: boolean;
   onOpenAvatarEdit: () => void;
+  onOpenNicknameStyle?: () => void;
   onBack: () => void;
 }) {
   const [usernameDraft, setUsernameDraft] = useState(user?.username || "h3");
-  const [localNameStyle, setLocalNameStyle] = useState<"default" | "gradient">(
-    nameStyleDraft || (user?.useGradientName === false ? "default" : "gradient"),
+  const [localNameStyle, setLocalNameStyle] = useState<string>(
+    nameStyleDraft || (user?.useGradientName === false ? "default" : "default"),
   );
-  const [localChar, setLocalChar] = useState<"char1" | "char2">(
-    characterDraft || (user?.avatarSnapshot?.baseCharacter === "char2" ? "char2" : "char1"),
+  const [nicknameStyle, setNicknameStyle] = useState<"default" | "orange" | "rainbow">(
+    nameStyleDraft === "orange" || nameStyleDraft === "rainbow"
+      ? (nameStyleDraft as "orange" | "rainbow")
+      : "default",
   );
+  const [isFullPageNickname, setIsFullPageNickname] = useState(false);
 
   const [showStaffModal, setShowStaffModal] = useState(false);
 
-  const handleStyleChange = (style: "default" | "gradient") => {
-    if (style === "gradient") {
-      setShowStaffModal(true);
+  const handleSelectStyle = (style: "default" | "orange" | "rainbow") => {
+    if (style === "orange") {
+      toast.error("Orange nickname style is locked", {
+        description: "Special event reward required to unlock this style.",
+      });
       return;
     }
-    setLocalNameStyle(style);
-    if (setNameStyleDraft) {
-      setNameStyleDraft(style);
+    if (style === "rainbow") {
+      toast.error("Rainbow nickname style is locked", {
+        description: "Elite server rank required to unlock this style.",
+      });
+      return;
     }
+    setNicknameStyle("default");
+    setLocalNameStyle("default");
+    setNameStyleDraft?.("default");
+    toast.success("Default nickname style active");
   };
 
-  const selectedChar = characterDraft ?? localChar;
-  const handleCharSelect = (c: "char1" | "char2") => {
-    setLocalChar(c);
-    setCharacterDraft?.(c);
-  };
-
-  const effectiveStyle = nameStyleDraft ?? localNameStyle;
+  if (isFullPageNickname) {
+    return (
+      <NicknameStyleView
+        user={user}
+        name={nameDraft}
+        selectedStyle={nicknameStyle}
+        onSelectStyle={(s) => {
+          setNicknameStyle(s as "default" | "orange" | "rainbow");
+          setNameStyleDraft?.(s);
+        }}
+        onSave={onSave}
+        saving={saving}
+        onBack={() => setIsFullPageNickname(false)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-full bg-white pb-24">
@@ -185,6 +430,7 @@ export function EditProfileView({
             <GlossyAvatar
               snapshot={user?.avatarSnapshot}
               photoUrl={user?.profilePhoto}
+              imageFallbackOnly={true}
               height={52}
               className="h-full w-full object-cover"
               autoRotate={false}
@@ -195,7 +441,15 @@ export function EditProfileView({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[#17191d] font-extrabold text-[15.5px]">
+              <span
+                className={`font-extrabold text-[15.5px] ${
+                  nicknameStyle === "orange"
+                    ? "bg-gradient-to-r from-[#fa4616] to-[#ff7a00] bg-clip-text text-transparent font-black"
+                    : nicknameStyle === "rainbow"
+                    ? "bg-gradient-to-r from-red-500 via-amber-400 via-emerald-400 via-sky-400 to-purple-500 bg-clip-text text-transparent font-black"
+                    : "text-[#17191d]"
+                }`}
+              >
                 {nameDraft || user?.displayName || "Player"}
               </span>
               <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />
@@ -206,7 +460,7 @@ export function EditProfileView({
           </div>
         </div>
 
-        {/* Form Fields: Nickname, Bio, 3D Avatar */}
+        {/* Form Fields: Nickname, Bio, Nickname Style */}
         <div className="space-y-4">
           <div>
             <label className="text-[12px] font-extrabold text-[#17191d] mb-1.5 block">
@@ -234,75 +488,40 @@ export function EditProfileView({
             />
           </div>
 
-          {/* 3D Avatar Section with ONLY Ned and Nelly */}
+          {/* Nickname Style Section */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-[12px] font-extrabold text-[#17191d]">
-                3D Avatar (2 Options)
+                Nickname Style
               </label>
-              <span className="text-[11px] font-bold text-[#fa4616]">
-                {selectedChar === "char2" ? "Nelly" : "Ned"}
+              <span className="text-[11px] font-bold text-[#fa4616] capitalize">
+                {nicknameStyle}
               </span>
             </div>
 
-            <div className="h-[210px] rounded-[16px] border border-black/[0.08] bg-[#f8fafc] overflow-hidden relative mb-2.5">
-              <model-viewer
-                src={selectedChar === "char2" ? CHARACTER_2_GLTF : CHARACTER_1_GLTF}
-                alt="3D Avatar Preview"
-                camera-controls
-                auto-rotate
-                rotation-per-second="25deg"
-                camera-orbit="0deg 75deg 3m"
-                field-of-view="30deg"
-                shadow-intensity="1"
-                exposure="1.1"
-                interaction-prompt="none"
-                loading="eager"
-                style={{ width: "100%", height: "100%", outline: "none" }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleCharSelect("char1")}
-                className={`qb-squircle press p-3 text-left transition-all ${
-                  selectedChar === "char1"
-                    ? "ring-2 ring-[#fa4616] bg-white"
-                    : "bg-[#f8fafc] opacity-80"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-bold text-[#17191d]">Ned</span>
-                  {selectedChar === "char1" && (
-                    <div className="h-4 w-4 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[10px] font-bold">
-                      ✓
-                    </div>
-                  )}
-                </div>
-                <div className="text-[11px] text-[#697383] mt-0.5">Classic Adventurer</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleCharSelect("char2")}
-                className={`qb-squircle press p-3 text-left transition-all ${
-                  selectedChar === "char2"
-                    ? "ring-2 ring-[#fa4616] bg-white"
-                    : "bg-[#f8fafc] opacity-80"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-bold text-[#17191d]">Nelly</span>
-                  {selectedChar === "char2" && (
-                    <div className="h-4 w-4 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[10px] font-bold">
-                      ✓
-                    </div>
-                  )}
-                </div>
-                <div className="text-[11px] text-[#697383] mt-0.5">Modern Cyber</div>
-              </button>
-            </div>
+            {/* Main Button saying "Nickname Style" */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenNicknameStyle) {
+                  onOpenNicknameStyle();
+                } else {
+                  setIsFullPageNickname(true);
+                }
+              }}
+              className="press w-full h-12 rounded-[14px] bg-[#f8fafc] border border-black/[0.08] px-3.5 flex items-center justify-between text-[14px] font-semibold text-[#17191d] hover:bg-neutral-100 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="h-4 w-4 text-[#fa4616]" />
+                <span className="text-[14px] font-bold text-[#17191d]">Nickname Style</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-semibold text-[#697383] capitalize">
+                  {nicknameStyle}
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
+              </div>
+            </button>
           </div>
         </div>
 
@@ -439,6 +658,7 @@ export function EditAvatarView({
               ) : (
                 <GlossyAvatar
                   snapshot={user?.avatarSnapshot}
+                  imageFallbackOnly={true}
                   height={114}
                   className="h-full w-full object-cover"
                   autoRotate={false}
@@ -486,6 +706,31 @@ export function EditAvatarView({
             </div>
 
             <div className="grid grid-cols-4 gap-3">
+              {/* Default Avatar Preset */}
+              <button
+                type="button"
+                onClick={() => setCurrentPhoto("")}
+                className={`press relative rounded-[16px] overflow-hidden aspect-square border-2 transition-all p-1 bg-white dark:bg-[#15171c] ${
+                  !currentPhoto
+                    ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm"
+                    : "border-black/[0.06] dark:border-white/[0.08]"
+                }`}
+                title="Default Avatar"
+              >
+                <div className="h-full w-full rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <GlossyAvatar
+                    snapshot={user?.avatarSnapshot}
+                    imageFallbackOnly={true}
+                    height={64}
+                    className="h-full w-full object-cover"
+                    autoRotate={false}
+                  />
+                </div>
+                <span className="absolute bottom-1 inset-x-1 text-[8.5px] font-extrabold uppercase text-center bg-black/60 text-white rounded-md py-0.5 backdrop-blur-xs">
+                  Default
+                </span>
+              </button>
+
               {PREVIEWS.map((src, i) => (
                 <button
                   key={i}
@@ -508,80 +753,18 @@ export function EditAvatarView({
           </div>
         </div>
 
-        {/* Tab 2: Avatar Frames - EXACT SAME UI AS PFPS! */}
-        {activeTab === "frames" && (
-          <div className="space-y-3">
-            <div className="px-1 text-[12px] font-bold text-[#697383] dark:text-slate-400">
-              Select Frame ({FRAME_LIST.length})
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {FRAME_LIST.map((f) => {
-                const isSelected = selectedFrame === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setSelectedFrame(f.id)}
-                    className={`press relative rounded-[18px] p-2 aspect-square flex flex-col items-center justify-between border-2 transition-all bg-white dark:bg-[#15171c] ${
-                      isSelected
-                        ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm bg-orange-500/[0.03]"
-                        : "border-black/[0.06] dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20"
-                    }`}
-                  >
-                    {/* Squircle preview: Your PFP with frame OVER it, a little big */}
-                    <div className="relative h-[64px] w-[64px] my-auto flex items-center justify-center">
-                      <div className="h-[52px] w-[52px] rounded-[13px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10">
-                        {currentPhoto ? (
-                          <img src={currentPhoto} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <GlossyAvatar
-                            snapshot={user?.avatarSnapshot}
-                            height={52}
-                            className="h-full w-full object-cover"
-                            autoRotate={false}
-                          />
-                        )}
-                      </div>
-                      <AvatarFrameOverlay frame={f.id} className="scale-[1.18]" />
-                    </div>
-
-                    <div className="w-full text-center">
-                      <div className="text-[11.5px] font-extrabold text-[#17191d] dark:text-white truncate">
-                        {f.name}
-                      </div>
-                      <div className="text-[9.5px] font-bold text-[#7d8590] dark:text-[#8e95a0] truncate">
-                        {f.tag}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons with Login/Signup Design Language */}
-        <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+        {/* Action Button */}
+        <div className="pt-2">
           <ShinyButton
             type="button"
             disabled={saving}
             loading={saving}
             variant="orange"
             onClick={handleSaveAll}
-            className="flex-1 h-12 text-[14px]"
+            className="w-full h-12 text-[14px]"
           >
             <Check className="h-4 w-4 text-white" />
             <span>Save Image</span>
-          </ShinyButton>
-          <ShinyButton
-            type="button"
-            variant="white"
-            onClick={() => setActiveTab(activeTab === "frames" ? "pfps" : "frames")}
-            className="flex-1 h-12 text-[14px]"
-          >
-            <Sparkles className="h-4 w-4 text-[#fa4616]" />
-            <span>{activeTab === "frames" ? "Avatar Images" : "Avatar Frame"}</span>
           </ShinyButton>
         </div>
       </div>

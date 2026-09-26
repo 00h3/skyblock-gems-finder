@@ -33,6 +33,11 @@ import {
   subscribeToSandboxPlayers,
   updateSandboxPresence,
 } from "@/lib/sandbox-presence";
+import {
+  clearBlockFallPresence,
+  subscribeToBlockFallPlayers,
+  updateBlockFallPresence,
+} from "@/lib/blockfall-presence";
 import { useAuth } from "@/lib/auth-context";
 import { badgeUrlsFor } from "@/lib/user-style";
 import {
@@ -46,6 +51,9 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { subscribeSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
+import { subscribeBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
+
+
 
 export const Route = createFileRoute("/game/sandbox")({
   ssr: false,
@@ -1659,7 +1667,39 @@ export function SandboxGame({
         }
         return s;
       };
-      if (!blockFall) {
+      if (blockFall) {
+        try {
+          unsubPresence = subscribeToBlockFallPlayers(
+            meRef.current.uid,
+            (list) => {
+              for (const p of list) names.set(p.uid, p.name || "Player");
+              remotes?.sync(list);
+            },
+            (error) => {
+              setMultiplayerError(multiplayerErrorMessage(error, "players"));
+              console.error("BlockFall presence listener failed:", error);
+            },
+            () => {
+              setMultiplayerError("");
+            },
+          );
+        } catch (e) {
+          console.warn("BlockFall presence subscribe error:", e);
+        }
+
+        try {
+          unsubWorld = subscribeBlockFallBlocks(
+            ({ x, y, z, id }) => world?.set(x, y, z, id),
+            (error) => {
+              setMultiplayerError(multiplayerErrorMessage(error, "world"));
+              console.error("BlockFall world listener failed:", error);
+            },
+            () => setMultiplayerError(""),
+          );
+        } catch (e) {
+          console.warn("BlockFall world subscribe error:", e);
+        }
+      } else {
         try {
           unsubPresence = subscribeToSandboxPlayers(
             meRef.current.uid,
@@ -1844,7 +1884,13 @@ export function SandboxGame({
 
         swing = 1;
         world.set(px, py, pz, id);
-        if (!blockFall) {
+        if (blockFall) {
+          void writeBlockFallBlock({ x: px, y: py, z: pz, id }).catch((error) => {
+            world?.set(px, py, pz, 0);
+            setMultiplayerError("That block could not be synchronized. Your change was reverted.");
+            console.error("Could not sync placed block:", error);
+          });
+        } else {
           void writeSandboxBlock({ x: px, y: py, z: pz, id }).catch((error) => {
             world?.set(px, py, pz, 0);
             setMultiplayerError("That block could not be synchronized. Your change was reverted.");
@@ -2146,6 +2192,20 @@ export function SandboxGame({
             }).catch(() => {
               // Silently ignore transient network drops for presence
             });
+          } else if (blockFall && meRef.current.uid && !meRef.current.uid.startsWith("guest")) {
+            void updateBlockFallPresence({
+              uid: meRef.current.uid,
+              name: meRef.current.name,
+              x: player.position.x,
+              y: player.position.y,
+              z: player.position.z,
+              rotY: input.yaw + Math.PI,
+              photo: meRef.current.photo,
+              frame: meRef.current.frame,
+              badges: meRef.current.badges,
+            }).catch(() => {
+              // Silently ignore transient network drops for presence
+            });
           }
         }
 
@@ -2293,13 +2353,23 @@ export function SandboxGame({
               fx!.spawn("break", new THREE.Vector3(hit.x, hit.y, hit.z), def!.side);
               world!.set(hit.x, hit.y, hit.z, 0);
               if (renderer) renderer.shadowMap.needsUpdate = true;
-              void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                world?.set(hit.x, hit.y, hit.z, oldId);
-                setMultiplayerError(
-                  "That block could not be synchronized. Your change was reverted.",
-                );
-                console.error("Could not sync mined block:", error);
-              });
+              if (blockFall) {
+                void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
+                  world?.set(hit.x, hit.y, hit.z, oldId);
+                  setMultiplayerError(
+                    "That block could not be synchronized. Your change was reverted.",
+                  );
+                  console.error("Could not sync mined block:", error);
+                });
+              } else {
+                void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
+                  world?.set(hit.x, hit.y, hit.z, oldId);
+                  setMultiplayerError(
+                    "That block could not be synchronized. Your change was reverted.",
+                  );
+                  console.error("Could not sync mined block:", error);
+                });
+              }
               mineKey = null;
               mineT = 0;
               crackMesh.visible = false;
@@ -2373,9 +2443,15 @@ export function SandboxGame({
       selfSayCleanup?.();
       selfTag?.dispose();
       if (meRef.current.uid) {
-        void clearSandboxPresence(meRef.current.uid).catch((error) => {
-          console.error("Could not clear sandbox presence:", error);
-        });
+        if (blockFall) {
+          void clearBlockFallPresence(meRef.current.uid).catch((error) => {
+            console.error("Could not clear BlockFall presence:", error);
+          });
+        } else {
+          void clearSandboxPresence(meRef.current.uid).catch((error) => {
+            console.error("Could not clear sandbox presence:", error);
+          });
+        }
       }
       avatar?.dispose();
       sky?.dispose();

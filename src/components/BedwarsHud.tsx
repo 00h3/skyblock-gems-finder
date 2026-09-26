@@ -8,6 +8,8 @@ export const HUD_ASSETS = {
   // Joystick Base Ring & Center Knob
   poleBg: "https://maxwell.z3ki.dev/bot/_files/dark-gui-btn-blue/dark_gui_material_btn_bg_blue.png",
   poleCenter: "/assets/hud/pitch_black/dark_pole_pole_center.png",
+  button: "https://maxwell.z3ki.dev/bot/_files/blank-button/blank-button.png",
+  arrow: "https://maxwell.z3ki.dev/bot/_files/arrow-icon/arrow-icon.png",
 
   // Directional Arrows
   arrowUp: "/assets/hud/pitch_black/dark_arrow_key_shang.png",
@@ -561,9 +563,9 @@ export function BedwarsHud({
           >
             {/* Directional arrows independently positioned OUTSIDE the joystick circle */}
             {/* Up -> top side */}
-            <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-8 h-7 flex items-center justify-center pointer-events-none">
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-8 h-8 flex items-center justify-center pointer-events-none">
               <img
-                src={joystick.knobY < -12 ? HUD_ASSETS.arrowUpPressed : HUD_ASSETS.arrowUp}
+                src={HUD_ASSETS.arrow}
                 alt="Up"
                 className="w-full h-full object-contain drop-shadow-md"
                 draggable={false}
@@ -571,56 +573,36 @@ export function BedwarsHud({
             </div>
 
             {/* Down -> bottom side */}
-            <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 w-8 h-7 flex items-center justify-center pointer-events-none">
+            <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 w-8 h-8 flex items-center justify-center pointer-events-none">
               <img
-                src={HUD_ASSETS.arrowDown}
+                src={HUD_ASSETS.arrow}
                 alt="Down"
-                className="w-full h-full object-contain drop-shadow-md"
+                className="w-full h-full object-contain drop-shadow-md rotate-180"
                 draggable={false}
               />
             </div>
 
             {/* Left -> left side */}
-            <div className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-8 flex items-center justify-center pointer-events-none">
+            <div className="absolute -left-7 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center pointer-events-none">
               <img
-                src={HUD_ASSETS.arrowLeft}
+                src={HUD_ASSETS.arrow}
                 alt="Left"
-                className="w-full h-full object-contain drop-shadow-md"
+                className="w-full h-full object-contain drop-shadow-md -rotate-90"
                 draggable={false}
               />
             </div>
 
             {/* Right -> right side */}
-            <div className="absolute -right-7 top-1/2 -translate-y-1/2 w-7 h-8 flex items-center justify-center pointer-events-none">
+            <div className="absolute -right-7 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center pointer-events-none">
               <img
-                src={HUD_ASSETS.arrowRight}
+                src={HUD_ASSETS.arrow}
                 alt="Right"
-                className="w-full h-full object-contain drop-shadow-md"
+                className="w-full h-full object-contain drop-shadow-md rotate-90"
                 draggable={false}
               />
             </div>
 
-            {/* Diagonal Up-Left */}
-            <div className="absolute -top-5 -left-5 w-6 h-6 flex items-center justify-center pointer-events-none">
-              <img
-                src={HUD_ASSETS.arrowUpLeft}
-                alt="Up-Left"
-                className="w-full h-full object-contain drop-shadow-md"
-                draggable={false}
-              />
-            </div>
-
-            {/* Diagonal Up-Right */}
-            <div className="absolute -top-5 -right-5 w-6 h-6 flex items-center justify-center pointer-events-none">
-              <img
-                src={HUD_ASSETS.arrowUpRight}
-                alt="Up-Right"
-                className="w-full h-full object-contain drop-shadow-md"
-                draggable={false}
-              />
-            </div>
-
-            {/* Authentic Pitch-Dark Joystick Base Ring (NO button holder / box) */}
+            {/* Authentic Pitch-Dark Joystick Base Ring */}
             <div className="relative h-full w-full flex items-center justify-center">
               <img
                 src={HUD_ASSETS.poleBg}
@@ -629,16 +611,19 @@ export function BedwarsHud({
                 draggable={false}
               />
 
-              {/* Centered moving circular knob */}
+              {/* Centered moving pole knob using button PNG */}
               <div
-                className="absolute h-12 w-12 -ml-6 -mt-6 left-1/2 top-1/2 flex items-center justify-center pointer-events-none select-none transition-transform duration-75"
+                className="absolute h-14 w-14 -ml-7 -mt-7 left-1/2 top-1/2 flex items-center justify-center pointer-events-none select-none transition-transform duration-75"
                 style={{
                   transform: `translate(${joystick.knobX}px, ${joystick.knobY}px)`,
                 }}
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-b from-white/95 via-slate-100/90 to-slate-300/90 border-2 border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.9)] flex items-center justify-center">
-                  <div className="w-4 h-4 rounded-full bg-blue-500/30 border border-blue-400/50" />
-                </div>
+                <img
+                  src={HUD_ASSETS.button}
+                  alt="Pole Knob"
+                  className="w-full h-full object-contain pointer-events-none drop-shadow-lg select-none"
+                  draggable={false}
+                />
               </div>
             </div>
           </div>

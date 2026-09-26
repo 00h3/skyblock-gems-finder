@@ -63,6 +63,20 @@ const GAMES: DiscoveryGame[] = [
     badge: "NEW",
     popularity: 98,
   },
+  {
+    id: "block-fall",
+    title: "Block Fall",
+    subtitle: "Platforms vanish fast",
+    bio: "Stay moving as blocks disintegrate under your footsteps. Last survivor wins.",
+    img: baseplateIcon,
+    hue: "from-red-400 via-amber-400 to-yellow-300",
+    mode: "Arcade",
+    modeColor: "#dc2626",
+    mood: "voxel",
+    players: "890",
+    likes: "3.1K",
+    popularity: 88,
+  },
 ];
 
 const MOODS: { id: Mood; label: string; detail: string }[] = [
@@ -79,16 +93,14 @@ function UploadedDiscoverPage() {
   const [tab, setTab] = useState(0);
   const [open, setOpen] = useState<DiscoveryGame | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
+
   const games = useMemo(() => {
-    return tab === 0
-      ? GAMES
-      : tab === 1
-        ? GAMES.filter((game) => game.popularity >= 90)
-        : tab === 2
-          ? GAMES.filter((game) => game.mood === "voxel")
-          : tab === 3
-            ? GAMES.filter((game) => game.mood === "horror")
-            : GAMES;
+    const activeTab = UPLOADED_DISCOVER_TABS[tab];
+    if (activeTab === "Party") return GAMES;
+    if (activeTab === "PvP") return GAMES.filter((g) => g.id === "block-fall");
+    if (activeTab === "Building") return GAMES.filter((g) => g.id === "skyblock");
+    if (activeTab === "Fantasy") return GAMES.filter((g) => g.id === "skyblock");
+    return GAMES;
   }, [tab]);
 
   return (
@@ -96,12 +108,12 @@ function UploadedDiscoverPage() {
       <div className="min-h-full bg-background pb-24">
         <div className="px-4 pt-4 pb-1">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-[21px] font-extrabold tracking-tight">Discover</h1>
+            <h1 className="text-[20px] font-medium tracking-tight">Discover</h1>
           </div>
         </div>
 
         <div className="mt-2 px-4">
-          <div className="mb-2 text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-text-secondary">
+          <div className="mb-2 text-[10.5px] font-normal uppercase tracking-[0.14em] text-text-secondary">
             {UPLOADED_DISCOVER_TABS[tab]}
           </div>
           <div className="grid grid-cols-3 gap-2.5">
@@ -112,7 +124,7 @@ function UploadedDiscoverPage() {
                   <button
                     type="button"
                     onClick={() => setOpen(game)}
-                    className="press relative aspect-square overflow-hidden rounded-[14px] bg-gradient-to-br shadow-sm"
+                    className="press relative aspect-square overflow-hidden rounded-[14px] bg-gradient-to-br shadow-xs"
                   >
                     <img
                       src={game.img}
@@ -123,23 +135,24 @@ function UploadedDiscoverPage() {
                   </button>
                   <div className="flex h-[36px] items-center justify-between gap-1 px-0.5">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[11px] font-bold">{game.title}</div>
-                      <div className="text-[9.5px] text-text-muted">{game.mode}</div>
+                      <div className="truncate text-[11px] font-medium">{game.title}</div>
+                      <div className="text-[9.5px] font-normal text-text-muted">{game.mode}</div>
                     </div>
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setLiked((current) => {
                           const next = new Set(current);
-                          if (isLiked) {
+                          if (next.has(game.id)) {
                             next.delete(game.id);
                           } else {
                             next.add(game.id);
                           }
                           return next;
-                        })
-                      }
-                      className="press grid h-6 w-6 shrink-0 place-items-center"
+                        });
+                      }}
+                      className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer"
                       aria-label="Like game"
                     >
                       <img
@@ -155,7 +168,7 @@ function UploadedDiscoverPage() {
                     <button
                       type="button"
                       onClick={() => setOpen(game)}
-                      className="press grid h-6 w-6 shrink-0 place-items-center rounded-full bg-surface-2"
+                      className="press grid h-6 w-6 shrink-0 place-items-center rounded-full bg-surface-2 cursor-pointer"
                       aria-label="Game info"
                     >
                       <Info className="h-3 w-3" />
@@ -166,7 +179,7 @@ function UploadedDiscoverPage() {
             })}
           </div>
           {!games.length && (
-            <div className="py-12 text-center text-[13px] text-text-muted">
+            <div className="py-12 text-center text-[13px] font-normal text-text-muted">
               No worlds in this category.
             </div>
           )}
@@ -179,7 +192,11 @@ function UploadedDiscoverPage() {
                 key={label}
                 type="button"
                 onClick={() => setTab(index)}
-                className={`press relative z-10 h-7 shrink-0 rounded-full px-2.5 text-[11px] font-bold transition-colors ${index === tab ? "bg-foreground text-background" : "qb-glossy-chip text-foreground"}`}
+                className={`press relative z-10 h-7 shrink-0 rounded-full px-3 text-[11px] font-normal transition-colors cursor-pointer ${
+                  index === tab
+                    ? "bg-foreground text-background shadow-xs"
+                    : "qb-glossy-chip text-foreground"
+                }`}
               >
                 {label}
               </button>

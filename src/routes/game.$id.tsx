@@ -8,6 +8,7 @@ import {
   SkyblockShopModal,
   SkyblockRuleBookModal,
 } from "@/components/game-hud-parts";
+import { QblockScreenControls, HUD_ASSETS } from "@/components/QblockNewHudControls";
 import { IsometricGridLoader } from "@/components/ui/IsometricGridLoader";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -175,12 +176,25 @@ import {
 // Keep the horizontal FOV constant at a 16:9 reference instead, so portrait
 // phones see the same width of the world, just cropped top/bottom.
 const FOV_REF_ASPECT = 16 / 9;
-function fovForAspect(baseFovDeg: number, aspect: number) {
-  if (aspect >= FOV_REF_ASPECT) return baseFovDeg;
-  const baseHalfRad = (baseFovDeg * Math.PI) / 360;
-  const refHorizHalf = Math.atan(Math.tan(baseHalfRad) * FOV_REF_ASPECT);
-  const vertHalf = Math.atan(Math.tan(refHorizHalf) / aspect);
-  return (vertHalf * 360) / Math.PI;
+function fovForAspect(baseFovDeg: number, aspect: number): number {
+  if (aspect <= 0 || !Number.isFinite(aspect)) return baseFovDeg;
+  if (aspect >= FOV_REF_ASPECT) {
+    // Ultrawide landscape displays
+    return baseFovDeg;
+  }
+  if (aspect >= 1.0) {
+    // Standard landscape / tablets: smooth Hor+ scaling
+    const baseHalfRad = (baseFovDeg * Math.PI) / 360;
+    const refHorizHalf = Math.atan(Math.tan(baseHalfRad) * FOV_REF_ASPECT);
+    const vertHalf = Math.atan(Math.tan(refHorizHalf) / aspect);
+    const calculated = (vertHalf * 360) / Math.PI;
+    return Math.min(84, Math.max(baseFovDeg, calculated));
+  }
+  // Portrait mode (aspect < 1.0, e.g. phones held vertically):
+  // Expand vertical FOV gently so the viewport feels spacious and high-end,
+  // clamped at 82° to eliminate spherical edge distortion and fisheye stretching.
+  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 12;
+  return Math.min(82, Math.max(baseFovDeg, baseFovDeg + portraitExpansion));
 }
 
 function getCleanName(user: any): string {
@@ -1691,7 +1705,18 @@ function EngineGame({
   const bwBotNameplateRef = useRef<HTMLDivElement | null>(null);
   const [slot, setSlot] = useState(0);
   const [running, setRunning] = useState(false);
-  const [holdPct, setHoldPct] = useState(0);
+  const holdProgressRef = useRef<HTMLDivElement | null>(null);
+  const holdCircleRef = useRef<SVGCircleElement | null>(null);
+  const updateHoldProgress = (pct: number) => {
+    if (!holdProgressRef.current || !holdCircleRef.current) return;
+    if (pct <= 0) {
+      holdProgressRef.current.style.display = "none";
+    } else {
+      holdProgressRef.current.style.display = "block";
+      const circ = 2 * Math.PI * 18;
+      holdCircleRef.current.style.strokeDashoffset = `${(1 - pct) * circ}px`;
+    }
+  };
   const [worldReady, setWorldReady] = useState(false);
   const [skyblockLoadingDone, setSkyblockLoadingDone] = useState(true);
   const [engineError, setEngineError] = useState(false);
@@ -1868,11 +1893,7 @@ function EngineGame({
   const [chatFocused, setChatFocused] = useState(false);
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
 
-  const [showRotateMsg, setShowRotateMsg] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setShowRotateMsg(false), 8000);
-    return () => clearTimeout(t);
-  }, []);
+  const [showRotateMsg, setShowRotateMsg] = useState(false);
   const slotRef = useRef(slot);
   const runRef = useRef(running);
   slotRef.current = slot;
@@ -2285,21 +2306,10 @@ function EngineGame({
       renderer.domElement.style.background = skyBg;
       renderer.setClearColor(new THREE.Color(skyBg), 1);
       renderer.shadowMap.enabled = true;
-      // Static shadow rendering: only re-render the shadow map when the world
-      // actually changes (block added/removed) or the sun moves. Rendering
-      // shadows every frame is the #1 GPU waste in a mostly-static voxel world.
-      renderer.shadowMap.autoUpdate = false;
-      renderer.shadowMap.needsUpdate = true; // initial render
-      // PCFSoftShadowMap is noticeably heavier on mobile GPUs and a common
-      // source of driver-level instability (white flashes / dropped frames);
-      // fall back to a cheaper, more stable shadow filter on mobile.
-      // High quality always uses soft shadows; low/medium falls back to hard
-      // shadows on mobile to preserve frame rate on lower-end GPUs.
-      // VSMShadowMap is the modern soft-shadow filter (PCFSoftShadowMap is
-      // deprecated as of recent Three.js and silently falls back to hard
-      // PCFShadowMap, which was quietly undoing the "soft shadows" setting).
-      renderer.shadowMap.type =
-        qualityPref === "high" || !isMobileUA ? THREE.VSMShadowMap : THREE.PCFShadowMap;
+      // Realistic dynamic lighting: autoUpdate enables smooth continuous real-time dynamic shadows
+      renderer.shadowMap.autoUpdate = true;
+      renderer.shadowMap.needsUpdate = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       // ACES's filmic curve crushes saturation (that's what it's for in film/
       // photoreal work) — wrong call for a bright, punchy voxel game. Linear
@@ -2567,19 +2577,17 @@ function EngineGame({
       // On mobile low-quality, shadows are disabled by default — they're the
       // single biggest GPU cost on phones. User can re-enable in settings.
       const mobileLow = isMobileUA && qualityPref === "low";
-      sun.castShadow = !mobileLow && !isSkyblock;
-      renderer.shadowMap.enabled = !mobileLow && !isSkyblock;
-      // Shadow map: 512 on low (was 1024), 1536 on medium, 2560 on high.
-      // Smaller maps are cheaper to render AND to sample, which matters most
-      // on low-end mobile GPUs where shadow sampling is a hidden bottleneck.
-      const shadowMapSize = qualityPref === "low" ? 512 : qualityPref === "medium" ? 1536 : 3072;
+      sun.castShadow = !mobileLow;
+      renderer.shadowMap.enabled = !mobileLow;
+      // Shadow map: 512 on low, 1024 on medium, 2048 on high.
+      const shadowMapSize = qualityPref === "low" ? 512 : qualityPref === "medium" ? 1024 : 2048;
       sun.shadow.mapSize.set(shadowMapSize, shadowMapSize);
       sun.shadow.camera.near = 1;
-      sun.shadow.camera.far = isSpleef ? 70 : 90;
-      sun.shadow.camera.left = isSpleef ? -28 : -34;
-      sun.shadow.camera.right = isSpleef ? 28 : 34;
-      sun.shadow.camera.top = isSpleef ? 28 : 34;
-      sun.shadow.camera.bottom = isSpleef ? -28 : -34;
+      sun.shadow.camera.far = isSkyblock ? 180 : isSpleef ? 70 : 90;
+      sun.shadow.camera.left = isSkyblock ? -48 : isSpleef ? -28 : -34;
+      sun.shadow.camera.right = isSkyblock ? 48 : isSpleef ? 28 : 34;
+      sun.shadow.camera.top = isSkyblock ? 48 : isSpleef ? 28 : 34;
+      sun.shadow.camera.bottom = isSkyblock ? -48 : isSpleef ? -28 : -34;
       // Tighter bias: shadow acne is gone with VSM but self-shadow on steep
       // surfaces still needs a small push. normalBias compensates for surface
       // curvature aliasing without the visible peter-panning of a large bias.
@@ -7502,6 +7510,406 @@ function EngineGame({
         whiteFlashes.push({ mesh, start: performance.now(), dur: 100 }); // strictly 0.1s (100ms)
       }
 
+      // ── Physical Popped Block Chunk (when a block is broken, it pops off!) ──
+      interface PoppedBlockPiece {
+        mesh: THREE.Mesh;
+        x: number;
+        y: number;
+        z: number;
+        vx: number;
+        vy: number;
+        vz: number;
+        rx: number;
+        ry: number;
+        rz: number;
+        rvx: number;
+        rvy: number;
+        rvz: number;
+        scale: number;
+        born: number;
+        lifetime: number;
+      }
+      const poppedBlockPieces: PoppedBlockPiece[] = [];
+      const poppedChunkGeo = new THREE.BoxGeometry(0.38, 0.38, 0.38);
+
+      function spawnPoppedBlockPiece(x: number, y: number, z: number, blockType: number) {
+        try {
+          const mat = matForType(blockType >= 0 ? blockType : 2);
+          const piece = new THREE.Mesh(poppedChunkGeo, mat);
+          piece.castShadow = true;
+          piece.receiveShadow = false;
+          piece.position.set(x, y + 0.1, z);
+          scene.add(piece);
+
+          const dx = playerPos.x - x;
+          const dz = playerPos.z - z;
+          const dist = Math.hypot(dx, dz) || 1;
+          const pushX = dx / dist;
+          const pushZ = dz / dist;
+
+          poppedBlockPieces.push({
+            mesh: piece,
+            x,
+            y: y + 0.1,
+            z,
+            vx: pushX * 1.8 + (Math.random() - 0.5) * 1.5,
+            vy: 3.5 + Math.random() * 1.5,
+            vz: pushZ * 1.8 + (Math.random() - 0.5) * 1.5,
+            rx: Math.random() * Math.PI,
+            ry: Math.random() * Math.PI,
+            rz: Math.random() * Math.PI,
+            rvx: (Math.random() - 0.5) * 9,
+            rvy: (Math.random() - 0.5) * 9,
+            rvz: (Math.random() - 0.5) * 9,
+            scale: 1.0,
+            born: performance.now(),
+            lifetime: 1400,
+          });
+        } catch {}
+      }
+
+      // ── Tree Physics & Falling Blocks System ──────────────────────────────
+      const TREE_LOG_TYPES = new Set([3, 18, 23, 24, 25, 26]);
+      const TREE_LEAF_TYPES = new Set([5, 200, 201, 202, 203]);
+
+      function isTreeLog(t: number): boolean {
+        return TREE_LOG_TYPES.has(t);
+      }
+      function isTreeBlockType(t: number): boolean {
+        return TREE_LOG_TYPES.has(t) || TREE_LEAF_TYPES.has(t);
+      }
+
+      interface FallingPhysicsBlock {
+        mesh: THREE.Mesh;
+        type: number;
+        isLog: boolean;
+        startX: number;
+        startY: number;
+        startZ: number;
+        x: number;
+        y: number;
+        z: number;
+        vx: number;
+        vy: number;
+        vz: number;
+        rx: number;
+        ry: number;
+        rz: number;
+        rvx: number;
+        rvy: number;
+        rvz: number;
+        scale: number;
+        born: number;
+        delay: number;
+        groundY: number;
+        bounces: number;
+        settled: boolean;
+        settledAt: number;
+        windPhase: number;
+      }
+
+      const activeFallingBlocks: FallingPhysicsBlock[] = [];
+      const fallingBlockGeo = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+
+      function triggerTreePhysics(cutX: number, cutY: number, cutZ: number, _cutType: number) {
+        // 1. Procedural audio effects
+        try {
+          GameAudio.playTreeCollapse();
+          GameAudio.playLeafRustle();
+        } catch {}
+
+        // 2. Tactile rumble
+        haptic([45, 25, 55]);
+
+        // 3. Tree Burst Effects:
+        // A. Leaf shower particles drifting from canopy
+        const leafColors = [0x3f8f3a, 0x5cb85c, 0x8ae03a, 0x2d6a26, 0xa4e24a];
+        for (let i = 0; i < 22; i++) {
+          const pm = new THREE.MeshBasicMaterial({
+            color: leafColors[i % leafColors.length],
+            transparent: true,
+            opacity: 0.9,
+          });
+          const lp = new THREE.Mesh(particleGeo, pm);
+          const spread = 2.2;
+          lp.position.set(
+            cutX + (Math.random() - 0.5) * spread * 2,
+            cutY + 1.2 + Math.random() * 3.5,
+            cutZ + (Math.random() - 0.5) * spread * 2,
+          );
+          scene.add(lp);
+          liveParticles.push({
+            mesh: lp,
+            material: pm,
+            vy: 0.08 + Math.random() * 0.12,
+            vx: (Math.random() - 0.5) * 0.3,
+            vz: (Math.random() - 0.5) * 0.3,
+            born: performance.now(),
+          });
+        }
+
+        // B. Wood splinters bursting from the cut point
+        const woodColors = [0xb4895e, 0x9a7048, 0x6b4c32, 0xd4cfa0];
+        for (let i = 0; i < 12; i++) {
+          const wm = new THREE.MeshBasicMaterial({
+            color: woodColors[i % woodColors.length],
+            transparent: true,
+            opacity: 0.95,
+          });
+          const wp = new THREE.Mesh(particleGeo, wm);
+          wp.position.set(
+            cutX + (Math.random() - 0.5) * 0.5,
+            cutY + 0.5 + Math.random() * 0.3,
+            cutZ + (Math.random() - 0.5) * 0.5,
+          );
+          scene.add(wp);
+          liveParticles.push({
+            mesh: wp,
+            material: wm,
+            vy: 0.2 + Math.random() * 0.15,
+            vx: (Math.random() - 0.5) * 0.35,
+            vz: (Math.random() - 0.5) * 0.35,
+            born: performance.now(),
+          });
+        }
+
+        // 4. BFS find all tree blocks above and around this point
+        const visited = new Set<string>();
+        const queue: Array<{ x: number; y: number; z: number }> = [];
+
+        for (let dy = 0; dy <= 2; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              if (dx === 0 && dy === 0 && dz === 0) continue;
+              const nx = cutX + dx;
+              const ny = cutY + dy;
+              const nz = cutZ + dz;
+              const k = key(nx, ny, nz);
+              const b = blocks.get(k);
+              if (b && "type" in b && isTreeBlockType(b.type)) {
+                visited.add(k);
+                queue.push({ x: nx, y: ny, z: nz });
+              }
+            }
+          }
+        }
+
+        const blocksToFall: Array<{ x: number; y: number; z: number; type: number }> = [];
+        const NEIGHBORS = [
+          [0, 1, 0],
+          [1, 0, 0],
+          [-1, 0, 0],
+          [0, 0, 1],
+          [0, 0, -1],
+          [0, -1, 0],
+        ];
+
+        while (queue.length > 0 && blocksToFall.length < 32) {
+          const cur = queue.shift()!;
+          const k = key(cur.x, cur.y, cur.z);
+          const b = blocks.get(k);
+          if (!b || !("type" in b)) continue;
+
+          blocksToFall.push({ x: cur.x, y: cur.y, z: cur.z, type: b.type });
+
+          for (const [dx, dy, dz] of NEIGHBORS) {
+            const nx = cur.x + dx;
+            const ny = cur.y + dy;
+            const nz = cur.z + dz;
+            if (ny < cutY) continue;
+            if (Math.abs(nx - cutX) > 6 || Math.abs(nz - cutZ) > 6) continue;
+            if (ny - cutY > 16) continue;
+
+            const nk = key(nx, ny, nz);
+            if (!visited.has(nk)) {
+              visited.add(nk);
+              const nb = blocks.get(nk);
+              if (nb && "type" in nb && isTreeBlockType(nb.type)) {
+                queue.push({ x: nx, y: ny, z: nz });
+              }
+            }
+          }
+        }
+
+        blocksToFall.sort((a, b) => a.y - b.y);
+
+        for (const tb of blocksToFall) {
+          const isLog = isTreeLog(tb.type);
+          let groundY = cutY;
+          for (let gy = tb.y - 1; gy >= -10; gy--) {
+            const gk = key(tb.x, gy, tb.z);
+            const gb = blocks.get(gk);
+            if (gb && "type" in gb && !isTreeBlockType(gb.type)) {
+              groundY = gy + 1;
+              break;
+            }
+          }
+
+          removeBlock(tb.x, tb.y, tb.z);
+
+          try {
+            const mat = matForType(tb.type);
+            const mesh = new THREE.Mesh(fallingBlockGeo, mat);
+            mesh.castShadow = true;
+            mesh.receiveShadow = false;
+            mesh.position.set(tb.x, tb.y, tb.z);
+            scene.add(mesh);
+
+            const heightDelta = tb.y - cutY;
+            const delay = Math.max(0, heightDelta * 0.045 + Math.random() * 0.04);
+
+            activeFallingBlocks.push({
+              mesh,
+              type: tb.type,
+              isLog,
+              startX: tb.x,
+              startY: tb.y,
+              startZ: tb.z,
+              x: tb.x,
+              y: tb.y,
+              z: tb.z,
+              vx: (Math.random() - 0.5) * (isLog ? 1.4 : 0.9),
+              vy: isLog ? 0.35 + Math.random() * 0.35 : 0.65 + Math.random() * 0.45,
+              vz: (Math.random() - 0.5) * (isLog ? 1.4 : 0.9),
+              rx: 0,
+              ry: 0,
+              rz: 0,
+              rvx: (Math.random() - 0.5) * (isLog ? 4.5 : 2.0),
+              rvy: (Math.random() - 0.5) * 3.0,
+              rvz: (Math.random() - 0.5) * (isLog ? 4.5 : 2.0),
+              scale: 1.0,
+              born: performance.now(),
+              delay,
+              groundY,
+              bounces: 0,
+              settled: false,
+              settledAt: 0,
+              windPhase: Math.random() * Math.PI * 2,
+            });
+          } catch {}
+        }
+
+        rebuildRaycastTargets();
+        _invalidateShadows();
+      }
+
+      function updateTreePhysicsAndPoppedBlocks(now: number, dt: number) {
+        for (let i = poppedBlockPieces.length - 1; i >= 0; i--) {
+          const p = poppedBlockPieces[i];
+          const age = now - p.born;
+          if (age > p.lifetime) {
+            scene.remove(p.mesh);
+            poppedBlockPieces.splice(i, 1);
+            continue;
+          }
+          p.vy -= 12.0 * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.z += p.vz * dt;
+          p.rx += p.rvx * dt;
+          p.ry += p.rvy * dt;
+          p.rz += p.rvz * dt;
+
+          const progress = age / p.lifetime;
+          if (progress > 0.75) {
+            p.scale = Math.max(0, 1 - (progress - 0.75) / 0.25);
+          } else {
+            p.scale = 1.0;
+          }
+          p.mesh.position.set(p.x, p.y, p.z);
+          p.mesh.rotation.set(p.rx, p.ry, p.rz);
+          p.mesh.scale.setScalar(p.scale);
+        }
+
+        for (let i = activeFallingBlocks.length - 1; i >= 0; i--) {
+          const fb = activeFallingBlocks[i];
+          const elapsedSec = (now - fb.born) / 1000;
+
+          if (elapsedSec < fb.delay) {
+            const wobbleRatio = fb.delay > 0 ? elapsedSec / fb.delay : 1;
+            const wobbleAmt = wobbleRatio * 0.08;
+            fb.mesh.position.x = fb.startX + Math.sin(now * 0.035 + fb.windPhase) * wobbleAmt;
+            fb.mesh.position.z = fb.startZ + Math.cos(now * 0.035 + fb.windPhase) * wobbleAmt;
+            continue;
+          }
+
+          if (fb.settled) {
+            const settleElapsed = (now - fb.settledAt) / 1000;
+            fb.ry += dt * 2.2;
+            fb.mesh.rotation.y = fb.ry;
+            fb.mesh.position.y = fb.y + Math.sin(now * 0.005 + fb.windPhase) * 0.08;
+
+            const distToPlayer = Math.hypot(playerPos.x - fb.x, playerPos.z - fb.z);
+            if (settleElapsed > 2.5 || distToPlayer < 2.0) {
+              fb.scale -= dt * 3.5;
+              if (fb.scale <= 0.05) {
+                scene.remove(fb.mesh);
+                activeFallingBlocks.splice(i, 1);
+                const bName = fb.type < BLOCKS.length ? BLOCKS[fb.type]?.name : "oak log";
+                window.dispatchEvent(
+                  new CustomEvent("bm-item-collected", { detail: { name: bName, qty: 1 } }),
+                );
+                continue;
+              }
+              fb.mesh.scale.setScalar(Math.max(0, fb.scale));
+            }
+            continue;
+          }
+
+          const fallDt = Math.min(0.045, dt);
+          if (fb.isLog) {
+            fb.vy -= 15.0 * fallDt;
+            fb.vx *= 0.985;
+            fb.vz *= 0.985;
+          } else {
+            fb.vy = Math.max(-3.4, fb.vy - 6.0 * fallDt);
+            fb.vx = Math.sin(now * 0.006 + fb.windPhase) * 0.75;
+            fb.vz = Math.cos(now * 0.005 + fb.windPhase) * 0.75;
+          }
+
+          fb.x += fb.vx * fallDt;
+          fb.y += fb.vy * fallDt;
+          fb.z += fb.vz * fallDt;
+
+          fb.rx += fb.rvx * fallDt;
+          fb.ry += fb.rvy * fallDt;
+          fb.rz += fb.rvz * fallDt;
+
+          if (fb.y <= fb.groundY) {
+            fb.y = fb.groundY;
+            if (fb.bounces < 2 && Math.abs(fb.vy) > 1.2) {
+              fb.vy = -fb.vy * 0.28;
+              fb.vx *= 0.55;
+              fb.vz *= 0.55;
+              fb.rvx *= 0.4;
+              fb.rvz *= 0.4;
+              fb.bounces++;
+              spawnParticles(fb.x, fb.y, fb.z, fb.type);
+            } else {
+              fb.settled = true;
+              fb.settledAt = now;
+              fb.vy = 0;
+              fb.vx = 0;
+              fb.vz = 0;
+              fb.scale = 0.52;
+              fb.mesh.scale.setScalar(0.52);
+              fb.rx = 0;
+              fb.rz = 0;
+              spawnParticles(fb.x, fb.y, fb.z, fb.type);
+            }
+          }
+
+          if (fb.y < -35) {
+            scene.remove(fb.mesh);
+            activeFallingBlocks.splice(i, 1);
+            continue;
+          }
+
+          fb.mesh.position.set(fb.x, fb.y, fb.z);
+          fb.mesh.rotation.set(fb.rx, fb.ry, fb.rz);
+        }
+      }
+
       function tapAction() {
         // Spleef has no block placement — hold-break only
         if (isSpleef) return;
@@ -7762,7 +8170,7 @@ function EngineGame({
           if (holdMoved > 6) {
             holding = false;
             breakOverlay.visible = false;
-            setHoldPct(0);
+            updateHoldProgress(0);
           }
           // Ultra-smooth look delta without burst spikes
           const smoothDx = Math.max(-50, Math.min(50, dx));
@@ -7801,7 +8209,7 @@ function EngineGame({
           if (elapsed < HOLD_MS && holdMoved < 8) tapAction();
           holding = false;
           holdTarget = null;
-          setHoldPct(0);
+          updateHoldProgress(0);
           breakOverlay.visible = false;
           lookId = -1;
         }
@@ -7936,15 +8344,21 @@ function EngineGame({
           return;
         }
         const targetBlock = blocks.get(key(position.x, position.y, position.z));
+        const targetType =
+          targetBlock && "type" in targetBlock ? targetBlock.type : -1;
         const blockName =
           targetBlock && "type" in targetBlock && targetBlock.type < BLOCKS.length
             ? BLOCKS[targetBlock.type]?.name
             : "stone";
+
+        // 1. Physically pop off the broken block
+        spawnPoppedBlockPiece(position.x, position.y, position.z, targetType >= 0 ? targetType : 2);
+
+        // 2. Remove the mined block from the voxel world
         removeBlock(position.x, position.y, position.z);
-        // Visual feedback: block turns solid white for 1 second upon break
+
+        // 3. Visual & sound feedback
         spawnWhiteFlash(position.x, position.y, position.z);
-        // Patch the raycast targets after a block is removed (glass/transparent
-        // meshes are individual objects that need to leave the list).
         rebuildRaycastTargets();
         destroyAnim = 1;
         playBreak(blockName);
@@ -7952,6 +8366,13 @@ function EngineGame({
           new CustomEvent("bm-item-collected", { detail: { name: blockName, qty: 1 } }),
         );
         if (isSpleef) sblocksRef.current++;
+
+        // 4. Skyblock / Voxel Tree Physics:
+        // When a tree log or leaf block is destroyed, all unsupported tree blocks above
+        // it fall down smoothly with physics, tumbling, bouncing, and leaf shower effects!
+        if (isTreeBlockType(targetType)) {
+          triggerTreePhysics(position.x, position.y, position.z, targetType);
+        }
       }
 
       // ── Desktop Keyboard Controls ──────────────────────────────────────────
@@ -8063,38 +8484,72 @@ function EngineGame({
       window.addEventListener("bm-phoenix-descend-start", descendStartHandler);
       window.addEventListener("bm-phoenix-descend-end", descendEndHandler);
 
+      const dpadMove = { up: false, down: false, left: false, right: false };
+      const dpadHandler = (e: Event) => {
+        const ce = e as CustomEvent<{ up?: boolean; down?: boolean; left?: boolean; right?: boolean }>;
+        if (ce.detail) {
+          if (typeof ce.detail.up === "boolean") dpadMove.up = ce.detail.up;
+          if (typeof ce.detail.down === "boolean") dpadMove.down = ce.detail.down;
+          if (typeof ce.detail.left === "boolean") dpadMove.left = ce.detail.left;
+          if (typeof ce.detail.right === "boolean") dpadMove.right = ce.detail.right;
+        }
+      };
+      window.addEventListener("bm-dpad", dpadHandler);
+
+      const actionBtnHandler = () => {
+        toggleCrouch();
+      };
+      window.addEventListener("bm-action-btn", actionBtnHandler);
+
+      let lastResizeW = 0;
+      let lastResizeH = 0;
       function onResize() {
-        const w = mount.clientWidth,
-          h = mount.clientHeight;
-        camera.aspect = w / h;
-        camera.fov = fovForAspect(BASE_FOV, w / h);
+        const w = mount.clientWidth || window.innerWidth;
+        const h = mount.clientHeight || window.innerHeight;
+        if (w <= 0 || h <= 0) return;
+        if (Math.abs(w - lastResizeW) < 1 && Math.abs(h - lastResizeH) < 1) return;
+        lastResizeW = w;
+        lastResizeH = h;
+        const aspect = w / h;
+        camera.aspect = aspect;
+        camera.fov = fovForAspect(BASE_FOV, aspect);
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(getTargetDpr(qualityPref));
-        renderer.setSize(w, h);
+        renderer.setSize(w, h, false);
         composer?.setSize(w, h);
+        _invalidateShadows();
       }
       window.addEventListener("resize", onResize);
-      // Phones fire an orientation change slightly before layout settles into
-      // its new size — a follow-up resize a beat later avoids a stale FOV/zoom
-      // right after rotating.
-      const onOrientation = () => setTimeout(onResize, 120);
+      const onOrientation = () => {
+        setTimeout(onResize, 40);
+        setTimeout(onResize, 150);
+      };
       window.addEventListener("orientationchange", onOrientation);
+      let resizeObserver: ResizeObserver | null = null;
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(() => onResize());
+        resizeObserver.observe(mount);
+      }
 
       const PR = 0.28;
       const PH = 1.7;
       function collides(px: number, py: number, pz: number) {
-        const minX = Math.round(px - PR),
-          maxX = Math.round(px + PR);
-        const minZ = Math.round(pz - PR),
-          maxZ = Math.round(pz + PR);
-        const minY = Math.round(py),
-          maxY = Math.round(py + PH - 0.01);
-        for (let x = minX; x <= maxX; x++)
-          for (let z = minZ; z <= maxZ; z++)
+        // Clearance threshold on feet prevents standing on top of a block from
+        // flagging the ground below as a body collision during horizontal movement.
+        const minX = Math.ceil(px - PR + 0.01 - 0.5);
+        const maxX = Math.floor(px + PR - 0.01 + 0.5);
+        const minZ = Math.ceil(pz - PR + 0.01 - 0.5);
+        const maxZ = Math.floor(pz + PR - 0.01 + 0.5);
+        const minY = Math.ceil(py + 0.05 - 0.5);
+        const maxY = Math.floor(py + PH - 0.05 + 0.5);
+        for (let x = minX; x <= maxX; x++) {
+          for (let z = minZ; z <= maxZ; z++) {
             for (let y = minY; y <= maxY; y++) {
               const b = blocks.get(key(x, y, z));
               if (b && b.type !== 6) return true;
             }
+          }
+        }
         return false;
       }
       // Slime block gameplay: what's directly under the player's feet at
@@ -8727,13 +9182,13 @@ function EngineGame({
           if (move.lengthSq() > 0) move.normalize();
         }
 
-        // Desktop keyboard WASD / Arrow keys movement
+        // Desktop keyboard WASD / Arrow keys + Mobile D-Pad movement
         let keyDx = 0;
         let keyDz = 0;
-        if (keysPressed["KeyW"] || keysPressed["ArrowUp"]) keyDz -= 1;
-        if (keysPressed["KeyS"] || keysPressed["ArrowDown"]) keyDz += 1;
-        if (keysPressed["KeyA"] || keysPressed["ArrowLeft"]) keyDx -= 1;
-        if (keysPressed["KeyD"] || keysPressed["ArrowRight"]) keyDx += 1;
+        if (keysPressed["KeyW"] || keysPressed["ArrowUp"] || dpadMove.up) keyDz -= 1;
+        if (keysPressed["KeyS"] || keysPressed["ArrowDown"] || dpadMove.down) keyDz += 1;
+        if (keysPressed["KeyA"] || keysPressed["ArrowLeft"] || dpadMove.left) keyDx -= 1;
+        if (keysPressed["KeyD"] || keysPressed["ArrowRight"] || dpadMove.right) keyDx += 1;
         if ((keyDx !== 0 || keyDz !== 0) && !gameFrozen) {
           const kLen = Math.hypot(keyDx, keyDz);
           move.addScaledVector(fwd, -keyDz / kLen);
@@ -8749,8 +9204,8 @@ function EngineGame({
           const cosPitch = Math.cos(camPitch);
 
           let thrust = 0;
-          if (keysPressed["KeyW"] || keysPressed["ArrowUp"]) thrust += 1;
-          if (keysPressed["KeyS"] || keysPressed["ArrowDown"]) thrust -= 0.5;
+          if (keysPressed["KeyW"] || keysPressed["ArrowUp"] || dpadMove.up) thrust += 1;
+          if (keysPressed["KeyS"] || keysPressed["ArrowDown"] || dpadMove.down) thrust -= 0.5;
           if (joy.active) {
             const joyFwdMult = invertJoyYRef.current ? 1 : -1;
             const joyRightMult = invertJoyXRef.current ? -1 : 1;
@@ -8910,16 +9365,17 @@ function EngineGame({
           const ySubSteps = Math.max(1, Math.ceil((Math.abs(playerVel.y) * dt) / 0.45));
           const yDt = dt / ySubSteps;
 
+          let ny = playerPos.y;
           let nx = playerPos.x + playerVel.x * dt;
-          if (collides(nx, playerPos.y, playerPos.z)) {
+          if (collides(nx, ny, playerPos.z)) {
             // Step-up: if blocked horizontally on the ground, try stepping up ≤0.55 blocks
             // so the player glides over small lips without having to jump.
             const stepH = 0.55;
-            if (onGround && !collides(nx, playerPos.y + stepH, playerPos.z)) {
-              // find the exact step height needed
-              let sy = playerPos.y;
-              while (sy < playerPos.y + stepH && collides(nx, sy, playerPos.z)) sy += 0.05;
+            if (onGround && !collides(nx, ny + stepH, playerPos.z)) {
+              let sy = ny;
+              while (sy < ny + stepH && collides(nx, sy, playerPos.z)) sy += 0.05;
               if (!collides(nx, sy, playerPos.z)) {
+                ny = sy;
                 playerPos.y = sy;
               } else {
                 playerVel.x = 0;
@@ -8931,13 +9387,14 @@ function EngineGame({
             }
           }
           let nz = playerPos.z + playerVel.z * dt;
-          if (collides(nx, playerPos.y, nz)) {
+          if (collides(nx, ny, nz)) {
             // Same step-up logic for Z axis
             const stepH = 0.55;
-            if (onGround && !collides(nx, playerPos.y + stepH, nz)) {
-              let sy = playerPos.y;
-              while (sy < playerPos.y + stepH && collides(nx, sy, nz)) sy += 0.05;
+            if (onGround && !collides(nx, ny + stepH, nz)) {
+              let sy = ny;
+              while (sy < ny + stepH && collides(nx, sy, nz)) sy += 0.05;
               if (!collides(nx, sy, nz)) {
+                ny = sy;
                 playerPos.y = sy;
               } else {
                 playerVel.z = 0;
@@ -8951,12 +9408,12 @@ function EngineGame({
 
           // Y sub-step loop: resolves each slice independently so fast falls never
           // skip through a single block floor even on a slow/spiked frame.
-          let ny = playerPos.y;
           for (let s = 0; s < ySubSteps; s++) {
             ny += playerVel.y * yDt;
             if (playerVel.y <= 0) {
               if (collides(nx, ny, nz)) {
-                ny = Math.round(ny) + 0.5;
+                const blockY = Math.round(ny - 0.45);
+                ny = blockY + 0.5;
                 const fallDist = fallStartY - ny;
                 if (wasAir) {
                   landingKick = 1;
@@ -8975,8 +9432,13 @@ function EngineGame({
                 fallStartY = ny;
                 break; // ground found — no more sub-steps needed
               } else {
-                onGround = collides(nx, ny - 0.06, nz);
+                onGround = collides(nx, ny - 0.08, nz);
                 if (onGround) {
+                  const blockY = Math.round(ny - 0.5);
+                  const topY = blockY + 0.5;
+                  if (Math.abs(ny - topY) <= 0.12) {
+                    ny = topY;
+                  }
                   playerVel.y = 0;
                   fallStartY = ny;
                   break;
@@ -8984,7 +9446,8 @@ function EngineGame({
               }
             } else {
               if (collides(nx, ny, nz)) {
-                ny = Math.round(ny) - 1;
+                const ceilY = Math.round(ny + PH - 0.5);
+                ny = ceilY - 0.5 - PH;
                 playerVel.y = 0;
                 break;
               }
@@ -9189,18 +9652,13 @@ function EngineGame({
         // Sun follows player — but only update the shadow camera when the player
         // has moved more than 2 units from the last update position. Moving the
         // sun target every frame forces Three.js to re-render the shadow map
-        // every frame; skipping tiny moves cuts shadow-map passes by ~80%
-        // while the player is standing still or moving slowly (the common case).
-        const sdx = playerPos.x - _lastSunX,
-          sdz = playerPos.z - _lastSunZ;
-        if (sdx * sdx + sdz * sdz > 4) {
-          sun.position.set(playerPos.x + 34, playerPos.y + 60, playerPos.z + 22);
-          sun.target.position.set(playerPos.x, playerPos.y, playerPos.z);
-          _lastSunX = playerPos.x;
-          _lastSunZ = playerPos.z;
-          // Sun moved — shadows need a fresh render pass
-          _invalidateShadows();
-        }
+        // Realistic dynamic lighting: sun and target follow player smoothly
+        sun.position.set(
+          playerPos.x + (isSkyblock ? 28 : 34),
+          playerPos.y + (isSkyblock ? 48 : 60),
+          playerPos.z + (isSkyblock ? 18 : 22),
+        );
+        sun.target.position.set(playerPos.x, playerPos.y, playerPos.z);
 
         if (heldMesh) {
           // Ease the raw 0→1 hold progress toward a lagged copy instead of
@@ -9290,7 +9748,7 @@ function EngineGame({
           if (isVisitingOther) {
             holding = false;
             breakOverlay.visible = false;
-            setHoldPct(0);
+            updateHoldProgress(0);
             showSbToast("You cannot break, only your island you can break now", 3500);
           } else {
             const t = targetPos;
@@ -9303,13 +9761,13 @@ function EngineGame({
             ) {
               holding = false;
               breakOverlay.visible = false;
-              setHoldPct(0);
+              updateHoldProgress(0);
             } else {
               const elapsed = now - holdStart;
               if (elapsed > 120) {
                 const pct = Math.min(1, (elapsed - 120) / (HOLD_MS - 120));
                 digPhase = pct;
-                setHoldPct(pct);
+                updateHoldProgress(pct);
                 breakOverlay.visible = true;
                 breakOverlay.position.copy(t);
 
@@ -9340,15 +9798,17 @@ function EngineGame({
                   holdTarget = null;
                   digPhase = 0;
                   breakOverlay.visible = false;
-                  setHoldPct(0);
+                  updateHoldProgress(0);
                 }
               } else {
                 breakOverlay.visible = false;
+                updateHoldProgress(0);
               }
             }
           }
         } else {
           breakOverlay.visible = false;
+          updateHoldProgress(0);
         }
 
         // Engine v5: drive wave water + sky shader uniforms
@@ -9413,6 +9873,9 @@ function EngineGame({
             (flash.mesh.material as THREE.MeshBasicMaterial).opacity = 0.92;
           }
         }
+
+        // ── Advance Tree Physics & Popped Block Pieces ──
+        updateTreePhysicsAndPoppedBlocks(now, dt);
 
         // Skyblock Multiplayer: broadcast position and animate other players
         if (isSkyblock && qbUser?.uid) {
@@ -9677,6 +10140,7 @@ function EngineGame({
       return () => {
         disposed = true;
         cancelAnimationFrame(raf);
+        resizeObserver?.disconnect();
         window.removeEventListener("resize", onResize);
         window.removeEventListener("orientationchange", onOrientation);
         window.removeEventListener("bm-jump", jumpHandler);
@@ -9690,6 +10154,8 @@ function EngineGame({
         window.removeEventListener("bm-phoenix-ascend-end", ascendEndHandler);
         window.removeEventListener("bm-phoenix-descend-start", descendStartHandler);
         window.removeEventListener("bm-phoenix-descend-end", descendEndHandler);
+        window.removeEventListener("bm-dpad", dpadHandler);
+        window.removeEventListener("bm-action-btn", actionBtnHandler);
         window.removeEventListener("bm-fog", fogHandler);
         window.removeEventListener("bm-renderdist", renderDistHandler);
         window.removeEventListener("bm-shadows", shadowsHandler);
@@ -9714,6 +10180,16 @@ function EngineGame({
         mLeafClumpSpruce.dispose();
         mLeafClumpAcacia.dispose();
         mLeafClumpJungle.dispose();
+        fallingBlockGeo.dispose();
+        poppedChunkGeo.dispose();
+        for (const fb of activeFallingBlocks) {
+          scene.remove(fb.mesh);
+        }
+        activeFallingBlocks.length = 0;
+        for (const pb of poppedBlockPieces) {
+          scene.remove(pb.mesh);
+        }
+        poppedBlockPieces.length = 0;
         for (const m of decorMeshes) scene.remove(m);
         for (const g of decorGeos) g.dispose();
         for (const m of decorMats) {
@@ -10289,32 +10765,35 @@ function EngineGame({
         />
       </div>
 
-      {holdPct > 0 && (
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none mt-8">
-          <svg width="44" height="44" viewBox="0 0 44 44">
-            <circle
-              cx="22"
-              cy="22"
-              r="18"
-              stroke="rgba(255,255,255,0.45)"
-              strokeWidth="3"
-              fill="none"
-            />
-            <circle
-              cx="22"
-              cy="22"
-              r="18"
-              stroke="#fff"
-              strokeWidth="3"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 18}
-              strokeDashoffset={(1 - holdPct) * 2 * Math.PI * 18}
-              transform="rotate(-90 22 22)"
-            />
-          </svg>
-        </div>
-      )}
+      <div
+        ref={holdProgressRef}
+        style={{ display: "none" }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none mt-8 z-20"
+      >
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle
+            cx="22"
+            cy="22"
+            r="18"
+            stroke="rgba(255,255,255,0.45)"
+            strokeWidth="3"
+            fill="none"
+          />
+          <circle
+            ref={holdCircleRef}
+            cx="22"
+            cy="22"
+            r="18"
+            stroke="#fff"
+            strokeWidth="3"
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={2 * Math.PI * 18}
+            strokeDashoffset={2 * Math.PI * 18}
+            transform="rotate(-90 22 22)"
+          />
+        </svg>
+      </div>
 
       {privateServer && <PrivateServerBadge privacy={privateServer.privacy} />}
 
@@ -10356,9 +10835,10 @@ function EngineGame({
         </div>
       )}
 
-      {/* ── LEFT CUBE MENU BUTTON (Login Style) FOR NON-SKYBLOCK ──────────────── */}
+      {/* ── TOP-LEFT HUD BAR: [Menu] [Chat] [Smile] [Video] (Hosted PNGs) FOR NON-SKYBLOCK ── */}
       {!isSkyblock && (
-        <div className="absolute left-3 top-[max(12px,env(safe-area-inset-top))] z-30 pointer-events-auto">
+        <div className="absolute left-3 top-[max(12px,env(safe-area-inset-top))] z-40 flex items-center gap-2 pointer-events-auto select-none">
+          {/* 1. Menu Button */}
           <div className="relative">
             <button
               type="button"
@@ -10367,16 +10847,27 @@ function EngineGame({
                 e.stopPropagation();
                 setCubeMenuOpen((o) => !o);
               }}
-              className="h-10 w-10 rounded-xl bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] flex items-center justify-center text-white active:scale-95 transition-transform cursor-pointer"
+              className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
               title="Game Menu"
               aria-label="Game Menu"
             >
-              <Box className="w-5 h-5 text-white drop-shadow" />
+              <img
+                src={HUD_ASSETS.button}
+                alt="Menu"
+                className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+                draggable={false}
+              />
+              <img
+                src={HUD_ASSETS.menu}
+                alt=""
+                className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+                draggable={false}
+              />
             </button>
 
             {cubeMenuOpen && (
               <div
-                className="absolute left-0 top-12 w-48 rounded-xl border border-white/15 bg-[#1e2025]/95 backdrop-blur-xl shadow-2xl p-1.5 flex flex-col gap-1 z-50 text-white animate-in fade-in zoom-in-95 duration-100"
+                className="absolute left-0 top-14 w-48 rounded-xl border border-white/15 bg-[#1e2025]/95 backdrop-blur-xl shadow-2xl p-1.5 flex flex-col gap-1 z-50 text-white animate-in fade-in zoom-in-95 duration-100"
                 onPointerDown={(e) => e.stopPropagation()}
               >
                 <button
@@ -10420,48 +10911,108 @@ function EngineGame({
               </div>
             )}
           </div>
+
+          {/* 2. Chat Button */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setChatOpen(true);
+            }}
+            className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Chat"
+            aria-label="Chat"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Chat"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.chat}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
+
+          {/* 3. Smile / Emote Button */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.dispatchEvent(
+                new CustomEvent("bm-chat-say", { detail: { text: "👋 Hello!" } })
+              );
+            }}
+            className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Emote / Wave"
+            aria-label="Emotes"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Smile"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.smile}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
+
+          {/* 4. Video / Camera View Toggle */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              cycleCamMode();
+            }}
+            className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Switch Camera View"
+            aria-label="Camera Mode"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Video"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.video}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
         </div>
       )}
 
-      {/* ── TOP RIGHT: Settings + Chat Buttons + Translucent Login / Sign Up ── */}
-      {!isBlockyplaza && (
+      {/* ── TOP RIGHT: Login / Sign Up if guest ── */}
+      {!isBlockyplaza && !qbUser?.uid && (
         <div className="absolute right-3 top-[max(12px,calc(env(safe-area-inset-top)+8px))] z-30 flex items-center gap-2 pointer-events-auto">
-          {!qbUser?.uid && (
-            <>
-              <Link
-                to="/login"
-                search={{ screen: "login" } as never}
-                className="h-10 px-3.5 rounded-[14px] flex items-center gap-1.5 text-xs font-bold text-white bg-black/45 hover:bg-black/65 active:scale-95 backdrop-blur-xl border border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition cursor-pointer"
-              >
-                <LogIn className="w-3.5 h-3.5 fill-white text-white" />
-                <span>Log In</span>
-              </Link>
-              <Link
-                to="/login"
-                search={{ screen: "signup" } as never}
-                className="h-10 px-3.5 rounded-[14px] flex items-center gap-1.5 text-xs font-extrabold text-white bg-amber-500/35 hover:bg-amber-500/50 active:scale-95 backdrop-blur-xl border border-amber-400/50 shadow-[0_4px_16px_rgba(245,158,11,0.25)] transition cursor-pointer"
-              >
-                <UserPlus className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-                <span>Sign Up</span>
-              </Link>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="h-10 w-10 rounded-[14px] bg-[#22242b]/80 border border-white/15 flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.35)] transition-transform active:scale-90 hover:bg-[#22242b]/95 cursor-pointer text-white"
-            aria-label="Settings"
+          <Link
+            to="/login"
+            search={{ screen: "login" } as never}
+            className="h-10 px-3.5 rounded-[14px] flex items-center gap-1.5 text-xs font-bold text-white bg-black/45 hover:bg-black/65 active:scale-95 backdrop-blur-xl border border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition cursor-pointer"
           >
-            <Settings className="w-5 h-5 fill-white text-white" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            className="h-10 w-10 rounded-[14px] bg-[#22242b]/80 border border-white/15 flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.35)] transition-transform active:scale-90 hover:bg-[#22242b]/95 cursor-pointer text-white"
-            aria-label="Chat"
+            <LogIn className="w-3.5 h-3.5 fill-white text-white" />
+            <span>Log In</span>
+          </Link>
+          <Link
+            to="/login"
+            search={{ screen: "signup" } as never}
+            className="h-10 px-3.5 rounded-[14px] flex items-center gap-1.5 text-xs font-extrabold text-white bg-amber-500/35 hover:bg-amber-500/50 active:scale-95 backdrop-blur-xl border border-amber-400/50 shadow-[0_4px_16px_rgba(245,158,11,0.25)] transition cursor-pointer"
           >
-            <MessageSquare className="w-5 h-5 fill-white text-white" />
-          </button>
+            <UserPlus className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+            <span>Sign Up</span>
+          </Link>
         </div>
       )}
 
@@ -11472,7 +12023,7 @@ function EngineGame({
             />
           </button>
 
-          {/* Jump Button */}
+          {/* Jump Button (Hosted button PNG) */}
           <button
             type="button"
             onPointerDown={(e) => {
@@ -11480,14 +12031,20 @@ function EngineGame({
               e.stopPropagation();
               window.dispatchEvent(new Event("bm-jump"));
             }}
-            className="p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none"
+            className="relative w-16 h-16 sm:w-18 sm:h-18 p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none flex items-center justify-center"
             title="Jump"
             aria-label="Jump"
           >
             <img
-              src="https://maxwell.z3ki.dev/bot/_files/icon-head-sprint/icon_head_sprint.png"
+              src={HUD_ASSETS.button}
               alt="Jump"
-              className="h-16 w-16 sm:h-18 sm:w-18 object-contain pointer-events-none drop-shadow-lg"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-lg select-none"
+              draggable={false}
+            />
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/icon-head-sprint/icon_head_sprint.png"
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-2.5 pointer-events-none drop-shadow-md select-none"
               draggable={false}
             />
           </button>
@@ -13103,71 +13660,113 @@ function SkyblockPastedHud({
         className="flex items-start justify-between w-full z-20 origin-top"
         style={{ transform: "scale(0.80)", transformOrigin: "top center" }}
       >
-        {/* Top Left: Cube Menu, Profile, Home Party, Gacha */}
+        {/* Top Left: [Menu] [Chat] [Smile] [Video] Buttons + Profile & Island Info */}
         <div className="flex items-center gap-2">
-          {/* Cube Menu Button (Login Style) */}
-          <div className="relative pointer-events-auto">
-            <button
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCubeMenuOpen((o) => !o);
-              }}
-              className="h-8 w-8 rounded-xl bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] flex items-center justify-center text-white active:scale-95 transition-transform cursor-pointer"
-              title="Game Menu"
-              aria-label="Game Menu"
-            >
-              <Box className="w-4 h-4 text-white drop-shadow" />
-            </button>
+          {/* 1. Menu Button */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSettings();
+            }}
+            className="pointer-events-auto relative w-8 h-8 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Game Settings"
+            aria-label="Settings"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Menu"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.menu}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-1.5 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
 
-            {/* Dropdown Menu */}
-            {cubeMenuOpen && (
-              <div
-                className="absolute left-0 top-10 w-44 rounded-xl border border-white/15 bg-[#1e2025]/95 backdrop-blur-xl shadow-2xl p-1.5 flex flex-col gap-1 z-50 text-white animate-in fade-in zoom-in-95 duration-100"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    setCubeMenuOpen(false);
-                    onSettings();
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-zinc-200 hover:bg-white/10 hover:text-white text-left transition cursor-pointer"
-                >
-                  <Settings className="w-4 h-4 text-amber-400" />
-                  <span>Game Settings</span>
-                </button>
+          {/* 2. Chat Button */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onChat();
+            }}
+            className="pointer-events-auto relative w-8 h-8 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Chat"
+            aria-label="Chat"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Chat"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.chat}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-1.5 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
 
-                <button
-                  type="button"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    setCubeMenuOpen(false);
-                    onChat();
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-zinc-200 hover:bg-white/10 hover:text-white text-left transition cursor-pointer"
-                >
-                  <MessageSquare className="w-4 h-4 text-sky-400" />
-                  <span>Chat</span>
-                </button>
+          {/* 3. Smile / Emote Button */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.dispatchEvent(
+                new CustomEvent("bm-chat-say", { detail: { text: "👋 Hello!" } })
+              );
+            }}
+            className="pointer-events-auto relative w-8 h-8 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Emote / Wave"
+            aria-label="Emotes"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Smile"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.smile}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-1.5 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
 
-                <button
-                  type="button"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    setCubeMenuOpen(false);
-                    onRequestQuit ? onRequestQuit() : onExit();
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-bold text-red-400 hover:bg-red-500/15 text-left transition cursor-pointer border-t border-white/10 mt-0.5"
-                >
-                  <LogOut className="w-4 h-4 text-red-400" />
-                  <span>Leave</span>
-                </button>
-              </div>
-            )}
-          </div>
+          {/* 4. Video / Camera Perspective Button */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleCamMode?.();
+            }}
+            className="pointer-events-auto relative w-8 h-8 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+            title="Switch Camera View"
+            aria-label="Camera Mode"
+          >
+            <img
+              src={HUD_ASSETS.button}
+              alt="Video"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
+              draggable={false}
+            />
+            <img
+              src={HUD_ASSETS.video}
+              alt=""
+              className="absolute inset-0 w-full h-full object-contain p-1.5 pointer-events-none drop-shadow-sm select-none"
+              draggable={false}
+            />
+          </button>
 
           {/* Avatar / Level / Username / Real Island Like Button */}
           <div className="relative flex items-center bg-gradient-to-b from-zinc-800/95 via-zinc-900/95 to-zinc-950/98 text-white rounded-xl p-1.5 pr-3 gap-2 border border-white/10 shadow-[0_8px_25px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] backdrop-blur-md">
@@ -13474,46 +14073,6 @@ function SkyblockPastedHud({
           </button>
         </div>
       </div>
-
-      {showRotateMsg && (
-        <div className="fixed bottom-24 left-0 right-0 z-[200] flex justify-center pointer-events-none px-4">
-          <div className="text-card-orange animate-in slide-in-from-bottom-5 fade-in duration-300 shadow-2xl pointer-events-auto flex items-center gap-2">
-            <div className="text-loader-orange">
-              <div className="words">
-                <span className="word font-black tracking-tight">
-                  Please Rotate your phone for the best experience
-                </span>
-                <span className="word font-black tracking-tight">
-                  Please Rotate your phone for the best experience
-                </span>
-                <span className="word font-black tracking-tight">
-                  Please Rotate your phone for the best experience
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowRotateMsg(false)}
-              className="p-1.5 -mr-2 text-white/50 hover:text-white transition-colors bg-white/10 rounded-full"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

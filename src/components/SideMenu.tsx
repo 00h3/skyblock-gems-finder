@@ -1,9 +1,10 @@
-import { X, CalendarDays, Sparkles, ShoppingBag } from "lucide-react";
+import { X, CalendarDays, Sparkles, ShoppingBag, Settings as SettingsIcon } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { openFragments } from "@/lib/fragments-ui";
 import { openEvents } from "@/lib/events-ui";
+import { openSettings } from "@/lib/settings-ui";
 
 const ITEMS = [
   {
@@ -27,6 +28,14 @@ const ITEMS = [
     icon: Sparkles,
     to: "/fragments",
     image: "/qblock-plus-icon.png",
+    gradient: "from-slate-100 to-slate-200",
+    shadow: "shadow-slate-500/10",
+  },
+  {
+    label: "Settings",
+    icon: SettingsIcon,
+    to: "/settings",
+    image: "",
     gradient: "from-slate-100 to-slate-200",
     shadow: "shadow-slate-500/10",
   },
@@ -87,6 +96,10 @@ export function SideMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                 } else if (item.label === "Fragments") {
                   if (typeof window !== "undefined") {
                     openFragments();
+                  }
+                } else if (item.label === "Settings") {
+                  if (typeof window !== "undefined") {
+                    openSettings();
                   }
                 } else {
                   nav({ to: item.to as never });

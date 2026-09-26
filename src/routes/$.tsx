@@ -111,6 +111,16 @@ function SplatRedirector() {
     }
 
     if (
+      pathname === "/accounts" ||
+      pathname === "/switch-account" ||
+      pathname === "/sign-out" ||
+      pathname === "/switch"
+    ) {
+      navigate({ to: "/accounts" as never, replace: true });
+      return;
+    }
+
+    if (
       pathname.startsWith("/user/") ||
       pathname.startsWith("/u/") ||
       pathname.startsWith("/people/")

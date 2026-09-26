@@ -105,8 +105,9 @@ export function GlossyAvatar({
   const isFirebaseImage =
     photoUrl?.includes("firebasestorage.googleapis.com") || photoUrl?.includes("qblock-app");
   const hasSnapshot = snapshot != null && Object.keys(snapshot).length > 0;
-  // Always prefer 3D unless explicitly requested not to, or if they have a non-firebase custom image.
-  const prefer3D = !imageFallbackOnly && !portrait && (!photoUrl || isFirebaseImage);
+  const isThumbnail = typeof height === "number" && height <= 64;
+  // Always prefer 3D unless explicitly requested not to, or thumbnail size, or non-firebase custom image.
+  const prefer3D = !imageFallbackOnly && !portrait && !isThumbnail && (!photoUrl || isFirebaseImage);
 
   return (
     <div

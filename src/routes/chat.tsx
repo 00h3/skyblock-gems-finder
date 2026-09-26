@@ -296,10 +296,9 @@ function UserSearchCard({
             <button
               onClick={handleAdd}
               disabled={busy}
-              className="press flex-1 h-9 rounded-full text-[12px] font-extrabold flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="press flex-1 h-9 rounded-full text-[12px] font-medium flex items-center justify-center disabled:opacity-60 cursor-pointer"
               style={{ background: "linear-gradient(135deg,#ff8a68,#fa4616)", color: "#ffffff" }}
             >
-              <UserPlus className="h-3.5 w-3.5" />
               {busy ? "Sending…" : "Add Friend"}
             </button>
           )}
@@ -681,7 +680,7 @@ function ChatList() {
                   duration: 0.18,
                   ease: [0.16, 1, 0.3, 1],
                 }}
-                className={`relative z-10 flex-1 py-2 px-1 text-[12px] font-extrabold flex items-center justify-center gap-1.5 select-none cursor-pointer transition-colors duration-200 ${
+                className={`relative z-10 flex-1 py-2 px-1 text-[12px] font-medium flex items-center justify-center gap-1.5 select-none cursor-pointer transition-colors duration-200 ${
                   isSelected
                     ? "bg-[#141414] dark:bg-white text-white dark:text-[#141414] shadow-sm"
                     : "text-[#6b7280] dark:text-[#9ca3af] hover:text-foreground"
@@ -689,7 +688,7 @@ function ChatList() {
               >
                 <span className="truncate">{t.label}</span>
                 {t.id === "groups" && t.count > 0 && (
-                  <span className="rounded-full bg-[#fa4616] px-1.5 py-0.2 text-[9px] font-black text-white">
+                  <span className="rounded-full bg-[#fa4616] px-1.5 py-0.2 text-[9px] font-medium text-white">
                     {t.count}
                   </span>
                 )}
@@ -813,43 +812,39 @@ function ChatList() {
               ))}
           </div>
         ) : tab === "groups" ? (
-          <div className="px-3.5 space-y-3.5">
-            {/* Search Groups & Create Group Bar */}
+          <div className="px-3.5 space-y-3.5 pb-24">
+            {/* Minimal Search Servers & Create Bar */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 bg-slate-100/90 rounded-[14px] px-3 h-[42px] flex-1 border border-black/[0.06]">
-                <Search className="h-4 w-4 text-slate-400 shrink-0" />
+              <div className="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-[14px] px-3 h-[40px] flex-1 border border-black/5 dark:border-white/5">
                 <input
                   type="text"
                   value={groupSearchQ}
                   onChange={(e) => setGroupSearchQ(e.target.value)}
-                  placeholder="Search groups..."
-                  className="bg-transparent outline-none text-[13px] font-medium flex-1 text-slate-900 placeholder:text-slate-400"
+                  placeholder="Search servers..."
+                  className="bg-transparent outline-none text-[13px] font-normal flex-1 text-black dark:text-white placeholder:text-neutral-400"
                 />
                 {groupSearchQ && (
                   <button
                     type="button"
                     onClick={() => setGroupSearchQ("")}
-                    className="p-1 text-slate-400 hover:text-slate-700"
+                    className="text-[12px] font-normal text-neutral-400 hover:text-black dark:hover:text-white cursor-pointer"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    Clear
                   </button>
                 )}
               </div>
 
-              <ShinyButton
+              <button
                 type="button"
-                variant="white"
                 onClick={() => setShowCreateGroup(true)}
-                className="h-[42px] w-[42px] !p-0 flex items-center justify-center shrink-0 rounded-[14px]"
-                title="Create Group"
-                aria-label="Create Group"
+                className="press h-[40px] px-3.5 rounded-[14px] bg-black text-white dark:bg-white dark:text-black text-[12px] font-normal cursor-pointer shadow-xs shrink-0"
               >
-                <Plus className="h-5 w-5 stroke-[2.5]" />
-              </ShinyButton>
+                + Create
+              </button>
             </div>
 
-            {/* Groups Grid (White & Soft Glossy Style) */}
-            <div className="space-y-3.5">
+            {/* Groups Grid */}
+            <div className="space-y-3">
               {(() => {
                 // Deduplicate groups by id
                 const combinedMap = new Map<string, GroupChatData>();
@@ -871,9 +866,8 @@ function ChatList() {
 
                 if (filteredGroups.length === 0) {
                   return (
-                    <div className="py-12 text-center text-slate-400 flex flex-col items-center gap-2">
-                      <Users className="w-8 h-8 opacity-40" />
-                      <p className="text-[13px] font-medium">No groups found</p>
+                    <div className="py-12 text-center text-neutral-400 flex flex-col items-center gap-1.5">
+                      <p className="text-[13px] font-normal">No servers found</p>
                     </div>
                   );
                 }

@@ -12,6 +12,7 @@ import { auth, db } from "./firebase";
 import { addCurrency, hydrateCurrency, setCurrencyUser } from "./currency";
 import { normalizeAvatarSnapshot, type AvatarSnapshot } from "./avatar";
 import { hydrateFragments, setFragmentUser } from "./fragments";
+import { saveAccount } from "./saved-accounts";
 
 export interface QBUser {
   uid: string;
@@ -198,6 +199,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dev: data.dev ?? data.developer ?? false,
         };
         setQbUser(profile);
+        saveAccount({
+          uid: profile.uid,
+          username: profile.username,
+          displayName: profile.displayName,
+          email: profile.email,
+          customId: profile.customId,
+          profilePhoto: profile.profilePhoto,
+          avatarSnapshot: profile.avatarSnapshot,
+          color: profile.color,
+        });
         setFragmentUser(firebaseUser.uid);
         hydrateFragments({
           fragments: profile.fragments,

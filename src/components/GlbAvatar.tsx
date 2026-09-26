@@ -95,7 +95,7 @@ export function GlbAvatar({
       skinId={skinId}
       faceId={faceId}
       gender={gender}
-      equippedItemIds={[...equippedItemIds]}
+      equippedItemIds={Array.isArray(equippedItemIds) ? [...equippedItemIds] : []}
       equippedPants={equippedPants}
       style={style}
       autoRotate={autoRotate}

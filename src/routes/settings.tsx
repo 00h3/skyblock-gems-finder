@@ -29,15 +29,12 @@ import { CurrencyPills } from "@/components/CurrencyPills";
 import { MobileShell } from "@/components/MobileShell";
 import { isIraAccount } from "@/components/GlossyAvatar";
 import { LegalBody, APP_VERSION } from "@/components/LegalDocs";
+import { saveAccount } from "@/lib/saved-accounts";
 
 import { FirstTimeSectionLoader } from "@/components/ui/FirstTimeSectionLoader";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — QBlock" }] }),
-  // Settings now live inside profile settings — keep the URL working.
-  beforeLoad: () => {
-    throw redirect({ to: "/profile" as never });
-  },
   component: () => (
     <FirstTimeSectionLoader id="settings">
       <SettingsPage />
@@ -47,34 +44,26 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const nav = useNavigate();
-  const [query, setQuery] = useState("");
   return (
     <MobileShell>
-      <div className="min-h-full bg-[#f1f2f4] px-4 pb-8 pt-5 dark:bg-[#0c0d11]">
-        <div className="profile-card mb-4 p-3">
+      <div className="min-h-full bg-white px-4 pb-8 pt-5 dark:bg-[#000000]">
+        <div className="rounded-[20px] mb-4 p-4 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => nav({ to: "/profile" as never })}
-              className="press grid h-10 w-10 place-items-center rounded-[14px] border border-black/10 dark:border-white/10"
+              className="press grid h-9 w-9 place-items-center rounded-[12px] bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 text-black dark:text-white cursor-pointer"
               aria-label="Back to profile"
             >
-              <ChevronRight className="h-5 w-5 rotate-180" />
+              <ChevronRight className="h-4 w-4 rotate-180" />
             </button>
             <div>
-              <div className="app-eyebrow">QBLOCK / ACCOUNT</div>
-              <h1 className="mt-1 text-[27px] font-extrabold tracking-[-0.05em]">Settings</h1>
+              <div className="text-[10.5px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                Preferences
+              </div>
+              <h1 className="text-[22px] font-medium tracking-tight text-black dark:text-white">Settings</h1>
             </div>
           </div>
-          <label className="mt-3 flex h-10 items-center gap-2 rounded-[14px] border border-black/10 px-3 dark:border-white/10">
-            <Search className="h-4 w-4 text-text-muted" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search settings"
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-text-muted"
-            />
-          </label>
         </div>
         <SettingsBody />
       </div>
@@ -106,8 +95,20 @@ export function SettingsBody() {
   }, [push, sound, haptics]);
 
   async function handleSignOut() {
+    if (qbUser) {
+      saveAccount({
+        uid: qbUser.uid,
+        username: qbUser.username,
+        displayName: qbUser.displayName,
+        email: qbUser.email,
+        customId: qbUser.customId,
+        profilePhoto: qbUser.profilePhoto,
+        avatarSnapshot: qbUser.avatarSnapshot,
+        color: qbUser.color,
+      });
+    }
     await signOut();
-    nav({ to: "/login" as never });
+    nav({ to: "/accounts" as never });
   }
 
   async function toggleBadge(v: boolean) {

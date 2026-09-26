@@ -47,6 +47,7 @@ import { Toaster } from "sonner";
 import { incrementOnlineTime } from "../lib/daily-events";
 import { GlobalFragmentsPopup } from "@/components/GlobalFragmentsPopup";
 import { GlobalEventsPopup } from "@/components/GlobalEventsPopup";
+import { GlobalSettingsPopup } from "@/components/GlobalSettingsPopup";
 import { GlobalLoader } from "@/components/GlobalLoader";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
 import { ShinyButton } from "@/components/ui/shiny-button";
@@ -294,7 +295,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Inter:wght@400;500;600;700;800;900&display=swap",
       },
     ],
   }),
@@ -678,6 +679,7 @@ function RootComponent() {
         </AuthGuard>
         <GlobalFragmentsPopup />
         <GlobalEventsPopup />
+        <GlobalSettingsPopup />
         <Toaster position="top-center" richColors />
       </AuthProvider>
     </QueryClientProvider>

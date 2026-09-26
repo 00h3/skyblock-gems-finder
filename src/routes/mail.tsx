@@ -10,6 +10,7 @@ import {
   type FriendRequest,
 } from "@/lib/friends-utils";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
+import { MetallicButton } from "@/components/ui/button-metallic";
 
 export const Route = createFileRoute("/mail")({
   head: () => ({ meta: [{ title: "Inbox — QBLOCK" }] }),
@@ -250,8 +251,18 @@ export function MailPage() {
                   </div>
                 ))
               ) : (
-                <div className="px-4 py-8 text-center text-slate-400 text-[12.5px]">
-                  No pending friend requests
+                <div className="px-4 py-8 text-center text-slate-400 text-[12.5px] space-y-3">
+                  <p>No pending friend requests</p>
+                  <div className="flex justify-center pt-1">
+                    <MetallicButton
+                      onClick={() => nav({ to: "/search" as never })}
+                      size="sm"
+                      className="rounded-xl px-4 py-2 font-black text-[12px] gap-2 tracking-wide"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>Find Players</span>
+                    </MetallicButton>
+                  </div>
                 </div>
               )}
             </div>

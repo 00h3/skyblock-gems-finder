@@ -19,11 +19,13 @@ import {
   CHARACTER_2_GLTF,
 } from "@/lib/avatar";
 import { getEquippedShop, getOwnedShopItemIds } from "@/lib/shop";
+import { saveAccount } from "@/lib/saved-accounts";
 import { APP_VERSION } from "@/components/LegalDocs";
 import { toast } from "sonner";
 import {
   EditProfileView,
   EditAvatarView,
+  NicknameStyleView,
   FramesView,
   ChangePasswordView,
   ActivityLogView,
@@ -40,6 +42,7 @@ import {
 export type ActiveScreen =
   | "edit_profile"
   | "edit_avatar"
+  | "nickname_style"
   | "frames"
   | "change_password"
   | "activity_log"
@@ -70,6 +73,7 @@ function ProfilePage() {
   const dark = useDark();
 
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(null);
+  const [previousScreen, setPreviousScreen] = useState<ActiveScreen>(null);
   const [showSelfProfileSheet, setShowSelfProfileSheet] = useState(false);
   const [showWowDownload, setShowWowDownload] = useState(false);
 
@@ -77,7 +81,7 @@ function ProfilePage() {
   const [bioDraft, setBioDraft] = useState("");
   const [photoDraft, setPhotoDraft] = useState("");
   const [characterDraft, setCharacterDraft] = useState<"char1" | "char2">("char1");
-  const [nameStyleDraft, setNameStyleDraft] = useState<"default" | "gradient">("gradient");
+  const [nameStyleDraft, setNameStyleDraft] = useState<string>("default");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -92,15 +96,27 @@ function ProfilePage() {
     const baseChar = qbUser.avatarSnapshot?.baseCharacter === "char2" ? "char2" : "char1";
     setCharacterDraft(baseChar);
     setNameStyleDraft(
-      qbUser.nameStyle || (qbUser.useGradientName === false ? "default" : "gradient"),
+      qbUser.nameStyle || (qbUser.useGradientName === false ? "default" : "default"),
     );
   }, [authLoading, qbUser, nav]);
 
   async function handleSignOut() {
     try {
+      if (qbUser) {
+        saveAccount({
+          uid: qbUser.uid,
+          username: qbUser.username,
+          displayName: qbUser.displayName,
+          email: qbUser.email,
+          customId: qbUser.customId,
+          profilePhoto: qbUser.profilePhoto,
+          avatarSnapshot: qbUser.avatarSnapshot,
+          color: qbUser.color,
+        });
+      }
       await signOut(auth);
       toast.success("Signed out");
-      nav({ to: "/login" as never });
+      nav({ to: "/accounts" as never });
     } catch {
       toast.error("Failed to sign out");
     }
@@ -135,7 +151,7 @@ function ProfilePage() {
         bio: bioDraft.trim(),
         profilePhoto: photoDraft.trim() || qbUser.profilePhoto || "",
         nameStyle: nameStyleDraft,
-        useGradientName: nameStyleDraft === "gradient",
+        useGradientName: nameStyleDraft === "orange" || nameStyleDraft === "rainbow" || nameStyleDraft === "gradient",
         avatarSnapshot: {
           ...getAvatarSnapshot(),
           baseCharacter: characterDraft,
@@ -224,20 +240,40 @@ function ProfilePage() {
               setCharacterDraft={setCharacterDraft}
               onSave={saveProfile}
               saving={saving}
-              onOpenAvatarEdit={() => setActiveScreen("edit_avatar")}
+              onOpenAvatarEdit={() => {
+                setPreviousScreen("edit_profile");
+                setActiveScreen("edit_avatar");
+              }}
+              onOpenNicknameStyle={() => setActiveScreen("nickname_style")}
               onBack={() => setActiveScreen(null)}
             />
           </motion.div>
         )}
 
-        {/* 2. EDIT AVATAR VIEW (Frames integrated & available here) */}
+        {/* 1.5. NICKNAME STYLE FULL PAGE VIEW */}
+        {activeScreen === "nickname_style" && (
+          <motion.div key="nickname_style" {...subviewMotion} className="min-h-full">
+            <NicknameStyleView
+              user={qbUser}
+              name={nameDraft}
+              selectedStyle={nameStyleDraft}
+              onSelectStyle={(s) => {
+                setNameStyleDraft(s);
+              }}
+              onSave={saveProfile}
+              saving={saving}
+              onBack={() => setActiveScreen("edit_profile")}
+            />
+          </motion.div>
+        )}
+
+        {/* 2. EDIT AVATAR VIEW */}
         {activeScreen === "edit_avatar" && (
           <motion.div key="edit_avatar" {...subviewMotion} className="min-h-full">
             <EditAvatarView
               user={qbUser}
               onSave={saveAvatar}
-              onOpenFrames={() => setActiveScreen("frames")}
-              onBack={() => setActiveScreen("edit_profile")}
+              onBack={() => setActiveScreen(previousScreen ?? null)}
             />
           </motion.div>
         )}
@@ -378,22 +414,25 @@ function ProfilePage() {
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
+                    setPreviousScreen(null);
                     setActiveScreen("edit_avatar");
                   }}
                   className="relative h-12 w-12 shrink-0 rounded-[14px] overflow-hidden bg-slate-200 dark:bg-slate-700 cursor-pointer press"
-                  title="Edit Avatar & Frames"
+                  title="Edit Avatar"
                 >
                   {qbUser?.profilePhoto ? (
                     <img
                       src={qbUser.profilePhoto}
                       alt={qbUser.displayName || "Avatar"}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover pointer-events-none"
                     />
                   ) : (
                     <GlossyAvatar
                       snapshot={qbUser?.avatarSnapshot}
+                      photoUrl={qbUser?.profilePhoto}
+                      imageFallbackOnly={true}
                       height={48}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover pointer-events-none"
                       autoRotate={false}
                     />
                   )}

@@ -353,4 +353,92 @@ export const GameAudio = {
       osc.stop(now + 0.16);
     } catch {}
   },
+
+  /** Deep wood creak & snapping sound when a tree collapses */
+  playTreeCollapse() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      // 1. Heavy resonant wood snap
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.38);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(450, now);
+      filter.frequency.exponentialRampToValueAtTime(80, now + 0.38);
+
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.42);
+
+      // 2. Splinter noise burst
+      const bufLen = Math.floor(ctx.sampleRate * 0.25);
+      const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.06));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const nFilter = ctx.createBiquadFilter();
+      nFilter.type = "bandpass";
+      nFilter.frequency.setValueAtTime(850, now);
+      nFilter.Q.setValueAtTime(2, now);
+
+      const nGain = ctx.createGain();
+      nGain.gain.setValueAtTime(0.35, now);
+      nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      noise.connect(nFilter);
+      nFilter.connect(nGain);
+      nGain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + 0.25);
+    } catch {}
+  },
+
+  /** Gentle leafy rustle whoosh sound as foliage tumbles */
+  playLeafRustle() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const bufLen = Math.floor(ctx.sampleRate * 0.45);
+      const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufLen) * Math.PI);
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(1200, now);
+      filter.frequency.linearRampToValueAtTime(600, now + 0.45);
+      filter.Q.setValueAtTime(1.5, now);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + 0.45);
+    } catch {}
+  },
 };
