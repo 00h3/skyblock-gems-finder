@@ -1,34 +1,66 @@
 import * as THREE from "three";
 import { World, WORLD_H } from "./world";
 
-/** Feel constants — tune these, not the maths. */
 const WIDTH = 0.6;
 const HEIGHT = 1.8;
 const EYE = 1.62;
-/**
- * Blockman GO / mobile-voxel feel:
- * ~1.4 block jump, soft floaty fall, snappy ground accel, weak air control,
- * a small sprint-jump boost and automatic 0.6 block step-up so bridging,
- * stairs and block-clutch movement never snag on an edge.
- */
-const GRAVITY = 28.5;
-const JUMP_V = 8.5;
-const WALK = 4.31;
-const SPRINT = 5.61;
-const CROUCH = 2.15;
-const ACCEL = 64;
-const AIR_CONTROL = 0.26;
-const SPRINT_JUMP_BOOST = 1.22;
-const GROUND_DAMP = 14.5;
-const AIR_DAMP = 0.55;
 const COYOTE = 0.12;
 const JUMP_BUFFER = 0.14;
 const STEP_HEIGHT = 0.6;
 const TERMINAL_V = -48;
 
+/**
+ * Tunable movement feel. Each game mode picks a profile instead of forking
+ * the physics code, so Skyblock and Block Fall share one collision solver.
+ */
+export type PhysicsProfile = {
+  gravity: number;
+  /** Extra gravity while descending — removes the floaty "moon" fall. */
+  fallGravityMul: number;
+  jumpV: number;
+  walk: number;
+  sprint: number;
+  crouch: number;
+  accel: number;
+  /** Deceleration applied when there is no input on the ground. */
+  groundDamp: number;
+  airDamp: number;
+  airControl: number;
+  sprintJumpBoost: number;
+};
+
+export const SANDBOX_PHYSICS: PhysicsProfile = {
+  gravity: 28.5,
+  fallGravityMul: 1.18,
+  jumpV: 8.5,
+  walk: 4.31,
+  sprint: 5.61,
+  crouch: 2.15,
+  accel: 64,
+  groundDamp: 14.5,
+  airDamp: 0.55,
+  airControl: 0.3,
+  sprintJumpBoost: 1.22,
+};
+
+/** Snappier, heavier and more predictable — built for Block Fall rounds. */
+export const COMPETITIVE_PHYSICS: PhysicsProfile = {
+  gravity: 30,
+  fallGravityMul: 1.32,
+  jumpV: 8.9,
+  walk: 4.7,
+  sprint: 6.1,
+  crouch: 2.3,
+  accel: 82,
+  groundDamp: 18,
+  airDamp: 0.8,
+  airControl: 0.45,
+  sprintJumpBoost: 1.0,
+};
+
 export type MoveInput = {
-  forward: number; // -1..1
-  strafe: number; // -1..1
+  forward: number;
+  strafe: number;
   jump: boolean;
   sprint: boolean;
   crouch?: boolean;
@@ -43,9 +75,16 @@ export class Player {
   bob = 0;
   isCrouching = false;
   isDying = false;
+  /** When true, input is ignored (countdowns, results) but gravity still applies. */
+  frozen = false;
+  /** Set for one frame when the player lands; value is the impact speed. */
+  landedImpact = 0;
+  profile: PhysicsProfile = SANDBOX_PHYSICS;
   onDie?: () => void;
   private coyote = 0;
   private jumpBuffer = 0;
+  private _next = new THREE.Vector3();
+  private _probe = new THREE.Vector3();
 
   constructor(private world: World) {}
 
@@ -77,6 +116,7 @@ export class Player {
   }
 
   update(dt: number, input: MoveInput) {
+    this.landedImpact = 0;
     if (this.isDying) {
       this.velocity.x *= Math.exp(-6 * dt);
       this.velocity.z *= Math.exp(-6 * dt);
@@ -85,70 +125,62 @@ export class Player {
       return;
     }
 
-    this.isCrouching = Boolean(input.crouch);
-    const speed = input.crouch ? CROUCH : input.sprint ? SPRINT : WALK;
+    const P = this.profile;
+    const forward = this.frozen ? 0 : input.forward;
+    const strafe = this.frozen ? 0 : input.strafe;
+    const wantsJump = !this.frozen && input.jump;
 
-    // camera-relative desired direction
+    this.isCrouching = Boolean(input.crouch) && !this.frozen;
+    const speed = this.isCrouching ? P.crouch : input.sprint ? P.sprint : P.walk;
+
+    // Camera-relative wish direction. Three.js cameras look down -Z, so at
+    // yaw 0 "forward" is (0, -1) and "right" is (1, 0).
     const sin = Math.sin(input.yaw);
     const cos = Math.cos(input.yaw);
-    let dx = input.strafe * cos - input.forward * sin;
-    let dz = -input.strafe * sin - input.forward * cos;
+    let dx = strafe * cos - forward * sin;
+    let dz = -strafe * sin - forward * cos;
     const len = Math.hypot(dx, dz);
     if (len > 1) {
       dx /= len;
       dz /= len;
     }
 
-    const targetX = dx * speed;
-    const targetZ = dz * speed;
-    const control = this.onGround ? ACCEL : ACCEL * AIR_CONTROL;
-    this.velocity.x += THREE.MathUtils.clamp(
-      targetX - this.velocity.x,
-      -control * dt,
-      control * dt,
-    );
-    this.velocity.z += THREE.MathUtils.clamp(
-      targetZ - this.velocity.z,
-      -control * dt,
-      control * dt,
-    );
-
-    if (len < 0.01) {
-      const damp = Math.exp(-(this.onGround ? GROUND_DAMP : AIR_DAMP) * dt);
+    const control = this.onGround ? P.accel : P.accel * P.airControl;
+    if (len > 0.01) {
+      const targetX = dx * speed;
+      const targetZ = dz * speed;
+      this.velocity.x += THREE.MathUtils.clamp(targetX - this.velocity.x, -control * dt, control * dt);
+      this.velocity.z += THREE.MathUtils.clamp(targetZ - this.velocity.z, -control * dt, control * dt);
+    } else {
+      const damp = Math.exp(-(this.onGround ? P.groundDamp : P.airDamp) * dt);
       this.velocity.x *= damp;
       this.velocity.z *= damp;
     }
 
     this.coyote = this.onGround ? COYOTE : Math.max(0, this.coyote - dt);
-    this.jumpBuffer = input.jump ? JUMP_BUFFER : Math.max(0, this.jumpBuffer - dt);
+    this.jumpBuffer = wantsJump ? JUMP_BUFFER : Math.max(0, this.jumpBuffer - dt);
     if (this.jumpBuffer > 0 && this.coyote > 0) {
-      this.velocity.y = JUMP_V;
+      this.velocity.y = P.jumpV;
       if (input.sprint && len > 0.01) {
-        this.velocity.x += dx * SPRINT_JUMP_BOOST;
-        this.velocity.z += dz * SPRINT_JUMP_BOOST;
+        this.velocity.x += dx * P.sprintJumpBoost;
+        this.velocity.z += dz * P.sprintJumpBoost;
       }
       this.coyote = 0;
       this.jumpBuffer = 0;
       this.onGround = false;
     }
 
-    if (this.isDying) {
-      // Float gently and damp horizontal movement during angel death animation
-      this.velocity.x *= Math.exp(-8 * dt);
-      this.velocity.z *= Math.exp(-8 * dt);
-      this.velocity.y = 0.25;
-      this.moveAxis(1, this.velocity.y * dt);
-      return;
-    }
-
-    this.velocity.y -= GRAVITY * dt;
+    const g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
+    this.velocity.y -= g * dt;
     if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
 
+    const wasGround = this.onGround;
+    const fallSpeed = -this.velocity.y;
     this.moveAxis(0, this.velocity.x * dt);
     this.moveAxis(1, this.velocity.y * dt);
     this.moveAxis(2, this.velocity.z * dt);
+    if (!wasGround && this.onGround && fallSpeed > 2) this.landedImpact = fallSpeed;
 
-    // Safe respawn with angel death sequence when falling into the void
     const voidY = Math.min(this.spawnPoint.y - 18, -4);
     if (this.position.y < voidY && !this.isDying) {
       if (this.onDie) {
@@ -160,7 +192,6 @@ export class Player {
       }
     }
 
-    // head bob
     const horizontal = Math.hypot(this.velocity.x, this.velocity.z);
     if (this.onGround && horizontal > 0.6) this.bob += dt * horizontal * 1.5;
     else this.bob *= Math.exp(-8 * dt);
@@ -185,22 +216,21 @@ export class Player {
 
   private moveAxis(axis: 0 | 1 | 2, amount: number) {
     if (amount === 0) return;
-    const next = this.position.clone();
     const key = axis === 0 ? "x" : axis === 1 ? "y" : "z";
+    const next = this._next.copy(this.position);
     next[key] += amount;
     if (!this.collides(next)) {
       this.position.copy(next);
       if (axis === 1) this.onGround = false;
       return;
     }
-    // auto step-up: walk straight onto a one-block ledge instead of stopping
     if (axis !== 1 && (this.onGround || this.coyote > 0) && this.velocity.y <= 0.01) {
       for (let lift = 0.2; lift <= STEP_HEIGHT + 0.001; lift += 0.2) {
-        const stepped = this.position.clone();
+        const stepped = this._probe.copy(this.position);
         stepped.y += lift;
         stepped[key] += amount;
         if (!this.collides(stepped)) {
-          const headroom = this.position.clone();
+          const headroom = this._next.copy(this.position);
           headroom.y += lift;
           if (!this.collides(headroom)) {
             this.position.copy(stepped);
@@ -211,11 +241,10 @@ export class Player {
       }
     }
 
-    // step back to contact
     const step = Math.sign(amount) * 0.01;
     let moved = 0;
     while (Math.abs(moved) < Math.abs(amount)) {
-      const probe = this.position.clone();
+      const probe = this._probe.copy(this.position);
       probe[key] += step;
       if (this.collides(probe)) break;
       this.position.copy(probe);
