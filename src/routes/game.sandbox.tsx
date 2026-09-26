@@ -72,7 +72,7 @@ import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
 import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
 import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
-import { CinematicVignette, Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
+import { CinematicVignette, Crosshair, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
 import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
 
 
@@ -3192,7 +3192,6 @@ export function SandboxGame({
           {skyblock && (
             <>
               <CinematicVignette />
-              <MilestoneTracker progression={progression} />
               <V2Hotbar hotbar={hotbar} tileUrls={tileUrls} slot={slot} onSelect={selectSlot} isTouch={isTouch} />
               <Crosshair />
             </>
