@@ -17,8 +17,8 @@ export const SETTINGS_ASSETS = {
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
-  controlsScale: number;
-  onControlsScaleChange: (scale: number) => void;
+  controlsScale?: number;
+  onControlsScaleChange?: (scale: number) => void;
 }
 
 type SettingTab = "game" | "video" | "controls" | "players";
@@ -32,7 +32,7 @@ interface GamePlayerInfo {
 
 export function FlatSquareSettingsModal({
   onClose,
-  controlsScale,
+  controlsScale: initialControlsScale = 1.0,
   onControlsScaleChange,
 }: FlatSquareSettingsModalProps) {
   const { qbUser } = useAuth();
@@ -74,9 +74,25 @@ export function FlatSquareSettingsModal({
   const [fov, setFov] = useState<number>(() => {
     try {
       const saved = localStorage.getItem("qb_camera_fov");
-      return saved ? Number(saved) : 75;
+      return saved ? Number(saved) : 70;
     } catch {
-      return 75;
+      return 70;
+    }
+  });
+
+  const [atmosphere, setAtmosphere] = useState<"day" | "golden" | "night">(() => {
+    try {
+      return (localStorage.getItem("qb_atmosphere") as any) || "day";
+    } catch {
+      return "day";
+    }
+  });
+
+  const [fogMode, setFogMode] = useState<"realistic" | "dense" | "subtle" | "off">(() => {
+    try {
+      return (localStorage.getItem("qb_fog_mode") as any) || "realistic";
+    } catch {
+      return "realistic";
     }
   });
 
@@ -177,10 +193,30 @@ export function FlatSquareSettingsModal({
 
   // Apply Controls scale change
   const handleControlsScaleSlider = (val: number) => {
-    onControlsScaleChange(val);
+    onControlsScaleChange?.(val);
     try {
       localStorage.setItem("qb_controls_scale", String(val));
     } catch {}
+    window.dispatchEvent(new CustomEvent("bm-controls-scale", { detail: val }));
+  };
+
+  // Apply Atmosphere (Day / Golden Hour / Night)
+  const handleAtmosphereChange = (mode: "day" | "golden" | "night") => {
+    setAtmosphere(mode);
+    try {
+      localStorage.setItem("qb_atmosphere", mode);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: mode }));
+  };
+
+  // Apply Realistic Fog Setting
+  const handleFogChange = (mode: "realistic" | "dense" | "subtle" | "off") => {
+    setFogMode(mode);
+    try {
+      localStorage.setItem("qb_fog_mode", mode);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-fog-mode", { detail: mode }));
+    window.dispatchEvent(new CustomEvent("bm-fog", { detail: mode !== "off" }));
   };
 
   // Reset controls to default
@@ -578,9 +614,123 @@ export function FlatSquareSettingsModal({
                 />
                 <div className="flex justify-between text-[11px] font-mono text-white/40">
                   <span>Narrow (60°)</span>
-                  <span>Standard (75°)</span>
+                  <span>Standard (70°)</span>
                   <span>Wide (95°)</span>
                 </div>
+              </div>
+
+              {/* Atmosphere / Time of Day */}
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-bold text-white">
+                    Atmosphere & Lighting
+                  </span>
+                  <span className="text-[12px] font-mono font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+                    {atmosphere === "day" ? "Normal Day" : atmosphere === "golden" ? "Golden Hour" : "Night Sky"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAtmosphereChange("day")}
+                    className={`py-2 px-2 rounded-xl text-[12px] font-bold tracking-tight transition-all border ${
+                      atmosphere === "day"
+                        ? "bg-sky-400 text-black border-sky-300 shadow-md"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    ☀️ Normal Day
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAtmosphereChange("golden")}
+                    className={`py-2 px-2 rounded-xl text-[12px] font-bold tracking-tight transition-all border ${
+                      atmosphere === "golden"
+                        ? "bg-gradient-to-r from-amber-400 to-orange-400 text-black font-black border-amber-300 shadow-md"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    🌅 Golden Hour
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAtmosphereChange("night")}
+                    className={`py-2 px-2 rounded-xl text-[12px] font-bold tracking-tight transition-all border ${
+                      atmosphere === "night"
+                        ? "bg-indigo-500 text-white font-black border-indigo-400 shadow-md"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    🌙 Night Sky
+                  </button>
+                </div>
+              </div>
+
+              {/* Realistic Near Fog */}
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-bold text-white">
+                    Atmospheric Fog
+                  </span>
+                  <span className="text-[12px] font-mono font-bold text-sky-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+                    {fogMode === "realistic"
+                      ? "Near Realistic (12m)"
+                      : fogMode === "dense"
+                      ? "Dense Mist (6m)"
+                      : fogMode === "subtle"
+                      ? "Subtle (22m)"
+                      : "Off"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleFogChange("realistic")}
+                    className={`py-2 px-1 rounded-xl text-[12px] font-bold tracking-tight transition-all border text-center ${
+                      fogMode === "realistic"
+                        ? "bg-sky-400 text-black border-sky-300 shadow-md font-black"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    🌫️ Realistic
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFogChange("dense")}
+                    className={`py-2 px-1 rounded-xl text-[12px] font-bold tracking-tight transition-all border text-center ${
+                      fogMode === "dense"
+                        ? "bg-sky-400 text-black border-sky-300 shadow-md font-black"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    🌁 Dense
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFogChange("subtle")}
+                    className={`py-2 px-1 rounded-xl text-[12px] font-bold tracking-tight transition-all border text-center ${
+                      fogMode === "subtle"
+                        ? "bg-sky-400 text-black border-sky-300 shadow-md font-black"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    🌤️ Subtle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFogChange("off")}
+                    className={`py-2 px-1 rounded-xl text-[12px] font-bold tracking-tight transition-all border text-center ${
+                      fogMode === "off"
+                        ? "bg-white/30 text-white border-white/40 shadow-md font-black"
+                        : "bg-white/10 text-white/70 border-white/15 hover:bg-white/20"
+                    }`}
+                  >
+                    🚫 Off
+                  </button>
+                </div>
+                <p className="text-[11px] text-white/40">
+                  Volumetric atmospheric mist wraps nearby floating islands and soft-blends distant horizons.
+                </p>
               </div>
             </div>
           )}

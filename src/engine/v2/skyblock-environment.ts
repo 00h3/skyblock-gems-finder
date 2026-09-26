@@ -33,6 +33,7 @@ uniform vec3 uShallow;
 uniform vec3 uFogColor;
 uniform float uFogNear;
 uniform float uFogFar;
+uniform float uIsPond;
 varying vec3 vWorld;
 varying float vViewDepth;
 
@@ -41,33 +42,54 @@ vec2 waveGrad(vec2 p, vec2 dir, float freq, float speed, float amp) {
   return dir * cos(ph) * freq * amp;
 }
 
+// Procedural animated caustics shimmer
+float caustic(vec2 p) {
+  vec2 p1 = p * 1.4 + vec2(uTime * 0.12, uTime * 0.08);
+  vec2 p2 = p * 1.8 - vec2(uTime * 0.09, uTime * 0.14);
+  float c1 = sin(p1.x + sin(p1.y * 1.2)) * 0.5 + 0.5;
+  float c2 = cos(p2.y + cos(p2.x * 1.3)) * 0.5 + 0.5;
+  return pow(c1 * c2, 1.8) * 1.8;
+}
+
 void main() {
   vec2 p = vWorld.xz * uScale;
   vec2 g = vec2(0.0);
-  g += waveGrad(p, normalize(vec2(1.0, 0.3)), 1.0, 1.1, 0.13);
-  g += waveGrad(p, normalize(vec2(-0.4, 1.0)), 1.8, 1.5, 0.07);
-  g += waveGrad(p, normalize(vec2(0.7, -0.8)), 3.3, 2.2, 0.035);
-  g += waveGrad(p, normalize(vec2(-0.9, -0.25)), 5.9, 3.0, 0.018);
-  g += waveGrad(p, normalize(vec2(0.2, 0.95)), 9.7, 4.1, 0.009);
+  g += waveGrad(p, normalize(vec2(1.0, 0.3)), 1.1, 1.2, 0.12);
+  g += waveGrad(p, normalize(vec2(-0.5, 0.9)), 2.2, 1.6, 0.07);
+  g += waveGrad(p, normalize(vec2(0.8, -0.6)), 4.1, 2.4, 0.04);
+  g += waveGrad(p, normalize(vec2(-0.8, -0.3)), 7.5, 3.2, 0.02);
+  g += waveGrad(p, normalize(vec2(0.3, 0.95)), 12.0, 4.5, 0.01);
   vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
 
   vec3 v = normalize(cameraPosition - vWorld);
   float ndv = max(dot(n, v), 0.0);
-  float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+  float fresnel = 0.04 + 0.96 * pow(1.0 - ndv, 4.0);
 
   vec3 r = reflect(-v, n);
-  vec3 sky = mix(uSkyColor * 0.82, uSkyColor * 1.12, clamp(r.y * 1.5, 0.0, 1.0));
+  vec3 sky = mix(uSkyColor * 0.88, uSkyColor * 1.25, clamp(r.y * 1.4 + 0.1, 0.0, 1.0));
 
   vec3 h = normalize(uSunDir + v);
-  float spec = pow(max(dot(n, h), 0.0), 220.0) * 3.0;
-  float glitter = pow(max(dot(n, h), 0.0), 40.0) * 0.12;
+  float ndh = max(dot(n, h), 0.0);
+  float specSharp = pow(ndh, 320.0) * 4.5;
+  float specBroad = pow(ndh, 32.0) * 0.35;
+  float glitter = pow(ndh, 12.0) * 0.12;
 
-  vec3 body = mix(uDeep, uShallow, pow(ndv, 2.0) * 0.7);
-  vec3 col = mix(body, sky, fresnel) + uSunColor * (spec + glitter);
+  // Crystal clear tropical water gradient with depth
+  vec3 body = mix(uDeep, uShallow, pow(ndv, 1.3) * 0.85);
+
+  // Animated caustics pattern moving with the waves
+  if (uIsPond > 0.5) {
+    float caust = caustic(vWorld.xz * 1.8);
+    body += vec3(0.08, 0.18, 0.22) * caust;
+  }
+
+  vec3 col = mix(body, sky, fresnel) + uSunColor * (specSharp + specBroad + glitter);
 
   float fog = smoothstep(uFogNear, uFogFar, vViewDepth);
   col = mix(col, uFogColor, fog);
-  gl_FragColor = vec4(col, mix(uOpacity, 1.0, fresnel));
+
+  float alpha = mix(uOpacity, 0.96, fresnel);
+  gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }
@@ -132,6 +154,7 @@ type WaterOptions = {
   deep: THREE.ColorRepresentation;
   shallow: THREE.ColorRepresentation;
   transparent: boolean;
+  isPond?: boolean;
 };
 
 function createWaterMaterial(o: WaterOptions) {
@@ -153,6 +176,7 @@ function createWaterMaterial(o: WaterOptions) {
       uFogColor: { value: new THREE.Color("#cfe6fb") },
       uFogNear: { value: 90 },
       uFogFar: { value: 700 },
+      uIsPond: { value: o.isPond ? 1.0 : 0.0 },
     },
   });
 }
@@ -177,7 +201,7 @@ export class SkyblockEnvironment {
 
     this.ocean = new THREE.Mesh(
       new THREE.PlaneGeometry(2600, 2600, 1, 1),
-      createWaterMaterial({ scale: 0.06, opacity: 1, deep: "#0b3a5c", shallow: "#1f7aa3", transparent: false }),
+      createWaterMaterial({ scale: 0.05, opacity: 1, deep: "#072b48", shallow: "#166892", transparent: false, isPond: false }),
     );
     this.ocean.rotation.x = -Math.PI / 2;
     this.ocean.position.y = -70;
@@ -227,8 +251,8 @@ export class SkyblockEnvironment {
     if (opts.pond) {
       const { x, y, z, size } = opts.pond;
       this.pond = new THREE.Mesh(
-        new THREE.PlaneGeometry(size, size, 1, 1),
-        createWaterMaterial({ scale: 1.6, opacity: 0.72, deep: "#0f4d6e", shallow: "#3fb0c9", transparent: true }),
+        new THREE.PlaneGeometry(size, size, 24, 24),
+        createWaterMaterial({ scale: 1.5, opacity: 0.82, deep: "#0a4466", shallow: "#22c6e8", transparent: true, isPond: true }),
       );
       this.pond.rotation.x = -Math.PI / 2;
       this.pond.position.set(x, y, z);
@@ -272,8 +296,8 @@ export class SkyblockEnvironment {
       u.uShade.value.copy(this._shade);
       if (fog) {
         u.uFogColor.value.copy(fog.color);
-        u.uFogNear.value = fog.near;
-        u.uFogFar.value = fog.far;
+        u.uFogNear.value = Math.max(35, fog.near * 2.5);
+        u.uFogFar.value = Math.max(160, fog.far * 2.4);
       }
     }
   }

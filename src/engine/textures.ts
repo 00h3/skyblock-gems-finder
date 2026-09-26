@@ -82,6 +82,7 @@ export const TILE_NAMES = [
   "yellow_wool",
   "pink_wool",
   "terracotta",
+  "water",
 ] as const;
 
 export type TileName = (typeof TILE_NAMES)[number];
@@ -229,6 +230,33 @@ export async function buildAtlas(
       // then redraw the inner tile at the final display resolution.
       ctx.drawImage(img, cx, cy, CELL, CELL);
       ctx.drawImage(img, cx + PAD, cy + PAD, INNER, INNER);
+    } else if (name === "water") {
+      const grad = ctx.createLinearGradient(cx, cy, cx + CELL, cy + CELL);
+      grad.addColorStop(0, "#1988db");
+      grad.addColorStop(0.5, "#25a5f5");
+      grad.addColorStop(1, "#126bb8");
+      ctx.fillStyle = grad;
+      ctx.fillRect(cx, cy, CELL, CELL);
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(185, 238, 255, 0.45)";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+
+      ctx.beginPath();
+      ctx.arc(cx + CELL * 0.35, cy + CELL * 0.35, CELL * 0.22, 0.2, Math.PI * 0.9);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx + CELL * 0.72, cy + CELL * 0.65, CELL * 0.18, Math.PI * 0.8, Math.PI * 1.7);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx + CELL * 0.38, cy + CELL * 0.33, CELL * 0.14, 0.4, Math.PI * 0.75);
+      ctx.stroke();
+      ctx.restore();
     } else {
       ctx.fillStyle = "#ff28c8";
       ctx.fillRect(cx, cy, CELL, CELL);

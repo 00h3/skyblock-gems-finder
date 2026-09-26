@@ -104,25 +104,35 @@ void main() {
 const SKY_RADIUS = 1000;
 
 const C = {
-  topDay: new THREE.Color("#2f6fd0"),
-  midDay: new THREE.Color("#6fb1ee"),
-  horizonDay: new THREE.Color("#cfe6fb"),
-  topNight: new THREE.Color("#060b1c"),
-  midNight: new THREE.Color("#0e1a38"),
-  horizonNight: new THREE.Color("#1a2a4d"),
-  dusk: new THREE.Color("#f5a25d"),
-  sunDay: new THREE.Color("#fff6de"),
-  sunDusk: new THREE.Color("#ff9448"),
-  moon: new THREE.Color("#9cc4ff"),
+  // Vibrant, rich day atmosphere
+  topDay: new THREE.Color("#1864c8"),
+  midDay: new THREE.Color("#58a6f0"),
+  horizonDay: new THREE.Color("#c6e2ff"),
+  sunDay: new THREE.Color("#fff7e6"),
   cloudLitDay: new THREE.Color("#ffffff"),
-  cloudShadeDay: new THREE.Color("#b7c6d8"),
-  cloudLitNight: new THREE.Color("#3a4768"),
-  cloudShadeNight: new THREE.Color("#141c33"),
-  cloudLitDusk: new THREE.Color("#ffd7b0"),
-  hemiSkyDay: new THREE.Color("#e3f1ff"),
-  hemiSkyNight: new THREE.Color("#23385f"),
-  hemiGroundDay: new THREE.Color("#5b6a4f"),
-  hemiGroundNight: new THREE.Color("#0a1220"),
+  cloudShadeDay: new THREE.Color("#adc3da"),
+  hemiSkyDay: new THREE.Color("#d8ecff"),
+  hemiGroundDay: new THREE.Color("#567848"),
+
+  // Authentic, stunning Golden Hour
+  topGolden: new THREE.Color("#1a3564"),
+  midGolden: new THREE.Color("#dd6328"),
+  horizonGolden: new THREE.Color("#ff7c30"),
+  sunGolden: new THREE.Color("#ffaa33"),
+  cloudLitGolden: new THREE.Color("#ffe4b8"),
+  cloudShadeGolden: new THREE.Color("#6b3f54"),
+  hemiSkyGolden: new THREE.Color("#ffaa66"),
+  hemiGroundGolden: new THREE.Color("#683e25"),
+
+  // Night
+  topNight: new THREE.Color("#050a18"),
+  midNight: new THREE.Color("#0c1732"),
+  horizonNight: new THREE.Color("#172648"),
+  moon: new THREE.Color("#9ec4ff"),
+  cloudLitNight: new THREE.Color("#354260"),
+  cloudShadeNight: new THREE.Color("#12192e"),
+  hemiSkyNight: new THREE.Color("#203358"),
+  hemiGroundNight: new THREE.Color("#09101c"),
 };
 
 export type SkyOptions = {
@@ -207,7 +217,19 @@ export class Sky {
     this.group.add(this.sunLight.target);
     scene.add(this.hemi, this.ambient, this.group);
 
-    this.fog = new THREE.Fog(0xcfe6fb, 90, 520);
+    let initialNear = 12;
+    let initialFar = 68;
+    try {
+      if (typeof window !== "undefined") {
+        const mode = localStorage.getItem("qb_fog_mode") || "realistic";
+        if (mode === "dense") { initialNear = 6; initialFar = 42; }
+        else if (mode === "subtle") { initialNear = 22; initialFar = 110; }
+        else if (mode === "off") { initialNear = 90; initialFar = 450; }
+        else { initialNear = 12; initialFar = 68; }
+      }
+    } catch {}
+
+    this.fog = new THREE.Fog(0xcfe6fb, initialNear, initialFar);
     scene.fog = this.fog;
     this.apply();
   }
@@ -243,12 +265,12 @@ export class Sky {
 
   setGoldenHour() {
     this.isGoldenHour = true;
-    this.setTimeOfDay(0.47);
+    this.setTimeOfDay(0.72); // Low golden sun angle
   }
 
   setNight() {
     this.isGoldenHour = false;
-    this.setTimeOfDay(0.8);
+    this.setTimeOfDay(0.85);
   }
 
   follow(pos: THREE.Vector3) {
@@ -274,13 +296,15 @@ export class Sky {
 
     // Voxel textures must stay readable, so "night" never goes pitch black.
     const day = THREE.MathUtils.clamp(sunDir.y * 2.2 + 0.35, 0, 1);
-    const dusk = THREE.MathUtils.clamp(1 - Math.abs(sunDir.y) * 3.2, 0, 1);
-    const night = 1 - day;
+    const dusk = this.isGoldenHour
+      ? 1.0
+      : THREE.MathUtils.clamp(1.0 - Math.abs(sunDir.y - 0.20) * 3.6, 0, 1);
+    const night = Math.max(0, 1 - day - dusk * 0.5);
 
-    const top = this._top.copy(C.topNight).lerp(C.topDay, day);
-    const mid = this._mid.copy(C.midNight).lerp(C.midDay, day);
-    const horizon = this._horizon.copy(C.horizonNight).lerp(C.horizonDay, day).lerp(C.dusk, dusk * 0.6);
-    const sun = this._sun.copy(C.sunDay).lerp(C.sunDusk, dusk * 0.85);
+    const top = this._top.copy(C.topNight).lerp(C.topDay, day).lerp(C.topGolden, dusk * 0.95);
+    const mid = this._mid.copy(C.midNight).lerp(C.midDay, day).lerp(C.midGolden, dusk * 0.98);
+    const horizon = this._horizon.copy(C.horizonNight).lerp(C.horizonDay, day).lerp(C.horizonGolden, dusk);
+    const sun = this._sun.copy(C.sunDay).lerp(C.sunGolden, dusk);
 
     if (this.tintAmount > 0.001) {
       top.lerp(this.tint, this.tintAmount * 0.35);
@@ -296,25 +320,32 @@ export class Sky {
     u.uSunDir.value.copy(sunDir);
     u.uSunColor.value.copy(sun);
     u.uNight.value = night;
-    u.uCloudLit.value.copy(C.cloudLitNight).lerp(C.cloudLitDay, day).lerp(C.cloudLitDusk, dusk * 0.55);
-    u.uCloudShade.value.copy(C.cloudShadeNight).lerp(C.cloudShadeDay, day);
+    u.uCloudLit.value.copy(C.cloudLitNight).lerp(C.cloudLitDay, day).lerp(C.cloudLitGolden, dusk * 0.85);
+    u.uCloudShade.value.copy(C.cloudShadeNight).lerp(C.cloudShadeDay, day).lerp(C.cloudShadeGolden, dusk * 0.7);
 
     // Below the horizon the key light becomes the moon from the opposite side.
     if (sunDir.y >= -0.05) {
       this.sunLight.position.copy(sunDir).multiplyScalar(120);
       this.sunLight.color.copy(sun);
-      this.sunLight.intensity = 0.35 + day * 1.55;
+      this.sunLight.intensity = this.isGoldenHour ? 2.3 : 0.65 + day * 1.55;
     } else {
       this.sunLight.position.copy(sunDir).multiplyScalar(-120);
       this.sunLight.color.copy(C.moon);
-      this.sunLight.intensity = 0.42;
+      this.sunLight.intensity = 0.45;
     }
     if (this.sunLight.position.y < 20) this.sunLight.position.y = 20;
 
-    this.hemi.color.copy(C.hemiSkyNight).lerp(C.hemiSkyDay, day);
-    this.hemi.groundColor.copy(C.hemiGroundNight).lerp(C.hemiGroundDay, day);
-    this.hemi.intensity = 0.55 + day * 0.4;
-    this.ambient.intensity = 0.22 + day * 0.14;
+    const hemiSky = this.isGoldenHour
+      ? C.hemiSkyGolden
+      : C.hemiSkyNight.clone().lerp(C.hemiSkyDay, day);
+    const hemiGround = this.isGoldenHour
+      ? C.hemiGroundGolden
+      : C.hemiGroundNight.clone().lerp(C.hemiGroundDay, day);
+
+    this.hemi.color.copy(hemiSky);
+    this.hemi.groundColor.copy(hemiGround);
+    this.hemi.intensity = this.isGoldenHour ? 1.3 : 0.65 + day * 0.55;
+    this.ambient.intensity = this.isGoldenHour ? 0.35 : 0.28 + day * 0.16;
 
     this.fog.color.copy(horizon);
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);

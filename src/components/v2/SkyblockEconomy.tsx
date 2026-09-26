@@ -479,33 +479,29 @@ function QuestsTab({ economy, progression }: { economy: Economy; progression: Pr
   })).sort((a, b) => Number(a.done) - Number(b.done));
 
   return (
-    <div className="flex flex-col gap-5">
-      <section aria-labelledby="daily-quests">
-        <div className="mb-2 flex items-baseline justify-between">
-          <h3 id="daily-quests" className="v2-eyebrow">
-            Daily quests
-          </h3>
-          <span className="text-[11px] tabular-nums text-white/45">{`Resets in ${formatClock(msUntilMidnight(now))}`}</span>
-        </div>
-        <ul className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 text-[11px]">
+      <details className="group bg-white/[0.03] rounded-lg border border-white/10 overflow-hidden">
+        <summary className="cursor-pointer p-2 font-bold text-sky-300 hover:bg-white/5 flex justify-between items-center">
+          <span>Daily Quests ({daily.length})</span>
+          <span className="text-[10px] text-white/40">{`Resets in ${formatClock(msUntilMidnight(now))}`}</span>
+        </summary>
+        <ul className="flex flex-col gap-1 p-2 border-t border-white/10">
           {daily.map((q) => (
             <QuestRow key={q.id} {...q} />
           ))}
         </ul>
-      </section>
-      <section aria-labelledby="island-quests">
-        <div className="mb-2 flex items-baseline justify-between">
-          <h3 id="island-quests" className="v2-eyebrow">
-            Island quests
-          </h3>
-          <span className="text-[11px] tabular-nums text-white/45">{`${p.completed.length}/${MILESTONES.length} done`}</span>
-        </div>
-        <ul className="flex flex-col gap-2">
+      </details>
+      <details className="group bg-white/[0.03] rounded-lg border border-white/10 overflow-hidden">
+        <summary className="cursor-pointer p-2 font-bold text-amber-300 hover:bg-white/5 flex justify-between items-center">
+          <span>Island Quests ({island.length})</span>
+          <span className="text-[10px] text-white/40">{`${p.completed.length}/${MILESTONES.length} done`}</span>
+        </summary>
+        <ul className="flex flex-col gap-1 p-2 border-t border-white/10">
           {island.map((q) => (
             <QuestRow key={q.id} {...q} target={q.target} />
           ))}
         </ul>
-      </section>
+      </details>
     </div>
   );
 }

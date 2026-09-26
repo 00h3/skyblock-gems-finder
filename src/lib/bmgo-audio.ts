@@ -288,6 +288,140 @@ export const BmgoAudio = {
     }
   },
 
+  /**
+   * Start realistic ambient water stream & gentle wave lapping sound using Web Audio.
+   * Dynamically tracks distance to pond/water and fades in when close.
+   */
+  startWaterAmbient(getDistance: () => number): () => void {
+    if (typeof window === "undefined") return () => {};
+    let running = true;
+    let animId: number;
+    let ctx: AudioContext | null = null;
+    let masterGain: GainNode | null = null;
+
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return () => {};
+
+      ctx = new AudioCtx();
+      const bufferSize = ctx.sampleRate * 2;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      // Bandpass filter to simulate gentle water flow & lapping
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(450, ctx.currentTime);
+      filter.Q.setValueAtTime(2.2, ctx.currentTime);
+
+      // Low LFO to gently modulate water wave frequency (lapping)
+      const lfo = ctx.createOscillator();
+      lfo.frequency.setValueAtTime(0.4, ctx.currentTime);
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.setValueAtTime(140, ctx.currentTime);
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+
+      masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, ctx.currentTime);
+
+      whiteNoise.connect(filter);
+      filter.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      whiteNoise.start();
+      lfo.start();
+
+      const updateVolume = () => {
+        if (!running || !ctx || !masterGain) return;
+        const dist = getDistance();
+        // Full volume when within 4 units, fades out to 0 at 22 units
+        const maxDist = 22;
+        const minDist = 4;
+        let factor = 0;
+        if (dist <= minDist) factor = 1.0;
+        else if (dist < maxDist) factor = 1.0 - (dist - minDist) / (maxDist - minDist);
+
+        const targetGain = factor * 0.42 * masterVolume;
+        masterGain.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.1);
+        animId = requestAnimationFrame(updateVolume);
+      };
+      animId = requestAnimationFrame(updateVolume);
+    } catch {}
+
+    return () => {
+      running = false;
+      if (animId) cancelAnimationFrame(animId);
+      if (ctx) {
+        ctx.close().catch(() => {});
+      }
+    };
+  },
+
+  /**
+   * Authentic water splash sound effect (dropping into or wading through water)
+   */
+  playWaterSplash(volume = 0.5) {
+    initSounds();
+    try {
+      if (typeof window !== "undefined") {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const effVol = volume * masterVolume;
+
+        // 1. Water impact low thud
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.22);
+        oscGain.gain.setValueAtTime(0.35 * effVol, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+
+        // 2. High fizzy splash spray
+        const bufferSize = Math.floor(ctx.sampleRate * 0.35);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.setValueAtTime(1400, now);
+        bp.Q.setValueAtTime(1.8, now);
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.4 * effVol, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+        noise.connect(bp);
+        bp.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noise.start(now);
+        noise.stop(now + 0.35);
+      }
+    } catch {}
+  },
+
   toggleBgm(): boolean {
     if (isBgmPlaying) {
       this.stopBgm();

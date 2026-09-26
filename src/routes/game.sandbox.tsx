@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinnedModel } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { buildAtlas, type Atlas } from "@/engine/textures";
-import { World, BLOCKS } from "@/engine/world";
+import { World, BLOCKS, WATER_ID } from "@/engine/world";
 import { Player } from "@/engine/player";
 import { Controls } from "@/engine/controls";
 import { BlockFx, createHighlight, raycastVoxel } from "@/engine/interact";
@@ -14,7 +14,7 @@ import { CRACK_STAGES } from "@/engine/textures";
 import { Link } from "@tanstack/react-router";
 import { SandboxChat } from "@/components/SandboxChat";
 import { openFragments } from "@/lib/fragments-ui";
-import { SandboxSettings } from "@/components/SandboxSettings";
+import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
 import { getTargetDpr } from "@/lib/rendering";
 import { GameChatIcon } from "@/components/game-icons";
 import { BedwarsHud, type MovementMode } from "@/components/BedwarsHud";
@@ -1010,7 +1010,14 @@ export function SandboxGame({
       if (phoenixModelRef.current) phoenixModelRef.current.visible = true;
     } else {
       skyRef.current.setNormalDay();
-      skyRef.current.setRange(70, 520);
+      let fogMode = "realistic";
+      try {
+        fogMode = localStorage.getItem("qb_fog_mode") || "realistic";
+      } catch {}
+      if (fogMode === "dense") skyRef.current.setRange(6, 42);
+      else if (fogMode === "subtle") skyRef.current.setRange(22, 110);
+      else if (fogMode === "off") skyRef.current.setRange(90, 450);
+      else skyRef.current.setRange(12, 68);
       if (celestialSunRef.current) celestialSunRef.current.visible = true;
       if (celestialMoonRef.current) celestialMoonRef.current.visible = false;
       if (auroraGroupRef.current) auroraGroupRef.current.visible = false;
@@ -1184,7 +1191,12 @@ export function SandboxGame({
       // caused distant z-fighting shimmer). The sky dome renders at the far
       // plane in its shader, so it never needs a huge far distance.
       const aspect0 = mount.clientWidth / Math.max(1, mount.clientHeight);
-      const camera = new THREE.PerspectiveCamera(fovForAspect(aspect0), aspect0, 0.1, 900);
+      let userFov = 70;
+      try {
+        const savedFov = localStorage.getItem("qb_camera_fov");
+        if (savedFov) userFov = Number(savedFov);
+      } catch {}
+      const camera = new THREE.PerspectiveCamera(fovForAspect(aspect0, 88, userFov), aspect0, 0.1, 900);
       let baseFov = camera.fov;
 
       sky = new Sky(scene, {
@@ -1193,17 +1205,44 @@ export function SandboxGame({
         cloudOctaves: qualityPref === "low" ? 3 : 5,
       });
       skyRef.current = sky;
-      if (skyblock) {
-        sky.setNormalDay();
-        sky.setRange(70, 520);
-      } else if (blockFall) {
-        sky.setNormalDay();
-        sky.paused = true;
-        sky.setCloudCover(0.4);
-        sky.setRange(80, 400);
+      let initialAtm = "day";
+      try {
+        initialAtm = localStorage.getItem("qb_atmosphere") || "day";
+      } catch {}
+      if (initialAtm === "golden") {
+        sky.setGoldenHour();
+      } else if (initialAtm === "night") {
+        sky.setNight();
       } else {
-        // Fog pushed to the very edge so far chunks render at full quality.
-        sky.setRange(10, goldenDays ? 640 : 120);
+        sky.setNormalDay();
+      }
+
+      let initialFogMode = "realistic";
+      try {
+        initialFogMode = localStorage.getItem("qb_fog_mode") || "realistic";
+      } catch {}
+
+      const applyFogMode = (mode: string) => {
+        if (!sky) return;
+        if (mode === "dense") {
+          sky.setRange(6, 42);
+        } else if (mode === "subtle") {
+          sky.setRange(22, 110);
+        } else if (mode === "off") {
+          sky.setRange(90, 450);
+        } else {
+          // "realistic" (default) — very near realistic atmospheric fog
+          // Tighter range for BlockFall to enhance moody proximity
+          sky.setRange(8, blockFall ? 48 : 68);
+        }
+      };
+
+      applyFogMode(initialFogMode);
+
+      if (blockFall) {
+        sky.paused = true;
+        sky.setCloudCover(0.35);
+        renderer.toneMappingExposure = 1.14;
       }
 
       // Chunk render distance: tuned per mode for rock-solid performance
@@ -1971,7 +2010,7 @@ export function SandboxGame({
         const w = Math.max(1, mount.clientWidth);
         const h = Math.max(1, mount.clientHeight);
         camera.aspect = w / h;
-        baseFov = fovForAspect(camera.aspect);
+        baseFov = fovForAspect(camera.aspect, 88, userFov);
         camera.fov = baseFov;
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(getTargetDpr(readQualityPref()));
@@ -1982,6 +2021,31 @@ export function SandboxGame({
       window.addEventListener("orientationchange", onResize);
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
+
+      const onFovEvt = (e: Event) => {
+        const val = (e as CustomEvent<number>).detail;
+        if (typeof val === "number" && val >= 50 && val <= 100) {
+          userFov = val;
+          baseFov = fovForAspect(camera.aspect, 88, userFov);
+          camera.fov = baseFov;
+          camera.updateProjectionMatrix();
+        }
+      };
+      window.addEventListener("bm-fov", onFovEvt);
+
+      const onAtmosphereEvt = (e: Event) => {
+        const mode = (e as CustomEvent<string>).detail;
+        if (mode === "golden") sky.setGoldenHour();
+        else if (mode === "night") sky.setNight();
+        else sky.setNormalDay();
+      };
+      window.addEventListener("bm-atmosphere", onAtmosphereEvt);
+
+      const onFogModeEvt = (e: Event) => {
+        const mode = (e as CustomEvent<string>).detail;
+        if (mode) applyFogMode(mode);
+      };
+      window.addEventListener("bm-fog-mode", onFogModeEvt);
 
       const onRespawn = () => {
         player.respawn();
@@ -2018,10 +2082,18 @@ export function SandboxGame({
         };
       }
 
-      // ── Skyblock progression + world events ─────────────────────────────
+      // Ambient particles — white motes removed per user request
       const particles = new AmbientParticles(qualityPref === "low" ? 80 : 160);
-      particles.setMode(skyblock ? "motes" : "off");
+      particles.setMode("off");
       scene.add(particles.points);
+
+      // Realistic ambient water sound when near Skyblock pond
+      let stopWaterAudio: (() => void) | null = null;
+      if (skyblock) {
+        const pondCenter = new THREE.Vector3(SKYBLOCK_POND_SURFACE.x, SKYBLOCK_POND_SURFACE.y, SKYBLOCK_POND_SURFACE.z);
+        stopWaterAudio = BmgoAudio.startWaterAmbient(() => player.position.distanceTo(pondCenter));
+      }
+
       if (skyblock) {
         progression.onUnlockBlock = (blockId) => {
           setHotbar((prev) => (prev.includes(blockId) ? prev : [...prev, blockId]));
@@ -2035,7 +2107,7 @@ export function SandboxGame({
           progression.xpMultiplier = ev.xpMultiplier;
           sky?.setCloudCover(ev.cloudCover);
           if (ev.tint) sky?.setTint(ev.tint, ev.tintAmount ?? 0.4);
-          particles.setMode(ev.particles ?? "motes");
+          particles.setMode("off");
           announce(ev.name, ev.description, "event");
           playSound("pop");
         };
@@ -2129,14 +2201,24 @@ export function SandboxGame({
             const footZ = Math.floor(player.position.z);
             const surfaceId = world!.get(footX, footY, footZ);
             const surface = BLOCKS.find((block) => block.id === surfaceId)?.name ?? "Stone";
-            playFootstep(surface);
+            const distToPond = Math.hypot(player.position.x - SKYBLOCK_POND_SURFACE.x, player.position.z - SKYBLOCK_POND_SURFACE.z);
+            if (skyblock && distToPond < SKYBLOCK_POND.radius + 0.8 && Math.abs(player.position.y - SKYBLOCK_POND_SURFACE.y) < 1.1) {
+              BmgoAudio.playWaterSplash(0.32);
+            } else {
+              playFootstep(surface);
+            }
             footstepT = input.sprint ? 0.31 : 0.43;
           }
         } else {
           footstepT = Math.min(footstepT, 0.08);
         }
         if (wasOnGround && !player.onGround && player.velocity.y > 0) {
-          playSound("jump");
+          const distToPond = Math.hypot(player.position.x - SKYBLOCK_POND_SURFACE.x, player.position.z - SKYBLOCK_POND_SURFACE.z);
+          if (skyblock && distToPond < SKYBLOCK_POND.radius + 0.8) {
+            BmgoAudio.playWaterSplash(0.52);
+          } else {
+            playSound("jump");
+          }
         }
 
         euler.set(input.pitch, input.yaw, 0);
@@ -2152,11 +2234,12 @@ export function SandboxGame({
           rig.update(dt, camera, _pivot, world!);
         }
 
-        // Subtle sprint FOV kick for speed feel.
+        // Subtle sprint FOV kick for speed feel with deadband to avoid matrix recalculation
         const sprinting = input.sprint && horizontalSpeed > 4.5 && !player.frozen;
-        sprintFov += ((sprinting ? 4 : 0) - sprintFov) * (1 - Math.exp(-8 * dt));
-        if (Math.abs(camera.fov - (baseFov + sprintFov)) > 0.05) {
-          camera.fov = baseFov + sprintFov;
+        sprintFov += ((sprinting ? 3.5 : 0) - sprintFov) * (1 - Math.exp(-8 * dt));
+        const targetFov = baseFov + sprintFov;
+        if (Math.abs(camera.fov - targetFov) > 0.12) {
+          camera.fov = targetFov;
           camera.updateProjectionMatrix();
         }
 
@@ -2202,7 +2285,7 @@ export function SandboxGame({
                 if (bId !== 0 && bId !== 10) { // not air, not glass
                   const key = `${bx},${footY},${bz}`;
                   if (!crumblingBlocks.has(key)) {
-                    crumblingBlocks.set(key, { x: bx, y: footY, z: bz, timer: 0.42, blockId: bId });
+                    crumblingBlocks.set(key, { x: bx, y: footY, z: bz, timer: 0.55, blockId: bId });
                     playSound("pop");
                   }
                 }
@@ -2534,6 +2617,10 @@ export function SandboxGame({
         resizeObserver.disconnect();
         window.removeEventListener("orientationchange", onResize);
         window.removeEventListener("qb-menu-respawn", onRespawn);
+        window.removeEventListener("bm-fov", onFovEvt);
+        window.removeEventListener("bm-atmosphere", onAtmosphereEvt);
+        window.removeEventListener("bm-fog-mode", onFogModeEvt);
+        if (stopWaterAudio) stopWaterAudio();
         particles.dispose();
         skyEnv?.dispose();
         match.onPhaseChange = undefined;
@@ -2951,37 +3038,6 @@ export function SandboxGame({
         </header>
       )}
 
-      {/* ── Settings Overlay ── */}
-      {settingsOpen && !isV2 && (
-        <div
-          className="fixed inset-0 z-[500] bg-white p-6 flex flex-col items-center justify-center"
-          onClick={() => setSettingsOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-black">Game Settings</h2>
-              <button onClick={() => setSettingsOpen(false)} className="p-2">
-                <X className="w-8 h-8" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <button
-                className="w-full text-left p-4 bg-gray-50 rounded-xl font-bold text-lg hover:bg-gray-100"
-                onClick={() => {
-                  toggleThird();
-                  setSettingsOpen(false);
-                }}
-              >
-                Toggle Camera Mode
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Leave Dialog ── */}
       {showQuitDialog && isV2 && (
         <V2ConfirmDialog
@@ -3317,13 +3373,7 @@ export function SandboxGame({
       {chatOpen && <SandboxChat onClose={() => setChatOpen(false)} />}
 
       {settingsOpen && (
-        <SandboxSettings
-          onClose={() => setSettingsOpen(false)}
-          camMode={thirdPerson ? "third" : "first"}
-          onCamMode={(m) => {
-            if ((m === "third") !== thirdPerson) toggleThird();
-          }}
-        />
+        <FlatSquareSettingsModal onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );

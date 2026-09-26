@@ -170,9 +170,25 @@ export class Player {
       this.onGround = false;
     }
 
-    const g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
-    this.velocity.y -= g * dt;
-    if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
+    const footX = Math.floor(this.position.x);
+    const footY = Math.floor(this.position.y);
+    const footZ = Math.floor(this.position.z);
+    const inWater = this.world.isLiquid(footX, footY, footZ) || this.world.isLiquid(footX, footY + 1, footZ);
+
+    if (inWater) {
+      if (wantsJump) {
+        this.velocity.y = Math.min(this.velocity.y + 18 * dt, 4.2);
+      } else {
+        this.velocity.y -= P.gravity * 0.3 * dt;
+        if (this.velocity.y < -3.2) this.velocity.y = -3.2;
+      }
+      this.velocity.x *= Math.exp(-2.5 * dt);
+      this.velocity.z *= Math.exp(-2.5 * dt);
+    } else {
+      const g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
+      this.velocity.y -= g * dt;
+      if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
+    }
 
     const wasGround = this.onGround;
     const fallSpeed = -this.velocity.y;

@@ -61,6 +61,23 @@ export function V2GameHud({
   onMenuChange,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [controlsScale, setControlsScale] = useState<number>(() => {
+    try {
+      const s = localStorage.getItem("qb_controls_scale");
+      return s ? Number(s) : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
+
+  useEffect(() => {
+    const handleScale = (e: Event) => {
+      const val = (e as CustomEvent<number>).detail;
+      if (typeof val === "number") setControlsScale(val);
+    };
+    window.addEventListener("bm-controls-scale", handleScale);
+    return () => window.removeEventListener("bm-controls-scale", handleScale);
+  }, []);
 
   const setMenu = (open: boolean) => {
     setMenuOpen(open);
@@ -77,16 +94,16 @@ export function V2GameHud({
   return (
     <div
       className="v2-ui pointer-events-none fixed inset-0 z-[100] select-none"
-      style={{ ["--hb" as string]: hasHotbar ? "66px" : "0px" }}
+      style={{ ["--hb" as string]: hasHotbar ? "52px" : "0px" }}
     >
-      <header className="absolute inset-x-3 top-[max(12px,calc(env(safe-area-inset-top)+8px))] flex flex-wrap items-start justify-between gap-2 sm:inset-x-5">
-        <nav aria-label="Game" className="pointer-events-auto flex gap-2">
+      <header className="absolute inset-x-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] flex flex-wrap items-start justify-between gap-1.5 sm:inset-x-5">
+        <nav aria-label="Game" className="pointer-events-auto flex gap-1.5">
           {topButtons.map((b) => (
             <V2Button
               key={b.label}
               onClick={b.onClick}
               aria-expanded={b.label === "Menu" ? menuOpen : undefined}
-              className="h-11 min-w-[52px] px-3 text-[14px] sm:h-12 sm:min-w-[60px] sm:text-[15px]"
+              className="h-8 min-w-[42px] px-2.5 text-[12px] sm:h-9 sm:min-w-[50px] sm:text-[13px] rounded-lg shadow-sm"
             >
               {b.label}
             </V2Button>
@@ -102,10 +119,10 @@ export function V2GameHud({
       {children}
 
       {isTouch && (
-        <>
+        <div style={{ transform: controlsScale !== 1.0 ? `scale(${controlsScale})` : undefined, transformOrigin: "bottom center" }}>
           <DPad onMove={onMove} running={running} onToggleRun={onToggleRun} />
           <ActionCluster actions={actions} />
-        </>
+        </div>
       )}
 
       <V2Announcer />
@@ -274,20 +291,20 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
   const primary = actions.find((a) => a.primary) ?? actions[0];
   const secondary = actions.filter((a) => a !== primary);
   return (
-    <div className="pointer-events-auto absolute bottom-[calc(max(18px,calc(env(safe-area-inset-bottom)+12px))+var(--hb,0px))] right-[max(14px,env(safe-area-inset-right))] flex items-end gap-2 sm:right-8">
+    <div className="pointer-events-auto absolute bottom-[calc(max(14px,calc(env(safe-area-inset-bottom)+8px))+var(--hb,0px))] right-[max(12px,env(safe-area-inset-right))] flex items-end gap-1.5 sm:right-6">
       {secondary.length > 0 && (
-        <div className="mb-1 flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {secondary.map((a) => (
-            <ActionKey key={a.id} action={a} scale={1.05} />
+            <ActionKey key={a.id} action={a} scale={0.88} />
           ))}
         </div>
       )}
-      {primary && <ActionKey action={primary} scale={1.5} />}
+      {primary && <ActionKey action={primary} scale={1.16} isPrimary />}
     </div>
   );
 }
 
-function ActionKey({ action, scale }: { action: HudAction; scale: number }) {
+function ActionKey({ action, scale, isPrimary = false }: { action: HudAction; scale: number; isPrimary?: boolean }) {
   const [down, setDown] = useState(false);
   const end = () => {
     if (!down) return;
@@ -299,12 +316,12 @@ function ActionKey({ action, scale }: { action: HudAction; scale: number }) {
       type="button"
       aria-label={action.label}
       data-active={down}
-      className="v2-key touch-none"
+      className={`v2-key touch-none shadow-md ${isPrimary ? "font-black border-amber-400/40" : "font-bold text-white/80"}`}
       style={{
         width: `calc(var(--k) * ${scale})`,
         height: `calc(var(--k) * ${scale})`,
-        fontSize: `calc(var(--k) * ${0.24 + (scale - 1) * 0.08})`,
-        borderRadius: scale > 1.2 ? 999 : 14,
+        fontSize: `calc(var(--k) * ${0.25 + (scale - 1) * 0.08})`,
+        borderRadius: isPrimary ? 999 : 12,
       }}
       onPointerDown={(e) => {
         e.preventDefault();

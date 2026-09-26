@@ -16,6 +16,7 @@ export type BlockDef = {
   side: string;
   bottom: string;
   transparent?: boolean;
+  liquid?: boolean;
   shape?: "stairs";
   /** Seconds to break by hand (Minecraft-like). 0 = instant, -1 = unbreakable. */
   hardness?: number;
@@ -23,8 +24,20 @@ export type BlockDef = {
   glow?: number;
 };
 
+export const WATER_ID = 50;
+
 export const BLOCKS: BlockDef[] = [
   { id: 0, name: "Air", top: "", side: "", bottom: "", hardness: 0 },
+  {
+    id: WATER_ID,
+    name: "Water",
+    top: "water",
+    side: "water",
+    bottom: "water",
+    transparent: true,
+    liquid: true,
+    hardness: -1,
+  },
   {
     id: 1,
     name: "Grass",
@@ -344,6 +357,7 @@ const TINTS: Record<string, [number, number, number]> = {
   spruce_leaves: [0.3, 0.5, 0.3],
   jungle_leaves: [0.35, 0.75, 0.25],
   acacia_leaves: [0.45, 0.7, 0.3],
+  water: [0.32, 0.78, 1.0],
 };
 
 type Face = {
@@ -483,6 +497,9 @@ export class World {
   private activeChunks = new Set<string>();
   private material: THREE.Material;
   private transparentMaterial: THREE.Material;
+  private waterMaterial: THREE.Material;
+  private pendingWaterFlows: { x: number; y: number; z: number; time: number; spread: number }[] = [];
+  private queuedWaterCoords = new Set<string>();
 
   constructor(
     private atlas: Atlas,
@@ -508,6 +525,18 @@ export class World {
       depthWrite: true,
       side: THREE.DoubleSide,
     });
+    this.waterMaterial = new THREE.MeshStandardMaterial({
+      map: atlas.texture,
+      vertexColors: true,
+      roughness: 0.12,
+      metalness: 0.08,
+      emissive: new THREE.Color(0x113a5c),
+      emissiveIntensity: 0.22,
+      transparent: true,
+      opacity: 0.76,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
     for (let cx = -radius; cx <= radius; cx++) {
       for (let cz = -radius; cz <= radius; cz++) {
         this.chunks.set(`${cx},${cz}`, new Chunk(cx, cz));
@@ -528,6 +557,22 @@ export class World {
     return c.data[c.idx(lx, y, lz)];
   }
 
+  queueWaterFlow(x: number, y: number, z: number, delayMs = 320, spread = 0) {
+    if (y < 2 || y >= WORLD_H) return;
+    if (spread > 5) return;
+    const key = `${x},${y},${z}`;
+    if (this.queuedWaterCoords.has(key)) return;
+    if (this.get(x, y, z) !== 0) return;
+    this.queuedWaterCoords.add(key);
+    this.pendingWaterFlows.push({
+      x,
+      y,
+      z,
+      time: performance.now() + delayMs,
+      spread,
+    });
+  }
+
   set(x: number, y: number, z: number, id: number) {
     if (y < 0 || y >= WORLD_H) return;
     const c = this.chunkAt(x, z);
@@ -542,6 +587,33 @@ export class World {
     if (lx === CHUNK - 1) this.markDirty(x + 1, z);
     if (lz === 0) this.markDirty(x, z - 1);
     if (lz === CHUNK - 1) this.markDirty(x, z + 1);
+
+    // Liquid flow simulation: if a block was removed (became air), check if adjacent water should flow into it slowly
+    if (id === 0) {
+      if (this.get(x, y + 1, z) === WATER_ID) {
+        this.queueWaterFlow(x, y, z, 220, 0);
+      } else {
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (const [dx, dz] of dirs) {
+          if (this.get(x + dx, y, z + dz) === WATER_ID) {
+            this.queueWaterFlow(x, y, z, 340, 1);
+            break;
+          }
+        }
+      }
+    } else if (id === WATER_ID) {
+      // Flow downward first if air below
+      if (y > 2 && this.get(x, y - 1, z) === 0) {
+        this.queueWaterFlow(x, y - 1, z, 240, 0);
+      } else {
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (const [dx, dz] of dirs) {
+          if (this.get(x + dx, y, z + dz) === 0) {
+            this.queueWaterFlow(x + dx, y, z + dz, 380, 1);
+          }
+        }
+      }
+    }
   }
 
   private markDirty(x: number, z: number) {
@@ -551,13 +623,17 @@ export class World {
 
   solid(x: number, y: number, z: number) {
     const id = this.get(x, y, z);
-    return id !== 0;
+    return id !== 0 && id !== WATER_ID;
+  }
+
+  isLiquid(x: number, y: number, z: number) {
+    return this.get(x, y, z) === WATER_ID;
   }
 
   /** Solid and not see-through — used for ambient occlusion. */
   opaque(x: number, y: number, z: number) {
     const id = this.get(x, y, z);
-    if (id === 0) return false;
+    if (id === 0 || id === WATER_ID) return false;
     return !BLOCK_BY_ID.get(id)?.transparent;
   }
 
@@ -612,8 +688,22 @@ export class World {
     }
   }
 
-  /** Re-meshes dirty chunks (budgeted per frame). */
+  /** Re-meshes dirty chunks (budgeted per frame) and processes slow liquid flow. */
   update(budget = 2) {
+    if (this.pendingWaterFlows.length > 0) {
+      const now = performance.now();
+      for (let i = this.pendingWaterFlows.length - 1; i >= 0; i--) {
+        const flow = this.pendingWaterFlows[i];
+        if (now >= flow.time) {
+          this.pendingWaterFlows.splice(i, 1);
+          this.queuedWaterCoords.delete(`${flow.x},${flow.y},${flow.z}`);
+          if (this.get(flow.x, flow.y, flow.z) === 0) {
+            this.set(flow.x, flow.y, flow.z, WATER_ID);
+          }
+        }
+      }
+    }
+
     let done = 0;
     for (const key of this.activeChunks) {
       const c = this.chunks.get(key);
@@ -648,6 +738,12 @@ export class World {
     const tUvs: number[] = [];
     const tColors: number[] = [];
     const tIndices: number[] = [];
+
+    const wPositions: number[] = [];
+    const wNormals: number[] = [];
+    const wUvs: number[] = [];
+    const wColors: number[] = [];
+    const wIndices: number[] = [];
 
     const ox = c.cx * CHUNK;
     const oz = c.cz * CHUNK;
@@ -722,16 +818,16 @@ export class World {
             const nid = this.get(nx, ny, nz);
             if (nid !== 0) {
               const ndef = BLOCK_BY_ID.get(nid);
-              if (!ndef?.transparent) continue;
-              if (nid === id) continue;
+              if (!ndef?.transparent && !ndef?.liquid) continue;
+              if (nid === id) continue; // cull shared inner faces between identical liquid/transparent blocks
             }
             const tile = f.dir[1] === 1 ? def.top : f.dir[1] === -1 ? def.bottom : def.side;
             const [u0, v0, u1, v1] = this.atlas.uv(tile);
-            const P = def.transparent ? tPositions : positions;
-            const N = def.transparent ? tNormals : normals;
-            const U = def.transparent ? tUvs : uvs;
-            const C = def.transparent ? tColors : colors;
-            const I = def.transparent ? tIndices : indices;
+            const P = def.liquid ? wPositions : def.transparent ? tPositions : positions;
+            const N = def.liquid ? wNormals : def.transparent ? tNormals : normals;
+            const U = def.liquid ? wUvs : def.transparent ? tUvs : uvs;
+            const C = def.liquid ? wColors : def.transparent ? tColors : colors;
+            const I = def.liquid ? wIndices : def.transparent ? tIndices : indices;
             const base = P.length / 3;
             // tangent axes of this face (the two axes where dir === 0)
             const ax = f.dir[0] !== 0 ? 0 : f.dir[1] !== 0 ? 1 : 2;
@@ -804,6 +900,16 @@ export class World {
       tm.frustumCulled = false;
       mesh.add(tm);
     }
+    if (wPositions.length) {
+      const wm = new THREE.Mesh(
+        makeGeom(wPositions, wNormals, wUvs, wColors, wIndices),
+        this.waterMaterial,
+      );
+      wm.receiveShadow = true;
+      wm.frustumCulled = false;
+      wm.renderOrder = 2;
+      mesh.add(wm);
+    }
     c.mesh = mesh;
     this.group.add(mesh);
   }
@@ -817,6 +923,7 @@ export class World {
     }
     this.material.dispose();
     this.transparentMaterial.dispose();
+    this.waterMaterial.dispose();
     this.chunks.clear();
     this.activeChunks.clear();
   }

@@ -39,7 +39,7 @@ export function raycastVoxel(
 
   for (let i = 0; i < 256 && t <= maxDist; i++) {
     const id = world.get(x, y, z);
-    if (id !== 0) return { x, y, z, nx, ny, nz, id };
+    if (id !== 0 && id !== 50) return { x, y, z, nx, ny, nz, id };
     if (tMaxX < tMaxY && tMaxX < tMaxZ) {
       x += stepX;
       t = tMaxX;
