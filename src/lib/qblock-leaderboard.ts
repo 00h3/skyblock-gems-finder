@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { GameMode } from "@/game/qblock/engine";
 
+export type GameMode = "skyblock" | "blockfall";
 export type LeaderboardEntry = { id: string; name: string; score: number };
 
 const col = (mode: GameMode) => `qblock_lb_${mode}`;
@@ -25,10 +25,7 @@ export async function getMyScore(mode: GameMode, uid: string) {
 }
 
 export async function submitScore(mode: GameMode, uid: string, name: string, score: number) {
-  const ref = doc(db, col(mode), uid);
-  if (mode === "blockfall") {
-    const prev = await getMyScore(mode, uid);
-    if (score <= prev) return;
-  }
-  await setDoc(ref, { name, score, updatedAt: serverTimestamp() }, { merge: true });
+  const prev = await getMyScore(mode, uid);
+  if (score <= prev) return;
+  await setDoc(doc(db, col(mode), uid), { name, score, updatedAt: serverTimestamp() }, { merge: true });
 }

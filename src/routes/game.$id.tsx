@@ -128,7 +128,6 @@ import { GameAudio } from "@/lib/game-audio";
 import { AdvancedInventoryModal } from "@/components/AdvancedInventoryModal";
 import { BedwarsGoldenDays } from "@/components/BedwarsGoldenDays";
 import { BlockFall } from "@/components/BlockFall";
-import { QblockGame } from "@/components/qblock/QblockGame";
 import { SandboxGame } from "@/routes/game.sandbox";
 import { ChestModal } from "@/components/ChestModal";
 // Blocky Plaza: real minigames-hub map, voxelised from a Minecraft world
@@ -1609,9 +1608,9 @@ function GamePage() {
       {id === "bedwars-golden-days" || id === "bedwars" ? (
         <BedwarsGoldenDays />
       ) : id === "skyblock" || id.startsWith("skyblock") ? (
-        <QblockGame key="skyblock" mode="skyblock" />
+        <SandboxGame skyblock />
       ) : id === "block-fall" || id.startsWith("block-fall") ? (
-        <QblockGame key="blockfall" mode="blockfall" />
+        <SandboxGame blockFall />
       ) : id === "sandbox" ? (
         <SandboxGame />
       ) : (
@@ -2100,7 +2099,7 @@ function EngineGame({
       bwToastTimerRef.current = null;
     }, ms);
   }
-  // ── EggWars-only state ───────────────────────────────────────────────────
+  // ── EggWars-only state ────────────────��──────────────────────────────────
   const EGG_TEAMS: EggwarsTeam[] = [
     { id: "ruby", label: "Ruby", color: "#ef4444", eggAlive: true, playerAlive: true },
     { id: "azure", label: "Azure", color: "#38bdf8", eggAlive: true, playerAlive: true },

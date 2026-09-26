@@ -52,6 +52,8 @@ import {
 import { db } from "@/lib/firebase";
 import { subscribeSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
 import { subscribeBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
+import { submitScore } from "@/lib/qblock-leaderboard";
+import { BlockFallOverlay, type BlockFallResult } from "@/components/qblock/BlockFallOverlay";
 
 
 
@@ -874,19 +876,19 @@ export function SandboxGame({
           ? []
           : [1, 2, 3, 4, 5, 6, 7, 9, 10],
   );
-  const [blockFallState, setBlockFallState] = useState<"waiting" | "playing" | "eliminated">(
-    blockFall ? "playing" : "waiting",
-  );
-  const blockFallStateRef = useRef<"waiting" | "playing" | "eliminated">(
-    blockFall ? "playing" : "waiting",
-  );
+  const [blockFallState, setBlockFallState] = useState<"waiting" | "playing" | "eliminated">("waiting");
+  const blockFallStateRef = useRef<"waiting" | "playing" | "eliminated">("waiting");
   blockFallStateRef.current = blockFallState;
-  const [countdown, setCountdown] = useState(10);
+  const [bfResult, setBfResult] = useState<BlockFallResult | null>(null);
+  const survivalRef = useRef(0);
+  const finishBlockFallRef = useRef<((won: boolean, place: number) => void) | null>(null);
+  const [countdown, setCountdown] = useState(5);
   const [currentLevel, setCurrentLevel] = useState(1);
   const currentLevelRef = useRef(1);
   const [survivalTime, setSurvivalTime] = useState(0);
   const [deepestFloor, setDeepestFloor] = useState(1);
   const [aliveBotsCount, setAliveBotsCount] = useState(0);
+  const [blockFallBotTotal, setBlockFallBotTotal] = useState(0);
   const [bgmMuted, setBgmMuted] = useState(false);
   const restartBlockFallRef = useRef<(() => void) | null>(null);
 
@@ -919,6 +921,21 @@ export function SandboxGame({
     }, 1000);
     return () => clearInterval(timer);
   }, [blockFall, blockFallState]);
+
+  survivalRef.current = survivalTime;
+  finishBlockFallRef.current = (won, place) => {
+    if (blockFallStateRef.current === "eliminated") return;
+    blockFallStateRef.current = "eliminated";
+    setBlockFallState("eliminated");
+    const time = survivalRef.current;
+    setBfResult({ won, place, time });
+    if (won) BmgoAudio.playGameStart();
+    const uid = qbUser?.uid;
+    if (uid && !uid.startsWith("guest")) {
+      const name = qbUser?.displayName || qbUser?.username || "Player";
+      void submitScore("blockfall", uid, name, time + (won ? 30 : 0)).catch(() => {});
+    }
+  };
 
   // Cleanup BGM on unmount
   useEffect(() => {
@@ -1952,20 +1969,160 @@ export function SandboxGame({
 
       // ── Block Fall State & Bot Runners ───────────────────────────────────
       const crumblingBlocks = new Map<string, { x: number; y: number; z: number; timer: number; blockId: number }>();
+      const crumbleAt = (bx: number, by: number, bz: number) => {
+        const bId = world!.get(bx, by, bz);
+        if (bId === 0 || bId === 10) return;
+        const key = `${bx},${by},${bz}`;
+        if (!crumblingBlocks.has(key)) crumblingBlocks.set(key, { x: bx, y: by, z: bz, timer: 0.42, blockId: bId });
+      };
+      type Bot = {
+        mesh: THREE.Group;
+        x: number;
+        y: number;
+        z: number;
+        vy: number;
+        tx: number;
+        tz: number;
+        retarget: number;
+        phase: number;
+        alive: boolean;
+        skill: number;
+      };
+      const bots: Bot[] = [];
+      let lastAlive = -1;
+      const pickBotTarget = (b: Bot) => {
+        const level = Math.floor(b.y - 0.02);
+        for (let i = 0; i < 10; i++) {
+          const x = Math.floor(-8 + Math.random() * 17);
+          const z = Math.floor(Math.max(-24, Math.min(24, b.z + (Math.random() - 0.5) * 16)));
+          if (world!.get(x, level, z) !== 0 && !crumblingBlocks.has(`${x},${level},${z}`)) {
+            b.tx = x + 0.5;
+            b.tz = z + 0.5;
+            break;
+          }
+        }
+        b.retarget = 0.6 + Math.random() * 1.4 * b.skill;
+      };
+      const resetBots = () => {
+        bots.forEach((b) => {
+          b.x = -7 + Math.random() * 15;
+          b.z = -10 + Math.random() * 20;
+          b.y = 37;
+          b.vy = 0;
+          b.alive = true;
+          b.tx = b.x;
+          b.tz = b.z;
+          b.retarget = Math.random();
+          b.mesh.visible = true;
+          b.mesh.position.set(b.x, b.y, b.z);
+        });
+        lastAlive = -1;
+      };
+      const updateBots = (dt: number, playing: boolean) => {
+        let alive = 0;
+        for (const b of bots) {
+          if (!b.alive) continue;
+          let grounded = false;
+          if (playing) {
+            b.retarget -= dt;
+            if (b.retarget <= 0) pickBotTarget(b);
+            const dx = b.tx - b.x;
+            const dz = b.tz - b.z;
+            const d = Math.hypot(dx, dz);
+            if (d > 0.15) {
+              const sp = 3.1 + b.skill * 0.6;
+              b.x += (dx / d) * sp * dt;
+              b.z += (dz / d) * sp * dt;
+              b.mesh.rotation.y = Math.atan2(dx, dz);
+              b.phase += dt * 11;
+            }
+          }
+          b.x = Math.max(-7.7, Math.min(8.7, b.x));
+          b.z = Math.max(-23.7, Math.min(24.7, b.z));
+          const prevY = b.y;
+          b.vy = Math.max(-30, b.vy - 28 * dt);
+          b.y += b.vy * dt;
+          const bx = Math.floor(b.x);
+          const bz = Math.floor(b.z);
+          for (const top of [37, 30, 23, 16, 9]) {
+            if (b.vy <= 0 && prevY >= top - 0.001 && b.y < top && world!.get(bx, top - 1, bz) !== 0) {
+              b.y = top;
+              b.vy = 0;
+              grounded = true;
+              break;
+            }
+          }
+          if (grounded && playing) {
+            crumbleAt(bx, Math.round(b.y) - 1, bz);
+            const ax = Math.floor(b.x + Math.sin(b.mesh.rotation.y) * 0.9);
+            const az = Math.floor(b.z + Math.cos(b.mesh.rotation.y) * 0.9);
+            if (world!.get(ax, Math.round(b.y) - 1, az) === 0) {
+              if (Math.random() < 0.55 * b.skill) b.vy = 8.6;
+              else pickBotTarget(b);
+            }
+          }
+          if (b.y < 5.2) {
+            b.alive = false;
+            b.mesh.visible = false;
+            playSound("pop");
+            continue;
+          }
+          const swing = Math.sin(b.phase) * 0.7;
+          b.mesh.children[2].rotation.x = swing;
+          b.mesh.children[3].rotation.x = -swing;
+          b.mesh.position.set(b.x, b.y, b.z);
+          alive++;
+        }
+        if (alive !== lastAlive) {
+          lastAlive = alive;
+          setAliveBotsCount(alive);
+        }
+        return alive;
+      };
       if (blockFall) {
+        const BOT_NAMES = ["Nova", "Pixel", "Blaze", "Mochi", "Zed", "Luna", "Kiwi", "Rex", "Ivy"];
+        const BOT_COLORS = ["#f43f5e", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6", "#eab308", "#64748b"];
+        BOT_NAMES.forEach((name, i) => {
+          const mesh = createBotRunnerMesh(BOT_COLORS[i]);
+          const canvas = document.createElement("canvas");
+          canvas.width = 256;
+          canvas.height = 72;
+          const ctx = canvas.getContext("2d")!;
+          ctx.fillStyle = "rgba(0,0,0,0.6)";
+          ctx.beginPath();
+          ctx.roundRect(28, 8, 200, 56, 24);
+          ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.font = '36px "Lilita One", sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(name, 128, 38);
+          const tag = new THREE.Sprite(
+            new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthWrite: false, transparent: true }),
+          );
+          tag.scale.set(1.1, 0.31, 1);
+          tag.position.y = 1.62;
+          mesh.add(tag);
+          scene.add(mesh);
+          bots.push({ mesh, x: 0, y: 37, z: 0, vy: 0, tx: 0, tz: 0, retarget: 0, phase: 0, alive: true, skill: 0.55 + Math.random() * 0.45 });
+        });
+        resetBots();
+        (window as unknown as { __v0bots: Bot[] }).__v0bots = bots;
+        setBlockFallBotTotal(bots.length);
         restartBlockFallRef.current = () => {
           if (!world) return;
           rebuildBlockFallPlatforms(world);
           world.meshAll();
           crumblingBlocks.clear();
+          resetBots();
+          setBfResult(null);
           player.setSpawnPoint(0.5, 37.8, 0.5);
           player.respawn();
           avatar?.resetDeath();
           setSurvivalTime(0);
           setCurrentLevel(1);
           setDeepestFloor(1);
-          setAliveBotsCount(0);
-          setCountdown(10);
+          setCountdown(5);
           blockFallStateRef.current = "waiting";
           setBlockFallState("waiting");
         };
@@ -2077,6 +2234,10 @@ export function SandboxGame({
 
         // ── Block Fall Mechanics ───────────────────────────────────────────
         if (blockFall && world) {
+          const botsAlive = updateBots(dt, blockFallStateRef.current === "playing");
+          if (blockFallStateRef.current === "playing" && bots.length > 0 && botsAlive === 0) {
+            finishBlockFallRef.current?.(true, 1);
+          }
           if (blockFallStateRef.current === "playing") {
             // 1. Detect player foot on platform blocks
             const footY = Math.floor(player.position.y - 0.08);
@@ -2133,15 +2294,14 @@ export function SandboxGame({
             // 5. Player fall reset in Block Fall (smooth respawn without intrusive overlay)
             if (py < 5.2 && blockFallStateRef.current === "playing") {
               BmgoAudio.playDefeat();
+              finishBlockFallRef.current?.(false, botsAlive + 1);
               if (avatar?.loaded) {
                 avatar.triggerDeath(() => {
                   player.respawn();
-                  restartBlockFallRef.current?.();
                   avatar.resetDeath();
                 });
               } else {
                 player.respawn();
-                restartBlockFallRef.current?.();
               }
             }
           }
@@ -2859,6 +3019,21 @@ export function SandboxGame({
             </div>
           </div>
         </div>
+      )}
+
+      {ready && blockFall && (
+        <BlockFallOverlay
+          state={blockFallState}
+          countdown={countdown}
+          alive={aliveBotsCount}
+          total={blockFallBotTotal}
+          floor={currentLevel}
+          time={survivalTime}
+          result={bfResult}
+          myId={qbUser?.uid && !qbUser.uid.startsWith("guest") ? qbUser.uid : undefined}
+          onPlayAgain={() => restartBlockFallRef.current?.()}
+          onLeave={() => setShowQuitDialog(true)}
+        />
       )}
 
       {/* ── Bedwars HUD (Main HUD) ── */}
