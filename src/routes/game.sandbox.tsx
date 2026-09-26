@@ -68,6 +68,8 @@ import { Progression } from "@/engine/v2/progression";
 import { WorldEvents } from "@/engine/v2/world-events";
 import { AmbientParticles } from "@/engine/v2/ambient-particles";
 import { SkyblockEnvironment } from "@/engine/v2/skyblock-environment";
+import { CosmicSky } from "@/engine/v2/cosmic-sky";
+import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
 import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
 import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
@@ -1008,9 +1010,11 @@ export function SandboxGame({
   const phoenixModelRef = useRef<THREE.Group | null>(null);
   const phoenixMixerRef = useRef<THREE.AnimationMixer | null>(null);
   const voxelTorchRef = useRef<VoxelTorchHandle | null>(null);
+  const cosmicSkyRef = useRef<CosmicSky | null>(null);
 
   useEffect(() => {
     if (!skyblock || !skyRef.current) return;
+    cosmicSkyRef.current?.setNight(celestialNight);
     if (celestialNight) {
       skyRef.current.setNight();
       if (celestialSunRef.current) celestialSunRef.current.visible = false;
@@ -1262,8 +1266,8 @@ export function SandboxGame({
       if (bedwars) {
         sky.setGoldenHour();
         sky.paused = true;
-        sky.setCloudCover(0.38);
-        renderer.toneMappingExposure = 1.08;
+        sky.setCloudCover(0.34);
+        renderer.toneMappingExposure = 1.12;
       }
 
       world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);
@@ -1299,7 +1303,12 @@ export function SandboxGame({
           : null;
       if (grassField) scene.add(grassField.mesh);
       const cinematicPost =
-        (skyblock || blockFall || bedwars) && qualityPref !== "low" ? new CinematicPost(renderer, scene, camera) : null;
+        (skyblock || blockFall || bedwars) && qualityPref !== "low"
+          ? new CinematicPost(renderer, scene, camera, bedwars ? 0.18 : 0.72)
+          : null;
+      const cosmicSky = skyblock ? new CosmicSky(scene, qualityPref === "low") : null;
+      cosmicSkyRef.current = cosmicSky;
+      cosmicSky?.setNight(celestialNightRef.current || initialAtm === "night");
 
       if (skyblock) {
         // Chest completely removed per user request
@@ -2476,6 +2485,7 @@ export function SandboxGame({
         particles.update(dt, camera.position);
         sky!.update(dt);
         skyEnv?.update(dt, camera, sky!, scene);
+        cosmicSky?.update(dt, camera);
 
         // ── SkyBlock: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
         if (skyblock) {
@@ -2677,6 +2687,8 @@ export function SandboxGame({
         if (stopWaterAudio) stopWaterAudio();
         particles.dispose();
         skyEnv?.dispose();
+        cosmicSky?.dispose();
+        cosmicSkyRef.current = null;
         grassField?.dispose();
         matchmaker?.dispose();
         matchmakerTag?.dispose();
@@ -3298,7 +3310,21 @@ export function SandboxGame({
         </div>
       )}
 
-      {inventoryOpen && (
+      {inventoryOpen && bedwars && (
+        <BlockmanInventory
+          hotbar={hotbar}
+          tileUrls={tileUrls}
+          slot={slot}
+          onSelect={(i) => {
+            setSlot(i);
+            const v = hotbar[i];
+            if (v !== undefined) api()?.setHeldTile(v);
+          }}
+          onClose={() => setInventoryOpen(false)}
+        />
+      )}
+
+      {inventoryOpen && !bedwars && (
         <div className="fixed inset-0 z-[100]">
           <AdvancedInventoryModal
             onClose={() => setInventoryOpen(false)}

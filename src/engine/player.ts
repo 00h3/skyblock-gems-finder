@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { World, WORLD_H } from "./world";
+import { BLOCK_BY_ID, World, WORLD_H } from "./world";
 
 const WIDTH = 0.6;
 const HEIGHT = 1.8;
@@ -185,7 +185,10 @@ export class Player {
       this.velocity.x *= Math.exp(-2.5 * dt);
       this.velocity.z *= Math.exp(-2.5 * dt);
     } else {
-      const g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
+      let g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
+      // Soft apex hang reads as weight rather than float; releasing jump early cuts the arc.
+      if (!this.onGround && Math.abs(this.velocity.y) < 1.4) g *= 0.72;
+      else if (this.velocity.y > 0 && !wantsJump) g *= 1.55;
       this.velocity.y -= g * dt;
       if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
     }
@@ -241,7 +244,12 @@ export class Player {
       return;
     }
     if (axis !== 1 && (this.onGround || this.coyote > 0) && this.velocity.y <= 0.01) {
-      for (let lift = 0.2; lift <= STEP_HEIGHT + 0.001; lift += 0.2) {
+      // Stair blocks collide as full cubes, so let the player walk straight up them.
+      const ahead = BLOCK_BY_ID.get(
+        this.world.get(Math.floor(next.x), Math.floor(this.position.y + 0.05), Math.floor(next.z)),
+      );
+      const maxLift = ahead?.shape === "stairs" ? 1.0 : STEP_HEIGHT;
+      for (let lift = 0.2; lift <= maxLift + 0.001; lift += 0.2) {
         const stepped = this._probe.copy(this.position);
         stepped.y += lift;
         stepped[key] += amount;

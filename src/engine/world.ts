@@ -572,6 +572,16 @@ export class World {
     }
   }
 
+  /** Allocates empty chunks covering a block-space rectangle (used for detached realms far from spawn). */
+  ensureChunks(minX: number, minZ: number, maxX: number, maxZ: number) {
+    for (let cx = Math.floor(minX / CHUNK); cx <= Math.floor(maxX / CHUNK); cx++) {
+      for (let cz = Math.floor(minZ / CHUNK); cz <= Math.floor(maxZ / CHUNK); cz++) {
+        const key = `${cx},${cz}`;
+        if (!this.chunks.has(key)) this.chunks.set(key, new Chunk(cx, cz));
+      }
+    }
+  }
+
   private chunkAt(x: number, z: number) {
     return this.chunks.get(`${Math.floor(x / CHUNK)},${Math.floor(z / CHUNK)}`);
   }
