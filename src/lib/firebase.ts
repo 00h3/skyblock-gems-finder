@@ -49,12 +49,20 @@ const firebaseConfig = {
 
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({}),
-  ...(appletConfig.firestoreDatabaseId && appletConfig.firestoreDatabaseId !== "(default)"
-    ? { databaseId: appletConfig.firestoreDatabaseId }
-    : {}),
-});
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({}),
+      ...(appletConfig.firestoreDatabaseId && appletConfig.firestoreDatabaseId !== "(default)"
+        ? { databaseId: appletConfig.firestoreDatabaseId }
+        : {}),
+    });
+  } catch {
+    // Module re-evaluation (HMR / SSR) reuses the already-initialized instance.
+    return getFirestore(app);
+  }
+}
+export const db = createDb();
 export const storage = getStorage(app);
 
 // Analytics — browser only (SSR guard)

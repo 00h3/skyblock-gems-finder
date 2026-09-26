@@ -128,6 +128,7 @@ import { GameAudio } from "@/lib/game-audio";
 import { AdvancedInventoryModal } from "@/components/AdvancedInventoryModal";
 import { BedwarsGoldenDays } from "@/components/BedwarsGoldenDays";
 import { BlockFall } from "@/components/BlockFall";
+import { QblockGame } from "@/components/qblock/QblockGame";
 import { SandboxGame } from "@/routes/game.sandbox";
 import { ChestModal } from "@/components/ChestModal";
 // Blocky Plaza: real minigames-hub map, voxelised from a Minecraft world
@@ -1608,9 +1609,9 @@ function GamePage() {
       {id === "bedwars-golden-days" || id === "bedwars" ? (
         <BedwarsGoldenDays />
       ) : id === "skyblock" || id.startsWith("skyblock") ? (
-        <SandboxGame skyblock />
+        <QblockGame key="skyblock" mode="skyblock" />
       ) : id === "block-fall" || id.startsWith("block-fall") ? (
-        <SandboxGame blockFall />
+        <QblockGame key="blockfall" mode="blockfall" />
       ) : id === "sandbox" ? (
         <SandboxGame />
       ) : (
