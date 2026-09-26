@@ -127,6 +127,19 @@ export const GAMES: Game[] = [
     likes: "1.2K",
     updated: true,
     progress: 0,
+  },  {
+    id: "bedwars",
+    t: "Bedwars",
+    hue: "from-amber-300 via-orange-300 to-rose-300",
+    bio: "Protect your bed, break theirs. Queue up in the golden lobby.",
+    mode: "PvP",
+    modeColor: "text-amber-600",
+    icon: baseplateIcon,
+    players: "1.4K",
+    playable: true,
+    likes: "4.8K",
+    updated: true,
+    progress: 0,
   },
 ];
 

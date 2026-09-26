@@ -1605,8 +1605,10 @@ function GamePage() {
   });
   return (
     <>
-      {id === "bedwars-golden-days" || id === "bedwars" ? (
+      {id === "bedwars-golden-days" ? (
         <BedwarsGoldenDays />
+      ) : id === "bedwars" ? (
+        <SandboxGame bedwars />
       ) : id === "skyblock" || id.startsWith("skyblock") ? (
         <SandboxGame skyblock />
       ) : id === "block-fall" || id.startsWith("block-fall") ? (
