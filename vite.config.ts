@@ -13,6 +13,7 @@ import type { Plugin } from "vite";
 import { WebSocketServer, WebSocket } from "ws";
 
 const isNetlifyBuild = process.env.NETLIFY === "true" || process.env.NETLIFY === "1";
+const isVercelBuild = process.env.VERCEL === "1" || process.env.VERCEL === "true";
 
 function sandboxWsPlugin(): Plugin {
   return {
@@ -153,12 +154,16 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  nitro: {
-    // Netlify needs Nitro's function bundle and deploy metadata. Keep the
-    // Node server target for local/self-hosted builds.
-    preset: isNetlifyBuild ? "netlify" : "node-server",
-    output: {
-      dir: "dist",
-    },
-  },
+  nitro: isVercelBuild
+    ? // Vercel reads Nitro's Build Output API bundle from .vercel/output;
+      // a node-server build in dist/ deploys with no routes (404 everywhere).
+      { preset: "vercel" }
+    : {
+        // Netlify needs Nitro's function bundle and deploy metadata. Keep the
+        // Node server target for local/self-hosted builds.
+        preset: isNetlifyBuild ? "netlify" : "node-server",
+        output: {
+          dir: "dist",
+        },
+      },
 });
