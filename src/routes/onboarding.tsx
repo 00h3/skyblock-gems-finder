@@ -104,9 +104,9 @@ const GAME_PREFERENCES = [
 // ── Screen 3: Character presets ─────────────────────────────────────────────
 const CHARACTER_PRESETS = [
   {
-    id: "ned",
+    id: "nelly",
     name: "Boy",
-    alias: "Ned",
+    alias: "ID 2",
     previewUrl: "https://maxwell.z3ki.dev/bot/avatar-3d-preview/",
     gender: "male" as const,
     tagline: "Classic Adventurer",
@@ -114,9 +114,9 @@ const CHARACTER_PRESETS = [
     hair: "#17181b",
   },
   {
-    id: "nelly",
+    id: "ned",
     name: "Nelly",
-    alias: "ID 2",
+    alias: "Ned",
     previewUrl: "https://maxwell.z3ki.dev/bot/avatar-boy-preview/",
     gender: "female" as const,
     tagline: "Modern Pioneer",

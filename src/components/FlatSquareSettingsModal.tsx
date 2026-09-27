@@ -191,6 +191,25 @@ export function FlatSquareSettingsModal({
     window.dispatchEvent(new CustomEvent("bm-first-person", { detail: next }));
   };
 
+  // Apply Motion Blur Toggle
+  const [motionBlur, setMotionBlur] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("qb_motion_blur");
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const handleMotionBlurToggle = () => {
+    const next = !motionBlur;
+    setMotionBlur(next);
+    try {
+      localStorage.setItem("qb_motion_blur", String(next));
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-motion-blur", { detail: next }));
+  };
+
   // Apply Controls scale change
   const handleControlsScaleSlider = (val: number) => {
     onControlsScaleChange?.(val);
@@ -568,6 +587,29 @@ export function FlatSquareSettingsModal({
                     Switch perspectives, adjust Field of View (FOV), and display options.
                   </p>
                 </div>
+              </div>
+
+              {/* First Person / Third Person Toggle */}
+              <div className="p-4 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-[14px] font-bold text-white block">
+                    Motion Blur
+                  </span>
+                  <span className="text-[12px] text-white/50">
+                    Enable cinematic camera motion blur
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleMotionBlurToggle}
+                  className={`h-9 px-4 font-mono font-bold text-[13px] rounded-xl cursor-pointer select-none transition-all ${
+                    motionBlur
+                      ? "bg-amber-400 text-black font-black shadow-md"
+                      : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/15"
+                  }`}
+                >
+                  {motionBlur ? "ON" : "OFF"}
+                </button>
               </div>
 
               {/* First Person / Third Person Toggle */}

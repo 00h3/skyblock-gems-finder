@@ -109,6 +109,7 @@ export function FlatSquareGameControls({
 
     const normX = clampedX / MAX_TRAVEL;
     const normY = -(clampedY / MAX_TRAVEL);
+    if (isNaN(normX) || isNaN(normY)) return;
     onJoyVector(normX, normY);
   };
 

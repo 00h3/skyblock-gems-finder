@@ -377,6 +377,29 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/10" />
+                    {game.id === "bedwars" && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center"
+                        style={{ background: "rgba(0,0,0,0.32)", backdropFilter: "blur(1px)" }}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.85)"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0110 0v4" />
+                          </svg>
+                          <span className="text-[9px] font-extrabold text-white/80 tracking-wide">Locked</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-1.5 px-0.5">
                     <div className="truncate text-[12px] font-lilita tracking-wide leading-tight">{game.t}</div>
@@ -1500,28 +1523,7 @@ function TrendingCard({ g, onPlay }: { g: Game; onPlay: () => void }) {
             draggable={false}
           />
         )}
-        {/* Locked overlay */}
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.32)", backdropFilter: "blur(1px)" }}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="rgba(255,255,255,0.85)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0110 0v4" />
-            </svg>
-            <span className="text-[9px] font-extrabold text-white/80 tracking-wide">SOON</span>
-          </div>
-        </div>
+        {/* Removed locked overlay */}
         <div
           className="absolute inset-x-0 top-0 h-1/3 pointer-events-none"
           style={{
