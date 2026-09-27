@@ -4178,6 +4178,74 @@ html.dark .home-currency-bubble {
   color: #fff;
 }
 
+/* Wooden inventory / crafting / progression — same slot geometry as the
+   Blockman inventory, skinned with the pack's own oak texture. */
+.wood-panel {
+  background:
+    linear-gradient(rgba(46, 26, 12, 0.8), rgba(30, 16, 7, 0.9)),
+    url("/textures/blocks/oak_log.png") 0 0 / 64px 64px;
+  image-rendering: pixelated;
+  border: 3px solid #1a0e05;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 205, 140, 0.14),
+    0 12px 34px rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.wood-header {
+  background:
+    linear-gradient(rgba(90, 54, 26, 0.55), rgba(60, 34, 15, 0.75)),
+    url("/textures/blocks/oak_log_top.png") 0 0 / 48px 48px;
+  border-bottom: 3px solid #1a0e05;
+  box-shadow: inset 0 -2px 0 rgba(255, 205, 140, 0.12);
+}
+.wood-inset {
+  background: rgba(18, 10, 4, 0.55);
+  border: 2px solid rgba(10, 5, 2, 0.8);
+  border-radius: 4px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.wood-slot {
+  background:
+    linear-gradient(rgba(58, 34, 16, 0.78), rgba(40, 22, 10, 0.88)),
+    url("/textures/blocks/oak_log.png") 0 0 / 32px 32px;
+  border: 2px solid #150b04;
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 150, 0.12);
+}
+.wood-slot-blue { box-shadow: inset 0 0 0 2px #3f8fe0, inset 0 0 10px rgba(63, 143, 224, 0.45); }
+.wood-slot-purple { box-shadow: inset 0 0 0 2px #a855f7, inset 0 0 10px rgba(168, 85, 247, 0.45); }
+.wood-slot-gold { box-shadow: inset 0 0 0 2px #f5b83a, inset 0 0 12px rgba(245, 184, 58, 0.5); }
+.wood-slot-picked { border-color: #6ee06e; outline: 2px solid #3cc43c; outline-offset: -2px; }
+.wood-ring {
+  background: radial-gradient(circle, rgba(20, 11, 4, 0.9) 58%, #5a3518 60%, #2a170a 70%, #6b4120 72%, rgba(20, 11, 4, 0.9) 76%);
+  box-shadow: 0 0 0 3px #1a0e05, inset 0 0 14px rgba(0, 0, 0, 0.6);
+}
+.wood-btn {
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+  background:
+    linear-gradient(rgba(140, 92, 48, 0.55), rgba(92, 56, 26, 0.75)),
+    url("/textures/blocks/oak_log.png") 0 0 / 32px 32px;
+  border: 2px solid #1a0e05;
+  border-radius: 4px;
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 80ms;
+}
+.wood-btn:active:not(:disabled) { transform: scale(0.95); }
+.wood-btn-blue {
+  background: linear-gradient(#5b8ff0, #2f5fc4);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+.wood-tab {
+  background:
+    linear-gradient(rgba(70, 42, 20, 0.7), rgba(40, 22, 10, 0.85)),
+    url("/textures/blocks/oak_log.png") 0 0 / 32px 32px;
+  border: 3px solid #1a0e05;
+  border-radius: 6px 0 0 6px;
+  box-shadow: inset 0 0 0 2px rgba(255, 205, 140, 0.12);
+}
+.wood-tab.is-active { border-color: #f5b83a; filter: brightness(1.2); }
+
 /* Settings — inventory look: charcoal slots, hard 2px borders, white selection frame. */
 #flat-square-settings-fullscreen,
 #flat-square-settings-fullscreen .bg-\[\#0d1015\] {

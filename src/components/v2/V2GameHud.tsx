@@ -10,6 +10,8 @@ export type HudAction = {
   kind: "hold" | "tap";
   onPress: (down: boolean) => void;
   primary?: boolean;
+  /** Optional image key (HUD icon pack) shown instead of the text label. */
+  icon?: string;
 };
 
 type Props = {
@@ -26,6 +28,8 @@ type Props = {
   menuExtra?: { label: string; onSelect: () => void }[];
   onMove: (x: number, y: number) => void;
   onToggleRun: () => void;
+  sneaking?: boolean;
+  onToggleSneak?: () => void;
   onOpenChat: () => void;
   onOpenSettings: () => void;
   onToggleCamera: () => void;
@@ -52,6 +56,8 @@ export function V2GameHud({
   menuExtra = [],
   onMove,
   onToggleRun,
+  sneaking,
+  onToggleSneak,
   onOpenChat,
   onOpenSettings,
   onToggleCamera,
@@ -123,7 +129,13 @@ export function V2GameHud({
 
       {isTouch && (
         <div style={{ transform: controlsScale !== 1.0 ? `scale(${controlsScale})` : undefined, transformOrigin: "bottom center" }}>
-          <DPad onMove={onMove} running={running} onToggleRun={onToggleRun} />
+          <DPad
+            onMove={onMove}
+            running={running}
+            onToggleRun={onToggleRun}
+            sneaking={sneaking}
+            onToggleSneak={onToggleSneak}
+          />
           <ActionCluster actions={actions} />
         </div>
       )}
@@ -201,30 +213,46 @@ function DPad({
   onMove,
   running,
   onToggleRun,
+  sneaking,
+  onToggleSneak,
 }: {
   onMove: (x: number, y: number) => void;
   running: boolean;
   onToggleRun: () => void;
+  sneaking?: boolean;
+  onToggleSneak?: () => void;
 }) {
   const padRef = useRef<HTMLDivElement>(null);
   const pointer = useRef<number | null>(null);
+  const last = useRef({ x: 0, y: 0 });
   const [dir, setDir] = useState({ x: 0, y: 0 });
 
+  // Angle-based 8-way sectors: no dead gaps between keys, clean diagonals,
+  // and onMove only fires when the direction actually changes.
   const update = (clientX: number, clientY: number) => {
     const el = padRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
     const nx = (clientX - (r.left + r.width / 2)) / (r.width / 2);
     const ny = (clientY - (r.top + r.height / 2)) / (r.height / 2);
-    const x = Math.abs(nx) > 0.34 ? Math.sign(nx) : 0;
-    const y = Math.abs(ny) > 0.34 ? -Math.sign(ny) : 0;
-    setDir((d) => (d.x === x && d.y === y ? d : { x, y }));
+    let x = 0;
+    let y = 0;
+    if (Math.hypot(nx, ny) > 0.22) {
+      const sector = Math.round(Math.atan2(-ny, nx) / (Math.PI / 4));
+      const a = sector * (Math.PI / 4);
+      x = Math.round(Math.cos(a));
+      y = Math.round(Math.sin(a));
+    }
+    if (last.current.x === x && last.current.y === y) return;
+    last.current = { x, y };
+    setDir({ x, y });
     const len = Math.hypot(x, y) || 1;
     onMove(x / len, y / len);
   };
 
   const release = () => {
     pointer.current = null;
+    last.current = { x: 0, y: 0 };
     setDir({ x: 0, y: 0 });
     onMove(0, 0);
   };
@@ -249,7 +277,9 @@ function DPad({
         className="grid touch-none gap-1.5"
         style={{ gridTemplateColumns: "repeat(3, var(--k))" }}
         onPointerDown={(e) => {
-          if ((e.target as HTMLElement).dataset.center) return;
+          if ((e.target as HTMLElement).closest("[data-key]")) return;
+          if (pointer.current !== null) return;
+          e.preventDefault();
           pointer.current = e.pointerId;
           e.currentTarget.setPointerCapture(e.pointerId);
           update(e.clientX, e.clientY);
@@ -260,7 +290,13 @@ function DPad({
         onPointerUp={(e) => {
           if (pointer.current === e.pointerId) release();
         }}
-        onPointerCancel={release}
+        onPointerCancel={(e) => {
+          if (pointer.current === e.pointerId) release();
+        }}
+        onLostPointerCapture={(e) => {
+          if (pointer.current === e.pointerId) release();
+        }}
+        onContextMenu={(e) => e.preventDefault()}
       >
         <span style={size} />
         <PadArrow label="Up" rotate={-90} active={dir.y === 1} />
@@ -268,19 +304,42 @@ function DPad({
         <PadArrow label="Left" rotate={180} active={dir.x === -1} />
         <button
           type="button"
-          data-center="true"
+          data-key="run"
+          aria-label={running ? "Running, switch to walk" : "Walking, switch to run"}
           aria-pressed={running}
           onPointerDown={(e) => {
             e.stopPropagation();
             onToggleRun();
           }}
-          className={cn("blockman-key text-[calc(var(--k)*0.22)]", running && "is-active")}
-          style={{ ...size, backgroundImage: `url(${UI.blank})` }}
+          className={cn("blockman-key", running && "is-active")}
+          style={size}
         >
-          {running ? "Run" : "Walk"}
+          <img
+            src={running ? UI.run : UI.walk}
+            alt=""
+            draggable={false}
+            className="pointer-events-none h-[78%] w-[78%] object-contain"
+          />
         </button>
         <PadArrow label="Right" rotate={0} active={dir.x === 1} />
-        <span style={size} />
+        {onToggleSneak ? (
+          <button
+            type="button"
+            data-key="sneak"
+            aria-label={sneaking ? "Stop sneaking" : "Sneak"}
+            aria-pressed={!!sneaking}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onToggleSneak();
+            }}
+            className={cn("blockman-key", sneaking && "is-active")}
+            style={size}
+          >
+            <img src={UI.sneak} alt="" draggable={false} className="pointer-events-none h-[78%] w-[78%] object-contain" />
+          </button>
+        ) : (
+          <span style={size} />
+        )}
         <PadArrow label="Down" rotate={90} active={dir.y === -1} />
         <span style={size} />
       </div>
@@ -295,6 +354,10 @@ export const UI = {
   video: "/ui/video-icon.png",
   arrow: "/ui/arrow-icon.png",
   blank: "/ui/blank-button.png",
+  walk: "/assets/hud/pitch_black/dark_move_state_run.svg",
+  run: "/assets/hud/pitch_black/dark_move_state_sprint.svg",
+  sneak: "/assets/hud/pitch_black/dark_move_state_sneak.svg",
+  jump: "/assets/hud/pitch_black/dark_MainControlImageSet_jump_move_.svg",
 };
 
 function PadArrow({ label, rotate, active }: { label: string; rotate: number; active: boolean }) {
@@ -350,7 +413,7 @@ function ActionKey({ action, scale, isPrimary = false }: { action: HudAction; sc
         width: `calc(var(--k) * ${scale})`,
         height: `calc(var(--k) * ${scale})`,
         fontSize: `calc(var(--k) * ${0.24 + (scale - 1) * 0.08})`,
-        backgroundImage: `url(${UI.blank})`,
+        backgroundImage: action.icon ? undefined : `url(${UI.blank})`,
       }}
       onPointerDown={(e) => {
         e.preventDefault();
@@ -363,7 +426,11 @@ function ActionKey({ action, scale, isPrimary = false }: { action: HudAction; sc
       onPointerCancel={end}
       onLostPointerCapture={end}
     >
-      {action.label}
+      {action.icon ? (
+        <img src={action.icon} alt="" draggable={false} className="pointer-events-none h-full w-full object-contain" />
+      ) : (
+        action.label
+      )}
     </button>
   );
 }

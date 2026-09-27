@@ -23,12 +23,10 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
       )}
       {/* Wooden Hood-Style Progress Panel */}
       <div
-        className="relative flex min-w-[210px] flex-col gap-1.5 rounded-[18px] rounded-t-[22px] border-2 border-[#7a4823] bg-gradient-to-b from-[#4a2e18] via-[#38200f] to-[#231206] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,200,140,0.35),0_6px_20px_rgba(0,0,0,0.6)]"
+        className="wood-panel relative flex min-w-[210px] flex-col gap-1.5 !rounded-[4px] px-3 py-2"
         aria-label={`Island level ${p.level}, ${pct} percent to next level`}
       >
-        {/* Subtle wood carved top hood highlight */}
-        <div className="absolute inset-x-3 top-0 h-[1.5px] rounded-full bg-gradient-to-r from-transparent via-[#f5c285]/50 to-transparent" />
-        
+
         <div className="flex items-baseline justify-between gap-3">
           <span className="font-lilita text-[14px] tracking-wide text-amber-100">
             Island <span className="tabular-nums text-amber-300">{p.level}</span>
@@ -36,9 +34,9 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
           <span className="text-[11px] font-bold text-amber-200/70">{p.title}</span>
         </div>
         {/* Wood-grooved progress track */}
-        <div className="h-2 overflow-hidden rounded-full border border-black/40 bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+        <div className="h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
+            className="h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -108,12 +106,14 @@ export function V2Hotbar({
   slot,
   onSelect,
   isTouch,
+  onOpenInventory,
 }: {
   hotbar: (number | string)[];
   tileUrls: Record<number | string, string>;
   slot: number;
   onSelect: (i: number) => void;
   isTouch: boolean;
+  onOpenInventory?: () => void;
 }) {
   if (hotbar.length === 0) return null;
   return (
@@ -157,6 +157,16 @@ export function V2Hotbar({
             </button>
           );
         })}
+        {onOpenInventory && (
+          <button
+            type="button"
+            onClick={onOpenInventory}
+            aria-label="Open inventory"
+            className="blockman-slot grid h-11 w-11 shrink-0 place-items-center rounded-[4px] text-[18px] font-black leading-none tracking-[0.1em] text-white/85 active:scale-95"
+          >
+            {"•••"}
+          </button>
+        )}
       </div>
     </div>
   );

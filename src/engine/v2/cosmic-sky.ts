@@ -103,7 +103,7 @@ export class CosmicSky {
   private fade = 0;
   private fadeTarget = 0;
   private time = 0;
-  private nextMeteor = 1.5;
+  private nextMeteor = 8;
 
   constructor(scene: THREE.Scene, lowQuality = false) {
     this.group.renderOrder = -1;
@@ -227,8 +227,9 @@ export class CosmicSky {
     this.nextMeteor -= dt;
     if (this.nextMeteor <= 0 && this.fadeTarget > 0) {
       this.spawnMeteor();
-      if (Math.random() < 0.25) this.spawnMeteor();
-      this.nextMeteor = 1.8 + Math.random() * 4;
+      if (Math.random() < 0.08) this.spawnMeteor();
+      // Shooting stars are a rare treat, not a constant shower.
+      this.nextMeteor = 14 + Math.random() * 26;
     }
 
     for (const m of this.meteors) {

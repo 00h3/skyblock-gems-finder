@@ -72,7 +72,7 @@ import { CosmicSky } from "@/engine/v2/cosmic-sky";
 import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
 import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
-import { V2GameHud, type HudAction } from "@/components/v2/V2GameHud";
+import { V2GameHud, UI as HUD_UI, type HudAction } from "@/components/v2/V2GameHud";
 import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
 import { CinematicVignette, Crosshair, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
 import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
@@ -813,6 +813,26 @@ function createSunDustParticles(count = 100) {
   };
 }
 
+const CRAFTED_KEY = "qb_skyblock_crafted";
+const STARTER_BACKPACK: (number | string)[] = ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3, 5, 38, 40, 42];
+
+type SwordStats = { damage: number; knockback: number; cooldown: number; reach: number; slash: number };
+
+const SWORD_MODELS: Record<string, string> = {
+  short_sword: "https://file.garden/alGOOylwpAfCa6qP/wooden_sword.glb",
+  gold_sword: "https://file.garden/alGOOylwpAfCa6qP/sword_oro.glb",
+  iron_sword: "https://file.garden/alGOOylwpAfCa6qP/sword_ferro.glb",
+  diamond_sword: "https://file.garden/alGOOylwpAfCa6qP/sword_diamante.glb",
+};
+
+export const SWORD_STATS: Record<string, SwordStats> = {
+  fist: { damage: 1, knockback: 3.2, cooldown: 0.3, reach: 3.4, slash: 0xffffff },
+  short_sword: { damage: 4, knockback: 4.6, cooldown: 0.5, reach: 4.2, slash: 0xe8d3a8 },
+  gold_sword: { damage: 5, knockback: 5.4, cooldown: 0.36, reach: 4.3, slash: 0xffc94a },
+  iron_sword: { damage: 6, knockback: 6.2, cooldown: 0.46, reach: 4.5, slash: 0xdfe8f2 },
+  diamond_sword: { damage: 7, knockback: 7.2, cooldown: 0.52, reach: 4.7, slash: 0x5ff2ff },
+};
+
 function normalizeShowcaseModel(model: THREE.Object3D, targetHeight: number) {
   model.traverse((object) => {
     const mesh = object as THREE.Mesh;
@@ -920,13 +940,22 @@ export function SandboxGame({
     goldenDays
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
       : skyblock
-        ? [7, 9, 2, 4, 6, 13, 1, 3]
+        ? ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3]
         : blockFall || bedwars
           ? []
           : [1, 2, 3, 4, 5, 6, 7, 9, 10],
   );
   const hotbarRef = useRef(hotbar);
   hotbarRef.current = hotbar;
+  const [crafted, setCrafted] = useState<(number | string)[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = JSON.parse(localStorage.getItem(CRAFTED_KEY) || "[]");
+      return Array.isArray(raw) ? raw.filter((v) => typeof v === "number" || typeof v === "string") : [];
+    } catch {
+      return [];
+    }
+  });
   const [bgmMuted, setBgmMuted] = useState(false);
   const restartBlockFallRef = useRef<(() => void) | null>(null);
 
@@ -1403,27 +1432,41 @@ export function SandboxGame({
                         mat.map.anisotropy = 16;
                         mat.map.needsUpdate = true;
                       }
-                      mat.emissive = new THREE.Color(0xff6600);
-                      mat.emissiveIntensity = 0.85;
+                      mat.emissive = new THREE.Color(0xff6a10);
+                      if (mat.map && !mat.emissiveMap) mat.emissiveMap = mat.map;
+                      mat.emissiveIntensity = 2.6;
                       mat.needsUpdate = true;
                     });
                   }
                 }
               });
 
-              // Glowing radiant fire point light attached to phoenix
-              const pFireLight = new THREE.PointLight(0xff6600, 3.2, 35, 1.2);
+              // Strong fire light with physical falloff so it lights the island below.
+              const pFireLight = new THREE.PointLight(0xff6a10, 7.5, 60, 1.6);
               pModel.add(pFireLight);
 
-              // Luminous aura corona
-              const auraGeo = new THREE.SphereGeometry(1.6, 16, 16);
-              const auraMat = new THREE.MeshBasicMaterial({
-                color: 0xffaa22,
-                transparent: true,
-                opacity: 0.38,
-                blending: THREE.AdditiveBlending,
-              });
-              pModel.add(new THREE.Mesh(auraGeo, auraMat));
+              // Layered additive corona: hot inner core + wide soft halo.
+              const auraCore = new THREE.Mesh(
+                new THREE.SphereGeometry(1.4, 16, 16),
+                new THREE.MeshBasicMaterial({
+                  color: new THREE.Color(2.2, 1.1, 0.3),
+                  transparent: true,
+                  opacity: 0.45,
+                  blending: THREE.AdditiveBlending,
+                  depthWrite: false,
+                }),
+              );
+              const auraHalo = new THREE.Mesh(
+                new THREE.SphereGeometry(3.2, 16, 16),
+                new THREE.MeshBasicMaterial({
+                  color: 0xff7a1a,
+                  transparent: true,
+                  opacity: 0.16,
+                  blending: THREE.AdditiveBlending,
+                  depthWrite: false,
+                }),
+              );
+              pModel.add(auraCore, auraHalo);
 
               scene.add(pModel);
               phoenixModelRef.current = pModel;
@@ -1500,22 +1543,10 @@ export function SandboxGame({
 
         try {
           const loader = new GLTFLoader();
-          const [runesAsset, workbenchAsset, swordOro, swordFerro, swordDiamante, woodenSword] = await Promise.all([
+          const [runesAsset, workbenchAsset] = await Promise.all([
             loader.loadAsync("/runes-ghast.glb"),
             loader.loadAsync("/workbench.glb"),
-            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/sword_oro.glb"),
-            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/sword_ferro.glb"),
-            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/sword_diamante.glb"),
-            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/wooden_sword.glb"),
           ]);
-          // Stash all swords to be used in game logic
-          const swordAssets = {
-            oro: swordOro.scene,
-            ferro: swordFerro.scene,
-            diamante: swordDiamante.scene,
-            wooden: woodenSword.scene,
-          };
-          window.swordAssets = swordAssets; // Temporary workaround to expose assets to game loop
 
           if (!disposed) {
             runesSource = runesAsset.scene;
@@ -1551,11 +1582,6 @@ export function SandboxGame({
                 runesMixers.push(mixer);
               }
             }
-            heldSwordSource = swordAsset.scene;
-            if (swordAsset.animations && swordAsset.animations.length > 0) {
-              heldSwordSource.userData.animations = swordAsset.animations;
-            }
-
             normalizeShowcaseModel(workbenchAsset.scene, 3.1);
             for (const [index, base] of ARENA_BASES.entries()) {
               const workbench = workbenchAsset.scene.clone(true);
@@ -1625,22 +1651,69 @@ export function SandboxGame({
       heldRig.add(held);
       // The supplied short sword is a real GLB in the hand, not a flat legacy
       // item card. It stays hidden whenever a voxel block is selected.
-      heldSword = heldSwordSource?.clone(true) ?? null;
-      if (heldSword && heldSwordSource?.userData?.animations) {
-        heldSwordMixer = new THREE.AnimationMixer(heldSword);
-        heldSwordSource.userData.animations.forEach((clip) => {
-          const action = heldSwordMixer.clipAction(clip);
-          action.setLoop(THREE.LoopRepeat, Infinity);
-          action.play();
-        });
-      }
-      if (heldSword) {
-        normalizeShowcaseModel(heldSword, 1.05);
-        // Keep the sword upright, readable, and slightly away from the
-        // camera instead of presenting it as a flat horizontal prop.
-        heldSword.rotation.set(0.05, -0.22, -0.08);
-        heldSword.visible = false;
-        heldRig.add(heldSword);
+      // Each sword tier has its own GLB. They stream in independently and
+      // attach to the hand rig; `heldSword` always points at the visible one.
+      const heldSwords = new Map<string, THREE.Object3D>();
+      let heldItemId: number | string = 0;
+      let iconRenderer: THREE.WebGLRenderer | null = null;
+      let iconsPending = Object.keys(SWORD_MODELS).length;
+      const renderSwordIcon = (model: THREE.Object3D) => {
+        try {
+          if (!iconRenderer) {
+            iconRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+            iconRenderer.setSize(96, 96, false);
+            iconRenderer.outputColorSpace = THREE.SRGBColorSpace;
+          }
+          const s = new THREE.Scene();
+          s.add(new THREE.AmbientLight(0xffffff, 1.5));
+          const key = new THREE.DirectionalLight(0xffffff, 2.4);
+          key.position.set(2, 3, 4);
+          s.add(key);
+          const clone = model.clone(true);
+          clone.visible = true;
+          clone.position.set(0, 0, 0);
+          clone.rotation.set(0, Math.PI / 2, -Math.PI / 4);
+          const box = new THREE.Box3().setFromObject(clone);
+          clone.position.sub(box.getCenter(new THREE.Vector3()));
+          s.add(clone);
+          const size = box.getSize(new THREE.Vector3()).length();
+          const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+          cam.position.set(0, 0, size * 1.95);
+          cam.lookAt(0, 0, 0);
+          iconRenderer.render(s, cam);
+          return iconRenderer.domElement.toDataURL("image/png");
+        } catch {
+          return "";
+        }
+      };
+      const swordLoader = new GLTFLoader();
+      for (const [sid, url] of Object.entries(SWORD_MODELS)) {
+        swordLoader
+          .loadAsync(url)
+          .then((g) => {
+            if (disposed) return;
+            const m = g.scene;
+            normalizeShowcaseModel(m, 1.05);
+            m.traverse((o) => {
+              const mesh = o as THREE.Mesh;
+              if (mesh.isMesh) mesh.castShadow = false;
+            });
+            m.rotation.set(0.05, -0.22, -0.08);
+            m.visible = false;
+            heldRig.add(m);
+            heldSwords.set(sid, m);
+            const icon = renderSwordIcon(m);
+            if (icon) setTileUrls((prev) => ({ ...prev, [sid]: icon }));
+            if (heldItemId === sid) setHeldTile(sid);
+          })
+          .catch((err) => console.warn(`Sword model ${sid} failed to load:`, err))
+          .finally(() => {
+            iconsPending -= 1;
+            if (iconsPending <= 0 && iconRenderer) {
+              iconRenderer.dispose();
+              iconRenderer = null;
+            }
+          });
       }
 
       // First-person block hand with fair/white-ish skin tone per user request:
@@ -1704,11 +1777,14 @@ export function SandboxGame({
       };
       const setHeldTile = (id: number | string) => {
         if (!atlas) return;
+        heldItemId = id;
+        heldSwords.forEach((m) => (m.visible = false));
+        heldSword = typeof id === "string" ? (heldSwords.get(id) ?? null) : null;
         if (typeof id === "string") {
-          meleeDamage = damageForItem(id);
+          meleeDamage = SWORD_STATS[id]?.damage ?? damageForItem(id);
           held.visible = false;
-          heldHand.visible = false;
-          if (heldSword) heldSword.visible = id === "short_sword";
+          heldHand.visible = !heldSword;
+          if (heldSword) heldSword.visible = true;
           heldRig.scale.set(1.22, 1.22, 1.22);
         } else if (id === 0) {
           // Empty / bare hand
@@ -1779,13 +1855,152 @@ export function SandboxGame({
         matchmaker.load(2.28).catch(() => {});
       }
 
-      // Add 'Hit Me' NPC
-      const hitMeNPC = new Avatar();
-      hitMeNPC.group.position.set(2, 17, 2);
-      scene.add(hitMeNPC.group);
-      hitMeNPC.load(2.28).catch(() => {});
-      let hitMeLastHit = 0;
-      let hitMeIsRed = false;
+      // ── "Hit Me" training NPC: takes knockback, flashes red, heals back ──
+      const hitMe = new Avatar();
+      hitMe.idleStill = true;
+      const hitMeHome = new THREE.Vector3(player.position.x + 3, player.position.y, player.position.z + 2);
+      hitMe.group.position.copy(hitMeHome);
+      scene.add(hitMe.group);
+      hitMe.load(2.28).catch(() => {});
+      const hitMeVel = new THREE.Vector3();
+      const hitMeBar = createHpBar("Hit Me", 20);
+      scene.add(hitMeBar.sprite);
+      let hitMeHp = 20;
+      let hitMeRedT = 0;
+      let hitMeHealT = 0;
+      let hitMeOnGround = false;
+      const hitMeTint: { mat: THREE.MeshStandardMaterial; color: THREE.Color; emissive: THREE.Color }[] = [];
+      const collectHitMeMats = () => {
+        if (hitMeTint.length) return;
+        hitMe.group.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          mats.forEach((m) => {
+            const mat = m as THREE.MeshStandardMaterial;
+            if (mat.color && mat.emissive) {
+              hitMeTint.push({ mat, color: mat.color.clone(), emissive: mat.emissive.clone() });
+            }
+          });
+        });
+      };
+      const _red = new THREE.Color(0xff2a2a);
+      const updateHitMe = (dt: number) => {
+        const p = hitMe.group.position;
+        hitMeVel.y -= 26 * dt;
+        p.addScaledVector(hitMeVel, dt);
+        const fx0 = Math.floor(p.x);
+        const fz0 = Math.floor(p.z);
+        const below = Math.floor(p.y - 0.02);
+        hitMeOnGround = false;
+        if (hitMeVel.y <= 0 && world && world.solid(fx0, below, fz0)) {
+          p.y = below + 1;
+          hitMeVel.y = 0;
+          hitMeOnGround = true;
+        }
+        if (world && world.solid(fx0, Math.floor(p.y + 0.5), fz0)) {
+          // Knocked into a wall — stop horizontal motion.
+          p.x -= hitMeVel.x * dt;
+          p.z -= hitMeVel.z * dt;
+          hitMeVel.x = 0;
+          hitMeVel.z = 0;
+        }
+        const friction = Math.exp(-(hitMeOnGround ? 7 : 0.8) * dt);
+        hitMeVel.x *= friction;
+        hitMeVel.z *= friction;
+        if (p.y < hitMeHome.y - 24) {
+          p.copy(hitMeHome);
+          hitMeVel.set(0, 0, 0);
+          hitMeHp = 20;
+          hitMeBar.set(20);
+        }
+        const faceYaw = Math.atan2(player.position.x - p.x, player.position.z - p.z);
+        hitMe.update(dt, p, faceYaw, Math.hypot(hitMeVel.x, hitMeVel.z), hitMeOnGround, false, hitMeVel.y);
+        hitMeBar.sprite.position.set(p.x, p.y + 2.7, p.z);
+
+        if (hitMeRedT > 0) {
+          collectHitMeMats();
+          hitMeRedT = Math.max(0, hitMeRedT - dt);
+          const k = Math.min(1, hitMeRedT / 0.25);
+          for (const t of hitMeTint) {
+            t.mat.color.copy(t.color).lerp(_red, 0.75 * k);
+            t.mat.emissive.copy(t.emissive).lerp(_red, 0.55 * k);
+          }
+        }
+        hitMeHealT -= dt;
+        if (hitMeHealT <= 0 && hitMeHp < 20) {
+          hitMeHp = hitMeHp <= 0 ? 20 : Math.min(20, hitMeHp + 1);
+          hitMeBar.set(hitMeHp);
+          hitMeHealT = 0.6;
+        }
+      };
+
+      // ── Sword FX: world-space slash arc + pooled hit sparks ──
+      const slashMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      const slash = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 32, 1, -0.2, Math.PI * 0.9), slashMat);
+      slash.visible = false;
+      slash.renderOrder = 5;
+      scene.add(slash);
+      let slashT = 0;
+      const SPARKS = 48;
+      const sparkPos = new Float32Array(SPARKS * 3);
+      const sparkVel = new Float32Array(SPARKS * 3);
+      const sparkLife = new Float32Array(SPARKS);
+      const sparkGeo = new THREE.BufferGeometry();
+      sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkPos, 3));
+      const sparkMat = new THREE.PointsMaterial({
+        color: 0xfff1c2,
+        size: 0.14,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const sparks = new THREE.Points(sparkGeo, sparkMat);
+      sparks.frustumCulled = false;
+      scene.add(sparks);
+      let sparkCursor = 0;
+      const spawnHitFx = (at: THREE.Vector3, color: number) => {
+        sparkMat.color.setHex(color).lerp(new THREE.Color(0xffffff), 0.35);
+        for (let i = 0; i < 16; i++) {
+          const k = sparkCursor++ % SPARKS;
+          sparkPos[k * 3] = at.x;
+          sparkPos[k * 3 + 1] = at.y;
+          sparkPos[k * 3 + 2] = at.z;
+          sparkVel[k * 3] = (Math.random() - 0.5) * 7;
+          sparkVel[k * 3 + 1] = Math.random() * 5 + 1;
+          sparkVel[k * 3 + 2] = (Math.random() - 0.5) * 7;
+          sparkLife[k] = 0.35 + Math.random() * 0.2;
+        }
+      };
+      const updateSwordFx = (dt: number) => {
+        for (let k = 0; k < SPARKS; k++) {
+          if (sparkLife[k] <= 0) {
+            sparkPos[k * 3 + 1] = -9999;
+            continue;
+          }
+          sparkLife[k] -= dt;
+          sparkVel[k * 3 + 1] -= 14 * dt;
+          sparkPos[k * 3] += sparkVel[k * 3] * dt;
+          sparkPos[k * 3 + 1] += sparkVel[k * 3 + 1] * dt;
+          sparkPos[k * 3 + 2] += sparkVel[k * 3 + 2] * dt;
+        }
+        sparkGeo.attributes.position.needsUpdate = true;
+        if (slashT > 0) {
+          slashT = Math.max(0, slashT - dt);
+          const k = slashT / 0.22;
+          slashMat.opacity = Math.sin(k * Math.PI) * 0.85;
+          slash.rotateZ(-dt * 9);
+          slash.visible = slashT > 0;
+        }
+      };
 
       // ── Floating HP bars (20/20) above every hittable entity ─────────────
       const names = new Map<string, string>();
@@ -1957,34 +2172,73 @@ export function SandboxGame({
       // ── Melee: swing at whoever is in front of you ────────────────────────
       // Returns true when a hit landed, so a swing never falls through to
       // placing a block.
+      let attackCd = 0;
+      const currentStats = () =>
+        (typeof heldItemId === "string" && SWORD_STATS[heldItemId]) || SWORD_STATS.fist;
       const tryMelee = () => {
-        if (!remotes) return false;
+        const stats = currentStats();
         const eye = new THREE.Vector3(player.position.x, player.eyeY, player.position.z);
         const dir = aimDir();
-        let best: { uid: string; name: string; d: number } | null = null;
+        const hitDir = new THREE.Vector3(dir.x, 0, dir.z).normalize();
+        const crit = !player.onGround && player.velocity.y < 0;
+        const damage = crit ? Math.round(stats.damage * 1.5) : stats.damage;
+
+        const npcCenter = hitMe.group.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+        const toNpc = npcCenter.clone().sub(eye);
+        const npcDist = toNpc.length();
+        if (npcDist < stats.reach + 0.4 && toNpc.normalize().dot(dir) > 0.72) {
+          hitMeVel.x = hitDir.x * stats.knockback;
+          hitMeVel.z = hitDir.z * stats.knockback;
+          hitMeVel.y = 4.2 + stats.knockback * 0.25;
+          hitMeRedT = 1;
+          hitMeHp = Math.max(0, hitMeHp - damage);
+          hitMeBar.set(hitMeHp);
+          hitMeHealT = 2.2;
+          spawnHitFx(npcCenter, crit ? 0xffe066 : stats.slash);
+          playSound("hurt");
+          playSound("sword_hit");
+          return true;
+        }
+
+        if (!remotes) return false;
+        let best: { uid: string; center: THREE.Vector3; d: number } | null = null;
         for (const [uid, e] of remotes.list()) {
           const center = e.current.clone().add(new THREE.Vector3(0, 0.95, 0));
           const to = center.clone().sub(eye);
           const d = to.length();
-          if (d > 4.2) continue;
-          if (to.normalize().dot(dir) < 0.82) continue;
-          if (!best || d < best.d) best = { uid, name: uid, d };
+          if (d > stats.reach) continue;
+          if (to.normalize().dot(dir) < 0.8) continue;
+          if (!best || d < best.d) best = { uid, center, d };
         }
-        // Hit the "Hit Me" NPC - improved detection
-        const dist = eye.distanceTo(hitMeAvatar.group.position);
-        if (hitMeAvatar && dist < 4.5 && dir.dot(hitMeAvatar.group.position.clone().sub(eye).normalize()) > 0.8) {
-          hitMeAvatar.group.children.forEach(child => {
-            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-              const originalColor = child.material.color.clone();
-              child.material.color.set(0xff0000);
-              playSound("sword_hit");
-              setTimeout(() => child.material.color.copy(originalColor), 1000);
-            }
-          });
-          return true;
+        if (!best) return false;
+        const s = hpFor(best.uid);
+        if (s.respawnIn <= 0) {
+          s.hp = Math.max(0, s.hp - damage);
+          s.bar.set(s.hp);
+          if (s.hp <= 0) s.respawnIn = 3;
         }
+        spawnHitFx(best.center, crit ? 0xffe066 : stats.slash);
+        playSound("hurt");
+        playSound("sword_hit");
+        return true;
+      };
 
-        return false;
+      /** One sword/fist swing: animation, slash arc, whoosh and hit test. */
+      const attack = () => {
+        if (attackCd > 0) return false;
+        const stats = currentStats();
+        attackCd = stats.cooldown;
+        swing = 1;
+        const dir = aimDir();
+        slash.position.set(player.position.x, player.eyeY - 0.15, player.position.z).addScaledVector(dir, 1.25);
+        slash.quaternion.copy(camera.quaternion);
+        slash.rotateZ(Math.random() * 0.8 - 0.4 + Math.PI * 0.35);
+        slashMat.color.setHex(stats.slash);
+        slashT = typeof heldItemId === "string" ? 0.22 : 0;
+        slash.visible = slashT > 0;
+        const landed = tryMelee();
+        if (!landed) playSound(typeof heldItemId === "string" ? "air_whoosh" : "air_dig");
+        return landed;
       };
 
       const doPlace = () => {
@@ -1999,10 +2253,12 @@ export function SandboxGame({
         if (id === undefined) return;
         // Any swing tries to hit an entity first — with a weapon in hand you
         // never place blocks.
-        const landed = tryMelee();
-        if (typeof id === "string" || landed) {
+        if (typeof id === "string") {
+          attack();
+          return;
+        }
+        if (tryMelee()) {
           swing = 1;
-          if (!landed) playSound("air_whoosh");
           return;
         }
 
@@ -2482,7 +2738,10 @@ export function SandboxGame({
         }
 
         // held block placement + swing
-        swing = Math.max(0, swing - dt * 4);
+        swing = Math.max(0, swing - dt * (heldSword?.visible ? 5 : 4));
+        attackCd = Math.max(0, attackCd - dt);
+        updateHitMe(dt);
+        updateSwordFx(dt);
         const sw = Math.sin(swing * Math.PI);
         const bp = heldSword?.visible
           ? heldBasePose.item
@@ -2498,6 +2757,12 @@ export function SandboxGame({
             bp.pz - sw * 0.22,
           );
           heldRig.rotation.set(bp.rx - sw * 0.85, bp.ry - sw * 0.35, bp.rz + sw * 0.45);
+        } else if (heldSword?.visible) {
+          // Diagonal slash: wind up high-right, cut down across to the left.
+          const arc = swing > 0 ? 1 - swing : 0;
+          const cut = Math.sin(arc * Math.PI);
+          heldRig.position.set(bp.px - cut * 0.22, bp.py + (swing > 0.7 ? sw * 0.08 : -cut * 0.12) + bobY * 0.5, bp.pz - cut * 0.12);
+          heldRig.rotation.set(bp.rx - cut * 1.15, bp.ry + cut * 0.55, bp.rz + cut * 0.9);
         } else {
           heldRig.position.set(bp.px - sw * 0.05, bp.py - sw * 0.1 + bobY * 0.5, bp.pz + sw * 0.08);
           heldRig.rotation.set(bp.rx - sw * 0.7, bp.ry, bp.rz + sw * 0.4);
@@ -2573,7 +2838,13 @@ export function SandboxGame({
 
         // ── hold-to-mine or chest interaction ──────────────
         const wantMine = mining || controls!.holding.break;
-        if (isAimingChest && (wantMine || controls!.holding.place)) {
+        if (wantMine && typeof heldItemId === "string") {
+          // Weapons attack on hold instead of mining.
+          attack();
+          mineKey = null;
+          mineT = 0;
+          crackMesh.visible = false;
+        } else if (isAimingChest && (wantMine || controls!.holding.place)) {
           setChestOpen(true);
           controls!.holding.break = false;
           controls!.holding.place = false;
@@ -2987,6 +3258,16 @@ export function SandboxGame({
 
   const isV2 = skyblock || blockFall || bedwars;
   const matchState = useStore(match.store);
+  const progressState = useStore(progression.store);
+  const backpack: (number | string)[] = skyblock
+    ? [...STARTER_BACKPACK, ...progressState.unlockedBlocks, ...crafted]
+    : bedwars
+      ? ["short_sword", ...crafted]
+      : [];
+
+  useEffect(() => {
+    if (inventoryOpen) controlsRef.current?.exitLock();
+  }, [inventoryOpen]);
   const setMoveVector = (x: number, y: number) => {
     const c = controlsRef.current;
     if (!c) return;
@@ -3003,7 +3284,7 @@ export function SandboxGame({
   };
   const v2Actions: HudAction[] = skyblock
     ? [
-        { id: "jump", label: "Jump", kind: "hold", primary: true, onPress: setJump },
+        { id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump },
         {
           id: "mine",
           label: "Mine",
@@ -3023,7 +3304,7 @@ export function SandboxGame({
           },
         },
       ]
-    : [{ id: "jump", label: "Jump", kind: "hold", primary: true, onPress: setJump }];
+    : [{ id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump }];
 
   useEffect(() => {
     if (blockFall && matchState.phase === "results") controlsRef.current?.exitLock();
@@ -3204,6 +3485,8 @@ export function SandboxGame({
           }
           onMove={setMoveVector}
           onToggleRun={() => handleMovementModeChange(movementMode === "run" ? "walk" : "run")}
+          sneaking={movementMode === "crouch"}
+          onToggleSneak={() => handleMovementModeChange(movementMode === "crouch" ? "walk" : "crouch")}
           onOpenChat={() => {
             controlsRef.current?.exitLock();
             setChatOpen(true);
@@ -3227,7 +3510,14 @@ export function SandboxGame({
           {skyblock && (
             <>
               <CinematicVignette />
-              <V2Hotbar hotbar={hotbar} tileUrls={tileUrls} slot={slot} onSelect={selectSlot} isTouch={isTouch} />
+              <V2Hotbar
+                hotbar={hotbar}
+                tileUrls={tileUrls}
+                slot={slot}
+                onSelect={selectSlot}
+                isTouch={isTouch}
+                onOpenInventory={() => setInventoryOpen(true)}
+              />
               <Crosshair />
             </>
           )}
@@ -3333,21 +3623,49 @@ export function SandboxGame({
         </div>
       )}
 
-      {inventoryOpen && bedwars && (
+      {inventoryOpen && isV2 && (
         <BlockmanInventory
           hotbar={hotbar}
           tileUrls={tileUrls}
           slot={slot}
-          onSelect={(i) => {
-            setSlot(i);
-            const v = hotbar[i];
-            if (v !== undefined) api()?.setHeldTile(v);
+          backpack={backpack}
+          level={progressState.level}
+          playerName={meRef.current.name}
+          blockUrl={(id) => api()?.getAtlasUrl(id) ?? ""}
+          onSelect={selectSlot}
+          onEquip={(item, target) => {
+            setHotbar((prev) => {
+              const next = [...prev];
+              while (next.length <= target) next.push(0);
+              next[target] = item;
+              return next;
+            });
+            if (typeof item === "number") {
+              const url = api()?.getAtlasUrl(item) ?? "";
+              if (url) setTileUrls((prev) => ({ ...prev, [item]: url }));
+            }
+            if (target === slotRef.current) api()?.setHeldTile(item);
           }}
+          onCraft={
+            skyblock
+              ? (item) => {
+                  setCrafted((prev) => {
+                    if (prev.includes(item)) return prev;
+                    const next = [...prev, item];
+                    try {
+                      localStorage.setItem(CRAFTED_KEY, JSON.stringify(next));
+                    } catch {}
+                    return next;
+                  });
+                  playSound("place");
+                }
+              : undefined
+          }
           onClose={() => setInventoryOpen(false)}
         />
       )}
 
-      {inventoryOpen && !bedwars && (
+      {inventoryOpen && !isV2 && (
         <div className="fixed inset-0 z-[100]">
           <AdvancedInventoryModal
             onClose={() => setInventoryOpen(false)}
