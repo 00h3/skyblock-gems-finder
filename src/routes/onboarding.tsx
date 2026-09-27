@@ -105,7 +105,9 @@ const GAME_PREFERENCES = [
 const CHARACTER_PRESETS = [
   {
     id: "ned",
-    name: "Ned",
+    name: "Boy",
+    alias: "Ned",
+    previewUrl: "https://maxwell.z3ki.dev/bot/avatar-3d-preview/",
     gender: "male" as const,
     tagline: "Classic Adventurer",
     skin: "#f5cfa0",
@@ -114,6 +116,8 @@ const CHARACTER_PRESETS = [
   {
     id: "nelly",
     name: "Nelly",
+    alias: "ID 2",
+    previewUrl: "https://maxwell.z3ki.dev/bot/avatar-boy-preview/",
     gender: "female" as const,
     tagline: "Modern Pioneer",
     skin: "#ffe8df",
@@ -623,15 +627,12 @@ function OnboardingPage() {
 
                         {/* Live 3D Preview Space */}
                         <div className="w-full h-32 rounded-[10px] bg-slate-900/5 border border-black/10 flex flex-col items-center justify-center relative overflow-hidden z-10">
-                          <GlbAvatar
-                            height={136}
-                            scale={0.92}
-                            gender={p.gender}
-                            tint={p.skin}
-                            hairColor={p.hair}
-                            autoRotate={isSelected}
-                            interactive={false}
-                            className="w-full h-full pointer-events-none"
+                          <iframe
+                            src={p.previewUrl}
+                            className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
+                            style={{ border: "none" }}
+                            loading="lazy"
+                            allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope"
                           />
 
                           {isSelected && (
@@ -643,9 +644,16 @@ function OnboardingPage() {
 
                         {/* Name label */}
                         <div className="mt-2.5 px-1 relative z-10">
-                          <div className="text-[14px] font-inter-bold text-slate-900">{p.name}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[14px] font-inter-bold text-slate-900">
+                              {p.name === "Boy" ? "Boy (Ned)" : "Nelly (ID 2)"}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-200/80 px-1.5 py-0.5 rounded-[5px]">
+                              {p.alias}
+                            </span>
+                          </div>
                           <div className="text-[11px] font-inter-normal text-slate-600">
-                            {p.tagline}
+                            {p.id === "ned" ? "Boy as Ned" : "Nelly as ID 2"}
                           </div>
                         </div>
                       </button>

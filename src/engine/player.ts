@@ -43,19 +43,19 @@ export const SANDBOX_PHYSICS: PhysicsProfile = {
   sprintJumpBoost: 1.22,
 };
 
-/** Snappier, heavier and more predictable — built for Block Fall rounds. */
+/** Smooth, responsive and agile — built for silky Block Fall rounds. */
 export const COMPETITIVE_PHYSICS: PhysicsProfile = {
-  gravity: 30,
-  fallGravityMul: 1.32,
-  jumpV: 8.9,
-  walk: 4.7,
+  gravity: 28.8,
+  fallGravityMul: 1.2,
+  jumpV: 8.8,
+  walk: 4.8,
   sprint: 6.1,
   crouch: 2.3,
-  accel: 82,
-  groundDamp: 18,
-  airDamp: 0.8,
+  accel: 72,
+  groundDamp: 15.5,
+  airDamp: 0.65,
   airControl: 0.45,
-  sprintJumpBoost: 1.0,
+  sprintJumpBoost: 1.08,
 };
 
 export type MoveInput = {

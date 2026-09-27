@@ -379,7 +379,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/10" />
                   </div>
                   <div className="mt-1.5 px-0.5">
-                    <div className="truncate text-[12px] font-bold leading-tight">{game.t}</div>
+                    <div className="truncate text-[12px] font-lilita tracking-wide leading-tight">{game.t}</div>
                     <div className="mt-1 flex items-center gap-2.5 text-[10px] text-text-muted">
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
@@ -654,7 +654,7 @@ function ArchiveHomePage() {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                       <div className="absolute inset-x-3 bottom-3">
-                        <p className="truncate text-[14px] font-extrabold text-white">{game.t}</p>
+                        <p className="truncate text-[15px] font-lilita tracking-wide text-white">{game.t}</p>
                         <p className="mt-1 text-[10px] font-semibold text-white/75">
                           {game.players ?? "0"} playing · {game.likes ?? "0"} likes
                         </p>
@@ -836,8 +836,8 @@ function ContinuePlayingCard({ g, onPlay }: { g: Game; onPlay: () => void }) {
       {/* Content */}
       <div className="flex-1 min-w-0 py-3 pl-1">
         <div
-          className="text-[14px] font-extrabold leading-tight"
-          style={{ color: "#141414", fontFamily: "var(--font-heading)" }}
+          className="text-[15px] font-lilita tracking-wide leading-tight"
+          style={{ color: "#141414" }}
         >
           {g.t}
         </div>
@@ -1155,8 +1155,8 @@ function SkyBlockCard({ g, onPlay }: { g: Game; onPlay: () => void }) {
       {/* Content */}
       <div className="flex-1 min-w-0 py-3 pl-1 pr-2">
         <div
-          className="text-[15px] font-extrabold leading-tight"
-          style={{ color: "#141414", fontFamily: "var(--font-heading)" }}
+          className="text-[16px] font-lilita tracking-wide leading-tight"
+          style={{ color: "#141414" }}
         >
           {g.t}
         </div>

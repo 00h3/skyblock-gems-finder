@@ -156,20 +156,25 @@ function IslandSummary({ progression }: { progression: Progression }) {
   const pct = p.nextLevelXp === null ? 100 : Math.round(((p.xp - p.levelFloorXp) / span) * 100);
   const unlocks = next ? [next.unlockLabel, next.unlockGenerator, `Radius ${next.radius}`].filter(Boolean) : [];
   return (
-    <div className="min-w-0 flex-1">
-      <p className="v2-eyebrow">{`Island level ${p.level}`}</p>
-      <h2 id="island-panel-title" className="mt-0.5 text-[20px] font-bold tracking-tight">
-        {p.title}
-      </h2>
-      <div className="mt-2 flex max-w-[340px] items-center gap-2">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-v2-plum transition-[width] duration-500" style={{ width: `${pct}%` }} />
-        </div>
-        <span className="text-[11px] font-medium tabular-nums text-white/55">
-          {p.nextLevelXp === null ? `${fmt(p.xp)} XP` : `${fmt(p.xp)} / ${fmt(p.nextLevelXp)}`}
+    <div className="relative min-w-0 flex-1 rounded-[16px] border-2 border-[#7a4823] bg-gradient-to-b from-[#4a2e18] via-[#38200f] to-[#231206] p-3.5 shadow-[inset_0_1px_0_rgba(255,200,140,0.3),0_4px_16px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center justify-between">
+        <p className="font-lilita text-[12px] tracking-wide text-amber-300/80 uppercase">{`Island Level ${p.level}`}</p>
+        <span className="font-lilita text-[12px] text-amber-200">
+          {p.nextLevelXp === null ? `${fmt(p.xp)} XP` : `${fmt(p.xp)} / ${fmt(p.nextLevelXp)} XP`}
         </span>
       </div>
-      <p className="mt-1.5 truncate text-[11.5px] text-white/50">
+      <h2 id="island-panel-title" className="mt-0.5 font-lilita text-[20px] tracking-wide text-amber-100 drop-shadow-sm">
+        {p.title}
+      </h2>
+      <div className="mt-2.5 flex max-w-[360px] items-center gap-2.5">
+        <div className="h-2 flex-1 overflow-hidden rounded-full border border-black/50 bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+      <p className="mt-2 truncate text-[11.5px] font-medium text-amber-100/60">
         {next ? `Next: ${unlocks.join(" \u00b7 ")}` : `Max level \u00b7 Build radius ${p.radius}`}
       </p>
     </div>

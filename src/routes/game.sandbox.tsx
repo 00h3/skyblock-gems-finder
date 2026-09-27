@@ -1248,9 +1248,8 @@ export function SandboxGame({
         } else if (mode === "off") {
           sky.setRange(90, 450);
         } else {
-          // "realistic" (default) — very near realistic atmospheric fog
-          // Tighter range for BlockFall to enhance moody proximity
-          sky.setRange(8, blockFall ? 48 : 68);
+          // "realistic" (default) — panoramic visibility so the gorgeous sky and floating island are clearly visible
+          sky.setRange(28, blockFall ? 85 : 180);
         }
       };
 
@@ -1304,7 +1303,7 @@ export function SandboxGame({
       if (grassField) scene.add(grassField.mesh);
       const cinematicPost =
         (skyblock || blockFall || bedwars) && qualityPref !== "low"
-          ? new CinematicPost(renderer, scene, camera, bedwars ? 0.18 : 0.72)
+          ? new CinematicPost(renderer, scene, camera, 0.45)
           : null;
       const cosmicSky = skyblock ? new CosmicSky(scene, qualityPref === "low") : null;
       cosmicSkyRef.current = cosmicSky;
@@ -1501,11 +1500,23 @@ export function SandboxGame({
 
         try {
           const loader = new GLTFLoader();
-          const [runesAsset, workbenchAsset, swordAsset] = await Promise.all([
+          const [runesAsset, workbenchAsset, swordOro, swordFerro, swordDiamante, woodenSword] = await Promise.all([
             loader.loadAsync("/runes-ghast.glb"),
             loader.loadAsync("/workbench.glb"),
-            loader.loadAsync(skyblock ? "/biblically_accurate_sword.glb" : "/short-sword.glb"),
+            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/sword_oro.glb"),
+            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/sword_ferro.glb"),
+            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/sword_diamante.glb"),
+            loader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/wooden_sword.glb"),
           ]);
+          // Stash all swords to be used in game logic
+          const swordAssets = {
+            oro: swordOro.scene,
+            ferro: swordFerro.scene,
+            diamante: swordDiamante.scene,
+            wooden: woodenSword.scene,
+          };
+          window.swordAssets = swordAssets; // Temporary workaround to expose assets to game loop
+
           if (!disposed) {
             runesSource = runesAsset.scene;
             normalizeShowcaseModel(runesSource, 4.6);
@@ -1768,6 +1779,14 @@ export function SandboxGame({
         matchmaker.load(2.28).catch(() => {});
       }
 
+      // Add 'Hit Me' NPC
+      const hitMeNPC = new Avatar();
+      hitMeNPC.group.position.set(2, 17, 2);
+      scene.add(hitMeNPC.group);
+      hitMeNPC.load(2.28).catch(() => {});
+      let hitMeLastHit = 0;
+      let hitMeIsRed = false;
+
       // ── Floating HP bars (20/20) above every hittable entity ─────────────
       const names = new Map<string, string>();
       const hpBars = new Map<
@@ -1951,17 +1970,21 @@ export function SandboxGame({
           if (to.normalize().dot(dir) < 0.82) continue;
           if (!best || d < best.d) best = { uid, name: uid, d };
         }
-        if (!best) return false;
-        const state = hpFor(best.uid);
-        if (state.hp <= 0) return true;
-        state.hp = Math.max(0, state.hp - meleeDamage);
-        state.bar.set(state.hp);
-        // Play Girl Hurt sound when hitting someone per user request:
-        playSound("hurt");
-        if (state.hp === 0) {
-          state.respawnIn = 3;
+        // Hit the "Hit Me" NPC - improved detection
+        const dist = eye.distanceTo(hitMeAvatar.group.position);
+        if (hitMeAvatar && dist < 4.5 && dir.dot(hitMeAvatar.group.position.clone().sub(eye).normalize()) > 0.8) {
+          hitMeAvatar.group.children.forEach(child => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+              const originalColor = child.material.color.clone();
+              child.material.color.set(0xff0000);
+              playSound("sword_hit");
+              setTimeout(() => child.material.color.copy(originalColor), 1000);
+            }
+          });
+          return true;
         }
-        return true;
+
+        return false;
       };
 
       const doPlace = () => {
@@ -1979,7 +2002,7 @@ export function SandboxGame({
         const landed = tryMelee();
         if (typeof id === "string" || landed) {
           swing = 1;
-          if (!landed) playSound("air_dig");
+          if (!landed) playSound("air_whoosh");
           return;
         }
 
@@ -2641,7 +2664,7 @@ export function SandboxGame({
         }
 
         fx!.update(dt);
-        world!.update(3);
+        world!.update(blockFall ? 6 : 3);
         WIND.uTime.value += dt;
         grassField?.update(dt);
         if (matchmaker && matchmakerTag) {

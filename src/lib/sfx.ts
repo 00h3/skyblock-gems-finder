@@ -15,6 +15,8 @@ export type SfxType =
   | "chest_close"
   | "hurt"
   | "air_dig"
+  | "air_whoosh"
+  | "sword_hit"
   | "pop";
 
 let actx: AudioContext | null = null;

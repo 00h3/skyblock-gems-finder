@@ -11,8 +11,8 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.font-lilita {
-  font-family: "Lilita One", cursive;
+.font-lilita, [class*="font-lilita"], .font-heading {
+  font-family: "Lilita One", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
 canvas {
@@ -26,6 +26,11 @@ canvas {
 }
 
 :root {
+  --font-lilita: "Lilita One", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Lilita One", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-pixel: "Lilita One", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
   --clr-blue: #1890ff;
   --clr-green: #01c3a8;
   --clr-orange: #f97316; /* Orange outline */
@@ -4288,4 +4293,9 @@ html.dark .home-currency-bubble {
 @media (prefers-reduced-motion: reduce) {
   .v2-anim-pop, .v2-anim-drop, .v2-anim-banner, .v2-anim-veil { animation-duration: 1ms; }
   .v2-anim-count, .v2-anim-go { animation-name: v2-veil-out; animation-direction: reverse; }
+}
+
+.motion-blur {
+  filter: blur(2px) saturate(1.2);
+  transition: filter 0.1s;
 }

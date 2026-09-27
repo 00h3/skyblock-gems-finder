@@ -247,31 +247,20 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
         </header>
 
         {/* 3D Character Stage Section */}
+        {/* 3D Model Stage (Top Half) */}
         <div className="relative w-full h-[370px] bg-gradient-to-b from-[#ffffff] via-[#f1f5f9] to-[#e2e8f0] overflow-hidden">
-          {/* Floating Stage Tools (Right) */}
-          <div className="absolute top-3 right-3.5 z-10 flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={() => setAutoRotate((prev) => !prev)}
-              title="Toggle Rotate"
-              className={`qb-squircle press grid h-8 w-8 place-items-center text-xs bg-white/90 backdrop-blur-md border border-black/[0.08] shadow-xs transition-colors ${
-                autoRotate ? "text-[#fa4616]" : "text-[#5f646d]"
-              }`}
-            >
-              <RotateCw className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleResetCamera}
-              title="Reset camera"
-              className="qb-squircle press grid h-8 w-8 place-items-center text-xs bg-white/90 backdrop-blur-md border border-black/[0.08] text-[#5f646d] shadow-xs"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          {/* Full Space 3D Avatar Preview Iframe */}
+          <iframe
+            src="https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+            className="w-full h-full border-0 absolute inset-0 bg-transparent z-0"
+            style={{ pointerEvents: "auto", border: "none", width: "100%", height: "100%" }}
+            allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+            sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+            title="Avatar 3D Preview"
+          />
 
           {/* Floating Stage Bottom Right: Shopping Cart Button */}
-          <div className="absolute bottom-3 right-3.5 z-10">
+          <div className="absolute bottom-3 right-3.5 z-10 pointer-events-auto">
             <button
               type="button"
               onClick={() => navigate({ to: "/shop" as never })}
@@ -281,62 +270,6 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
               <ShoppingBag className="w-4 h-4 fill-current text-[#17191d]" />
             </button>
           </div>
-
-          {/* Element-level loader overlay (starts hidden, shows on switch) */}
-          {loading && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/60 backdrop-blur-xs transition-opacity pointer-events-none">
-              <HtmlSpinner size="md" />
-            </div>
-          )}
-
-          {/* Model-Viewer 3D Canvas */}
-          <AvatarErrorBoundary
-            fallback={
-              <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-[#f1f5f9]">
-                <p className="text-sm font-bold text-[#17191d] mb-1">Model Preview Unavailable</p>
-                <p className="text-xs text-[#697383] mb-3">Could not load 3D character viewport.</p>
-                <button
-                  type="button"
-                  onClick={() => setModelError(false)}
-                  className="qb-squircle press px-3 py-1.5 text-xs font-extrabold bg-[#17191d] text-white flex items-center gap-1.5"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Try Again</span>
-                </button>
-              </div>
-            }
-          >
-            {modelError ? (
-              <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-[#f1f5f9]">
-                <p className="text-sm font-bold text-[#17191d] mb-1">Failed to load avatar</p>
-                <p className="text-xs text-[#697383] mb-3">
-                  Please check your internet connection.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setModelError(false)}
-                  className="qb-squircle press px-3 py-1.5 text-xs font-extrabold bg-[#17191d] text-white flex items-center gap-1.5"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Retry</span>
-                </button>
-              </div>
-            ) : (
-              <iframe
-                src={
-                  qbUser?.email === "mammaettahiri@gmail.com"
-                    ? "https://maxwell.z3ki.dev/bot/avatar-id4-breathe-preview/"
-                    : selectedChar === "char2"
-                      ? "https://maxwell.z3ki.dev/bot/avatar-3d-preview/"
-                      : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
-                }
-                className="w-full h-full border-0 absolute inset-0 bg-transparent"
-                style={{ pointerEvents: "auto", border: "none" }}
-                allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
-                sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
-              />
-            )}
-          </AvatarErrorBoundary>
         </div>
 
         {/* Wardrobe Customizer Panel (Bottom Half) */}

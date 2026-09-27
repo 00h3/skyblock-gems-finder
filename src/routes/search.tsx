@@ -234,18 +234,20 @@ function SearchPage() {
                       onClick={() => handleOpenProfile(player)}
                       className="press flex flex-col p-3 gap-2.5 relative cursor-pointer active:scale-[0.99] transition-transform rounded-[18px] border border-black/10 bg-gradient-to-b from-[#fbfcfd] to-[#f1f4f8] shadow-[0_4px_14px_rgba(23,24,27,0.05)]"
                     >
-                      {/* 3D Character thumbnail - static fallback for performance */}
+                      {/* 3D Character thumbnail iframe preview */}
                       <div className="w-full h-[140px] rounded-[14px] overflow-hidden bg-[#eef2f6] relative flex items-center justify-center">
-                        <GlossyAvatar
-                          snapshot={player.avatarSnapshot}
-                          imageFallbackOnly={true}
-                          className="w-full h-full scale-[1.3] translate-y-2"
+                        <iframe
+                          src="https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+                          className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
+                          style={{ border: "none" }}
+                          loading="lazy"
+                          allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope"
                         />
                       </div>
 
                       {/* User Info - no nested padding */}
                       <div className="flex flex-col min-w-0 gap-0.5">
-                        <div className="text-[13.5px] font-extrabold text-[#17191d] truncate hidden">
+                        <div className="text-[13.5px] font-extrabold text-[#17191d] truncate">
                           <UserNameWithBadges
                             user={{
                               username: player.username,

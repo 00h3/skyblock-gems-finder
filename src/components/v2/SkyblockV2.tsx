@@ -14,27 +14,35 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
       {e.active && (
-        <span className="v2-pill v2-anim-drop gap-2">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-v2-sun" aria-hidden="true" />
+        <span className="flex items-center gap-2 rounded-full border border-[#965a2a] bg-gradient-to-b from-[#4a2e18] to-[#251307] px-3.5 py-1.5 text-xs font-lilita text-amber-200 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />
           {e.active.name}
-          <span className="tabular-nums text-white/60">{formatClock(e.endsAt - now)}</span>
-          {e.active.xpMultiplier > 1 && <span className="text-v2-sun">{`x${e.active.xpMultiplier} XP`}</span>}
+          <span className="tabular-nums text-amber-100/70">{formatClock(e.endsAt - now)}</span>
+          {e.active.xpMultiplier > 1 && <span className="text-amber-400">{`x${e.active.xpMultiplier} XP`}</span>}
         </span>
       )}
+      {/* Wooden Hood-Style Progress Panel */}
       <div
-        className="v2-glass flex min-w-[196px] flex-col gap-1.5 rounded-[14px] px-3.5 py-2.5"
+        className="relative flex min-w-[210px] flex-col gap-1.5 rounded-[18px] rounded-t-[22px] border-2 border-[#7a4823] bg-gradient-to-b from-[#4a2e18] via-[#38200f] to-[#231206] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,200,140,0.35),0_6px_20px_rgba(0,0,0,0.6)]"
         aria-label={`Island level ${p.level}, ${pct} percent to next level`}
       >
+        {/* Subtle wood carved top hood highlight */}
+        <div className="absolute inset-x-3 top-0 h-[1.5px] rounded-full bg-gradient-to-r from-transparent via-[#f5c285]/50 to-transparent" />
+        
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[13px] text-white">
-            Island <span className="tabular-nums">{p.level}</span>
+          <span className="font-lilita text-[14px] tracking-wide text-amber-100">
+            Island <span className="tabular-nums text-amber-300">{p.level}</span>
           </span>
-          <span className="text-[11px] font-medium text-white/55">{p.title}</span>
+          <span className="text-[11px] font-bold text-amber-200/70">{p.title}</span>
         </div>
-        <div className="h-1 overflow-hidden rounded-full bg-white/12">
-          <div className="h-full rounded-full bg-v2-plum transition-[width] duration-500" style={{ width: `${pct}%` }} />
+        {/* Wood-grooved progress track */}
+        <div className="h-2 overflow-hidden rounded-full border border-black/40 bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
+            style={{ width: `${pct}%` }}
+          />
         </div>
-        <div className="flex justify-between text-[10.5px] font-medium tabular-nums text-white/45">
+        <div className="flex justify-between text-[10.5px] font-bold tabular-nums text-amber-200/60">
           <span>{p.xp} XP</span>
           <span>{p.nextLevelXp === null ? "Max" : `${p.nextLevelXp} XP`}</span>
         </div>
@@ -50,33 +58,36 @@ export function MilestoneTracker({ progression }: { progression: Progression }) 
   return (
     <aside
       aria-label="Milestones"
-      className="pointer-events-none absolute left-3 top-[calc(max(12px,env(safe-area-inset-top)+8px)+60px)] hidden w-60 flex-col gap-2 sm:left-5 sm:flex landscape:flex"
+      className="pointer-events-none absolute left-3 top-[calc(max(12px,env(safe-area-inset-top)+8px)+60px)] hidden w-64 flex-col gap-2.5 sm:left-5 sm:flex landscape:flex"
     >
       <div className="flex items-center justify-between px-1">
-        <span className="v2-eyebrow">Milestones</span>
-        <span className="text-[11px] font-medium tabular-nums text-white/45">{s.completed.length} done</span>
+        <span className="font-lilita text-[13px] tracking-wide text-amber-200 drop-shadow-sm">Milestones Progress</span>
+        <span className="text-[11px] font-bold tabular-nums text-amber-100/60">{s.completed.length} done</span>
       </div>
       {next.map((m, i) => {
         const pct = Math.round((m.progress / m.target) * 100);
         return (
           <div
             key={m.id}
-            className={cn("v2-glass rounded-[14px] px-3.5 py-2.5 text-white", i > 0 && "opacity-75")}
+            className={cn(
+              "relative rounded-[16px] border-2 border-[#7a4823] bg-gradient-to-b from-[#4a2e18] via-[#38200f] to-[#231206] px-3.5 py-2.5 text-white shadow-[inset_0_1px_0_rgba(255,200,140,0.3),0_4px_16px_rgba(0,0,0,0.5)]",
+              i > 0 && "opacity-85",
+            )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-[12.5px]">{m.label}</span>
-              <span className="shrink-0 rounded-full bg-v2-plum/25 px-1.5 py-0.5 text-[10px] text-v2-sun">
-                +{m.rewardXp}
+              <span className="truncate font-medium text-[12.5px] text-amber-100">{m.label}</span>
+              <span className="shrink-0 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-700/60 to-amber-600/60 px-2 py-0.5 font-lilita text-[11px] text-amber-200">
+                +{m.rewardXp} XP
               </span>
             </div>
             <div className="mt-2 flex items-center gap-2">
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/12">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-black/40 bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
                 <div
-                  className="h-full rounded-full bg-v2-plum transition-[width] duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-[#d97706] to-[#fbbf24] shadow-[0_0_6px_rgba(245,158,11,0.5)] transition-[width] duration-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <span className="text-[10.5px] font-medium tabular-nums text-white/55">
+              <span className="text-[10.5px] font-bold tabular-nums text-amber-200/70">
                 {m.progress}/{m.target}
               </span>
             </div>

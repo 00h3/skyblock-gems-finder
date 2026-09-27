@@ -338,25 +338,21 @@ export function ProfileSheet({
         className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f4f5f8] dark:bg-[#0c0d11]"
       >
         <div className="flex-1 w-full overflow-y-auto ios-scroll hide-scrollbar flex flex-col relative">
-          {/* ── 3D AVATAR STAGE BACKGROUND (LIVE CHARACTER MODEL) ── */}
-          <div className="relative h-[210px] shrink-0 w-full overflow-hidden bg-[#e9ebf2] dark:bg-[#12141a] flex flex-col justify-between p-4 border-b border-black/[0.04] dark:border-white/5">
-            {/* Live 3D character on the stage */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-[-18px] top-4 z-[1]">
-              <iframe
-                src={
-                  user.email === "mammaettahiri@gmail.com"
-                    ? "https://maxwell.z3ki.dev/bot/avatar-id4-breathe-preview/"
-                    : user.avatarSnapshot?.baseCharacter === "char2"
-                      ? "https://maxwell.z3ki.dev/bot/avatar-3d-preview/"
-                      : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
-                }
-                title="3D Avatar"
-                className="w-full h-full border-0 absolute inset-0 bg-transparent"
-                style={{ pointerEvents: "auto", border: "none" }}
-                allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
-                sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
-              />
-            </div>
+          {/* ── 3D AVATAR STAGE BACKGROUND (FULL CONTAINER PREVIEW) ── */}
+          <div className="relative h-[220px] shrink-0 w-full overflow-hidden bg-[#e9ebf2] dark:bg-[#12141a] flex flex-col justify-between p-4 border-b border-black/[0.04] dark:border-white/5">
+            {/* Live 3D character on the stage covering full space */}
+            <iframe
+              src={
+                user.email === "mammaettahiri@gmail.com"
+                  ? "https://maxwell.z3ki.dev/bot/avatar-id4-breathe-preview/"
+                  : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+              }
+              title="3D Avatar"
+              className="w-full h-full border-0 absolute inset-0 bg-transparent z-0"
+              style={{ pointerEvents: "auto", border: "none", width: "100%", height: "100%" }}
+              allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+              sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+            />
 
             <AvatarFrameOverlay
               frame={user.frame ?? user.avatarSnapshot?.frameId}
@@ -393,15 +389,17 @@ export function ProfileSheet({
           <div className="relative z-20 flex-1 flex flex-col bg-white dark:bg-[#14151b] overflow-hidden border-t border-black/[0.06] dark:border-white/10">
             {/* Profile Header Row (PFP, Name, ID - NO LIKES) */}
             <div className="p-4 pb-3 flex items-center gap-3 border-b border-black/[0.04] dark:border-white/5">
-              {/* PFP with equipped frame */}
-              <div className="relative shrink-0">
-                <GlossyAvatar
-                  frame={user.frame ?? user.avatarSnapshot?.frameId}
-                  photoUrl={user.profilePhoto}
-                  snapshot={user.avatarSnapshot}
-                  height={52}
-                  className="h-[52px] w-[52px] rounded-[14px] border border-black/5 dark:border-white/10 shadow-none"
-                  autoRotate={false}
+              {/* PFP container with 3D avatar iframe */}
+              <div className="relative shrink-0 h-[52px] w-[52px] rounded-[14px] overflow-hidden border border-black/10 dark:border-white/10 bg-[#e9ebf2] dark:bg-[#12141a]">
+                <iframe
+                  src={
+                    user.email === "mammaettahiri@gmail.com"
+                      ? "https://maxwell.z3ki.dev/bot/avatar-id4-breathe-preview/"
+                      : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+                  }
+                  title="PFP Avatar"
+                  className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
+                  style={{ border: "none" }}
                 />
               </div>
 
@@ -489,17 +487,16 @@ export function ProfileSheet({
             <div className="flex-1 p-3.5 space-y-3 bg-[#f8f9fa] dark:bg-[#0c0d12]">
               {activeTab === "personal" && (
                 <div className="space-y-2.5 animate-fade-in">
-                  {/* Email (Admin only typically, or own) */}
-                  {user.email && (
-                    <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none flex items-center justify-between">
-                      <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                        Email
-                      </span>
-                      <span className="text-[12px] font-bold text-[#141414] dark:text-white truncate max-w-[60%]">
-                        {user.email}
-                      </span>
-                    </div>
-                  )}
+                  {/* Titles */}
+                  <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none flex items-center justify-between">
+                    <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                      Titles:
+                    </span>
+                    <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                      None
+                    </span>
+                  </div>
+
                   {/* Bio Card */}
                   <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none">
                     <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-800 dark:text-slate-200 mb-1.5">
@@ -535,11 +532,8 @@ export function ProfileSheet({
                     </div>
                   </div>
 
-                  <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none">
-                    <h3 className="text-[12px] font-bold text-[#1c1e24] dark:text-white mb-2">
-                      Badges
-                    </h3>
-                    {userBadges.length > 0 ? (
+                  {userBadges.length > 0 && (
+                    <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none">
                       <div className="flex flex-wrap gap-1.5">
                         {userBadges.map((badge) => (
                           <span
@@ -556,69 +550,72 @@ export function ProfileSheet({
                           </span>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-[12px] font-medium text-[#73788c] dark:text-slate-400">
-                        No public badges yet
-                      </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === "game" && (
                 <div className="space-y-2.5 animate-fade-in">
                   <div className="text-[10.5px] font-extrabold uppercase tracking-wider text-[#73788c] dark:text-slate-400 px-1">
-                    Played Games ({combinedGameIds.length})
+                    Player Game Data
                   </div>
 
-                  {loadingGames ? (
-                    <div className="py-8 text-center text-[12px] font-semibold text-slate-400">
-                      Fetching game data from Firebase…
-                    </div>
-                  ) : combinedGameIds.length > 0 ? (
-                    <div className="space-y-2">
-                      {combinedGameIds.map((gameId) => {
-                        const safeGameId = typeof gameId === "string" ? gameId : String(gameId);
-                        const info = KNOWN_GAMES_INFO[safeGameId] || {
-                          title: safeGameId.charAt(0).toUpperCase() + safeGameId.slice(1),
-                          mode: "QBLOCK World",
-                        };
-                        return (
-                          <div
-                            key={safeGameId}
-                            className="rounded-[14px] bg-white dark:bg-[#16171e] p-3 border border-black/5 dark:border-white/5 shadow-none flex items-center gap-3"
-                          >
-                            <div className="h-10 w-10 rounded-[10px] overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 grid place-items-center">
-                              {info.icon ? (
-                                <img
-                                  src={info.icon}
-                                  alt={info.title}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <Gamepad2 className="h-5 w-5 text-[#fa4616]" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-[13px] font-extrabold text-[#1c1e24] dark:text-white truncate">
-                                {info.title}
-                              </h4>
-                              <p className="text-[11px] font-semibold text-[#73788c] dark:text-slate-400 truncate mt-0.5">
-                                {info.mode}
-                              </p>
-                            </div>
-                            <span className="px-2.5 py-0.5 rounded-[8px] bg-[#fa4616]/10 text-[#fa4616] border border-[#fa4616]/20 text-[10px] font-extrabold">
-                              Played
-                            </span>
+                  <div className="space-y-2">
+                    {[
+                      {
+                        id: "skyblock",
+                        title: "Skyblock",
+                        mode: "Island Survival",
+                        time: "0.0h",
+                        icon: "https://maxwell.z3ki.dev/bot/_files/qblock-phoenix-island/file_000000001170820a9af3a6c47a27b006.jpg",
+                      },
+                      {
+                        id: "blockfall",
+                        title: "Block Fall",
+                        mode: "Hexagon Tumble",
+                        time: "0.0h",
+                        icon: "/assets/hud/v2/run_asset.png",
+                      },
+                      {
+                        id: "bedwars",
+                        title: "BedWars",
+                        mode: "Floating Arena",
+                        time: "0.0h",
+                        icon: "/assets/controls/icon_fire.png",
+                      },
+                    ].map((g) => (
+                      <div
+                        key={g.id}
+                        className="rounded-[14px] bg-white dark:bg-[#16171e] p-3 border border-black/5 dark:border-white/5 shadow-none flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-10 w-10 rounded-[10px] overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 grid place-items-center border border-black/5 dark:border-white/5">
+                            <img
+                              src={g.icon}
+                              alt={g.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <Gamepad2 className="h-5 w-5 text-[#fa4616] hidden" />
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-6 border border-black/5 dark:border-white/5 text-center text-[#73788c] dark:text-slate-400 text-[12.5px] font-medium shadow-none">
-                      No played games yet
-                    </div>
-                  )}
+                          <div className="min-w-0">
+                            <h4 className="text-[14px] font-lilita text-[#1c1e24] dark:text-white truncate tracking-wide">
+                              {g.title}
+                            </h4>
+                            <p className="text-[11px] font-semibold text-[#73788c] dark:text-slate-400 truncate mt-0.5">
+                              {g.mode}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-[8px] bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono font-bold shrink-0">
+                          {g.time}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

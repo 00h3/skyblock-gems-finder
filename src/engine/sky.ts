@@ -51,7 +51,7 @@ float fbm(vec2 p) {
   float a = 0.5;
   for (int i = 0; i < CLOUD_OCTAVES; i++) {
     v += a * noise(p);
-    p = p * 2.03 + vec2(17.1, 9.2);
+    p = p * 2.05 + vec2(17.1, 9.2);
     a *= 0.5;
   }
   return v;
@@ -61,38 +61,65 @@ void main() {
   vec3 dir = normalize(vDir);
   float h = clamp(dir.y, -1.0, 1.0);
 
-  vec3 col = mix(uHorizon, uMid, smoothstep(0.0, 0.22, h));
-  col = mix(col, uTop, smoothstep(0.18, 0.85, h));
-  col = mix(col, uHorizon * 0.82, smoothstep(0.0, -0.25, h));
+  // Smooth multi-spectral atmospheric gradient
+  vec3 col = mix(uHorizon, uMid, smoothstep(0.0, 0.32, h));
+  col = mix(col, uTop, smoothstep(0.18, 0.92, h));
+  col = mix(col, uHorizon * 0.85, smoothstep(0.0, -0.40, h));
 
   vec3 sunDir = normalize(uSunDir);
   float sunDot = max(dot(dir, sunDir), 0.0);
-  float sunVisible = smoothstep(-0.08, 0.05, sunDir.y);
-  col += uSunColor * pow(sunDot, 900.0) * 3.0 * sunVisible;
-  col += uSunColor * pow(sunDot, 24.0) * 0.22 * sunVisible;
-  col += uSunColor * pow(sunDot, 3.0) * 0.08 * sunVisible;
+  float sunVisible = smoothstep(-0.06, 0.08, sunDir.y);
 
+  // Azimuthal warm forward scattering at horizon towards the sun
+  float horizonScatter = pow(max(dot(vec3(dir.x, 0.0, dir.z), vec3(sunDir.x, 0.0, sunDir.z)), 0.0), 3.0) * smoothstep(0.35, 0.0, h) * sunVisible;
+  col += mix(uSunColor, vec3(1.0, 0.82, 0.58), 0.5) * horizonScatter * 0.32;
+
+  // Atmospheric Mie & Rayleigh scattering bloom around sun
+  float atmosphericHalo = pow(sunDot, 4.0) * 0.28 + pow(sunDot, 16.0) * 0.45 + pow(sunDot, 64.0) * 0.65;
+  vec3 haloColor = mix(uSunColor, vec3(1.0, 0.92, 0.75), 0.45);
+  col += haloColor * atmosphericHalo * sunVisible;
+
+  // Luminous Sun Core + Crisp Corona Disc
+  float sunDisc = smoothstep(0.9990, 0.9997, sunDot);
+  float sunCorona = pow(sunDot, 480.0) * 2.8 + pow(sunDot, 80.0) * 0.65;
+  col += uSunColor * (sunDisc * 4.8 + sunCorona) * sunVisible;
+
+  // Twinkling stars + galactic nebula dust at night
   if (uNight > 0.01 && h > 0.0) {
-    vec2 sp = floor(dir.xz / (dir.y + 0.35) * 220.0);
-    float star = step(0.9965, hash(sp));
-    float twinkle = 0.6 + 0.4 * sin(uTime * 2.0 + hash(sp + 3.1) * 40.0);
-    col += vec3(star * twinkle * uNight * smoothstep(0.05, 0.4, h));
+    vec2 sp = floor(dir.xz / (dir.y + 0.25) * 320.0);
+    float star = step(0.9940, hash(sp));
+    float twinkle = 0.50 + 0.50 * sin(uTime * 3.0 + hash(sp + 3.1) * 60.0);
+    vec3 starColor = mix(vec3(0.78, 0.90, 1.0), vec3(1.0, 0.92, 0.76), hash(sp * 2.4));
+    col += starColor * (star * twinkle * uNight * smoothstep(0.03, 0.30, h) * 1.6);
+
+    // Galactic nebula / Milky Way ribbon across the sky
+    float neb1 = fbm(dir.xz * 2.2 + vec2(1.5, 3.8));
+    float neb2 = fbm(dir.xz * 4.0 - vec2(2.1, 1.4));
+    float neb = neb1 * 0.65 + neb2 * 0.35;
+    vec3 nebColor = mix(vec3(0.08, 0.06, 0.18), vec3(0.16, 0.10, 0.24), neb);
+    col += nebColor * smoothstep(0.48, 0.82, neb) * uNight * smoothstep(0.05, 0.4, h);
   }
 
+  // Volumetric billowy clouds with forward scattering and silver lining
   if (h > 0.0) {
     vec2 uv = dir.xz / (h + 0.12) * 1.35;
-    vec2 wind = vec2(uTime * 0.012, uTime * 0.004);
+    vec2 wind = vec2(uTime * 0.009, uTime * 0.003);
     float base = fbm(uv + wind);
-    float detail = fbm(uv * 2.4 - wind * 1.7);
-    float d = base * 0.72 + detail * 0.28;
-    float threshold = mix(0.72, 0.42, uCloudCover);
+    float detail = fbm(uv * 2.4 - wind * 1.5);
+    float d = base * 0.68 + detail * 0.32;
+    float threshold = mix(0.68, 0.36, uCloudCover);
     float density = smoothstep(threshold, threshold + 0.22, d);
-    density *= smoothstep(0.02, 0.22, h);
+    density *= smoothstep(0.01, 0.20, h);
 
-    float light = clamp(0.55 + (d - threshold) * 1.6, 0.0, 1.0);
+    // Dynamic cloud lighting: top sunlit highlights, underside ambient shading
+    float light = clamp(0.48 + (d - threshold) * 2.0, 0.0, 1.0);
     vec3 cloud = mix(uCloudShade, uCloudLit, light);
-    cloud += uSunColor * pow(sunDot, 10.0) * 0.35 * sunVisible;
-    col = mix(col, cloud, density * 0.92);
+
+    // Radiant silver lining on cloud borders when facing the sun
+    float silverLining = pow(sunDot, 5.0) * smoothstep(0.18, 0.75, density) * 0.72;
+    cloud += uSunColor * silverLining * sunVisible;
+
+    col = mix(col, cloud, density * 0.95);
   }
 
   gl_FragColor = vec4(col, 1.0);
@@ -104,35 +131,35 @@ void main() {
 const SKY_RADIUS = 1000;
 
 const C = {
-  // Vibrant, rich day atmosphere
-  topDay: new THREE.Color("#1864c8"),
-  midDay: new THREE.Color("#58a6f0"),
-  horizonDay: new THREE.Color("#c6e2ff"),
-  sunDay: new THREE.Color("#fff7e6"),
+  // Vibrant, rich anime/celestial day atmosphere with deep sapphire & sunlit horizon
+  topDay: new THREE.Color("#083a88"),
+  midDay: new THREE.Color("#258cf5"),
+  horizonDay: new THREE.Color("#c8ebff"),
+  sunDay: new THREE.Color("#fffaf0"),
   cloudLitDay: new THREE.Color("#ffffff"),
-  cloudShadeDay: new THREE.Color("#adc3da"),
-  hemiSkyDay: new THREE.Color("#d8ecff"),
-  hemiGroundDay: new THREE.Color("#567848"),
+  cloudShadeDay: new THREE.Color("#95b8d8"),
+  hemiSkyDay: new THREE.Color("#cbe7ff"),
+  hemiGroundDay: new THREE.Color("#56784d"),
 
-  // Authentic, stunning Golden Hour
-  topGolden: new THREE.Color("#1a3564"),
-  midGolden: new THREE.Color("#dd6328"),
-  horizonGolden: new THREE.Color("#ff7c30"),
-  sunGolden: new THREE.Color("#ffaa33"),
-  cloudLitGolden: new THREE.Color("#ffe4b8"),
-  cloudShadeGolden: new THREE.Color("#6b3f54"),
-  hemiSkyGolden: new THREE.Color("#ffaa66"),
-  hemiGroundGolden: new THREE.Color("#683e25"),
+  // Authentic, stunning Golden Hour (fiery amber-violet twilight)
+  topGolden: new THREE.Color("#162852"),
+  midGolden: new THREE.Color("#ea5420"),
+  horizonGolden: new THREE.Color("#ff8833"),
+  sunGolden: new THREE.Color("#ffb547"),
+  cloudLitGolden: new THREE.Color("#fff0d4"),
+  cloudShadeGolden: new THREE.Color("#683552"),
+  hemiSkyGolden: new THREE.Color("#ffb076"),
+  hemiGroundGolden: new THREE.Color("#6e4128"),
 
-  // Night
-  topNight: new THREE.Color("#050a18"),
-  midNight: new THREE.Color("#0c1732"),
-  horizonNight: new THREE.Color("#172648"),
-  moon: new THREE.Color("#9ec4ff"),
-  cloudLitNight: new THREE.Color("#354260"),
-  cloudShadeNight: new THREE.Color("#12192e"),
-  hemiSkyNight: new THREE.Color("#203358"),
-  hemiGroundNight: new THREE.Color("#09101c"),
+  // Celestial Night with rich galactic hues
+  topNight: new THREE.Color("#030715"),
+  midNight: new THREE.Color("#0a142c"),
+  horizonNight: new THREE.Color("#142142"),
+  moon: new THREE.Color("#a8ccff"),
+  cloudLitNight: new THREE.Color("#38486b"),
+  cloudShadeNight: new THREE.Color("#10172a"),
+  hemiSkyNight: new THREE.Color("#22375f"),
+  hemiGroundNight: new THREE.Color("#09101d"),
 };
 
 export type SkyOptions = {

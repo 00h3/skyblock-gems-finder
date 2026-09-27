@@ -112,11 +112,14 @@ export function Avatar3D({
   width,
   onClick,
   interactive = false,
-}: Avatar3DProps) {
+  characterId,
+  iframeSrc: customSrc,
+}: Avatar3DProps & { characterId?: string; iframeSrc?: string }) {
   const iframeSrc =
-    gender === "female"
-      ? "https://maxwell.z3ki.dev/bot/avatar-3d-preview/"
-      : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/";
+    customSrc ||
+    (characterId === "nelly" || characterId === "id2" || characterId === "2" || gender === "female"
+      ? "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+      : "https://maxwell.z3ki.dev/bot/avatar-3d-preview/");
 
   const containerStyle: React.CSSProperties = {
     ...style,
@@ -136,6 +139,7 @@ export function Avatar3D({
         style={{ pointerEvents: interactive ? "auto" : "none", border: "none" }}
         allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
         sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+        title="Avatar 3D Preview"
       />
     </div>
   );

@@ -82,23 +82,13 @@ export function getUserBadges(user: UserProfileLike | null | undefined): UserBad
     }
   };
 
-  // Give all badges to mammaettahiri@gmail.com
-  add("verified", "Verified", VERIFIED_BADGE_URL);
-  add("youtuber", "YouTuber", YOUTUBER_STAR_BADGE_URL);
-  add("staff", "Staff", "/emojis/server/7528-staff-badge.png");
-  add("developer", "Developer", "/emojis/server/6111-dev-badge.png");
+  // Only Group Owner and Verified for mammaettahiri@gmail.com - nothing else
   add(
-    "admin",
-    "Admin",
-    "https://maxwell.z3ki.dev/bot/_files/qblock-orange-admin-png/qblock-orange-admin-transparent.png",
-  );
-  add(
-    "owner",
-    "Owner",
+    "group_owner",
+    "Group Owner",
     "https://maxwell.z3ki.dev/bot/_files/qblock-red-owner-png/qblock-red-owner-transparent.png",
   );
-  add("beta", "Early Beta", "/emojis/server/7715-beta-member-badge.png");
-  add("level10", "Level 10", "/emojis/server/7921-verified-icon.png");
+  add("verified", "Verified", VERIFIED_BADGE_URL);
 
   return Array.from(badgesMap.values());
 }
