@@ -140,6 +140,36 @@ export function playSound(type: SfxType, material = "stone") {
       playTone(a, { freq: rand(650, 750), to: rand(950, 1050), dur: 0.05, gain: 0.15, type: "sine" });
       break;
 
+    case "air_whoosh": {
+      // Blade cutting air: a fast band-passed noise sweep, high to low.
+      const t = a.currentTime;
+      const src = a.createBufferSource();
+      src.buffer = noise(a);
+      const filter = a.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 2.4;
+      filter.frequency.setValueAtTime(rand(2600, 3200), t);
+      filter.frequency.exponentialRampToValueAtTime(rand(380, 520), t + 0.2);
+      const env = a.createGain();
+      env.gain.setValueAtTime(0.0001, t);
+      env.gain.exponentialRampToValueAtTime(0.32, t + 0.05);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      src.connect(filter);
+      filter.connect(env);
+      env.connect(master!);
+      src.start(t);
+      src.stop(t + 0.26);
+      break;
+    }
+
+    case "sword_hit":
+      // Meaty impact + short metallic ring.
+      playNoise(a, { freq: rand(260, 340), q: 0.8, dur: 0.12, gain: 0.34 });
+      playNoise(a, { freq: rand(3200, 4200), q: 3, dur: 0.08, gain: 0.12, delay: 0.005 });
+      playTone(a, { freq: rand(1180, 1320), to: 900, dur: 0.18, gain: 0.05, type: "triangle", delay: 0.01 });
+      playTone(a, { freq: 120, to: 60, dur: 0.12, gain: 0.16, type: "sine" });
+      break;
+
     case "jump":
       // soft cloth/dirt scuff + tiny body thud, no cartoon "boing"
       playNoise(a, { freq: rand(900, 1200), q: 0.8, dur: 0.09, gain: 0.1, rate: rand(0.9, 1.1) });

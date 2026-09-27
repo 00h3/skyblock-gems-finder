@@ -545,10 +545,13 @@ export class World {
           `#include <begin_vertex>
           if (aSway > 0.5) {
             float ph = position.x * 0.55 + position.z * 0.45 + position.y * 0.3;
-            float gust = 0.6 + 0.4 * sin(uWindTime * 0.35 + position.x * 0.05);
-            transformed.x += sin(uWindTime * 1.6 + ph) * 0.05 * gust * uWindStrength;
-            transformed.z += cos(uWindTime * 1.25 + ph * 1.3) * 0.04 * gust * uWindStrength;
-            transformed.y += sin(uWindTime * 2.1 + ph * 0.8) * 0.015 * uWindStrength;
+            // Travelling gust front + fast leaf flutter on top of the slow sway.
+            float front = sin(uWindTime * 0.45 - (position.x + position.z) * 0.08);
+            float gust = 0.55 + 0.45 * front * front;
+            float flutter = sin(uWindTime * 7.3 + ph * 3.1) * 0.012;
+            transformed.x += (sin(uWindTime * 1.6 + ph) * 0.055 * gust + flutter) * uWindStrength;
+            transformed.z += (cos(uWindTime * 1.25 + ph * 1.3) * 0.045 * gust + flutter * 0.7) * uWindStrength;
+            transformed.y += sin(uWindTime * 2.1 + ph * 0.8) * 0.016 * uWindStrength;
           }`,
         );
     };

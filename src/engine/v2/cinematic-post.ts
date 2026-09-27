@@ -3,6 +3,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 /**
  * Camera motion blur + soft grade. Blur is driven by how fast the camera
@@ -53,6 +54,7 @@ const MotionShader = {
 export class CinematicPost {
   readonly composer: EffectComposer;
   private readonly motion: ShaderPass;
+  private readonly bloom: UnrealBloomPass;
   private readonly prevQuat = new THREE.Quaternion();
   private readonly prevPos = new THREE.Vector3();
   private readonly tmpQuat = new THREE.Quaternion();
@@ -77,6 +79,10 @@ export class CinematicPost {
     this.composer.setPixelRatio(renderer.getPixelRatio());
     this.composer.setSize(size.x, size.y);
     this.composer.addPass(new RenderPass(scene, camera));
+    // Half-res HDR bloom: only genuinely bright pixels (sun, moon, lava,
+    // phoenix fire, sword sparks) bleed light, with a soft falloff radius.
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.34, 0.6, 1.0);
+    this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
     this.composer.addPass(this.motion);
     this.composer.addPass(new OutputPass());
@@ -85,6 +91,7 @@ export class CinematicPost {
   setSize(w: number, h: number, pixelRatio: number) {
     this.composer.setPixelRatio(pixelRatio);
     this.composer.setSize(w, h);
+    this.bloom.setSize(w / 2, h / 2);
   }
 
   render(dt: number) {

@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { SANDBOX_AVATAR_FALLBACK_MODEL, SANDBOX_AVATAR_MODEL } from "@/engine/avatar-model";
 
+const JUMP_CLIP_URL = "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_jump.glb";
+const CROUCH_CLIP_URL = "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_crouch.glb";
+
 /**
  * Universal character model for Skyblock and Block Fall.
  * Guarantees zero-delay visibility with procedural rig fallback,
@@ -21,7 +24,10 @@ export class Avatar {
     jump?: THREE.AnimationAction;
     climb?: THREE.AnimationAction;
     die?: THREE.AnimationAction;
+    crouch?: THREE.AnimationAction;
   } = {};
+  /** When true the walk cycle pauses while standing still (used by NPCs). */
+  idleStill = false;
   private model: THREE.Object3D | null = null;
   private proceduralRig: THREE.Group | null = null;
   private procParts: {
@@ -280,9 +286,36 @@ export class Avatar {
           this.completeDeath();
         }
       });
+
+      void this.loadStateClips(loader);
     }
 
     return this;
+  }
+
+  /** Dedicated jump + crouch clips share the walk rig, so they bind by bone name. */
+  private async loadStateClips(loader: GLTFLoader) {
+    const load = async (url: string) => {
+      const g = await loader.loadAsync(url).catch(() => null);
+      return g?.animations?.[0] ?? null;
+    };
+    const [jumpClip, crouchClip] = await Promise.all([load(JUMP_CLIP_URL), load(CROUCH_CLIP_URL)]);
+    if (!this.mixer) return;
+    if (jumpClip) {
+      this.animActions.jump?.stop();
+      const a = this.mixer.clipAction(jumpClip);
+      a.setLoop(THREE.LoopRepeat, Infinity);
+      a.play();
+      a.setEffectiveWeight(0);
+      this.animActions.jump = a;
+    }
+    if (crouchClip) {
+      const a = this.mixer.clipAction(crouchClip);
+      a.setLoop(THREE.LoopRepeat, Infinity);
+      a.play();
+      a.setEffectiveWeight(0);
+      this.animActions.crouch = a;
+    }
   }
 
   triggerDeath(onRespawn?: () => void) {
@@ -398,12 +431,16 @@ export class Avatar {
     let targetBreathe = 0;
     let targetJump = 0;
     let targetClimb = 0;
+    let targetCrouch = 0;
 
     if (climbing && this.animActions.climb) {
       targetClimb = 1;
     } else if (inAir && this.animActions.jump) {
       targetJump = 1;
-      targetWalk = 0.4;
+      targetWalk = 0;
+    } else if (sneaking && this.animActions.crouch) {
+      targetCrouch = 1;
+      targetWalk = 0;
     } else if (moving && this.animActions.walk) {
       targetWalk = 1;
     } else {
@@ -419,8 +456,11 @@ export class Avatar {
         targetWalk,
         blendFactor,
       );
-      this.animActions.walk.setEffectiveWeight(Math.max(0.9, w));
-      const targetTimeScale = sneaking ? 0.65 : speed > 5 ? 1.55 : 1.0;
+      // Walk stays the base layer unless a dedicated state clip takes over.
+      this.animActions.walk.setEffectiveWeight(targetWalk === 0 ? w : Math.max(0.9, w));
+      const targetTimeScale =
+        this.idleStill && !moving ? 0 : sneaking ? 0.65 : speed > 5 ? 1.55 : 1.0;
+      if (targetTimeScale === 0) this.animActions.walk.time = 0;
       this.animActions.walk.setEffectiveTimeScale(targetTimeScale);
       if (!this.animActions.walk.isRunning()) {
         this.animActions.walk.play();
@@ -454,6 +494,12 @@ export class Avatar {
         blendFactor,
       );
       this.animActions.climb.setEffectiveWeight(w);
+    }
+
+    if (this.animActions.crouch) {
+      const w = THREE.MathUtils.lerp(this.animActions.crouch.getEffectiveWeight(), targetCrouch, blendFactor);
+      this.animActions.crouch.setEffectiveWeight(w);
+      this.animActions.crouch.setEffectiveTimeScale(moving ? 1 : 0.35);
     }
 
     if (this.mixer) {
@@ -491,9 +537,10 @@ export class Avatar {
     this.landSquash = Math.max(0, this.landSquash - dt * 5);
 
     if (this.model) {
-      const crouch = sneaking ? -0.16 : 0;
+      const hasCrouchClip = !!this.animActions.crouch;
+      const crouch = sneaking && !hasCrouchClip ? -0.16 : 0;
       this.model.position.y = crouch - this.landSquash * 0.08;
-      this.model.rotation.x = sneaking ? 0.14 : 0;
+      this.model.rotation.x = sneaking && !hasCrouchClip ? 0.14 : 0;
     }
   }
 

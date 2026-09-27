@@ -31,6 +31,7 @@ uniform vec3 uCloudShade;
 uniform float uTime;
 uniform float uCloudCover;
 uniform float uNight;
+uniform float uAurora;
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -83,6 +84,37 @@ void main() {
   float sunDisc = smoothstep(0.9990, 0.9997, sunDot);
   float sunCorona = pow(sunDot, 480.0) * 2.8 + pow(sunDot, 80.0) * 0.65;
   col += uSunColor * (sunDisc * 4.8 + sunCorona) * sunVisible;
+
+  // Wavelength-dependent (Rayleigh ~ 1/lambda^4) extinction: a low sun has to
+  // travel through more air, so blue is scattered out near the horizon and
+  // the lower sky warms while the zenith keeps its deep blue.
+  float airMass = 1.0 / (max(h, 0.0) + 0.12);
+  vec3 lambdaExt = vec3(0.16, 0.38, 1.0);
+  float lowSun = smoothstep(0.42, -0.02, sunDir.y) * sunVisible;
+  col *= mix(vec3(1.0), exp(-lambdaExt * airMass * 0.06), lowSun * 0.55);
+  col += vec3(1.0, 0.45, 0.18) * lowSun * pow(1.0 - clamp(h, 0.0, 1.0), 6.0) * 0.22;
+  // Faint Rayleigh skylight away from the sun during the day.
+  col += vec3(0.05, 0.11, 0.26) * (1.0 - sunDot) * smoothstep(0.05, 0.7, h) * (1.0 - uNight) * 0.3;
+
+  // Moon: opposite the sun, soft cratered disc with a wide cold glow.
+  vec3 moonDir = normalize(vec3(-sunDir.x, max(-sunDir.y, 0.25), -sunDir.z));
+  float moonDot = max(dot(dir, moonDir), 0.0);
+  float moonDisc = smoothstep(0.99955, 0.99975, moonDot);
+  float craters = 0.82 + 0.18 * noise(dir.xy * 900.0);
+  vec3 moonCol = vec3(0.86, 0.92, 1.0);
+  col += moonCol * moonDisc * craters * 3.2 * uNight;
+  col += moonCol * (pow(moonDot, 900.0) * 0.9 + pow(moonDot, 60.0) * 0.22 + pow(moonDot, 8.0) * 0.06) * uNight;
+
+  // Rare green aurora curtains, only when the Sky switches them on.
+  if (uAurora > 0.01 && uNight > 0.05 && h > 0.04) {
+    float curtainN = fbm(vec2(dir.x * 2.6 + uTime * 0.02, dir.z * 2.6 - uTime * 0.012));
+    float bands = sin(dir.x * 7.0 + dir.z * 3.0 + curtainN * 6.0 + uTime * 0.15) * 0.5 + 0.5;
+    float rays = 0.65 + 0.35 * noise(vec2(dir.x * 60.0 + uTime * 0.4, dir.z * 60.0));
+    float band = smoothstep(0.55, 1.0, bands) * rays;
+    float heightMask = smoothstep(0.06, 0.26, h) * smoothstep(0.85, 0.35, h);
+    vec3 auroraCol = mix(vec3(0.1, 1.0, 0.45), vec3(0.45, 0.2, 0.9), smoothstep(0.3, 0.8, h));
+    col += auroraCol * band * heightMask * uAurora * uNight * 0.55;
+  }
 
   // Twinkling stars + galactic nebula dust at night
   if (uNight > 0.01 && h > 0.0) {
@@ -142,14 +174,14 @@ const C = {
   hemiGroundDay: new THREE.Color("#56784d"),
 
   // Authentic, stunning Golden Hour (fiery amber-violet twilight)
-  topGolden: new THREE.Color("#162852"),
-  midGolden: new THREE.Color("#ea5420"),
-  horizonGolden: new THREE.Color("#ff8833"),
-  sunGolden: new THREE.Color("#ffb547"),
-  cloudLitGolden: new THREE.Color("#fff0d4"),
-  cloudShadeGolden: new THREE.Color("#683552"),
-  hemiSkyGolden: new THREE.Color("#ffb076"),
-  hemiGroundGolden: new THREE.Color("#6e4128"),
+  topGolden: new THREE.Color("#23346a"),
+  midGolden: new THREE.Color("#e8683a"),
+  horizonGolden: new THREE.Color("#ffab5e"),
+  sunGolden: new THREE.Color("#ffc46b"),
+  cloudLitGolden: new THREE.Color("#ffd9a8"),
+  cloudShadeGolden: new THREE.Color("#7a4466"),
+  hemiSkyGolden: new THREE.Color("#ffbf8a"),
+  hemiGroundGolden: new THREE.Color("#5e3a2a"),
 
   // Celestial Night with rich galactic hues
   topNight: new THREE.Color("#030715"),
@@ -188,6 +220,9 @@ export class Sky {
   private tint = new THREE.Color("#ffffff");
   private tintAmount = 0;
   private tintTarget = 0;
+  private aurora = 0;
+  private auroraTarget = 0;
+  private auroraTimer = 25;
 
   private _sunDir = new THREE.Vector3();
   private _top = new THREE.Color();
@@ -219,6 +254,7 @@ export class Sky {
         uTime: { value: 0 },
         uCloudCover: { value: this.cloudCover },
         uNight: { value: 0 },
+        uAurora: { value: 0 },
       },
     });
 
@@ -311,6 +347,25 @@ export class Sky {
     this.cloudCover += (this.cloudCoverTarget - this.cloudCover) * k;
     this.tintAmount += (this.tintTarget - this.tintAmount) * k;
     this.mat.uniforms.uCloudCover.value = this.cloudCover;
+
+    // Aurora is a rare event: a roll every ~40s of night, ~25% chance.
+    const isNight = this.mat.uniforms.uNight.value > 0.45;
+    this.auroraTimer -= dt;
+    if (this.auroraTimer <= 0) {
+      if (this.auroraTarget > 0) {
+        this.auroraTarget = 0;
+        this.auroraTimer = 40 + Math.random() * 40;
+      } else if (isNight && Math.random() < 0.25) {
+        this.auroraTarget = 1;
+        this.auroraTimer = 45 + Math.random() * 35;
+      } else {
+        this.auroraTimer = 40;
+      }
+    }
+    if (!isNight) this.auroraTarget = 0;
+    this.aurora += (this.auroraTarget - this.aurora) * (1 - Math.exp(-0.35 * dt));
+    this.mat.uniforms.uAurora.value = this.aurora;
+
     if (!this.paused && !this.isGoldenHour) {
       this.t = (this.t + dt / this.dayLength) % 1;
     }
@@ -358,7 +413,8 @@ export class Sky {
     } else {
       this.sunLight.position.copy(sunDir).multiplyScalar(-120);
       this.sunLight.color.copy(C.moon);
-      this.sunLight.intensity = 0.45;
+      // Cool, directional moonlight so night keeps shape and soft shadows.
+      this.sunLight.intensity = 0.55 + this.aurora * 0.12;
     }
     if (this.sunLight.position.y < 20) this.sunLight.position.y = 20;
 

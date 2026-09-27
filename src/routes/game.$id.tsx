@@ -2101,7 +2101,7 @@ function EngineGame({
       bwToastTimerRef.current = null;
     }, ms);
   }
-  // ── EggWars-only state ─────────────────────────────────────���─────────────
+  // ── EggWars-only state ─────────────────────────────────────����─────────────
   const EGG_TEAMS: EggwarsTeam[] = [
     { id: "ruby", label: "Ruby", color: "#ef4444", eggAlive: true, playerAlive: true },
     { id: "azure", label: "Azure", color: "#38bdf8", eggAlive: true, playerAlive: true },
@@ -6321,7 +6321,7 @@ function EngineGame({
           addBlock(fx, fh + 1, fz, flowerType);
         }
 
-        // ── Desert cacti ────────────────────────────────────────────────���────
+        // ── Desert cacti ─────────────────────────────────────────────��──���────
         for (let i = 0; i < 50; i++) {
           const cx2 = ((Math.random() * SIZE * 2) | 0) - SIZE;
           const cz2 = ((Math.random() * SIZE * 2) | 0) - SIZE;
@@ -8703,7 +8703,10 @@ function EngineGame({
         // perfectly smooth at 60fps; no need to update a material uniform 60×/s).
         if (particleTick % 4 === 0) {
           if (!isSpleef) mWater.opacity = 0.65 + Math.sin(now * 0.002) * 0.06;
-          mLava.emissiveIntensity = 1.2 + Math.sin(now * 0.0022) * 0.7;
+          // Lava reads as the brightest light source at night.
+          mLava.emissiveIntensity = nightModeRef.current
+            ? 2.8 + Math.sin(now * 0.0022) * 0.9
+            : 1.2 + Math.sin(now * 0.0022) * 0.7;
         }
 
         // Advance break particles once per frame (see spawnParticles).
