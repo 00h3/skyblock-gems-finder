@@ -96,19 +96,19 @@ export function BlockmanInventory({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-2 sm:p-4"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-2 sm:p-3"
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex w-full max-w-[860px] items-start gap-1.5">
+      <div className="flex w-full max-w-[720px] items-start gap-1.5">
         {onCraft && (
-          <nav aria-label="Inventory tabs" className="mt-14 flex flex-col gap-2">
+          <nav aria-label="Inventory tabs" className="mt-12 flex flex-col gap-1.5">
             <TabButton label="Role" active={tab === "role"} onClick={() => setTab("role")}>
-              <Backpack className="h-6 w-6" aria-hidden="true" />
+              <Backpack className="h-5 w-5 fill-current" aria-hidden="true" />
             </TabButton>
             <TabButton label="Make" active={tab === "make"} onClick={() => setTab("make")}>
-              <Hammer className="h-6 w-6" aria-hidden="true" />
+              <Hammer className="h-5 w-5 fill-current" aria-hidden="true" />
             </TabButton>
           </nav>
         )}
@@ -117,36 +117,36 @@ export function BlockmanInventory({
           role="dialog"
           aria-modal="true"
           aria-label={tab === "role" ? "Inventory" : "Crafting table"}
-          className="wood-panel v2-anim-pop flex max-h-[94dvh] min-w-0 flex-1 flex-col overflow-hidden"
+          className="wood-panel v2-anim-pop flex max-h-[86dvh] min-w-0 flex-1 flex-col overflow-hidden"
         >
-          <header className="wood-header relative flex h-11 shrink-0 items-center justify-center">
-            <h2 className="font-lilita text-[22px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
+          <header className="wood-header relative flex h-10 shrink-0 items-center justify-center">
+            <h2 className="font-lilita text-[20px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
               {tab === "role" ? "Role" : "Make"}
             </h2>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close inventory"
-              className="absolute right-2 grid h-8 w-8 place-items-center text-white/90 active:scale-90"
+              className="absolute right-2 grid h-7 w-7 place-items-center text-white/90 active:scale-90"
             >
-              <X className="h-6 w-6 stroke-[3.5]" aria-hidden="true" />
+              <X className="h-5 w-5 stroke-[3.5]" aria-hidden="true" />
             </button>
           </header>
 
           {tab === "role" ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 sm:flex-row sm:p-3">
-              <div className="wood-inset flex shrink-0 flex-col items-center gap-2 p-2 sm:w-[34%]">
-                <p className="font-lilita text-[16px] text-amber-300 [text-shadow:0_1px_0_rgba(0,0,0,.6)]">{playerName}</p>
-                <div className="h-[170px] w-full sm:h-[230px]">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 sm:flex-row sm:p-2.5">
+              <div className="wood-inset flex shrink-0 flex-col items-center gap-1.5 p-2 sm:w-[32%]">
+                <p className="font-lilita text-[15px] text-amber-300 [text-shadow:0_1px_0_rgba(0,0,0,.6)]">{playerName}</p>
+                <div className="h-[150px] w-full sm:h-[200px]">
                   <GlbAvatar height="100%" width="100%" autoRotate interactive />
                 </div>
-                <div className="wood-slot flex w-full items-center justify-around rounded-[4px] px-2 py-1 font-lilita text-[15px] text-white">
+                <div className="wood-slot flex w-full items-center justify-around rounded-[4px] px-2 py-1 font-lilita text-[14px] text-white">
                   <span className="flex items-center gap-1">
                     <Heart className="h-4 w-4 fill-red-500 text-red-500" aria-hidden="true" />
                     20
                   </span>
                   <span className="flex items-center gap-1">
-                    <Sword className="h-4 w-4 text-amber-300" aria-hidden="true" />
+                    <Sword className="h-4 w-4 fill-amber-300 text-amber-300" aria-hidden="true" />
                     {heldDamage.toFixed(1)}
                   </span>
                   <span className="flex items-center gap-1">
@@ -395,7 +395,7 @@ function TabButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "wood-tab grid h-14 w-14 place-items-center text-white transition-transform active:scale-95",
+        "wood-tab grid h-11 w-11 place-items-center text-white transition-transform active:scale-95",
         active && "is-active",
       )}
     >

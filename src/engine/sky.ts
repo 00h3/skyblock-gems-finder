@@ -71,19 +71,13 @@ void main() {
   float sunDot = max(dot(dir, sunDir), 0.0);
   float sunVisible = smoothstep(-0.06, 0.08, sunDir.y);
 
-  // Azimuthal warm forward scattering at horizon towards the sun
+  // Azimuthal warm forward scattering at horizon towards the sun (smooth, soft ambient warmth)
   float horizonScatter = pow(max(dot(vec3(dir.x, 0.0, dir.z), vec3(sunDir.x, 0.0, sunDir.z)), 0.0), 3.0) * smoothstep(0.35, 0.0, h) * sunVisible;
-  col += mix(uSunColor, vec3(1.0, 0.82, 0.58), 0.5) * horizonScatter * 0.32;
+  col += mix(uSunColor, vec3(1.0, 0.88, 0.72), 0.5) * horizonScatter * 0.18;
 
-  // Atmospheric Mie & Rayleigh scattering bloom around sun
-  float atmosphericHalo = pow(sunDot, 4.0) * 0.28 + pow(sunDot, 16.0) * 0.45 + pow(sunDot, 64.0) * 0.65;
-  vec3 haloColor = mix(uSunColor, vec3(1.0, 0.92, 0.75), 0.45);
-  col += haloColor * atmosphericHalo * sunVisible;
-
-  // Luminous Sun Core + Crisp Corona Disc
-  float sunDisc = smoothstep(0.9990, 0.9997, sunDot);
-  float sunCorona = pow(sunDot, 480.0) * 2.8 + pow(sunDot, 80.0) * 0.65;
-  col += uSunColor * (sunDisc * 4.8 + sunCorona) * sunVisible;
+  // Gentle, smooth celestial warmth in the sky without harsh glaring light disc
+  float smoothSunWarmth = pow(sunDot, 12.0) * 0.14 + pow(sunDot, 32.0) * 0.08;
+  col += mix(uSunColor, vec3(1.0, 0.96, 0.90), 0.6) * smoothSunWarmth * sunVisible;
 
   // Wavelength-dependent (Rayleigh ~ 1/lambda^4) extinction: a low sun has to
   // travel through more air, so blue is scattered out near the horizon and

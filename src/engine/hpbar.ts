@@ -61,14 +61,17 @@ export function createHpBar(name: string, max = 20): HpBar {
     const by = 50;
     const bw = W - 48;
     const bh = 22;
-    ctx.fillStyle = "rgba(0,0,0,.7)";
+    ctx.fillStyle = "rgba(0,0,0,.85)";
     ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
-    ctx.fillStyle = "#3a2020";
+    ctx.fillStyle = "#351010";
     ctx.fillRect(bx, by, bw, bh);
 
-    // fill
+    // Red health bar fill ("its red")
     const ratio = maximum > 0 ? Math.max(0, Math.min(1, current / maximum)) : 0;
-    ctx.fillStyle = ratio > 0.5 ? "#49d16a" : ratio > 0.25 ? "#e8c33c" : "#e0453c";
+    const hpGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
+    hpGrad.addColorStop(0, "#ff3838");
+    hpGrad.addColorStop(1, "#dc2626");
+    ctx.fillStyle = hpGrad;
     ctx.fillRect(bx, by, bw * ratio, bh);
 
     // numbers

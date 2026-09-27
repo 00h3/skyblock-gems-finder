@@ -226,10 +226,16 @@ export async function buildAtlas(
     const cy = Math.floor(i / cols) * CELL;
     const img = images[i];
     if (img) {
+      if (name.includes("grass")) {
+        ctx.filter = "saturate(140%) contrast(108%)";
+      } else {
+        ctx.filter = "saturate(105%)";
+      }
       // Draw the tile over the whole cell first to create a replicated border,
       // then redraw the inner tile at the final display resolution.
       ctx.drawImage(img, cx, cy, CELL, CELL);
       ctx.drawImage(img, cx + PAD, cy + PAD, INNER, INNER);
+      ctx.filter = "saturate(105%)";
     } else if (name === "water") {
       const grad = ctx.createLinearGradient(cx, cy, cx + CELL, cy + CELL);
       grad.addColorStop(0, "#1988db");

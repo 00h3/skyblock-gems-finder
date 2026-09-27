@@ -2308,8 +2308,8 @@ function EngineGame({
       renderer.domElement.style.background = skyBg;
       renderer.setClearColor(new THREE.Color(skyBg), 1);
       renderer.shadowMap.enabled = true;
-      // Realistic dynamic lighting: autoUpdate enables smooth continuous real-time dynamic shadows
-      renderer.shadowMap.autoUpdate = true;
+      // High-performance shadow caching: avoids full shadow map re-render on every frame
+      renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2369,7 +2369,7 @@ function EngineGame({
         if (bloomEnabled) {
           const bloomStrength = isMobileUA ? 0.16 : 0.22;
           const bloom = new UnrealBloomPass(
-            new THREE.Vector2(width, height),
+            new THREE.Vector2(Math.max(64, Math.round(width / 3)), Math.max(64, Math.round(height / 3))),
             bloomStrength, // strength
             0.52, // radius — how far the glow spreads
             0.68, // threshold — only pixels brighter than this glow
@@ -2529,15 +2529,11 @@ function EngineGame({
               float cloud = smoothstep(0.52, 0.72, fbm(cloudUv));
               c = mix(c, vec3(1.0,1.0,1.0), cloud * min(1.0,(vY-0.04)*8.0) * 0.38);
             }
-            // Sun corona (soft outer glow, sharper inner)
+            // Smooth, soft natural daylight warmth without blinding disc
             float sd      = dot(normalize(vDir), uSunDir);
-            float corona  = pow(max(0.0,sd),18.0)*0.60 + pow(max(0.0,sd),60.0)*0.30;
-            float disc    = smoothstep(0.9996,1.0,sd);
-            // Limb darkening: disc edge cooler than centre
-            float limb    = 1.0-pow(max(0.0,1.0-sd*1.001)*18.0,0.4)*0.15;
-            c += vec3(1.15,0.88,0.50)*corona;
-            c  = mix(c, vec3(2.4,2.15,1.80)*limb, disc);
-            gl_FragColor = vec4(c,1.0);
+            float warmth  = pow(max(0.0,sd), 16.0) * 0.18;
+            c += vec3(1.0, 0.92, 0.78) * warmth;
+            gl_FragColor = vec4(c, 1.0);
           }`,
         });
         skyMesh = new THREE.Mesh(skyGeo, skyMat);
@@ -2626,9 +2622,7 @@ function EngineGame({
         celestialSunGroup = new THREE.Group();
         celestialSunGroup.position.copy(celestialSunPos);
 
-        // Circular sun sphere and corona removed per user request
-        const sunPoint = new THREE.PointLight(0xffbe30, 3.8, 320, 0.85);
-        celestialSunGroup.add(sunPoint);
+        // Celestial sun position marker (directional sun handles scene illumination)
         scene.add(celestialSunGroup);
 
         // 2. Luminous Moonlight (Night Mode)
@@ -7248,7 +7242,8 @@ function EngineGame({
           (gltf) => {
             if (disposed || !isSkyblock) return;
             const model = gltf.scene;
-            model.scale.setScalar(0.15); // scaled up for "not small"
+            model.scale.setScalar(0.07992); // scaled down 10%
+            model.position.y = -0.16; // lowered down towards bottom of camera
             model.traverse((node) => {
               const mesh = node as THREE.Mesh;
               if (mesh.isMesh) {
@@ -7354,9 +7349,11 @@ function EngineGame({
           side: THREE.DoubleSide,
           depthWrite: false,
         });
-        // Bigger and held closer to the camera than the old 0.4 plane.
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), mat);
-        heldBasePos = new THREE.Vector3(0.24, -0.26, -0.42);
+        // Swords reduced by another 10% (0.3285) and lowered towards the bottom of the camera view
+        const isSword = texPath.includes("sword");
+        const planeSize = isSword ? 0.3285 : 0.62;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize), mat);
+        heldBasePos = new THREE.Vector3(0.24, isSword ? -0.40 : -0.26, -0.42);
         heldBaseRot = new THREE.Euler(0.05, -0.45, 0.72);
         m.position.copy(heldBasePos);
         m.rotation.copy(heldBaseRot);
@@ -8589,6 +8586,7 @@ function EngineGame({
       window.addEventListener("bm-fpscap", fpsCapHandler);
       let particleTick = 0;
       let lastPresenceTime = 0;
+      let shadowUpdateAcc = 0;
       // Last player position where the shadow-camera was updated (see sun tracking).
       let _lastSunX = playerPos.x,
         _lastSunZ = playerPos.z;
@@ -8609,6 +8607,12 @@ function EngineGame({
         const dt = dtRaw;
         const dtVis = dtEma;
         lastT = now;
+
+        shadowUpdateAcc += dt;
+        if (shadowUpdateAcc >= 1.0) {
+          shadowUpdateAcc = 0;
+          if (renderer) renderer.shadowMap.needsUpdate = true;
+        }
 
         // Keep the sky dome centered on the camera so it never exits the far
         // plane (140 radius, camera far = 160). Without this, moving far from
@@ -10756,19 +10760,7 @@ function EngineGame({
           );
         })()}
 
-      {/* Crosshair */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <div
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 999,
-            background: "#050505",
-            opacity: 0.9,
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.55)",
-          }}
-        />
-      </div>
+      {/* Crosshair removed per user request */}
 
       <div
         ref={holdProgressRef}

@@ -311,14 +311,14 @@ function DPad({
             e.stopPropagation();
             onToggleRun();
           }}
-          className={cn("blockman-key", running && "is-active")}
-          style={size}
+          className={cn("p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none", running && "is-active")}
+          style={{ ...size, transform: "scale(1.15)", transformOrigin: "center" }}
         >
           <img
             src={running ? UI.run : UI.walk}
             alt=""
             draggable={false}
-            className="pointer-events-none h-[78%] w-[78%] object-contain"
+            className="pointer-events-none h-full w-full object-contain drop-shadow-md"
           />
         </button>
         <PadArrow label="Right" rotate={0} active={dir.x === 1} />
@@ -332,10 +332,10 @@ function DPad({
               e.stopPropagation();
               onToggleSneak();
             }}
-            className={cn("blockman-key", sneaking && "is-active")}
-            style={size}
+            className={cn("p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none", sneaking && "is-active")}
+            style={{ ...size, transform: "scale(1.15)", transformOrigin: "center" }}
           >
-            <img src={UI.sneak} alt="" draggable={false} className="pointer-events-none h-[78%] w-[78%] object-contain" />
+            <img src={UI.sneak} alt="" draggable={false} className="pointer-events-none h-full w-full object-contain drop-shadow-md" />
           </button>
         ) : (
           <span style={size} />
@@ -354,10 +354,10 @@ export const UI = {
   video: "/ui/video-icon.png",
   arrow: "/ui/arrow-icon.png",
   blank: "/ui/blank-button.png",
-  walk: "/assets/hud/pitch_black/dark_move_state_run.svg",
-  run: "/assets/hud/pitch_black/dark_move_state_sprint.svg",
-  sneak: "/assets/hud/pitch_black/dark_move_state_sneak.svg",
-  jump: "/assets/hud/pitch_black/dark_MainControlImageSet_jump_move_.svg",
+  walk: "https://maxwell.z3ki.dev/bot/_files/icon-walk/walk.png",
+  run: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png",
+  sneak: "https://maxwell.z3ki.dev/bot/_files/icon-sneak/sneak.png",
+  jump: "https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png",
 };
 
 function PadArrow({ label, rotate, active }: { label: string; rotate: number; active: boolean }) {
@@ -387,11 +387,11 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
       {secondary.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {secondary.map((a) => (
-            <ActionKey key={a.id} action={a} scale={0.88} />
+            <ActionKey key={a.id} action={a} scale={1.01} />
           ))}
         </div>
       )}
-      {primary && <ActionKey action={primary} scale={1.16} isPrimary />}
+      {primary && <ActionKey action={primary} scale={1.34} isPrimary />}
     </div>
   );
 }
@@ -408,7 +408,12 @@ function ActionKey({ action, scale, isPrimary = false }: { action: HudAction; sc
       type="button"
       aria-label={action.label}
       data-active={down}
-      className={cn("blockman-key touch-none", isPrimary && "font-black", down && "is-active")}
+      className={cn(
+        "touch-none select-none transition-transform cursor-pointer",
+        action.icon ? "p-0 border-0 bg-transparent outline-none active:scale-90" : "blockman-key",
+        isPrimary && "font-black",
+        down && "is-active scale-95"
+      )}
       style={{
         width: `calc(var(--k) * ${scale})`,
         height: `calc(var(--k) * ${scale})`,
@@ -427,7 +432,12 @@ function ActionKey({ action, scale, isPrimary = false }: { action: HudAction; sc
       onLostPointerCapture={end}
     >
       {action.icon ? (
-        <img src={action.icon} alt="" draggable={false} className="pointer-events-none h-full w-full object-contain" />
+        <img
+          src={action.icon}
+          alt={action.label}
+          draggable={false}
+          className="pointer-events-none h-full w-full object-contain drop-shadow-md select-none"
+        />
       ) : (
         action.label
       )}

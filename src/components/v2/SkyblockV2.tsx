@@ -177,12 +177,5 @@ export function CinematicVignette() {
 }
 
 export function Crosshair() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2">
-      <div className="relative h-4 w-4">
-        <span className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 rounded bg-white/90 shadow-[0_0_2px_rgba(0,0,0,.5)]" />
-        <span className="absolute left-0 top-1/2 h-[1.5px] w-full -translate-y-1/2 rounded bg-white/90 shadow-[0_0_2px_rgba(0,0,0,.5)]" />
-      </div>
-    </div>
-  );
+  return null;
 }

@@ -484,12 +484,12 @@ export function FlatSquareGameControls({
           onPointerUp={handleJumpUp}
           onPointerLeave={handleJumpUp}
           onPointerCancel={handleJumpUp}
-          className="relative w-20 h-20 flex items-center justify-center cursor-pointer select-none p-0 outline-none active:scale-90 transition-transform border-0 bg-transparent"
+          className="relative w-[92px] h-[92px] flex items-center justify-center cursor-pointer select-none p-0 outline-none active:scale-95 transition-transform border-0 bg-transparent"
           aria-label="Jump"
           title="Jump"
         >
           <img
-            src={HUD_ASSETS.button}
+            src="https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png"
             alt="Jump"
             className="w-full h-full object-contain pointer-events-none drop-shadow-lg select-none"
             draggable={false}

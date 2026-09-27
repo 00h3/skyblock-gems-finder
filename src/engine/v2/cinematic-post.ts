@@ -36,7 +36,7 @@ const MotionShader = {
       float edge = smoothstep(0.08, 0.75, length(fromCenter));
       vec2 dir = uVelocity + fromCenter * uRadial * edge;
       vec4 color = texture2D(tDiffuse, vUv);
-      if (dot(dir, dir) > 1e-8) {
+      if (dot(dir, dir) > 1e-5) {
         vec4 acc = color;
         for (int i = 1; i < SAMPLES; i++) {
           float t = float(i) / float(SAMPLES - 1) - 0.5;
@@ -68,20 +68,21 @@ export class CinematicPost {
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
     private readonly camera: THREE.PerspectiveCamera,
-    private readonly strength = 0.72,
+    private readonly strength = 0.405,
   ) {
     const size = renderer.getSize(new THREE.Vector2());
     const target = new THREE.WebGLRenderTarget(size.x, size.y, {
       type: THREE.HalfFloatType,
-      samples: renderer.capabilities.isWebGL2 ? 4 : 0,
+      samples: 0,
     });
     this.composer = new EffectComposer(renderer, target);
     this.composer.setPixelRatio(renderer.getPixelRatio());
     this.composer.setSize(size.x, size.y);
     this.composer.addPass(new RenderPass(scene, camera));
-    // Half-res HDR bloom: only genuinely bright pixels (sun, moon, lava,
-    // phoenix fire, sword sparks) bleed light, with a soft falloff radius.
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.34, 0.6, 1.0);
+    // Soft, smooth HDR bloom without fillrate stalls
+    const bloomW = Math.max(64, Math.round(size.x / 3));
+    const bloomH = Math.max(64, Math.round(size.y / 3));
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.28, 0.5, 0.98);
     this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
     this.composer.addPass(this.motion);
@@ -91,7 +92,7 @@ export class CinematicPost {
   setSize(w: number, h: number, pixelRatio: number) {
     this.composer.setPixelRatio(pixelRatio);
     this.composer.setSize(w, h);
-    this.bloom.setSize(w / 2, h / 2);
+    this.bloom.setSize(Math.max(64, Math.round(w / 3)), Math.max(64, Math.round(h / 3)));
   }
 
   render(dt: number) {

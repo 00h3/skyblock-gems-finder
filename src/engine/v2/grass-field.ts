@@ -25,9 +25,10 @@ function makeBladeTexture() {
     const lean = Math.sin(i * 5.7) * 14;
     const w = 5 + (i % 3);
     const grad = ctx.createLinearGradient(0, size, 0, size - h);
-    grad.addColorStop(0, "#2f6b1f");
-    grad.addColorStop(0.55, "#5fa83a");
-    grad.addColorStop(1, "#a6d96a");
+    // User requested RGB colors: (31, 72, 4), (40, 93, 5), (43, 104, 6)
+    grad.addColorStop(0, "#1f4804");
+    grad.addColorStop(0.55, "#285d05");
+    grad.addColorStop(1, "#2b6806");
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(baseX - w, size);
@@ -159,9 +160,13 @@ export class GrassField {
     this.mesh.instanceMatrix.needsUpdate = true;
   }
 
+  markDirty() {
+    this.scanAcc = 10;
+  }
+
   update(dt: number) {
     this.scanAcc += dt;
-    if (this.scanAcc >= 1.2) {
+    if (this.scanAcc >= 3.5) {
       this.scanAcc = 0;
       this.rebuild();
     }

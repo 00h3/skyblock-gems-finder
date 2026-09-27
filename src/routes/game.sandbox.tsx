@@ -654,7 +654,7 @@ export function createVoxelTorch(x: number, y: number, z: number): VoxelTorchHan
   // Range: 22 blocks with realistic cubic/quadratic attenuation
   const light = new THREE.PointLight(0xff9433, 2.9, 22, 1.3);
   light.position.set(0, 0.75, 0);
-  light.castShadow = true;
+  light.castShadow = false;
   group.add(light);
 
   return {
@@ -1209,7 +1209,8 @@ export function SandboxGame({
       renderer.toneMappingExposure = 1.12;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.shadowMap.autoUpdate = true;
+      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.needsUpdate = true;
 
       // Full anisotropic filtering keeps grazing-angle (distant floor) texels
       // crisp instead of smearing into blocky mip levels.
@@ -1341,13 +1342,9 @@ export function SandboxGame({
       if (skyblock) {
         // Chest completely removed per user request
 
-        // ── 1. Radiant Celestial Sun Light ──
+        // ── 1. Celestial Sun Reference Marker (for Phoenix orbit) ──
         const sunGroup = new THREE.Group();
         sunGroup.position.set(68, 88, 42);
-
-        // Circular sun sphere and corona mesh removed per user request
-        const sunLight = new THREE.PointLight(0xffbe30, 3.8, 350, 0.85);
-        sunGroup.add(sunLight);
         scene.add(sunGroup);
         celestialSunRef.current = sunGroup;
 
@@ -1693,7 +1690,7 @@ export function SandboxGame({
           .then((g) => {
             if (disposed) return;
             const m = g.scene;
-            normalizeShowcaseModel(m, 1.05);
+            normalizeShowcaseModel(m, 0.558); // scaled down 10%
             m.traverse((o) => {
               const mesh = o as THREE.Mesh;
               if (mesh.isMesh) mesh.castShadow = false;
@@ -1749,7 +1746,7 @@ export function SandboxGame({
       const heldBasePose = {
         hand: { px: 0.32, py: -0.28, pz: -0.46, rx: -0.25, ry: 0.35, rz: -0.12 },
         block: { px: 0.3, py: -0.26, pz: -0.62, rx: -0.25, ry: 0.6, rz: 0.15 },
-        item: { px: 0.24, py: -0.2, pz: -0.43, rx: -0.12, ry: 0.2, rz: 0.08 },
+        item: { px: 0.24, py: -0.38, pz: -0.44, rx: -0.12, ry: 0.2, rz: 0.08 },
       };
       let swing = 0;
       let placePulse = 0;
@@ -1871,20 +1868,23 @@ export function SandboxGame({
       let hitMeOnGround = false;
       const hitMeTint: { mat: THREE.MeshStandardMaterial; color: THREE.Color; emissive: THREE.Color }[] = [];
       const collectHitMeMats = () => {
-        if (hitMeTint.length) return;
         hitMe.group.traverse((o) => {
           const mesh = o as THREE.Mesh;
           if (!mesh.isMesh) return;
           const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
           mats.forEach((m) => {
             const mat = m as THREE.MeshStandardMaterial;
-            if (mat.color && mat.emissive) {
-              hitMeTint.push({ mat, color: mat.color.clone(), emissive: mat.emissive.clone() });
+            if (mat && mat.color && !hitMeTint.some((t) => t.mat === mat)) {
+              hitMeTint.push({
+                mat,
+                color: mat.color.clone(),
+                emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
+              });
             }
           });
         });
       };
-      const _red = new THREE.Color(0xff2a2a);
+      const _red = new THREE.Color(0xff1818);
       const updateHitMe = (dt: number) => {
         const p = hitMe.group.position;
         hitMeVel.y -= 26 * dt;
@@ -1923,21 +1923,27 @@ export function SandboxGame({
           hitMeRedT = Math.max(0, hitMeRedT - dt);
           const k = Math.min(1, hitMeRedT / 0.25);
           for (const t of hitMeTint) {
-            t.mat.color.copy(t.color).lerp(_red, 0.75 * k);
-            t.mat.emissive.copy(t.emissive).lerp(_red, 0.55 * k);
+            t.mat.color.copy(t.color).lerp(_red, 0.85 * k);
+            if (t.mat.emissive) t.mat.emissive.copy(t.emissive).lerp(_red, 0.85 * k);
+          }
+          if (hitMeRedT === 0) {
+            for (const t of hitMeTint) {
+              t.mat.color.copy(t.color);
+              if (t.mat.emissive) t.mat.emissive.copy(t.emissive);
+            }
           }
         }
         hitMeHealT -= dt;
         if (hitMeHealT <= 0 && hitMeHp < 20) {
-          hitMeHp = hitMeHp <= 0 ? 20 : Math.min(20, hitMeHp + 1);
+          hitMeHp = Math.min(20, hitMeHp + 1);
           hitMeBar.set(hitMeHp);
-          hitMeHealT = 0.6;
+          hitMeHealT = 0.35;
         }
       };
 
       // ── Sword FX: world-space slash arc + pooled hit sparks ──
       const slashMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
+        color: 0xef4444, // Red tinted slash, no white glare
         transparent: true,
         opacity: 0,
         blending: THREE.AdditiveBlending,
@@ -1956,8 +1962,8 @@ export function SandboxGame({
       const sparkGeo = new THREE.BufferGeometry();
       sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkPos, 3));
       const sparkMat = new THREE.PointsMaterial({
-        color: 0xfff1c2,
-        size: 0.14,
+        color: 0xdc2626, // Vivid red, no white
+        size: 0.13,
         transparent: true,
         opacity: 0.95,
         blending: THREE.AdditiveBlending,
@@ -1967,17 +1973,18 @@ export function SandboxGame({
       sparks.frustumCulled = false;
       scene.add(sparks);
       let sparkCursor = 0;
-      const spawnHitFx = (at: THREE.Vector3, color: number) => {
-        sparkMat.color.setHex(color).lerp(new THREE.Color(0xffffff), 0.35);
-        for (let i = 0; i < 16; i++) {
+      const spawnHitFx = (at: THREE.Vector3, color: number, isPerson = false) => {
+        // No white particles when hitting a person per user request! Pure red impact
+        sparkMat.color.setHex(isPerson ? 0xdc2626 : color);
+        for (let i = 0; i < (isPerson ? 10 : 16); i++) {
           const k = sparkCursor++ % SPARKS;
           sparkPos[k * 3] = at.x;
           sparkPos[k * 3 + 1] = at.y;
           sparkPos[k * 3 + 2] = at.z;
-          sparkVel[k * 3] = (Math.random() - 0.5) * 7;
-          sparkVel[k * 3 + 1] = Math.random() * 5 + 1;
-          sparkVel[k * 3 + 2] = (Math.random() - 0.5) * 7;
-          sparkLife[k] = 0.35 + Math.random() * 0.2;
+          sparkVel[k * 3] = (Math.random() - 0.5) * 5;
+          sparkVel[k * 3 + 1] = Math.random() * 4 + 0.5;
+          sparkVel[k * 3 + 2] = (Math.random() - 0.5) * 5;
+          sparkLife[k] = 0.28 + Math.random() * 0.15;
         }
       };
       const updateSwordFx = (dt: number) => {
@@ -2158,15 +2165,20 @@ export function SandboxGame({
         return true;
       };
 
-      const aimDir = () =>
-        aim
-          ? new THREE.Vector3(aim.x, aim.y, 0.5).unproject(camera).sub(camera.position).normalize()
-          : new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      const _cachedAimDir = new THREE.Vector3();
+      const _cachedOrigin = new THREE.Vector3();
+      const _forwardVec = new THREE.Vector3(0, 0, -1);
+      const aimDir = () => {
+        if (aim) {
+          return _cachedAimDir.set(aim.x, aim.y, 0.5).unproject(camera).sub(camera.position).normalize();
+        }
+        return _cachedAimDir.copy(_forwardVec).applyQuaternion(camera.quaternion);
+      };
 
       const castHit = () => {
         if (!world) return null;
-        const origin = new THREE.Vector3(player.position.x, player.eyeY, player.position.z);
-        return raycastVoxel(world, origin, aimDir(), 7);
+        _cachedOrigin.set(player.position.x, player.eyeY, player.position.z);
+        return raycastVoxel(world, _cachedOrigin, aimDir(), 7);
       };
 
       // ── Melee: swing at whoever is in front of you ────────────────────────
@@ -2190,11 +2202,11 @@ export function SandboxGame({
           hitMeVel.x = hitDir.x * stats.knockback;
           hitMeVel.z = hitDir.z * stats.knockback;
           hitMeVel.y = 4.2 + stats.knockback * 0.25;
-          hitMeRedT = 1;
+          hitMeRedT = 0.5;
           hitMeHp = Math.max(0, hitMeHp - damage);
           hitMeBar.set(hitMeHp);
-          hitMeHealT = 2.2;
-          spawnHitFx(npcCenter, crit ? 0xffe066 : stats.slash);
+          hitMeHealT = 1.5; // Regenerates after brief delay
+          spawnHitFx(npcCenter, 0xdc2626, true); // No white particles
           playSound("hurt");
           playSound("sword_hit");
           return true;
@@ -2217,7 +2229,7 @@ export function SandboxGame({
           s.bar.set(s.hp);
           if (s.hp <= 0) s.respawnIn = 3;
         }
-        spawnHitFx(best.center, crit ? 0xffe066 : stats.slash);
+        spawnHitFx(best.center, 0xdc2626, true); // No white particles
         playSound("hurt");
         playSound("sword_hit");
         return true;
@@ -2807,12 +2819,14 @@ export function SandboxGame({
             auroraGroupRef.current.children.forEach((child, idx) => {
               if (child instanceof THREE.Mesh) {
                 const pos = child.geometry.attributes.position;
+                const arr = pos.array as Float32Array;
                 for (let i = 0; i < pos.count; i++) {
-                  const x = pos.getX(i);
+                  const ix = i * 3;
+                  const x = arr[ix];
                   const waveY =
                     Math.sin(tNow * 1.8 + x * 0.04 + idx * 1.5) * 5.5 +
                     Math.cos(tNow * 0.9 + x * 0.02) * 3.0;
-                  pos.setY(i, (i % 9) * 4.6 - 21 + waveY);
+                  arr[ix + 1] = (i % 9) * 4.6 - 21 + waveY;
                 }
                 pos.needsUpdate = true;
               }
@@ -3518,7 +3532,6 @@ export function SandboxGame({
                 isTouch={isTouch}
                 onOpenInventory={() => setInventoryOpen(true)}
               />
-              <Crosshair />
             </>
           )}
         </V2GameHud>

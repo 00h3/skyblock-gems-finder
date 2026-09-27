@@ -21,13 +21,13 @@ export const HUD_ASSETS = {
   arrowUpLeft: "/assets/hud/pitch_black/dark_arrow_key_zuoxieshang.png",
 
   // Action & Navigation
-  jumpIcon: "https://maxwell.z3ki.dev/bot/_files/icon-head-sprint/icon_head_sprint.png",
+  jumpIcon: "https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png",
   
   // Movement States (Custom Assets)
-  sprintIcon: "/assets/hud/pitch_black/dark_move_state_sprint.png",
-  crouchIcon: "https://maxwell.z3ki.dev/bot/_files/icon-side-walk/icon_side_walk.png",
-  runIcon: "https://maxwell.z3ki.dev/bot/_files/icon-side-sprint/icon_side_sprint.png",
-  walkIcon: "https://maxwell.z3ki.dev/bot/_files/qblock-ui-walk/character_walk_icon.png",
+  sprintIcon: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png",
+  crouchIcon: "https://maxwell.z3ki.dev/bot/_files/icon-sneak/sneak.png",
+  runIcon: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png",
+  walkIcon: "https://maxwell.z3ki.dev/bot/_files/icon-walk/walk.png",
 
   // System GUI
   chatIcon: "/assets/hud/pitch_black/dark_gui_material_chat_icon.png",
@@ -507,13 +507,13 @@ export function BedwarsHud({
             <button
               type="button"
               onClick={onOpenInventory}
-              className="relative grid h-9 w-9 place-items-center rounded-[10px] bg-[#34373e] hover:bg-[#3e424b] active:scale-95 border border-[#4a505c] transition-all"
+              className="relative grid h-8 w-8 place-items-center rounded-[8px] bg-[#34373e] hover:bg-[#3e424b] active:scale-95 border border-[#4a505c] transition-all"
               aria-label="Open inventory"
             >
               <img
                 src={HUD_ASSETS.inventorySquare}
                 alt="Inventory"
-                className="h-5 w-5 object-contain pointer-events-none opacity-90"
+                className="h-4 w-4 object-contain pointer-events-none opacity-90"
                 draggable={false}
               />
             </button>
@@ -522,13 +522,13 @@ export function BedwarsHud({
             <button
               type="button"
               onClick={cycleMovementMode}
-              className="relative grid h-9 w-9 place-items-center rounded-[10px] bg-[#34373e] hover:bg-[#3e424b] active:scale-95 border border-[#4a505c] transition-all"
+              className="relative grid h-8 w-8 place-items-center rounded-[8px] bg-[#34373e] hover:bg-[#3e424b] active:scale-95 border border-[#4a505c] transition-all"
               aria-label="Toggle movement"
             >
               <img
                 src={currentModeIcon}
                 alt="Movement"
-                className="h-5 w-5 object-contain pointer-events-none opacity-90"
+                className="h-4 w-4 object-contain pointer-events-none opacity-90"
                 draggable={false}
               />
             </button>
@@ -636,31 +636,31 @@ export function BedwarsHud({
                 <button
                   type="button"
                   onClick={() => onMovementModeChange?.("walk")}
-                  className={`p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none ${currentMode === 'walk' ? 'opacity-100' : 'opacity-60'}`}
+                  className={`p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none ${currentMode === 'walk' ? 'opacity-100' : 'opacity-60'}`}
                   aria-label="Walk"
                 >
-                  <img src={HUD_ASSETS.walkIcon} alt="Walk" className="h-11 w-11 object-contain pointer-events-none drop-shadow-md" draggable={false} />
+                  <img src={HUD_ASSETS.walkIcon} alt="Walk" className="h-[51px] w-[51px] object-contain pointer-events-none drop-shadow-md" draggable={false} />
                 </button>
                 <button
                   type="button"
                   onClick={() => onMovementModeChange?.("run")}
-                  className={`p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none ${currentMode === 'run' ? 'opacity-100' : 'opacity-60'}`}
+                  className={`p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none ${currentMode === 'run' ? 'opacity-100' : 'opacity-60'}`}
                   aria-label="Run"
                 >
-                  <img src={HUD_ASSETS.runIcon} alt="Run" className="h-11 w-11 object-contain pointer-events-none drop-shadow-md" draggable={false} />
+                  <img src={HUD_ASSETS.runIcon} alt="Run" className="h-[51px] w-[51px] object-contain pointer-events-none drop-shadow-md" draggable={false} />
                 </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={cycleMovementMode}
-                className="p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none"
+                className="p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none"
                 aria-label={`Movement state: ${currentMode}. Tap to change.`}
               >
                 <img
                   src={currentModeIcon}
                   alt={currentMode}
-                  className="h-14 w-14 object-contain pointer-events-none drop-shadow-md"
+                  className="h-16 w-16 object-contain pointer-events-none drop-shadow-md"
                   draggable={false}
                 />
               </button>
@@ -685,13 +685,13 @@ export function BedwarsHud({
                 e.preventDefault();
                 onJump(false);
               }}
-              className="p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none"
+              className="p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none"
               aria-label="Jump"
             >
               <img
                 src={HUD_ASSETS.jumpIcon}
                 alt="Jump"
-                className="h-16 w-16 sm:h-18 sm:w-18 object-contain pointer-events-none drop-shadow-md"
+                className="h-[74px] w-[74px] sm:h-[83px] sm:w-[83px] object-contain pointer-events-none drop-shadow-md"
                 draggable={false}
               />
             </button>

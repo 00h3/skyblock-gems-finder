@@ -17,9 +17,9 @@ interface GameControlsProps {
 }
 
 const MOVEMENT_MODES: { name: MovementMode; icon: string }[] = [
-  { name: "Crouch", icon: "https://maxwell.z3ki.dev/bot/_files/qblock-ui-walk/character_walk_icon.png" },
-  { name: "Walk", icon: "https://maxwell.z3ki.dev/bot/_files/qblock-ui-stand/character_stand_icon.png" },
-  { name: "Run", icon: "https://maxwell.z3ki.dev/bot/_files/qblock-ui-run/action_run_icon.png" },
+  { name: "Crouch", icon: "https://maxwell.z3ki.dev/bot/_files/icon-sneak/sneak.png" },
+  { name: "Walk", icon: "https://maxwell.z3ki.dev/bot/_files/icon-walk/walk.png" },
+  { name: "Run", icon: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png" },
 ];
 
 export function GameControls({
@@ -69,7 +69,7 @@ export function GameControls({
 
       {/* Movement */}
       <div className="absolute left-5 bottom-[85px] pointer-events-auto">
-        <button onClick={toggleMovement} className="w-14 h-14">
+        <button onClick={toggleMovement} className="w-16 h-16">
           <img src={MOVEMENT_MODES[movementIndex].icon} alt={MOVEMENT_MODES[movementIndex].name} className="w-full h-full object-contain" />
         </button>
       </div>
@@ -78,9 +78,9 @@ export function GameControls({
       <button
         onPointerDown={() => onJump(true)}
         onPointerUp={() => onJump(false)}
-        className="absolute right-8 bottom-[230px] w-16 h-16 pointer-events-auto"
+        className="absolute right-8 bottom-[230px] w-[74px] h-[74px] pointer-events-auto"
       >
-        <img src="https://maxwell.z3ki.dev/bot/_files/qblock-ui-jump/character_jump_icon.png" alt="Jump" className="w-full h-full object-contain" />
+        <img src="https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png" alt="Jump" className="w-full h-full object-contain" />
       </button>
 
       {/* Joystick */}

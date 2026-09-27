@@ -311,7 +311,7 @@ export function FlatSquareSettingsModal({
   return createPortal(
     <div
       id="flat-square-settings-fullscreen"
-      className="fixed inset-0 z-[99999] pointer-events-auto flex flex-col bg-white text-black select-none overflow-hidden"
+      className="fixed inset-0 z-[99999] pointer-events-auto flex flex-col bg-white text-black select-none overflow-hidden pb-[env(safe-area-inset-bottom)]"
       style={{ borderRadius: 0 }}
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}

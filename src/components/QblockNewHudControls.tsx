@@ -469,12 +469,12 @@ export function QblockScreenControls({
             if (onJump) onJump();
             else window.dispatchEvent(new Event("bm-jump"));
           }}
-          className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
+          className="relative w-[74px] h-[74px] sm:w-[83px] sm:h-[83px] active:scale-95 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
           title="Jump"
           aria-label="Jump"
         >
           <img
-            src={HUD_ASSETS.button}
+            src="https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png"
             alt="Jump"
             className="w-full h-full object-contain pointer-events-none drop-shadow-lg select-none"
             draggable={false}

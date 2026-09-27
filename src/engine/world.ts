@@ -357,7 +357,8 @@ export function hardnessOf(id: number) {
  * subtle — just enough variation between leaf types.
  */
 const TINTS: Record<string, [number, number, number]> = {
-  grass_block_top: [0.45, 0.75, 0.35],
+  // Matched to user RGB: R(31..43), G(72..104), B(4..6) with saturated deep olive grass tone
+  grass_block_top: [0.41, 1.0, 0.055],
   oak_leaves: [0.35, 0.65, 0.25],
   birch_leaves: [0.4, 0.7, 0.35],
   spruce_leaves: [0.3, 0.5, 0.3],
