@@ -3594,7 +3594,6 @@ export function SandboxGame({
           {skyblock && (
             <>
               <CinematicVignette />
-              <MilestoneTracker progression={progression} />
               <V2Hotbar
                 hotbar={hotbar}
                 tileUrls={tileUrls}

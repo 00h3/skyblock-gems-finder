@@ -312,7 +312,7 @@ function DPad({
             onToggleRun();
           }}
           className={cn("p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none", running && "is-active")}
-          style={{ ...size, transform: "scale(1.15)", transformOrigin: "center" }}
+          style={{ ...size, transform: "scale(1.3)", transformOrigin: "center" }}
         >
           <img
             src={running ? UI.run : UI.walk}
@@ -333,7 +333,7 @@ function DPad({
               onToggleSneak();
             }}
             className={cn("p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none", sneaking && "is-active")}
-            style={{ ...size, transform: "scale(1.15)", transformOrigin: "center" }}
+            style={{ ...size, transform: "scale(1.3)", transformOrigin: "center" }}
           >
             <img src={UI.sneak} alt="" draggable={false} className="pointer-events-none h-full w-full object-contain drop-shadow-md" />
           </button>
@@ -391,7 +391,7 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
           ))}
         </div>
       )}
-      {primary && <ActionKey action={primary} scale={1.34} isPrimary />}
+      {primary && <ActionKey action={primary} scale={1.5} isPrimary />}
     </div>
   );
 }
