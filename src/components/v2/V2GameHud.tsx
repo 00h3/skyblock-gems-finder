@@ -391,7 +391,7 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
           ))}
         </div>
       )}
-      {primary && <ActionKey action={primary} scale={1.5} isPrimary />}
+      {primary && <ActionKey action={primary} scale={1.7} isPrimary />}
     </div>
   );
 }

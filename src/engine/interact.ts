@@ -88,27 +88,41 @@ export class BlockFx {
   private items: { mesh: THREE.Mesh; t: number; life: number; kind: "place" | "break" }[] = [];
   private particles: { mesh: THREE.Mesh; v: THREE.Vector3; t: number; life: number }[] = [];
 
+  // Shared geometry + per-tile material cache: breaking blocks used to
+  // allocate 11 geometries and a texture clone every time, which caused GC
+  // hitches on mobile while mining.
+  private static readonly cube = new THREE.BoxGeometry(1, 1, 1);
+  private static readonly chip = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+  private readonly tileMats = new Map<string, THREE.MeshBasicMaterial>();
+
   constructor(private atlas: Atlas) {}
 
-  private materialFor(tile: string) {
-    const [u0, v0, u1, v1] = this.atlas.uv(tile);
-    const tex = this.atlas.texture.clone();
-    tex.needsUpdate = true;
-    tex.repeat.set(u1 - u0, v1 - v0);
-    tex.offset.set(u0, v0);
-    return new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+  materialFor(tile: string) {
+    let mat = this.tileMats.get(tile);
+    if (!mat) {
+      const [u0, v0, u1, v1] = this.atlas.uv(tile);
+      const tex = this.atlas.texture.clone();
+      tex.needsUpdate = true;
+      tex.repeat.set(u1 - u0, v1 - v0);
+      tex.offset.set(u0, v0);
+      mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.2 });
+      this.tileMats.set(tile, mat);
+    }
+    return mat;
   }
 
-  spawn(kind: "place" | "break", pos: THREE.Vector3, tile: string) {
-    const mat = this.materialFor(tile);
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+  spawn(kind: "place" | "break", pos: THREE.Vector3, tile: string, chips = 10) {
+    const shared = this.materialFor(tile);
+    const fading = shared.clone();
+    fading.transparent = true;
+    const mesh = new THREE.Mesh(BlockFx.cube, fading);
     mesh.position.copy(pos).addScalar(0.5);
     this.group.add(mesh);
     this.items.push({ mesh, t: 0, life: kind === "place" ? 0.22 : 0.26, kind });
 
     if (kind === "break") {
-      for (let i = 0; i < 10; i++) {
-        const p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), mat);
+      for (let i = 0; i < chips; i++) {
+        const p = new THREE.Mesh(BlockFx.chip, shared);
         p.position.copy(pos).addScalar(0.5);
         this.group.add(p);
         this.particles.push({
@@ -141,7 +155,7 @@ export class BlockFx {
       }
       if (p >= 1) {
         this.group.remove(it.mesh);
-        it.mesh.geometry.dispose();
+        (it.mesh.material as THREE.Material).dispose();
         this.items.splice(i, 1);
       }
     }
@@ -154,13 +168,17 @@ export class BlockFx {
       p.mesh.scale.setScalar(Math.max(0.01, 1 - p.t / p.life));
       if (p.t >= p.life) {
         this.group.remove(p.mesh);
-        p.mesh.geometry.dispose();
         this.particles.splice(i, 1);
       }
     }
   }
 
   dispose() {
+    this.tileMats.forEach((m) => {
+      m.map?.dispose();
+      m.dispose();
+    });
+    this.tileMats.clear();
     this.group.clear();
     this.items = [];
     this.particles = [];

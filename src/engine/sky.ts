@@ -32,6 +32,7 @@ uniform float uTime;
 uniform float uCloudCover;
 uniform float uNight;
 uniform float uAurora;
+uniform float uV2;
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -90,6 +91,19 @@ void main() {
   // Faint Rayleigh skylight away from the sun during the day.
   col += vec3(0.05, 0.11, 0.26) * (1.0 - sunDot) * smoothstep(0.05, 0.7, h) * (1.0 - uNight) * 0.3;
 
+  // Graphics V2: physically-inspired sun disc + corona (bright enough to
+  // bloom), a wide Mie glow that paints sunsets across half the sky, and a
+  // thin horizon haze band for depth.
+  if (uV2 > 0.0) {
+    float disc = smoothstep(0.9993, 0.99965, sunDot);
+    float corona = pow(sunDot, 220.0) * 1.1 + pow(sunDot, 48.0) * 0.28;
+    col += mix(uSunColor, vec3(1.0), 0.35) * (disc * 2.6 + corona) * sunVisible * uV2;
+    float mie = pow(sunDot, 4.0) * lowSun;
+    col += vec3(1.0, 0.52, 0.26) * mie * 0.34 * uV2;
+    float haze = exp(-abs(h) * 14.0);
+    col = mix(col, mix(uHorizon, uSunColor, 0.25 * lowSun) * 1.04, haze * 0.22 * uV2 * (1.0 - uNight * 0.6));
+  }
+
   // Moon: opposite the sun, soft cratered disc with a wide cold glow.
   vec3 moonDir = normalize(vec3(-sunDir.x, max(-sunDir.y, 0.25), -sunDir.z));
   float moonDot = max(dot(dir, moonDir), 0.0);
@@ -144,6 +158,15 @@ void main() {
     // Radiant silver lining on cloud borders when facing the sun
     float silverLining = pow(sunDot, 5.0) * smoothstep(0.18, 0.75, density) * 0.72;
     cloud += uSunColor * silverLining * sunVisible;
+    if (uV2 > 0.0) {
+      // Self-shadowed bellies and fiery sunset undersides.
+      float belly = 1.0 - smoothstep(threshold, threshold + 0.35, d);
+      cloud = mix(cloud, cloud * vec3(0.78, 0.8, 0.9), belly * 0.35 * uV2);
+      cloud += vec3(1.0, 0.45, 0.2) * lowSun * belly * 0.28 * uV2;
+      // High, wispy cirrus layer.
+      float cirrus = fbm(vec2(uv.x * 0.55 + uTime * 0.004, uv.y * 3.2));
+      col = mix(col, uCloudLit, smoothstep(0.58, 0.9, cirrus) * 0.18 * smoothstep(0.1, 0.5, h) * uV2);
+    }
 
     col = mix(col, cloud, density * 0.95);
   }
@@ -217,6 +240,8 @@ export class Sky {
   private aurora = 0;
   private auroraTarget = 0;
   private auroraTimer = 25;
+  private v2 = false;
+  private cloudLight = 1;
 
   private _sunDir = new THREE.Vector3();
   private _top = new THREE.Color();
@@ -249,6 +274,7 @@ export class Sky {
         uCloudCover: { value: this.cloudCover },
         uNight: { value: 0 },
         uAurora: { value: 0 },
+        uV2: { value: 0 },
       },
     });
 
@@ -315,6 +341,13 @@ export class Sky {
     this.tintTarget = THREE.MathUtils.clamp(amount, 0, 1);
   }
 
+  /** Graphics V2: cinematic sky + clouds that dim and brighten the sun as they pass. */
+  setGraphicsV2(on: boolean) {
+    this.v2 = on;
+    this.mat.uniforms.uV2.value = on ? 1 : 0;
+    this.apply();
+  }
+
   setNormalDay() {
     this.isGoldenHour = false;
     this.setTimeOfDay(0.3);
@@ -363,6 +396,15 @@ export class Sky {
     if (!this.paused && !this.isGoldenHour) {
       this.t = (this.t + dt / this.dayLength) % 1;
     }
+    if (this.v2) {
+      // Slow layered sines stand in for cloud shadows sweeping over the island.
+      const e = this.elapsed;
+      const pass = Math.sin(e * 0.11) * 0.6 + Math.sin(e * 0.047 + 1.7) * 0.4;
+      const target = 1 - Math.max(0, pass) * 0.22 * this.cloudCover;
+      this.cloudLight += (target - this.cloudLight) * (1 - Math.exp(-1.5 * dt));
+    } else {
+      this.cloudLight = 1;
+    }
     this.apply();
   }
 
@@ -403,7 +445,7 @@ export class Sky {
     if (sunDir.y >= -0.05) {
       this.sunLight.position.copy(sunDir).multiplyScalar(120);
       this.sunLight.color.copy(sun);
-      this.sunLight.intensity = this.isGoldenHour ? 2.3 : 0.65 + day * 1.55;
+      this.sunLight.intensity = (this.isGoldenHour ? 2.3 : 0.65 + day * 1.55) * this.cloudLight * (this.v2 ? 1.08 : 1);
     } else {
       this.sunLight.position.copy(sunDir).multiplyScalar(-120);
       this.sunLight.color.copy(C.moon);

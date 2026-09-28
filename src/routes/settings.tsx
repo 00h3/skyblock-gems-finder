@@ -30,6 +30,7 @@ import { MobileShell } from "@/components/MobileShell";
 import { isIraAccount } from "@/components/GlossyAvatar";
 import { LegalBody, APP_VERSION } from "@/components/LegalDocs";
 import { saveAccount } from "@/lib/saved-accounts";
+import { BetaFeatures } from "@/components/BetaFeatures";
 
 import { FirstTimeSectionLoader } from "@/components/ui/FirstTimeSectionLoader";
 
@@ -217,6 +218,8 @@ export function SettingsBody() {
           />
         </div>
       </section>
+
+      <BetaFeatures />
 
       {/* Wallet Card */}
       <SubscriptionCard
