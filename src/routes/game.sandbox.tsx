@@ -7,6 +7,10 @@ import { buildAtlas, type Atlas } from "@/engine/textures";
 import { World, BLOCKS, WATER_ID, WIND } from "@/engine/world";
 import { GrassField } from "@/engine/v2/grass-field";
 import { CinematicPost } from "@/engine/v2/cinematic-post";
+import { CombatFx } from "@/engine/v2/combat-fx";
+import { Nature, type SeedCounts, type Species } from "@/engine/v2/nature";
+import { SeedPouch } from "@/components/v2/SeedPouch";
+import { GRAPHICS_V2_EVENT, isGraphicsV2 } from "@/lib/graphics-v2";
 import {
   BEDWARS_LOBBY_BOUNDS,
   BEDWARS_LOBBY_SPAWN,
@@ -965,6 +969,8 @@ export function SandboxGame({
   const [progression] = useState(() => new Progression());
   const [worldEvents] = useState(() => new WorldEvents());
   const [veilToken, setVeilToken] = useState(0);
+  const [seeds, setSeeds] = useState<SeedCounts>({ oak: 0, birch: 0, spruce: 0 });
+  const [seedSpecies, setSeedSpecies] = useState<Species>("oak");
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false);
 
   // Cleanup BGM on unmount
@@ -1394,8 +1400,16 @@ export function SandboxGame({
       if (grassField) scene.add(grassField.mesh);
       const cinematicPost =
         (skyblock || blockFall || bedwars) && qualityPref !== "low"
-          ? new CinematicPost(renderer, scene, camera, 0.45)
+          ? new CinematicPost(renderer, scene, camera, 0.18)
           : null;
+      const applyGraphicsV2 = (on: boolean) => {
+        sky?.setGraphicsV2(on);
+        cinematicPost?.setGraphicsV2(on);
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+      };
+      applyGraphicsV2(isGraphicsV2());
+      const onGraphicsV2 = (e: Event) => applyGraphicsV2((e as CustomEvent<boolean>).detail);
+      window.addEventListener(GRAPHICS_V2_EVENT, onGraphicsV2);
       const cosmicSky = skyblock ? new CosmicSky(scene, qualityPref === "low") : null;
       cosmicSkyRef.current = cosmicSky;
       cosmicSky?.setNight(celestialNightRef.current || initialAtm === "night");
@@ -1656,6 +1670,21 @@ export function SandboxGame({
 
       fx = new BlockFx(atlas);
       scene.add(fx.group);
+
+      const combatFx = new CombatFx();
+      scene.add(combatFx.group);
+      const syncBlock = (x: number, y: number, z: number, id: number) => {
+        const write = blockFall ? writeBlockFallBlock : writeSandboxBlock;
+        void write({ x, y, z, id }).catch((error) => console.error("Could not sync nature block:", error));
+      };
+      const nature = new Nature(world!, fx, syncBlock);
+      scene.add(nature.group);
+      nature.onSeedsChange = (s) => setSeeds(s);
+      nature.onNotice = (title, detail) => announce(title, detail, "reward");
+      nature.onSound = (kind) => {
+        playSound(kind);
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+      };
 
       const highlight = createHighlight();
       scene.add(highlight);
@@ -2032,21 +2061,11 @@ export function SandboxGame({
       });
       const sparks = new THREE.Points(sparkGeo, sparkMat);
       sparks.frustumCulled = false;
-      scene.add(sparks);
-      let sparkCursor = 0;
-      const spawnHitFx = (at: THREE.Vector3, color: number, isPerson = false) => {
-        // No white particles when hitting a person per user request! Pure red impact
-        sparkMat.color.setHex(isPerson ? 0xdc2626 : color);
-        for (let i = 0; i < (isPerson ? 10 : 16); i++) {
-          const k = sparkCursor++ % SPARKS;
-          sparkPos[k * 3] = at.x;
-          sparkPos[k * 3 + 1] = at.y;
-          sparkPos[k * 3 + 2] = at.z;
-          sparkVel[k * 3] = (Math.random() - 0.5) * 5;
-          sparkVel[k * 3 + 1] = Math.random() * 4 + 0.5;
-          sparkVel[k * 3 + 2] = (Math.random() - 0.5) * 5;
-          sparkLife[k] = 0.28 + Math.random() * 0.15;
-        }
+      sparks.visible = false;
+      // Old additive point sparks read as laggy smears on mobile; CombatFx
+      // renders crisp voxel chips, a shock ring and damage numbers instead.
+      const spawnHitFx = (at: THREE.Vector3, damage: number, crit: boolean) => {
+        combatFx.hit(at, camera, damage, crit);
       };
       const updateSwordFx = (dt: number) => {
         for (let k = 0; k < SPARKS; k++) {
@@ -2267,7 +2286,7 @@ export function SandboxGame({
           hitMeHp = Math.max(0, hitMeHp - damage);
           hitMeBar.set(hitMeHp);
           hitMeHealT = 1.5; // Regenerates after brief delay
-          spawnHitFx(npcCenter, 0xdc2626, true); // No white particles
+          spawnHitFx(npcCenter, damage, crit);
           playSound("hurt");
           playSound("sword_hit");
           return true;
@@ -2290,7 +2309,7 @@ export function SandboxGame({
           s.bar.set(s.hp);
           if (s.hp <= 0) s.respawnIn = 3;
         }
-        spawnHitFx(best.center, 0xdc2626, true); // No white particles
+        spawnHitFx(best.center, damage, crit);
         playSound("hurt");
         playSound("sword_hit");
         return true;
@@ -2382,9 +2401,21 @@ export function SandboxGame({
         setThird: (v: boolean) => void;
         setHeldTile: (id: number | string) => void;
         getAtlasUrl: (id: number | string) => string;
+        plant: (species: Species) => boolean;
       };
       (mount as HTMLDivElement & { __api?: Api }).__api = {
         place: doPlace,
+        plant: (species) => {
+          const hit = castHit();
+          if (!hit || hit.ny !== 1) {
+            announce("Aim at grass or dirt", "Look at the top of a block to plant");
+            return false;
+          }
+          const ok = nature.plant(hit.x, hit.y + 1, hit.z, species);
+          if (ok) swing = 1;
+          else if (nature.seeds[species] > 0) announce("Can't plant here", "Seeds need grass or dirt with open space above");
+          return ok;
+        },
         setMining: (v) => {
           mining = v;
           if (!v) {
@@ -2554,6 +2585,7 @@ export function SandboxGame({
       let shadowAcc = 0;
       let frames = 0;
       let footstepT = 0.12;
+      let smoothDt = 1 / 60;
       const euler = new THREE.Euler(0, 0, 0, "YXZ");
       // Pre-allocated scratch vectors to eliminate garbage collection stutters on mobile
       const _eye = new THREE.Vector3();
@@ -2568,7 +2600,13 @@ export function SandboxGame({
         // Render every browser frame. The previous fixed 60 Hz accumulator
         // intentionally skipped frames on high-refresh displays and made
         // camera motion feel uneven.
-        const dt = Math.min(raw, 0.05);
+        // Mobile browsers deliver jittery rAF timestamps (e.g. 12ms, 21ms,
+        // 15ms at a steady 60Hz). Feeding that noise into movement makes the
+        // camera micro-stutter, so we blend toward the raw delta; real frame
+        // drops (>1.6x the average) pass through immediately.
+        const clamped = Math.min(raw, 0.05);
+        smoothDt = clamped > smoothDt * 1.6 ? clamped : smoothDt + (clamped - smoothDt) * 0.25;
+        const dt = smoothDt;
 
         const input = controls!.read();
         const tNow = matchNow();
@@ -2976,6 +3014,8 @@ export function SandboxGame({
               fx!.spawn("break", new THREE.Vector3(hit.x, hit.y, hit.z), def!.side);
               world!.set(hit.x, hit.y, hit.z, 0);
               if (skyblock) progression.recordMine();
+              if (skyblock) nature.rollDrop(oldId);
+              if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
               if (renderer) renderer.shadowMap.needsUpdate = true;
               if (blockFall) {
                 void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
@@ -3025,8 +3065,12 @@ export function SandboxGame({
           matchmaker.update(dt, matchmakerPos, toPlayer, 0, true, false);
           matchmakerTag.update(camera.position);
         }
+        combatFx.update(dt);
+        nature.update(dt, clock.elapsedTime);
+        const shaking = combatFx.beginShake(camera);
         if (cinematicPost) cinematicPost.render(dt);
         else renderer!.render(scene, camera);
+        if (shaking) combatFx.endShake(camera);
 
         frames++;
         acc += dt;
@@ -3071,6 +3115,9 @@ export function SandboxGame({
         matchmaker?.dispose();
         matchmakerTag?.dispose();
         cinematicPost?.dispose();
+        window.removeEventListener(GRAPHICS_V2_EVENT, onGraphicsV2);
+        combatFx.dispose();
+        nature.dispose();
         match.onPhaseChange = undefined;
         worldEvents.onStart = undefined;
         worldEvents.onEnd = undefined;
@@ -3167,6 +3214,7 @@ export function SandboxGame({
             setThird: (v: boolean) => void;
             setHeldTile: (id: number | string) => void;
             getAtlasUrl: (id: number | string) => string;
+            plant: (species: Species) => boolean;
           };
         })
       | null;
@@ -3366,6 +3414,7 @@ export function SandboxGame({
     setBgmMuted(next);
     BmgoAudio.setMuted(next);
   };
+  const totalSeeds = seeds.oak + seeds.birch + seeds.spruce;
   const v2Actions: HudAction[] = skyblock
     ? [
         { id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump },
@@ -3387,6 +3436,21 @@ export function SandboxGame({
             api()?.place();
           },
         },
+        ...(totalSeeds > 0
+          ? [
+              {
+                id: "plant",
+                label: "Plant",
+                kind: "tap" as const,
+                onPress: (down: boolean) => {
+                  if (!down) return;
+                  api()?.setAim(null);
+                  const species = seeds[seedSpecies] > 0 ? seedSpecies : (Object.keys(seeds) as Species[]).find((s) => seeds[s] > 0);
+                  if (species) api()?.plant(species);
+                },
+              },
+            ]
+          : []),
       ]
     : [{ id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump }];
 
@@ -3594,6 +3658,9 @@ export function SandboxGame({
           {skyblock && (
             <>
               <CinematicVignette />
+              {totalSeeds > 0 && (
+                <SeedPouch seeds={seeds} selected={seedSpecies} onSelect={setSeedSpecies} />
+              )}
               <V2Hotbar
                 hotbar={hotbar}
                 tileUrls={tileUrls}

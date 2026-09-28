@@ -49,7 +49,7 @@ export const MotionBlurShader = {
       }
 
       // AAA game cap: keeps blur subtle, smooth, and pleasant ("kinda blurry not that blurry")
-      float maxDist = 0.0135;
+      float maxDist = 0.0054;
       if (len > maxDist) {
         delta = (delta / len) * maxDist;
       }

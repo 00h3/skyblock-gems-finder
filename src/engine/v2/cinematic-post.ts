@@ -6,9 +6,11 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 /**
- * Camera motion blur + soft grade. Blur is driven by how fast the camera
+ * Camera motion blur + cinematic grade. Blur is driven by how fast the camera
  * turns (directional smear) and moves forward (radial smear), so a still
- * camera renders perfectly sharp.
+ * camera renders perfectly sharp. Graphics V2 adds a filmic colour grade
+ * (split-tone, saturation, contrast) in the same pass, so it costs no extra
+ * render target.
  */
 const MotionShader = {
   uniforms: {
@@ -16,6 +18,7 @@ const MotionShader = {
     uVelocity: { value: new THREE.Vector2() },
     uRadial: { value: 0 },
     uVignette: { value: 0.28 },
+    uGrade: { value: 0 },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -29,8 +32,9 @@ const MotionShader = {
     uniform vec2 uVelocity;
     uniform float uRadial;
     uniform float uVignette;
+    uniform float uGrade;
     varying vec2 vUv;
-    const int SAMPLES = 8;
+    const int SAMPLES = 6;
     void main() {
       vec2 fromCenter = vUv - 0.5;
       float edge = smoothstep(0.08, 0.75, length(fromCenter));
@@ -43,6 +47,16 @@ const MotionShader = {
           acc += texture2D(tDiffuse, vUv + dir * t);
         }
         color = acc / float(SAMPLES);
+      }
+      if (uGrade > 0.0) {
+        vec3 c = color.rgb;
+        float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        c = mix(vec3(luma), c, 1.0 + 0.14 * uGrade);
+        c = (c - 0.5) * (1.0 + 0.07 * uGrade) + 0.5;
+        vec3 shadowTint = vec3(0.94, 0.98, 1.06);
+        vec3 highTint = vec3(1.05, 1.0, 0.93);
+        c *= mix(shadowTint, highTint, smoothstep(0.15, 0.85, luma)) * uGrade + (1.0 - uGrade);
+        color.rgb = max(c, 0.0);
       }
       float v = smoothstep(0.85, 0.2, length(fromCenter * vec2(1.1, 1.0)));
       color.rgb *= mix(1.0 - uVignette, 1.0, v);
@@ -61,6 +75,7 @@ export class CinematicPost {
   private readonly euler = new THREE.Euler(0, 0, 0, "YXZ");
   private readonly forward = new THREE.Vector3();
   private readonly smoothVel = new THREE.Vector2();
+  private readonly tmpVec = new THREE.Vector3();
   private smoothRadial = 0;
   private primed = false;
 
@@ -68,7 +83,7 @@ export class CinematicPost {
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
     private readonly camera: THREE.PerspectiveCamera,
-    private readonly strength = 0.405,
+    private readonly strength = 0.18,
   ) {
     const size = renderer.getSize(new THREE.Vector2());
     const target = new THREE.WebGLRenderTarget(size.x, size.y, {
@@ -79,7 +94,6 @@ export class CinematicPost {
     this.composer.setPixelRatio(renderer.getPixelRatio());
     this.composer.setSize(size.x, size.y);
     this.composer.addPass(new RenderPass(scene, camera));
-    // Soft, smooth HDR bloom without fillrate stalls
     const bloomW = Math.max(64, Math.round(size.x / 3));
     const bloomH = Math.max(64, Math.round(size.y / 3));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.28, 0.5, 0.98);
@@ -87,6 +101,15 @@ export class CinematicPost {
     this.motion = new ShaderPass(MotionShader);
     this.composer.addPass(this.motion);
     this.composer.addPass(new OutputPass());
+  }
+
+  /** Graphics V2: richer bloom on bright sun/emissives plus a filmic grade. */
+  setGraphicsV2(on: boolean) {
+    this.bloom.strength = on ? 0.36 : 0.28;
+    this.bloom.radius = on ? 0.62 : 0.5;
+    this.bloom.threshold = on ? 0.9 : 0.98;
+    this.motion.uniforms.uGrade.value = on ? 1 : 0;
+    this.motion.uniforms.uVignette.value = on ? 0.32 : 0.28;
   }
 
   setSize(w: number, h: number, pixelRatio: number) {
@@ -123,17 +146,15 @@ export class CinematicPost {
     this.smoothVel.y += (vy - this.smoothVel.y) * k;
     this.smoothRadial += (radialTarget - this.smoothRadial) * k;
     u.uVelocity.value.set(
-      Math.abs(this.smoothVel.x) < 0.0006 ? 0 : this.smoothVel.x,
-      Math.abs(this.smoothVel.y) < 0.0006 ? 0 : this.smoothVel.y,
+      Math.abs(this.smoothVel.x) < 0.0004 ? 0 : this.smoothVel.x,
+      Math.abs(this.smoothVel.y) < 0.0004 ? 0 : this.smoothVel.y,
     );
-    u.uRadial.value = this.smoothRadial < 0.002 ? 0 : this.smoothRadial;
+    u.uRadial.value = this.smoothRadial < 0.001 ? 0 : this.smoothRadial;
 
     this.prevQuat.copy(cam.quaternion);
     this.prevPos.copy(cam.position);
     this.composer.render(dt);
   }
-
-  private readonly tmpVec = new THREE.Vector3();
 
   dispose() {
     this.composer.dispose();
