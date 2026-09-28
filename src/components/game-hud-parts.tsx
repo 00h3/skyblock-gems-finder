@@ -336,6 +336,15 @@ export function GameSettingsModal({
     { id: "top", label: "Top-Down", icon: "🗺️" },
   ];
 
+  const [cameraFov, setCameraFov] = useState<number>(() => {
+    try {
+      const s = localStorage.getItem("qb_camera_fov");
+      return s ? Number(s) : 72;
+    } catch {
+      return 72;
+    }
+  });
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -416,6 +425,37 @@ export function GameSettingsModal({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Field of View slider */}
+            <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-bold text-white/90">Field of View (FOV)</span>
+                <span className="text-[11px] font-mono font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+                  {cameraFov}°
+                </span>
+              </div>
+              <input
+                type="range"
+                min={60}
+                max={95}
+                step={5}
+                value={cameraFov}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setCameraFov(val);
+                  try {
+                    localStorage.setItem("qb_camera_fov", String(val));
+                  } catch {}
+                  window.dispatchEvent(new CustomEvent("bm-fov", { detail: val }));
+                }}
+                className="w-full h-2 bg-white/20 accent-amber-400 rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-white/40">
+                <span>Narrow (60°)</span>
+                <span>Standard (72°)</span>
+                <span>Wide (95°)</span>
+              </div>
             </div>
           </div>
 

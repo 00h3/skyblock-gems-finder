@@ -48,6 +48,19 @@
         "text": { "type": "string" }
       },
       "required": ["groupId", "senderUid", "text"]
+    },
+    "SkyblockProfile": {
+      "title": "SkyblockProfile",
+      "description": "Per-player persistent Skyblock progression, island level, XP, and stats",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "progression": { "type": "object" },
+        "economy": { "type": "object" },
+        "updatedAt": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid"]
     }
   },
   "firestore": {
@@ -62,6 +75,10 @@
     "/groups/{groupId}/messages/{messageId}": {
       "schema": "GroupMessage",
       "description": "Stores messages for a group"
+    },
+    "/skyblockProfiles/{userId}": {
+      "schema": "SkyblockProfile",
+      "description": "Stores persistent per-user Skyblock island progress and stats"
     }
   }
 }

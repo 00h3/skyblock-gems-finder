@@ -41,6 +41,7 @@ import {
   type LiveSkyblockPlayer,
   type SkyblockChatMessage,
 } from "@/lib/skyblock-multiplayer";
+import { getPermanentPlayerId } from "@/lib/skyblock-profile";
 import { GameUiChrome } from "@/components/GameUiChrome";
 import { getTargetDpr } from "@/lib/rendering";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -178,23 +179,19 @@ import {
 const FOV_REF_ASPECT = 16 / 9;
 function fovForAspect(baseFovDeg: number, aspect: number): number {
   if (aspect <= 0 || !Number.isFinite(aspect)) return baseFovDeg;
-  if (aspect >= FOV_REF_ASPECT) {
-    // Ultrawide landscape displays
-    return baseFovDeg;
-  }
+  // Standardize base FOV to at least 72 for comfortable modern gameplay
+  const effectiveBase = Math.max(70, Number.isFinite(baseFovDeg) ? baseFovDeg : 72);
   if (aspect >= 1.0) {
-    // Standard landscape / tablets: smooth Hor+ scaling
-    const baseHalfRad = (baseFovDeg * Math.PI) / 360;
-    const refHorizHalf = Math.atan(Math.tan(baseHalfRad) * FOV_REF_ASPECT);
-    const vertHalf = Math.atan(Math.tan(refHorizHalf) / aspect);
-    const calculated = (vertHalf * 360) / Math.PI;
-    return Math.min(72, Math.max(baseFovDeg, calculated));
+    // Landscape orientation (including wide Samsung/iPhone displays 19.5:9, 20:9, 21:9):
+    // Never squeeze vertical FOV down on wide screens — that causes extreme zoom-in on mobile phones.
+    // Instead, give a generous, comfortable vertical FOV (72° - 76°) so landscape feels wide and open.
+    const wideBoost = aspect >= 1.9 ? 3.0 : aspect >= 1.6 ? 2.0 : 0.5;
+    return Math.min(84, effectiveBase + wideBoost);
   }
-  // Portrait mode (aspect < 1.0, e.g. phones held vertically):
-  // Expand vertical FOV gently so the viewport feels spacious and high-end,
-  // clamped at 82° to eliminate spherical edge distortion and fisheye stretching.
-  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 8;
-  return Math.min(70, Math.max(baseFovDeg, baseFovDeg + portraitExpansion));
+  // Portrait orientation (aspect < 1.0, e.g. phones held vertically 9:16, 9:19.5):
+  // Gently expand vertical FOV so horizontal sightlines aren't too narrow.
+  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 9;
+  return Math.min(86, Math.max(effectiveBase, effectiveBase + portraitExpansion));
 }
 
 function getCleanName(user: any): string {
@@ -2227,11 +2224,18 @@ function EngineGame({
 
     const scene = new THREE.Scene();
 
-    // Wider FOV = "zoomed out" feel, blocks look smaller. The base FOV is a
-    // *vertical* FOV tuned for landscape (16:9); fovForAspect widens it on
-    // narrower/portrait aspect ratios so the horizontal field of view stays
-    // constant instead of the world looking "zoomed in" on phones.
-    const BASE_FOV = isSpleef ? 64 : 62; // Blockmango 2019-2020 signature narrow FOV — feels grounded and mobile-native
+    // Base FOV loaded from user setting or standard comfortable 72° (never clamped narrow)
+    let userFovSetting = 72;
+    try {
+      const saved = localStorage.getItem("qb_camera_fov");
+      if (saved) {
+        const parsed = Number(saved);
+        if (!isNaN(parsed) && parsed >= 50 && parsed <= 100) {
+          userFovSetting = parsed;
+        }
+      }
+    } catch {}
+    let BASE_FOV = userFovSetting;
     const isMobileUA =
       typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const camera = new THREE.PerspectiveCamera(
@@ -2886,7 +2890,7 @@ function EngineGame({
       const dummyObj = new THREE.Object3D();
       const scratchMatrix = new THREE.Matrix4();
       const currentSkyblockIslandId =
-        visitingUserId || qbUser?.islandId || qbUser?.uid || "my_island";
+        visitingUserId || qbUser?.islandId || qbUser?.uid || getPermanentPlayerId(qbUser);
 
       function makeGroupMesh(type: number, capacity: number) {
         const leaf = isLeafType(type);
@@ -7242,7 +7246,7 @@ function EngineGame({
           (gltf) => {
             if (disposed || !isSkyblock) return;
             const model = gltf.scene;
-            model.scale.setScalar(0.07992); // scaled down 10%
+            model.scale.setScalar(0.05834); // made 27% smaller per user request (0.07992 * 0.73)
             model.position.y = -0.16; // lowered down towards bottom of camera
             model.traverse((node) => {
               const mesh = node as THREE.Mesh;
@@ -7349,9 +7353,9 @@ function EngineGame({
           side: THREE.DoubleSide,
           depthWrite: false,
         });
-        // Swords reduced by another 10% (0.3285) and lowered towards the bottom of the camera view
+        // Swords reduced by 27% (0.2398) per user request
         const isSword = texPath.includes("sword");
-        const planeSize = isSword ? 0.3285 : 0.62;
+        const planeSize = isSword ? 0.2398 : 0.62;
         const m = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize), mat);
         heldBasePos = new THREE.Vector3(0.24, isSword ? -0.40 : -0.26, -0.42);
         heldBaseRot = new THREE.Euler(0.05, -0.45, 0.72);
@@ -8500,6 +8504,16 @@ function EngineGame({
       };
       window.addEventListener("bm-action-btn", actionBtnHandler);
 
+      const fovChangeHandler = (e: Event) => {
+        const val = (e as CustomEvent<number>).detail;
+        if (typeof val === "number" && val >= 50 && val <= 100) {
+          BASE_FOV = val;
+          camera.fov = fovForAspect(BASE_FOV, camera.aspect);
+          camera.updateProjectionMatrix();
+        }
+      };
+      window.addEventListener("bm-fov", fovChangeHandler);
+
       let lastResizeW = 0;
       let lastResizeH = 0;
       function onResize() {
@@ -8522,8 +8536,10 @@ function EngineGame({
       const onOrientation = () => {
         setTimeout(onResize, 40);
         setTimeout(onResize, 150);
+        setTimeout(onResize, 320);
       };
       window.addEventListener("orientationchange", onOrientation);
+      screen.orientation?.addEventListener?.("change", onOrientation);
       let resizeObserver: ResizeObserver | null = null;
       if (typeof ResizeObserver !== "undefined") {
         resizeObserver = new ResizeObserver(() => onResize());
@@ -9616,17 +9632,32 @@ function EngineGame({
         );
 
         if (camModeRef.current === "third") {
-          // Tight, Roblox-style third-person orbit: the character fills more of
-          // the frame and the rig eases with frame-rate independent damping.
-          const CAM_DIST = isSprinting ? 2.38 : 2.18;
-          const CAM_UP = 0.98;
-          _thirdCamPos.set(
-            playerPos.x + Math.sin(smoothCamYaw) * CAM_DIST,
-            playerPos.y + 1.2 + CAM_UP,
-            playerPos.z + Math.cos(smoothCamYaw) * CAM_DIST,
-          );
-          camera.position.lerp(_thirdCamPos, 1 - Math.exp(-14 * dtVis));
-          camera.lookAt(playerPos.x, playerPos.y + 1.16, playerPos.z);
+          const isLandscape = camera.aspect >= 1.2;
+          // Spacious, comfortable third-person distance:
+          // In landscape on Samsung, iPhone, and mobile devices (aspect >= 1.2),
+          // pulled back to 4.1m (4.45m sprint) so the character does not dominate the screen.
+          // In portrait, 3.8m (4.15m sprint).
+          const targetDist = isLandscape
+            ? (isSprinting ? 4.45 : 4.1)
+            : (isSprinting ? 4.15 : 3.8);
+
+          // Pivot point at player's upper chest (~1.42m above feet)
+          const pivotY = playerPos.y + 1.42;
+
+          // Orbital camera positioning using yaw and pitch:
+          const pitchCos = Math.cos(smoothCamPitch);
+          const camBackX = Math.sin(smoothCamYaw) * pitchCos;
+          const camBackY = -Math.sin(smoothCamPitch);
+          const camBackZ = Math.cos(smoothCamYaw) * pitchCos;
+
+          // Camera position behind the player with comfortable floor clearance
+          const wantedX = playerPos.x + camBackX * targetDist;
+          const wantedY = Math.max(playerPos.y + 0.35, pivotY + camBackY * targetDist + 0.28);
+          const wantedZ = playerPos.z + camBackZ * targetDist;
+
+          _thirdCamPos.set(wantedX, wantedY, wantedZ);
+          camera.position.lerp(_thirdCamPos, 1 - Math.exp(-16 * dtVis));
+          camera.lookAt(playerPos.x, pivotY, playerPos.z);
           heldGroup.visible = false;
         } else if (camModeRef.current === "top") {
           // Top-down overhead camera — fixed height above player, straight down
@@ -10152,6 +10183,8 @@ function EngineGame({
         resizeObserver?.disconnect();
         window.removeEventListener("resize", onResize);
         window.removeEventListener("orientationchange", onOrientation);
+        screen.orientation?.removeEventListener?.("change", onOrientation);
+        window.removeEventListener("bm-fov", fovChangeHandler);
         window.removeEventListener("bm-jump", jumpHandler);
         window.removeEventListener("bm-magic-cube", magicCubeHandler);
         window.removeEventListener("bm-fly-down", flyDownHandler);
@@ -10404,7 +10437,8 @@ function EngineGame({
       setChatMsgs((m) => [...m, { id: Date.now(), from: senderName, text: v, me: true }]);
     }
     if (isSkyblock) {
-      const effectiveIslandId = visitingUserId || qbUser?.islandId || qbUser?.uid || "my_island";
+      const effectiveIslandId =
+        visitingUserId || qbUser?.islandId || qbUser?.uid || getPermanentPlayerId(qbUser);
       const isOwner = !visitingUserId || visitingUserId === qbUser?.uid;
       const tag = isOwner ? "OWNER" : qbUser?.staff ? "ADMIN" : "PLAYER";
       sendSkyblockChatMessage(effectiveIslandId, {
@@ -10798,7 +10832,7 @@ function EngineGame({
         <div className="skyblock-ui">
           <SkyblockPastedHud
             escapeMode={isEscape}
-            islandId={visitingUserId || (qbUser ? qbUser.islandId || qbUser.uid : "my_island")}
+            islandId={visitingUserId || qbUser?.islandId || qbUser?.uid || getPermanentPlayerId(qbUser)}
             onExit={() => setShowQuitDialog(true)}
             onRequestQuit={() => setShowQuitDialog(true)}
             onChat={() => setChatOpen(true)}
@@ -11263,54 +11297,37 @@ function EngineGame({
       )}
 
       {/* ── SKYBLOCK: Active quest tracker (left side, below player card) ─── */}
-      {isSkyblock && false && (
+      {isSkyblock && (
         <div
           className="absolute left-3 z-10 flex flex-col gap-2"
           style={{ top: "max(76px,calc(env(safe-area-inset-top)+66px))" }}
         >
           {/* Quest card */}
           <div
-            className="rounded-[12px] p-2.5 flex flex-col gap-1.5"
-            style={{
-              width: 156,
-              background: "rgba(6,8,20,0.72)",
-              backdropFilter: "blur(18px) saturate(1.5)",
-              WebkitBackdropFilter: "blur(18px) saturate(1.5)",
-              border: "1px solid rgba(255,255,255,0.11)",
-              boxShadow: "0 6px 24px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.07)",
-            }}
+            className="wood-panel relative flex flex-col gap-1.5 !rounded-[4px] p-2.5 shadow-md"
+            style={{ width: 168 }}
           >
-            <div className="flex items-center gap-1.5">
-              <span style={{ fontSize: 13, lineHeight: 1 }}>🪵</span>
-              <span className="text-[11px] font-extrabold text-white leading-none">
-                Collect wood
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="font-lilita text-[13px] tracking-wide text-amber-100 leading-none">
+                🪵 Collect Wood
+              </span>
+              <span className="rounded-[2px] border border-[#150b04] bg-[#160c04] px-1 py-0.5 text-[9.5px] font-lilita text-amber-300">
+                +15 XP
               </span>
             </div>
-            <p className="text-[9.5px] leading-snug" style={{ color: "rgba(200,220,255,0.55)" }}>
+            <p className="text-[10px] font-medium leading-snug text-amber-200/70">
               Visit the tree and collect 10 wood
             </p>
-            {/* Progress bar */}
-            <div className="flex items-center gap-1.5 mt-0.5">
+            {/* Wood-grooved progress bar */}
+            <div className="h-2 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] mt-0.5">
               <div
-                className="flex-1 h-[4px] rounded-full overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.10)" }}
-              >
-                <div
-                  style={{
-                    height: "100%",
-                    width: "0%",
-                    borderRadius: 99,
-                    background: "linear-gradient(90deg,#4ade80,#22c55e)",
-                    boxShadow: "0 0 6px rgba(74,222,128,0.70)",
-                  }}
-                />
-              </div>
-              <span
-                className="text-[9px] font-extrabold tabular-nums shrink-0"
-                style={{ color: "#4ade80" }}
-              >
-                0 / 10
-              </span>
+                className="h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_6px_rgba(245,158,11,0.6)]"
+                style={{ width: "30%" }}
+              />
+            </div>
+            <div className="flex justify-between text-[9.5px] font-bold tabular-nums text-amber-200/70">
+              <span>Quest</span>
+              <span>3 / 10</span>
             </div>
           </div>
 

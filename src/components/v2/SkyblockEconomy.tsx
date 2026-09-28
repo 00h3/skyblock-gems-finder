@@ -441,27 +441,41 @@ function QuestRow({
 }) {
   const pct = Math.round((Math.min(progress, target) / target) * 100);
   return (
-    <li className={cn("rounded-[12px] bg-white/[0.04] px-3.5 py-3", done && "opacity-50")}>
+    <li
+      className={cn(
+        "wood-panel relative flex flex-col gap-1.5 !rounded-[4px] border-2 border-[#150b04] bg-[#2a170b] px-3.5 py-2.5 shadow-sm",
+        done && "opacity-60",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
-        <span className={cn("text-[13px] font-semibold", done && "line-through decoration-white/40")}>{label}</span>
-        <span className="flex shrink-0 items-center gap-2 text-[11px] font-semibold tabular-nums">
-          <span className="text-v2-sun">{`+${rewardXp} XP`}</span>
+        <span className={cn("font-lilita text-[13.5px] tracking-wide text-amber-100", done && "line-through opacity-70")}>
+          🪵 {label}
+        </span>
+        <span className="flex shrink-0 items-center gap-2 text-[11px] font-lilita tabular-nums">
+          <span className="rounded-[2px] border border-[#150b04] bg-[#160c04] px-1.5 py-0.5 text-amber-300">
+            {`+${rewardXp} XP`}
+          </span>
           <span className="flex items-center gap-1 text-amber-200">
             <CoinMark className="h-2 w-2" />
             {rewardCoins}
           </span>
         </span>
       </div>
-      <div className="mt-2 flex items-center gap-2">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
-          <div
-            className={cn("h-full rounded-full transition-[width] duration-500", done ? "bg-v2-mint" : "bg-v2-plum")}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <span className="text-[10.5px] font-medium tabular-nums text-white/50">
-          {done ? "Done" : `${fmt(Math.min(progress, target))}/${fmt(target)}`}
-        </span>
+      {/* Wood-grooved progress track matching island progress */}
+      <div className="h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+        <div
+          className={cn(
+            "h-full bg-gradient-to-r transition-[width] duration-500",
+            done
+              ? "from-emerald-600 to-emerald-400"
+              : "from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)]",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] font-bold tabular-nums text-amber-200/70">
+        <span>{done ? "Completed" : "Quest progress"}</span>
+        <span>{done ? "Done" : `${fmt(Math.min(progress, target))} / ${fmt(target)}`}</span>
       </div>
     </li>
   );
@@ -484,24 +498,24 @@ function QuestsTab({ economy, progression }: { economy: Economy; progression: Pr
   })).sort((a, b) => Number(a.done) - Number(b.done));
 
   return (
-    <div className="flex flex-col gap-2 text-[11px]">
-      <details className="group bg-white/[0.03] rounded-lg border border-white/10 overflow-hidden">
-        <summary className="cursor-pointer p-2 font-bold text-sky-300 hover:bg-white/5 flex justify-between items-center">
+    <div className="flex flex-col gap-2.5 text-[11px]">
+      <details className="group wood-panel !rounded-[4px] border-2 border-[#150b04] bg-[#241307] overflow-hidden" open>
+        <summary className="cursor-pointer p-2.5 font-lilita text-[13px] text-amber-300 hover:bg-black/20 flex justify-between items-center select-none">
           <span>Daily Quests ({daily.length})</span>
-          <span className="text-[10px] text-white/40">{`Resets in ${formatClock(msUntilMidnight(now))}`}</span>
+          <span className="text-[10px] text-amber-100/60 font-sans">{`Resets in ${formatClock(msUntilMidnight(now))}`}</span>
         </summary>
-        <ul className="flex flex-col gap-1 p-2 border-t border-white/10">
+        <ul className="flex flex-col gap-1.5 p-2.5 border-t-2 border-[#150b04] bg-[#1d0e05]/60">
           {daily.map((q) => (
             <QuestRow key={q.id} {...q} />
           ))}
         </ul>
       </details>
-      <details className="group bg-white/[0.03] rounded-lg border border-white/10 overflow-hidden">
-        <summary className="cursor-pointer p-2 font-bold text-amber-300 hover:bg-white/5 flex justify-between items-center">
+      <details className="group wood-panel !rounded-[4px] border-2 border-[#150b04] bg-[#241307] overflow-hidden" open>
+        <summary className="cursor-pointer p-2.5 font-lilita text-[13px] text-amber-300 hover:bg-black/20 flex justify-between items-center select-none">
           <span>Island Quests ({island.length})</span>
-          <span className="text-[10px] text-white/40">{`${p.completed.length}/${MILESTONES.length} done`}</span>
+          <span className="text-[10px] text-amber-100/60 font-sans">{`${p.completed.length}/${MILESTONES.length} done`}</span>
         </summary>
-        <ul className="flex flex-col gap-1 p-2 border-t border-white/10">
+        <ul className="flex flex-col gap-1.5 p-2.5 border-t-2 border-[#150b04] bg-[#1d0e05]/60">
           {island.map((q) => (
             <QuestRow key={q.id} {...q} target={q.target} />
           ))}

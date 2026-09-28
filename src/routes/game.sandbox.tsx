@@ -74,8 +74,9 @@ import { announce } from "@/engine/v2/announcer";
 import { useStore } from "@/engine/v2/store";
 import { V2GameHud, UI as HUD_UI, type HudAction } from "@/components/v2/V2GameHud";
 import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
-import { CinematicVignette, Crosshair, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
+import { CinematicVignette, Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
 import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
+import { getPermanentPlayerId, loadSkyblockProfile, saveSkyblockProfile } from "@/lib/skyblock-profile";
 
 
 
@@ -1093,24 +1094,81 @@ export function SandboxGame({
   }>({ uid: getInitialGuestId(), name: "Player", photo: "", frame: "none", badges: [] });
 
   useEffect(() => {
-    let guestId = "guest";
-    if (typeof window !== "undefined") {
-      guestId = window.sessionStorage.getItem("qb_guest_uid") || "";
-      if (!guestId) {
-        guestId = "guest_" + Math.random().toString(36).slice(2, 8);
-        try {
-          window.sessionStorage.setItem("qb_guest_uid", guestId);
-        } catch {}
-      }
-    }
+    const permanentUid = getPermanentPlayerId(qbUser);
     meRef.current = {
-      uid: qbUser?.uid || guestId,
+      uid: permanentUid,
       name: qbUser?.displayName || qbUser?.username || (qbUser?.uid ? "Player" : "Guest Player"),
       photo: qbUser?.profilePhoto ?? "",
       frame: qbUser?.avatarSnapshot?.frameId ?? "none",
       badges: badgeUrlsFor(qbUser),
     };
   }, [qbUser]);
+
+  // ── Persistent Island Progression (Saved By Person Forever in Firestore & LocalStorage) ──
+  useEffect(() => {
+    if (!skyblock) return;
+    const playerUid = getPermanentPlayerId(qbUser);
+    let isMounted = true;
+
+    // Load saved progression & hotbar on mount or when user identity changes
+    void loadSkyblockProfile(playerUid).then((profile) => {
+      if (!isMounted || !profile) return;
+      if (profile.progression) {
+        progression.hydrate(profile.progression);
+      }
+      if (profile.hotbar && Array.isArray(profile.hotbar) && profile.hotbar.length > 0) {
+        setHotbar(profile.hotbar);
+      }
+    });
+
+    // Debounced autosave
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    const triggerSave = () => {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const toSave = progression.toSave();
+        void saveSkyblockProfile(playerUid, {
+          progression: toSave,
+          hotbar: hotbarRef.current,
+        });
+      }, 500);
+    };
+
+    // Auto-save on every state change (mining, placing, XP, quest progress)
+    const unsub = progression.store.subscribe(() => {
+      triggerSave();
+    });
+
+    // Immediate save when a milestone or quest is completed
+    progression.onMilestone = () => {
+      const toSave = progression.toSave();
+      void saveSkyblockProfile(playerUid, {
+        progression: toSave,
+        hotbar: hotbarRef.current,
+      });
+    };
+
+    const handleBeforeUnload = () => {
+      const toSave = progression.toSave();
+      void saveSkyblockProfile(playerUid, {
+        progression: toSave,
+        hotbar: hotbarRef.current,
+      });
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      isMounted = false;
+      unsub();
+      if (saveTimer) clearTimeout(saveTimer);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      const toSave = progression.toSave();
+      void saveSkyblockProfile(playerUid, {
+        progression: toSave,
+        hotbar: hotbarRef.current,
+      });
+    };
+  }, [skyblock, qbUser?.uid, progression]);
 
   const [isTouch, setIsTouch] = useState(false);
   useEffect(() => {
@@ -1238,12 +1296,15 @@ export function SandboxGame({
       // caused distant z-fighting shimmer). The sky dome renders at the far
       // plane in its shader, so it never needs a huge far distance.
       const aspect0 = mount.clientWidth / Math.max(1, mount.clientHeight);
-      let userFov = 70;
+      let userFov = 72;
       try {
         const savedFov = localStorage.getItem("qb_camera_fov");
-        if (savedFov) userFov = Number(savedFov);
+        if (savedFov) {
+          const parsed = Number(savedFov);
+          if (!isNaN(parsed) && parsed >= 50 && parsed <= 100) userFov = parsed;
+        }
       } catch {}
-      const camera = new THREE.PerspectiveCamera(fovForAspect(aspect0, 88, userFov), aspect0, 0.1, 900);
+      const camera = new THREE.PerspectiveCamera(fovForAspect(aspect0, 90, userFov), aspect0, 0.1, 900);
       let baseFov = camera.fov;
 
       sky = new Sky(scene, {
@@ -1690,7 +1751,7 @@ export function SandboxGame({
           .then((g) => {
             if (disposed) return;
             const m = g.scene;
-            normalizeShowcaseModel(m, 0.558); // scaled down 10%
+            normalizeShowcaseModel(m, 0.4073); // made 27% smaller per user request (0.558 * 0.73)
             m.traverse((o) => {
               const mesh = o as THREE.Mesh;
               if (mesh.isMesh) mesh.castShadow = false;
@@ -2355,7 +2416,7 @@ export function SandboxGame({
         const w = Math.max(1, mount.clientWidth);
         const h = Math.max(1, mount.clientHeight);
         camera.aspect = w / h;
-        baseFov = fovForAspect(camera.aspect, 88, userFov);
+        baseFov = fovForAspect(camera.aspect, 90, userFov);
         camera.fov = baseFov;
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(getTargetDpr(readQualityPref()));
@@ -2364,7 +2425,14 @@ export function SandboxGame({
       };
       const resizeObserver = new ResizeObserver(onResize);
       resizeObserver.observe(mount);
-      window.addEventListener("orientationchange", onResize);
+      const onOrientation = () => {
+        setTimeout(onResize, 40);
+        setTimeout(onResize, 160);
+        setTimeout(onResize, 320);
+      };
+      window.addEventListener("orientationchange", onOrientation);
+      window.addEventListener("resize", onResize);
+      screen.orientation?.addEventListener?.("change", onOrientation);
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
 
@@ -2372,7 +2440,7 @@ export function SandboxGame({
         const val = (e as CustomEvent<number>).detail;
         if (typeof val === "number" && val >= 50 && val <= 100) {
           userFov = val;
-          baseFov = fovForAspect(camera.aspect, 88, userFov);
+          baseFov = fovForAspect(camera.aspect, 90, userFov);
           camera.fov = baseFov;
           camera.updateProjectionMatrix();
         }
@@ -2491,7 +2559,7 @@ export function SandboxGame({
       const _eye = new THREE.Vector3();
       const _pivot = new THREE.Vector3();
       const _avatarPos = new THREE.Vector3();
-      const _upOffset = new THREE.Vector3(0, 0.54, 0);
+      const _upOffset = new THREE.Vector3(0, 0.22, 0);
 
       const loop = () => {
         raf = requestAnimationFrame(loop);
@@ -2988,6 +3056,8 @@ export function SandboxGame({
         cancelAnimationFrame(raf);
         resizeObserver.disconnect();
         window.removeEventListener("orientationchange", onResize);
+        window.removeEventListener("resize", onResize);
+        screen.orientation?.removeEventListener?.("change", onResize);
         window.removeEventListener("qb-menu-respawn", onRespawn);
         window.removeEventListener("bm-fov", onFovEvt);
         window.removeEventListener("bm-atmosphere", onAtmosphereEvt);
@@ -3524,6 +3594,7 @@ export function SandboxGame({
           {skyblock && (
             <>
               <CinematicVignette />
+              <MilestoneTracker progression={progression} />
               <V2Hotbar
                 hotbar={hotbar}
                 tileUrls={tileUrls}

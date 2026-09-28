@@ -55,11 +55,11 @@ export function MilestoneTracker({ progression }: { progression: Progression }) 
   if (next.length === 0) return null;
   return (
     <aside
-      aria-label="Milestones"
-      className="pointer-events-none absolute left-3 top-[calc(max(12px,env(safe-area-inset-top)+8px)+60px)] hidden w-64 flex-col gap-2.5 sm:left-5 sm:flex landscape:flex"
+      aria-label="Quests"
+      className="pointer-events-none absolute left-3 top-[calc(max(12px,env(safe-area-inset-top)+8px)+60px)] z-30 flex w-56 flex-col gap-2 sm:left-5 sm:w-64"
     >
       <div className="flex items-center justify-between px-1">
-        <span className="font-lilita text-[13px] tracking-wide text-amber-200 drop-shadow-sm">Milestones Progress</span>
+        <span className="font-lilita text-[13px] tracking-wide text-amber-200 drop-shadow-sm">Quests & Milestones</span>
         <span className="text-[11px] font-bold tabular-nums text-amber-100/60">{s.completed.length} done</span>
       </div>
       {next.map((m, i) => {
@@ -68,25 +68,29 @@ export function MilestoneTracker({ progression }: { progression: Progression }) 
           <div
             key={m.id}
             className={cn(
-              "relative rounded-[16px] border-2 border-[#7a4823] bg-gradient-to-b from-[#4a2e18] via-[#38200f] to-[#231206] px-3.5 py-2.5 text-white shadow-[inset_0_1px_0_rgba(255,200,140,0.3),0_4px_16px_rgba(0,0,0,0.5)]",
-              i > 0 && "opacity-85",
+              "wood-panel pointer-events-auto relative flex flex-col gap-1.5 !rounded-[4px] border-2 border-[#150b04] bg-[#2a170b] px-3 py-2 shadow-md",
+              i > 0 && "opacity-95",
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate font-medium text-[12.5px] text-amber-100">{m.label}</span>
-              <span className="shrink-0 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-700/60 to-amber-600/60 px-2 py-0.5 font-lilita text-[11px] text-amber-200">
+              <span className="truncate font-lilita text-[13px] tracking-wide text-amber-100 leading-tight">
+                🪵 {m.label}
+              </span>
+              <span className="shrink-0 rounded-[2px] border border-[#150b04] bg-[#160c04] px-1.5 py-0.5 font-lilita text-[10.5px] text-amber-300">
                 +{m.rewardXp} XP
               </span>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-black/40 bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#d97706] to-[#fbbf24] shadow-[0_0_6px_rgba(245,158,11,0.5)] transition-[width] duration-500"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <span className="text-[10.5px] font-bold tabular-nums text-amber-200/70">
-                {m.progress}/{m.target}
+            {/* Wood-grooved progress track matching island progress */}
+            <div className="h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+              <div
+                className="h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] font-bold tabular-nums text-amber-200/70">
+              <span>Quest progress</span>
+              <span>
+                {m.progress} / {m.target}
               </span>
             </div>
           </div>

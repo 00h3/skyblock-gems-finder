@@ -87,6 +87,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Skyblock persistent user profiles & island progression
+    match /skyblockProfiles/{userId} {
+      allow read, write: if true;
+    }
+
     match /{document=**} {
       allow read, write: if true;
     }

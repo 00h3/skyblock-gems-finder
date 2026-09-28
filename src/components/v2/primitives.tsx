@@ -53,7 +53,7 @@ export function formatClock(ms: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/** White centre message, styled after the "Welcome to ..." reference card. */
+/** Wooden quest and event message, styled after the square island progress panel. */
 export function V2Announcer() {
   const msg = useStore(announcer);
   const [visibleId, setVisibleId] = useState<number | null>(null);
@@ -61,7 +61,7 @@ export function V2Announcer() {
   useEffect(() => {
     if (!msg) return;
     setVisibleId(msg.id);
-    const t = window.setTimeout(() => setVisibleId((id) => (id === msg.id ? null : id)), 2800);
+    const t = window.setTimeout(() => setVisibleId((id) => (id === msg.id ? null : id)), 3200);
     return () => window.clearTimeout(t);
   }, [msg]);
 
@@ -72,31 +72,30 @@ export function V2Announcer() {
       aria-live="polite"
       className="pointer-events-none fixed inset-x-0 top-[max(64px,calc(env(safe-area-inset-top)+56px))] z-[120] flex justify-center px-4"
     >
-      <div key={msg.id} className="blockman-panel v2-anim-pop flex max-w-[min(340px,90vw)] items-center gap-2.5 p-1.5 pr-3.5">
+      <div
+        key={msg.id}
+        className="wood-panel v2-anim-pop relative flex max-w-[min(380px,94vw)] items-center gap-3 !rounded-[4px] border-2 border-[#150b04] bg-[#2a170b] px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.7)]"
+      >
         <span
           aria-hidden="true"
-          className="blockman-slot grid h-9 w-9 shrink-0 place-items-center rounded-[4px] text-[15px] font-black"
+          className="grid h-9 w-9 shrink-0 place-items-center !rounded-[2px] border-2 border-[#150b04] bg-[#160c04] text-[15px] font-lilita text-amber-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]"
         >
-          <span
-            className={cn(
-              "h-3.5 w-3.5 rotate-45 rounded-[2px]",
-              msg.tone === "event" ? "bg-v2-plum" : msg.tone === "reward" ? "bg-v2-sun" : "bg-white/80",
-            )}
-          />
+          {msg.tone === "event" ? "⚡" : msg.tone === "reward" ? "📜" : "🪵"}
         </span>
         <div className="min-w-0 text-left">
           {msg.tone && msg.tone !== "info" && (
-            <p
-              className={cn(
-                "text-[9px] font-black uppercase tracking-[0.14em]",
-                msg.tone === "event" ? "text-v2-plum" : "text-v2-sun",
-              )}
-            >
+            <p className="font-lilita text-[10.5px] uppercase tracking-wider text-amber-300">
               {msg.tone === "event" ? "World event" : "Quest complete"}
             </p>
           )}
-          <p className="truncate text-[13px] font-black leading-tight text-white">{msg.title}</p>
-          {msg.detail && <p className="truncate text-[11px] font-semibold text-white/60">{msg.detail}</p>}
+          <p className="truncate font-lilita text-[13.5px] tracking-wide text-amber-100 leading-tight">
+            {msg.title}
+          </p>
+          {msg.detail && (
+            <p className="truncate text-[11px] font-bold text-amber-200/80">
+              {msg.detail}
+            </p>
+          )}
         </div>
       </div>
     </div>
