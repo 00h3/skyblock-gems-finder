@@ -83,6 +83,7 @@ export class Player {
   onDie?: () => void;
   private coyote = 0;
   private jumpBuffer = 0;
+  private mantleReady = false;
   private _next = new THREE.Vector3();
   private _probe = new THREE.Vector3();
 
@@ -130,6 +131,7 @@ export class Player {
     const strafe = this.frozen ? 0 : input.strafe;
     const wantsJump = !this.frozen && input.jump;
 
+    this.mantleReady = wantsJump && !this.onGround && this.velocity.y <= 1.5;
     this.isCrouching = Boolean(input.crouch) && !this.frozen;
     const speed = this.isCrouching ? P.crouch : input.sprint ? P.sprint : P.walk;
 
@@ -243,12 +245,13 @@ export class Player {
       if (axis === 1) this.onGround = false;
       return;
     }
-    if (axis !== 1 && (this.onGround || this.coyote > 0) && this.velocity.y <= 0.01) {
+    const mantling = axis !== 1 && this.mantleReady && !this.onGround && this.coyote <= 0;
+    if (axis !== 1 && ((this.onGround || this.coyote > 0) && this.velocity.y <= 0.01 || mantling)) {
       // Stair blocks collide as full cubes, so let the player walk straight up them.
       const ahead = BLOCK_BY_ID.get(
         this.world.get(Math.floor(next.x), Math.floor(this.position.y + 0.05), Math.floor(next.z)),
       );
-      const maxLift = ahead?.shape === "stairs" ? 1.0 : STEP_HEIGHT;
+      const maxLift = mantling ? 1.15 : ahead?.shape === "stairs" ? 1.0 : STEP_HEIGHT;
       for (let lift = 0.2; lift <= maxLift + 0.001; lift += 0.2) {
         const stepped = this._probe.copy(this.position);
         stepped.y += lift;
@@ -259,6 +262,7 @@ export class Player {
           if (!this.collides(headroom)) {
             this.position.copy(stepped);
             this.onGround = true;
+            if (mantling) this.velocity.y = 0;
             return;
           }
         }

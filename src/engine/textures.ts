@@ -227,7 +227,7 @@ export async function buildAtlas(
     const img = images[i];
     if (img) {
       if (name.includes("grass")) {
-        ctx.filter = "saturate(140%) contrast(108%)";
+        ctx.filter = "saturate(118%) contrast(104%)";
       } else {
         ctx.filter = "saturate(105%)";
       }

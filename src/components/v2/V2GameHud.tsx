@@ -354,10 +354,10 @@ export const UI = {
   video: "/ui/video-icon.png",
   arrow: "/ui/arrow-icon.png",
   blank: "/ui/blank-button.png",
-  walk: "https://maxwell.z3ki.dev/bot/_files/icon-walk/walk.png",
-  run: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png",
-  sneak: "https://maxwell.z3ki.dev/bot/_files/icon-sneak/sneak.png",
-  jump: "https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png",
+  walk: "/ui/icon-walk.png",
+  run: "/ui/icon-run.png",
+  sneak: "/ui/icon-crouch.png",
+  jump: "/ui/icon-jump.png",
 };
 
 function PadArrow({ label, rotate, active }: { label: string; rotate: number; active: boolean }) {

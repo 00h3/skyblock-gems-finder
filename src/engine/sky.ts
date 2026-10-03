@@ -463,8 +463,8 @@ export class Sky {
 
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(hemiGround);
-    this.hemi.intensity = this.isGoldenHour ? 1.3 : 0.65 + day * 0.55;
-    this.ambient.intensity = this.isGoldenHour ? 0.35 : 0.28 + day * 0.16;
+    this.hemi.intensity = this.isGoldenHour ? 1.4 : 0.8 + day * 0.6;
+    this.ambient.intensity = this.isGoldenHour ? 0.45 : 0.4 + day * 0.2;
 
     this.fog.color.copy(horizon);
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);

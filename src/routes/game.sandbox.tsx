@@ -1270,7 +1270,7 @@ export function SandboxGame({
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.12;
+      renderer.toneMappingExposure = 1.18;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.shadowMap.autoUpdate = false;
@@ -1355,7 +1355,7 @@ export function SandboxGame({
       if (blockFall) {
         sky.paused = true;
         sky.setCloudCover(0.35);
-        renderer.toneMappingExposure = 1.14;
+        renderer.toneMappingExposure = 1.2;
       }
 
       // Chunk render distance: tuned per mode for rock-solid performance
@@ -1363,7 +1363,7 @@ export function SandboxGame({
         sky.setGoldenHour();
         sky.paused = true;
         sky.setCloudCover(0.34);
-        renderer.toneMappingExposure = 1.12;
+        renderer.toneMappingExposure = 1.18;
       }
 
       world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);
@@ -1386,7 +1386,7 @@ export function SandboxGame({
         ? new SkyblockEnvironment(scene, { pond: SKYBLOCK_POND_SURFACE, lowQuality: qualityPref === "low" })
         : null;
       if (skyblock) {
-        renderer.toneMappingExposure = 1.04;
+        renderer.toneMappingExposure = 1.18;
         sky.setCloudCover(0.42);
       }
 
@@ -1805,29 +1805,19 @@ export function SandboxGame({
 
       // First-person block hand with fair/white-ish skin tone per user request:
       const heldHand = new THREE.Group();
-      const sleeveMat = new THREE.MeshStandardMaterial({
-        color: 0x3d70b2,
-        roughness: 0.82,
-      });
-      const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.22, 0.13), sleeveMat);
-      sleeve.position.set(0, -0.16, -0.06);
-      heldHand.add(sleeve);
-
-      const skinMat = new THREE.MeshStandardMaterial({
-        color: 0xf5d3b8, // Whitish fair skin tone
-        roughness: 0.8,
-        metalness: 0.02,
-      });
-      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.12), skinMat);
-      hand.position.set(0, 0.04, 0);
-      heldHand.add(hand);
-
-      const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.06), skinMat);
-      thumb.position.set(-0.065, 0.08, 0.02);
-      heldHand.add(thumb);
+      const handTex = new THREE.TextureLoader().load("/ui/hand-2d.png");
+      handTex.colorSpace = THREE.SRGBColorSpace;
+      handTex.anisotropy = 4;
+      const handSprite = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.46, 0.46 * (1081 / 1372)),
+        new THREE.MeshBasicMaterial({ map: handTex, transparent: true, side: THREE.DoubleSide, toneMapped: false }),
+      );
+      handSprite.position.set(0, 0.02, 0);
+      handSprite.rotation.set(0, 0, 0.18);
+      heldHand.add(handSprite);
 
       heldHand.position.set(0.32, -0.28, -0.46);
-      heldHand.rotation.set(-0.25, 0.35, -0.12);
+      heldHand.rotation.set(-0.1, -0.15, -0.05);
       heldHand.visible = false;
       heldRig.add(heldHand);
 
