@@ -21,13 +21,13 @@ export const HUD_ASSETS = {
   arrowUpLeft: "/assets/hud/pitch_black/dark_arrow_key_zuoxieshang.png",
 
   // Action & Navigation
-  jumpIcon: "https://maxwell.z3ki.dev/bot/_files/icon-jump/jump.png",
+  jumpIcon: "/ui/icon-jump.png",
   
   // Movement States (Custom Assets)
-  sprintIcon: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png",
-  crouchIcon: "https://maxwell.z3ki.dev/bot/_files/icon-sneak/sneak.png",
-  runIcon: "https://maxwell.z3ki.dev/bot/_files/icon-run/run.png",
-  walkIcon: "https://maxwell.z3ki.dev/bot/_files/icon-walk/walk.png",
+  sprintIcon: "/ui/icon-run.png",
+  crouchIcon: "/ui/icon-crouch.png",
+  runIcon: "/ui/icon-run.png",
+  walkIcon: "/ui/icon-walk.png",
 
   // System GUI
   chatIcon: "/assets/hud/pitch_black/dark_gui_material_chat_icon.png",

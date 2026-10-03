@@ -12,41 +12,18 @@ function hash(x: number, y: number, z: number) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
 }
 
-function makeBladeTexture() {
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  const blades = 11;
-  for (let i = 0; i < blades; i++) {
-    const baseX = 10 + (i / (blades - 1)) * (size - 20) + (Math.sin(i * 7.3) * 6);
-    const h = size * (0.55 + ((Math.sin(i * 3.1) + 1) / 2) * 0.42);
-    const lean = Math.sin(i * 5.7) * 14;
-    const w = 5 + (i % 3);
-    const grad = ctx.createLinearGradient(0, size, 0, size - h);
-    // User requested RGB colors: (31, 72, 4), (40, 93, 5), (43, 104, 6)
-    grad.addColorStop(0, "#1f4804");
-    grad.addColorStop(0.55, "#285d05");
-    grad.addColorStop(1, "#2b6806");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(baseX - w, size);
-    ctx.quadraticCurveTo(baseX + lean * 0.3, size - h * 0.55, baseX + lean, size - h);
-    ctx.quadraticCurveTo(baseX + lean * 0.3 + 1, size - h * 0.5, baseX + w, size);
-    ctx.closePath();
-    ctx.fill();
-  }
-  const tex = new THREE.CanvasTexture(canvas);
+function makeTuftTexture() {
+  const tex = new THREE.TextureLoader().load("/ui/grass-tuft.png");
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.magFilter = THREE.NearestFilter;
-  tex.generateMipmaps = true;
+  tex.anisotropy = 4;
+  tex.repeat.set(1290 / 2048, 460 / 2048);
+  tex.offset.set(430 / 2048, 1 - 1465 / 2048);
   return tex;
 }
 
 function makeTuftGeometry() {
-  const a = new THREE.PlaneGeometry(0.9, 0.55);
-  a.translate(0, 0.275, 0);
+  const a = new THREE.PlaneGeometry(1.0, 0.4);
+  a.translate(0, 0.2, 0);
   const b = a.clone();
   a.rotateY(Math.PI / 4);
   b.rotateY(-Math.PI / 4);
@@ -79,7 +56,7 @@ function makeTuftGeometry() {
 export class GrassField {
   readonly mesh: THREE.InstancedMesh;
   private readonly material: THREE.MeshLambertMaterial;
-  private readonly texture: THREE.CanvasTexture;
+  private readonly texture: THREE.Texture;
   private scanAcc = 0;
   private signature = "";
   private readonly dummy = new THREE.Object3D();
@@ -89,7 +66,7 @@ export class GrassField {
     private readonly bounds: Bounds,
     private readonly density = 0.6,
   ) {
-    this.texture = makeBladeTexture();
+    this.texture = makeTuftTexture();
     this.material = new THREE.MeshLambertMaterial({
       map: this.texture,
       alphaTest: 0.5,

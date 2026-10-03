@@ -17,7 +17,11 @@ export type BlockDef = {
   bottom: string;
   transparent?: boolean;
   liquid?: boolean;
-  shape?: "stairs";
+  shape?: "stairs" | "slab" | "vslab" | "quarter";
+  /** Walk-through: no collision (ladders, open doors, lava). */
+  passable?: boolean;
+  /** Player can climb while overlapping this block. */
+  climb?: boolean;
   /** Seconds to break by hand (Minecraft-like). 0 = instant, -1 = unbreakable. */
   hardness?: number;
   /** Light emitted (0..1) — used for a subtle emissive glow. */
@@ -25,6 +29,30 @@ export type BlockDef = {
 };
 
 export const WATER_ID = 50;
+export const LAVA_ID = 62;
+export const BLOCK_ID = {
+  ironOre: 47,
+  diamondOre: 48,
+  woodDoor: 51,
+  woodDoorOpen: 52,
+  ironDoor: 53,
+  ironDoorOpen: 54,
+  chest: 55,
+  trappedChest: 56,
+  tnt: 57,
+  blastGlass: 58,
+  ladder: 59,
+  bed: 60,
+  anchor: 61,
+  lava: 62,
+  slime: 63,
+  oakSlab: 64,
+  stoneSlab: 65,
+  oakVSlab: 66,
+  brickQuarter: 67,
+  brickVSlab: 68,
+  doorButton: 69,
+} as const;
 
 /** Shared wind clock for foliage shaders; advance `uTime` once per frame. */
 export const WIND = {
@@ -342,6 +370,27 @@ export const BLOCKS: BlockDef[] = [
     shape: "stairs",
     hardness: 2.5,
   },
+  { id: 47, name: "Iron Ore", top: "iron_ore", side: "iron_ore", bottom: "iron_ore", hardness: 3 },
+  { id: 48, name: "Diamond Ore", top: "diamond_ore", side: "diamond_ore", bottom: "diamond_ore", hardness: 3.5 },
+  { id: 51, name: "Wooden Door", top: "oak_door", side: "oak_door", bottom: "oak_door", hardness: 1.2 },
+  { id: 52, name: "Wooden Door (Open)", top: "oak_door_open", side: "oak_door_open", bottom: "oak_door_open", transparent: true, passable: true, hardness: 1.2 },
+  { id: 53, name: "Iron Door", top: "iron_door", side: "iron_door", bottom: "iron_door", hardness: 4 },
+  { id: 54, name: "Iron Door (Open)", top: "iron_door_open", side: "iron_door_open", bottom: "iron_door_open", transparent: true, passable: true, hardness: 4 },
+  { id: 55, name: "Chest", top: "oak_planks", side: "chest", bottom: "oak_planks", hardness: 1.5 },
+  { id: 56, name: "Trapped Chest", top: "oak_planks", side: "trapped_chest", bottom: "oak_planks", hardness: 1.5 },
+  { id: 57, name: "TNT", top: "tnt_top", side: "tnt_side", bottom: "tnt_top", hardness: 0.1 },
+  { id: 58, name: "Blast-Proof Glass", top: "blast_glass", side: "blast_glass", bottom: "blast_glass", transparent: true, hardness: 1.2 },
+  { id: 59, name: "Ladder", top: "ladder", side: "ladder", bottom: "ladder", transparent: true, passable: true, climb: true, hardness: 0.4 },
+  { id: 60, name: "Bed", top: "bed_top", side: "bed_side", bottom: "oak_planks", hardness: 0.6 },
+  { id: 61, name: "Respawn Anchor", top: "respawn_anchor_top", side: "respawn_anchor", bottom: "respawn_anchor_top", hardness: 5, glow: 0.6 },
+  { id: 62, name: "Lava", top: "lava", side: "lava", bottom: "lava", passable: true, hardness: 0.2, glow: 1 },
+  { id: 63, name: "Slime Block", top: "slime_block", side: "slime_block", bottom: "slime_block", hardness: 0.4 },
+  { id: 64, name: "Oak Slab", top: "oak_planks", side: "oak_planks", bottom: "oak_planks", shape: "slab", hardness: 1.5 },
+  { id: 65, name: "Stone Slab", top: "smooth_stone", side: "smooth_stone", bottom: "smooth_stone", shape: "slab", hardness: 2.2 },
+  { id: 66, name: "Oak Vertical Slab", top: "oak_planks", side: "oak_planks", bottom: "oak_planks", shape: "vslab", hardness: 1.5 },
+  { id: 67, name: "Brick Quarter Block", top: "stone_bricks", side: "stone_bricks", bottom: "stone_bricks", shape: "quarter", hardness: 2.5 },
+  { id: 68, name: "Brick Vertical Slab", top: "stone_bricks", side: "stone_bricks", bottom: "stone_bricks", shape: "vslab", hardness: 2.5 },
+  { id: 69, name: "Door Button", top: "door_button", side: "door_button", bottom: "door_button", hardness: 1 },
 ];
 
 export const BLOCK_BY_ID = new Map(BLOCKS.map((b) => [b.id, b]));
@@ -392,7 +441,7 @@ const FACES: Face[] = [
       [1, 1],
       [1, 0],
     ],
-    light: 0.82,
+    light: 0.9,
     flip: true,
   },
   {
@@ -410,7 +459,7 @@ const FACES: Face[] = [
       [1, 1],
       [1, 0],
     ],
-    light: 0.72,
+    light: 0.84,
     flip: true,
   },
   {
@@ -445,7 +494,7 @@ const FACES: Face[] = [
       [1, 1],
       [0, 1],
     ],
-    light: 0.55,
+    light: 0.7,
   },
   {
     // +Z
@@ -480,7 +529,7 @@ const FACES: Face[] = [
       [1, 1],
       [1, 0],
     ],
-    light: 0.66,
+    light: 0.8,
     flip: true,
   },
 ];
@@ -665,11 +714,12 @@ export class World {
 
   solid(x: number, y: number, z: number) {
     const id = this.get(x, y, z);
-    return id !== 0 && id !== WATER_ID;
+    return id !== 0 && id !== WATER_ID && !BLOCK_BY_ID.get(id)?.passable;
   }
 
   isLiquid(x: number, y: number, z: number) {
-    return this.get(x, y, z) === WATER_ID;
+    const id = this.get(x, y, z);
+    return id === WATER_ID || id === LAVA_ID;
   }
 
   /** Solid and not see-through — used for ambient occlusion. */
@@ -820,11 +870,11 @@ export class World {
 
       for (const f of FACES) {
         if (skipBottom && f.dir[1] === -1) continue;
-        const nx = wx + (f.dir[0] > 0 ? 1 : f.dir[0] < 0 ? 0 : 0.5);
-        const ny = y + (f.dir[1] > 0 ? maxY : f.dir[1] < 0 ? minY : 0.5);
-        const nz = wz + (f.dir[2] > 0 ? 1 : f.dir[2] < 0 ? 0 : 0.5);
+        const nx = wx + (minX + maxX) / 2 + f.dir[0] * (sizeX / 2 + 0.01);
+        const ny = y + (minY + maxY) / 2 + f.dir[1] * (sizeY / 2 + 0.01);
+        const nz = wz + (minZ + maxZ) / 2 + f.dir[2] * (sizeZ / 2 + 0.01);
         const nid = this.get(Math.floor(nx), Math.floor(ny), Math.floor(nz));
-        if (nid !== 0 && !BLOCK_BY_ID.get(nid)?.transparent) continue;
+        if (nid !== 0 && nid !== def.id && !BLOCK_BY_ID.get(nid)?.transparent) continue;
 
         const tile = f.dir[1] === 1 ? def.top : f.dir[1] === -1 ? def.bottom : def.side;
         const [u0, v0, u1, v1] = this.atlas.uv(tile);
@@ -858,6 +908,18 @@ export class World {
             // Two joined half-blocks create a readable Minecraft-style step.
             pushStairBox(def, wx, y, wz, 0, 0, 0, 1, 0.5, 1, false);
             pushStairBox(def, wx, y, wz, 0, 0.5, 0.5, 1, 1, 1, true);
+            continue;
+          }
+          if (def.shape === "slab") {
+            pushStairBox(def, wx, y, wz, 0, 0, 0, 1, 0.5, 1, false);
+            continue;
+          }
+          if (def.shape === "vslab") {
+            pushStairBox(def, wx, y, wz, 0, 0, 0.5, 1, 1, 1, false);
+            continue;
+          }
+          if (def.shape === "quarter") {
+            pushStairBox(def, wx, y, wz, 0, 0, 0.5, 1, 0.5, 1, false);
             continue;
           }
           for (const f of FACES) {
@@ -904,7 +966,7 @@ export class World {
                 (this.opaque(s1[0], s1[1], s1[2]) ? 1 : 0) +
                 (this.opaque(s2[0], s2[1], s2[2]) ? 1 : 0) +
                 (this.opaque(cr[0], cr[1], cr[2]) ? 1 : 0);
-              const ao = 1 - Math.min(occ, 3) * 0.14;
+              const ao = 1 - Math.min(occ, 3) * 0.1;
               const l = f.light * ao;
               const t = TINTS[tile];
               if (t) C.push(l * t[0], l * t[1], l * t[2]);

@@ -8,6 +8,11 @@ const COYOTE = 0.12;
 const JUMP_BUFFER = 0.14;
 const STEP_HEIGHT = 0.6;
 const TERMINAL_V = -48;
+const SLIDE_HEIGHT = 0.9;
+const SLIDE_TIME = 0.65;
+
+/** Identical collision/hit volume for every player, whatever skin or armor they wear. */
+export const HITBOX = { radius: WIDTH / 2, height: HEIGHT } as const;
 
 /**
  * Tunable movement feel. Each game mode picks a profile instead of forking
@@ -81,15 +86,28 @@ export class Player {
   landedImpact = 0;
   profile: PhysicsProfile = SANDBOX_PHYSICS;
   onDie?: () => void;
+  /** Set by the feature layer each frame when overlapping a ladder. */
+  onLadder = false;
+  /** Remaining sprint-slide time; the hitbox shrinks to fit 1-block gaps. */
+  slideT = 0;
+  private slideDirX = 0;
+  private slideDirZ = 0;
+  private wasCrouchInput = false;
   private coyote = 0;
   private jumpBuffer = 0;
+  private mantleReady = false;
   private _next = new THREE.Vector3();
   private _probe = new THREE.Vector3();
 
   constructor(private world: World) {}
 
   get eyeY() {
+    if (this.slideT > 0) return this.position.y + SLIDE_HEIGHT - 0.2;
     return this.position.y + (this.isCrouching ? EYE - 0.28 : EYE);
+  }
+
+  get hitHeight() {
+    return this.slideT > 0 ? SLIDE_HEIGHT : HEIGHT;
   }
 
   setSpawnPoint(x: number | THREE.Vector3, y?: number, z?: number) {
@@ -130,8 +148,28 @@ export class Player {
     const strafe = this.frozen ? 0 : input.strafe;
     const wantsJump = !this.frozen && input.jump;
 
+    this.mantleReady = wantsJump && !this.onGround && this.velocity.y <= 1.5;
     this.isCrouching = Boolean(input.crouch) && !this.frozen;
     const speed = this.isCrouching ? P.crouch : input.sprint ? P.sprint : P.walk;
+
+    const crouchPressed = Boolean(input.crouch) && !this.wasCrouchInput;
+    this.wasCrouchInput = Boolean(input.crouch);
+    const planarSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+    if (crouchPressed && this.slideT <= 0 && this.onGround && !this.frozen && planarSpeed > P.walk * 1.05) {
+      this.slideT = SLIDE_TIME;
+      this.slideDirX = this.velocity.x / planarSpeed;
+      this.slideDirZ = this.velocity.z / planarSpeed;
+      const boost = Math.max(planarSpeed * 1.3, P.sprint * 1.4);
+      this.velocity.x = this.slideDirX * boost;
+      this.velocity.z = this.slideDirZ * boost;
+    }
+    if (this.slideT > 0) {
+      this.slideT -= dt;
+      if (!this.onGround || wantsJump) this.slideT = Math.min(this.slideT, 0);
+      if (this.slideT <= 0 && this.collidesAt(this.position, HEIGHT)) this.slideT = 0.05;
+    }
+    const sliding = this.slideT > 0;
+    if (sliding) this.isCrouching = true;
 
     // Camera-relative wish direction. Three.js cameras look down -Z, so at
     // yaw 0 "forward" is (0, -1) and "right" is (1, 0).
@@ -146,7 +184,11 @@ export class Player {
     }
 
     const control = this.onGround ? P.accel : P.accel * P.airControl;
-    if (len > 0.01) {
+    if (sliding) {
+      const glide = Math.exp(-1.7 * dt);
+      this.velocity.x *= glide;
+      this.velocity.z *= glide;
+    } else if (len > 0.01) {
       const targetX = dx * speed;
       const targetZ = dz * speed;
       this.velocity.x += THREE.MathUtils.clamp(targetX - this.velocity.x, -control * dt, control * dt);
@@ -184,6 +226,12 @@ export class Player {
       }
       this.velocity.x *= Math.exp(-2.5 * dt);
       this.velocity.z *= Math.exp(-2.5 * dt);
+    } else if (this.onLadder) {
+      if (wantsJump || forward > 0.2) this.velocity.y = 3.4;
+      else if (input.crouch) this.velocity.y = 0;
+      else this.velocity.y = -1.8;
+      this.velocity.x *= Math.exp(-6 * dt);
+      this.velocity.z *= Math.exp(-6 * dt);
     } else {
       let g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
       // Soft apex hang reads as weight rather than float; releasing jump early cuts the arc.
@@ -217,11 +265,15 @@ export class Player {
   }
 
   private collides(pos: THREE.Vector3) {
+    return this.collidesAt(pos, this.hitHeight);
+  }
+
+  private collidesAt(pos: THREE.Vector3, height: number) {
     const half = WIDTH / 2;
     const minX = Math.floor(pos.x - half);
     const maxX = Math.floor(pos.x + half);
     const minY = Math.floor(pos.y);
-    const maxY = Math.floor(pos.y + HEIGHT - 0.0001);
+    const maxY = Math.floor(pos.y + height - 0.0001);
     const minZ = Math.floor(pos.z - half);
     const maxZ = Math.floor(pos.z + half);
     for (let x = minX; x <= maxX; x++)
@@ -243,12 +295,13 @@ export class Player {
       if (axis === 1) this.onGround = false;
       return;
     }
-    if (axis !== 1 && (this.onGround || this.coyote > 0) && this.velocity.y <= 0.01) {
+    const mantling = axis !== 1 && this.mantleReady && !this.onGround && this.coyote <= 0;
+    if (axis !== 1 && ((this.onGround || this.coyote > 0) && this.velocity.y <= 0.01 || mantling)) {
       // Stair blocks collide as full cubes, so let the player walk straight up them.
       const ahead = BLOCK_BY_ID.get(
         this.world.get(Math.floor(next.x), Math.floor(this.position.y + 0.05), Math.floor(next.z)),
       );
-      const maxLift = ahead?.shape === "stairs" ? 1.0 : STEP_HEIGHT;
+      const maxLift = mantling ? 1.15 : ahead?.shape ? 1.0 : STEP_HEIGHT;
       for (let lift = 0.2; lift <= maxLift + 0.001; lift += 0.2) {
         const stepped = this._probe.copy(this.position);
         stepped.y += lift;
@@ -259,6 +312,7 @@ export class Player {
           if (!this.collides(headroom)) {
             this.position.copy(stepped);
             this.onGround = true;
+            if (mantling) this.velocity.y = 0;
             return;
           }
         }
