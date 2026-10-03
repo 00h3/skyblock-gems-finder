@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Backpack, Hammer, Heart, Minus, Plus, Shield, Sword, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BLOCKS } from "@/engine/world";
+import { UTILITY_INFO } from "@/engine/features";
 import { GlbAvatar } from "@/components/GlbAvatar";
 
 type ItemId = number | string;
@@ -14,6 +15,10 @@ export const ITEM_INFO: Record<string, { name: string; damage: number; rarity: R
   iron_sword: { name: "Iron Sword", damage: 6, rarity: "epic", desc: "Balanced weight and a heavy hit." },
   diamond_sword: { name: "Diamond Sword", damage: 7, rarity: "legend", desc: "The strongest blade on the islands." },
 };
+
+for (const [id, info] of Object.entries(UTILITY_INFO)) {
+  ITEM_INFO[id] = { name: info.name, damage: 0, rarity: id === "ender_pearl" || id === "fire_charge" ? "epic" : "rare", desc: info.desc };
+}
 
 type Rarity = "common" | "rare" | "epic" | "legend";
 const RARITY_CLASS: Record<Rarity, string> = {

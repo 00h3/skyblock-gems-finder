@@ -5,6 +5,9 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinnedModel } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { buildAtlas, type Atlas } from "@/engine/textures";
 import { World, BLOCKS, WATER_ID, WIND } from "@/engine/world";
+import { Features, UTILITY_ITEMS, NEW_BACKPACK_ITEMS } from "@/engine/features";
+import { utilityIconUrl } from "@/engine/item-icons";
+import { FeatureDock, RadialWheel, QuickBuyPanel } from "@/components/v2/FeatureDock";
 import { GrassField } from "@/engine/v2/grass-field";
 import { CinematicPost } from "@/engine/v2/cinematic-post";
 import { CombatFx } from "@/engine/v2/combat-fx";
@@ -946,9 +949,11 @@ export function SandboxGame({
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
       : skyblock
         ? ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3]
-        : blockFall || bedwars
+        : blockFall
           ? []
-          : [1, 2, 3, 4, 5, 6, 7, 9, 10],
+          : bedwars
+            ? ["short_sword", 5, 13, 10, "ender_pearl", "water_bucket", "golden_apple", "flint_steel", 57]
+            : [1, 2, 3, 4, 5, 6, 7, 9, 10],
   );
   const hotbarRef = useRef(hotbar);
   hotbarRef.current = hotbar;
@@ -991,6 +996,11 @@ export function SandboxGame({
     chestHandleRef.current?.setOpen(chestOpen);
   }, [chestOpen]);
   const [playerHp, setPlayerHp] = useState(20);
+  const featuresRef = useRef<Features | null>(null);
+  const [offhand, setOffhand] = useState<number | string | null>(null);
+  const [bridgeAssist, setBridgeAssist] = useState(false);
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [quickBuyOpen, setQuickBuyOpen] = useState(false);
   const [playerHunger, setPlayerHunger] = useState(20);
   const [runesTimeLeft, setRunesTimeLeft] = useState(600);
   const [hud, setHud] = useState({ fps: 0, x: 0, y: 0, z: 0 });
@@ -1239,7 +1249,7 @@ export function SandboxGame({
         setTileUrls(
           Object.fromEntries(
             hotbar.map((id) => {
-              if (typeof id === "string") return [id, ""];
+              if (typeof id === "string") return [id, utilityIconUrl(id)];
               const block = BLOCKS.find((b) => b.id === id);
               return [id, block ? atlas!.url(block.side) : ""];
             }),
@@ -1855,6 +1865,7 @@ export function SandboxGame({
       const setHeldTile = (id: number | string) => {
         if (!atlas) return;
         heldItemId = id;
+        featuresRef.current?.setHeld(id);
         heldSwords.forEach((m) => (m.visible = false));
         heldSword = typeof id === "string" ? (heldSwords.get(id) ?? null) : null;
         if (typeof id === "string") {
@@ -2251,10 +2262,63 @@ export function SandboxGame({
         return raycastVoxel(world, _cachedOrigin, aimDir(), 7);
       };
 
+      // ── Gameplay features: items, TNT, fall damage, shield, bridge assist ──
+      const setBlockSynced = (x: number, y: number, z: number, id: number) => {
+        if (!world) return;
+        const previous = world.get(x, y, z);
+        world.set(x, y, z, id);
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+        const rollback = (error: unknown) => {
+          world?.set(x, y, z, previous);
+          setMultiplayerError("That block could not be synchronized. Your change was reverted.");
+          console.error("Could not sync block change:", error);
+        };
+        if (blockFall) void writeBlockFallBlock({ x, y, z, id }).catch(rollback);
+        else void writeSandboxBlock({ x, y, z, id }).catch(rollback);
+      };
+      const featureOrigin = new THREE.Vector3();
+      const features = new Features({
+        world: world!,
+        player,
+        scene,
+        setBlock: setBlockSynced,
+        breakFx: (x, y, z, id) => {
+          const side = BLOCKS.find((b) => b.id === id)?.side ?? "stone";
+          fx?.spawn("break", new THREE.Vector3(x, y, z), side);
+        },
+        aim: () => ({
+          origin: featureOrigin.set(player.position.x, player.eyeY, player.position.z),
+          dir: aimDir(),
+        }),
+        announce: (title, detail) => announce(title, detail),
+        openChest: () => setChestOpen(true),
+        sound: (name) => playSound(name as Parameters<typeof playSound>[0]),
+        onHp: (hp) => setPlayerHp(hp),
+        onDeath: () => {
+          if (player.isDying) return;
+          player.isDying = true;
+          player.velocity.set(0, 0.4, 0);
+          player.onDie?.();
+        },
+        onParry: () => {
+          const away = hitMe.group.position.clone().sub(player.position);
+          if (away.length() > 6) return;
+          away.y = 0;
+          away.normalize().multiplyScalar(7);
+          hitMeVel.set(away.x, 5, away.z);
+          hitMeRedT = 0.4;
+        },
+        onOffhand: (item) => setOffhand(item),
+      });
+      features.survival = !blockFall;
+      features.setHeld(heldItemId);
+      featuresRef.current = features;
+
       // ── Melee: swing at whoever is in front of you ────────────────────────
       // Returns true when a hit landed, so a swing never falls through to
       // placing a block.
       let attackCd = 0;
+      let chargeMul = 0;
       const currentStats = () =>
         (typeof heldItemId === "string" && SWORD_STATS[heldItemId]) || SWORD_STATS.fist;
       const tryMelee = () => {
@@ -2263,15 +2327,17 @@ export function SandboxGame({
         const dir = aimDir();
         const hitDir = new THREE.Vector3(dir.x, 0, dir.z).normalize();
         const crit = !player.onGround && player.velocity.y < 0;
-        const damage = crit ? Math.round(stats.damage * 1.5) : stats.damage;
+        const baseDamage = crit ? Math.round(stats.damage * 1.5) : stats.damage;
+        const landDamage = () =>
+          Math.round(baseDamage * features.comboHit(stats.cooldown).mul * (1 + chargeMul * 0.6));
+        const sprinting = Math.hypot(player.velocity.x, player.velocity.z) > 5;
 
         const npcCenter = hitMe.group.position.clone().add(new THREE.Vector3(0, 1.1, 0));
-        const toNpc = npcCenter.clone().sub(eye);
-        const npcDist = toNpc.length();
-        if (npcDist < stats.reach + 0.4 && toNpc.normalize().dot(dir) > 0.72) {
-          hitMeVel.x = hitDir.x * stats.knockback;
-          hitMeVel.z = hitDir.z * stats.knockback;
-          hitMeVel.y = 4.2 + stats.knockback * 0.25;
+        const npcDist = features.rayHitsPlayer(eye, dir, hitMe.group.position, stats.reach + 0.4);
+        if (npcDist >= 0) {
+          const damage = landDamage();
+          const kb = features.knockback(hitDir, stats.knockback, sprinting, chargeMul);
+          hitMeVel.set(kb.x, kb.y, kb.z);
           hitMeRedT = 0.5;
           hitMeHp = Math.max(0, hitMeHp - damage);
           hitMeBar.set(hitMeHp);
@@ -2286,13 +2352,12 @@ export function SandboxGame({
         let best: { uid: string; center: THREE.Vector3; d: number } | null = null;
         for (const [uid, e] of remotes.list()) {
           const center = e.current.clone().add(new THREE.Vector3(0, 0.95, 0));
-          const to = center.clone().sub(eye);
-          const d = to.length();
-          if (d > stats.reach) continue;
-          if (to.normalize().dot(dir) < 0.8) continue;
+          const d = features.rayHitsPlayer(eye, dir, e.current, stats.reach);
+          if (d < 0) continue;
           if (!best || d < best.d) best = { uid, center, d };
         }
         if (!best) return false;
+        const damage = landDamage();
         const s = hpFor(best.uid);
         if (s.respawnIn <= 0) {
           s.hp = Math.max(0, s.hp - damage);
@@ -2323,7 +2388,7 @@ export function SandboxGame({
         return landed;
       };
 
-      const doPlace = () => {
+      const doPlace = (overrideId?: number | string) => {
         if (!world || !fx) return;
         if (!consumeBedwarsAction()) return;
 
@@ -2331,11 +2396,16 @@ export function SandboxGame({
           // Chest removed
         }
 
-        const id = hotbarRef.current[slotRef.current];
+        const id = overrideId ?? hotbarRef.current[slotRef.current];
         if (id === undefined) return;
         // Any swing tries to hit an entity first — with a weapon in hand you
         // never place blocks.
         if (typeof id === "string") {
+          if ((UTILITY_ITEMS as readonly string[]).includes(id)) {
+            swing = 1;
+            features.useItem(id, castHit());
+            return;
+          }
           attack();
           return;
         }
@@ -2344,16 +2414,21 @@ export function SandboxGame({
           return;
         }
 
-        const hit = castHit();
-        if (!hit) {
+        const snap = id !== 0 ? features.bridgeSnapTarget() : null;
+        const hit = snap ? null : castHit();
+        if (!snap && !hit) {
           // Clicked air / empty void ("vuoto")
           swing = 1;
           playSound("air_dig");
           return;
         }
-        const px = hit.x + hit.nx;
-        const py = hit.y + hit.ny;
-        const pz = hit.z + hit.nz;
+        if (hit && features.interact(hit, player.isCrouching)) {
+          swing = 1;
+          return;
+        }
+        const px = snap ? snap.x : hit!.x + hit!.nx;
+        const py = snap ? snap.y : hit!.y + hit!.ny;
+        const pz = snap ? snap.z : hit!.z + hit!.nz;
 
         const dx = Math.abs(px + 0.5 - player.position.x);
         const dz = Math.abs(pz + 0.5 - player.position.z);
@@ -2384,8 +2459,16 @@ export function SandboxGame({
         if (skyblock) progression.recordPlace(py);
       };
 
+      const iconUrlFor = (id: number | string) => {
+        if (typeof id === "string") return utilityIconUrl(id);
+        const block = BLOCKS.find((b) => b.id === id);
+        return block ? atlas!.url(block.side) : "";
+      };
+
       type Api = {
         place: () => void;
+        swapOffhand: () => void;
+        useOffhand: () => void;
         setMining: (v: boolean) => void;
         setAim: (n: { x: number; y: number } | null) => void;
         setThird: (v: boolean) => void;
@@ -2394,7 +2477,35 @@ export function SandboxGame({
         plant: (species: Species) => boolean;
       };
       (mount as HTMLDivElement & { __api?: Api }).__api = {
-        place: doPlace,
+        place: () => doPlace(),
+        swapOffhand: () => {
+          const index = slotRef.current;
+          const current = hotbarRef.current[index] ?? 0;
+          const incoming = features.offhand ?? 0;
+          features.offhand = current === 0 ? null : current;
+          setOffhand(features.offhand);
+          setHotbar((prev) => {
+            const next = [...prev];
+            while (next.length <= index) next.push(0);
+            next[index] = incoming;
+            return next;
+          });
+          setTileUrls((prev) => {
+            const next = { ...prev };
+            for (const item of [current, incoming]) if (item !== 0) next[item] = iconUrlFor(item);
+            return next;
+          });
+          setHeldTile(incoming);
+          announce("Off-hand", features.offhand === null ? "Empty" : "Item swapped");
+        },
+        useOffhand: () => {
+          const item = features.offhand;
+          if (item === null) {
+            announce("Off-hand empty", "Swap an item into your off-hand");
+            return;
+          }
+          doPlace(item);
+        },
         plant: (species) => {
           const hit = castHit();
           if (!hit || hit.ny !== 1) {
@@ -2409,6 +2520,7 @@ export function SandboxGame({
         setMining: (v) => {
           mining = v;
           if (!v) {
+            if (mineKey) features.rememberMining(mineKey, mineT);
             mineKey = null;
             mineT = 0;
           }
@@ -2421,11 +2533,7 @@ export function SandboxGame({
           heldRig.visible = !v;
         },
         setHeldTile,
-        getAtlasUrl: (id) => {
-          if (typeof id === "string") return "";
-          const block = BLOCKS.find((b) => b.id === id);
-          return block ? atlas!.url(block.side) : "";
-        },
+        getAtlasUrl: (id) => iconUrlFor(id),
       };
 
       // ResizeObserver catches orientation changes after layout settles.
@@ -2623,7 +2731,10 @@ export function SandboxGame({
         }
 
         const wasOnGround = player.onGround;
+        features.beforePlayerUpdate();
         player.update(dt, input);
+        features.afterPlayerUpdate(dt);
+        features.update(dt);
         if (player.landedImpact > 9) playSound("place");
         const horizontalSpeed = Math.hypot(player.velocity.x, player.velocity.z);
         if (goldenDays && horizontalSpeed > 0.15) {
@@ -2948,9 +3059,20 @@ export function SandboxGame({
 
         // ── hold-to-mine or chest interaction ──────────────
         const wantMine = mining || controls!.holding.break;
-        if (wantMine && typeof heldItemId === "string") {
-          // Weapons attack on hold instead of mining.
+        if (!wantMine && features.chargeT > 0) {
+          chargeMul = features.releaseCharge();
           attack();
+          chargeMul = 0;
+          if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+        }
+        if (wantMine && typeof heldItemId === "string") {
+          // Swords wind up while held and strike on release; other items swing on hold.
+          if (SWORD_STATS[heldItemId]) {
+            const charge = features.charging(dt);
+            if (mineBarRef.current) mineBarRef.current.style.width = `${charge * 100}%`;
+          } else {
+            attack();
+          }
           mineKey = null;
           mineT = 0;
           crackMesh.visible = false;
@@ -2974,8 +3096,9 @@ export function SandboxGame({
           } else if (wantMine && hit && hardness >= 0) {
             const key = `${hit.x},${hit.y},${hit.z}`;
             if (key !== mineKey) {
+              if (mineKey) features.rememberMining(mineKey, mineT);
               mineKey = key;
-              mineT = 0;
+              mineT = features.recallMining(key);
             }
 
             const oldP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
@@ -3003,6 +3126,7 @@ export function SandboxGame({
               playSound("break");
               fx!.spawn("break", new THREE.Vector3(hit.x, hit.y, hit.z), def!.side);
               world!.set(hit.x, hit.y, hit.z, 0);
+              features.forgetMining();
               if (skyblock) progression.recordMine();
               if (skyblock) nature.rollDrop(oldId);
               if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
@@ -3030,6 +3154,7 @@ export function SandboxGame({
               if (mineBarRef.current) mineBarRef.current.style.width = "0%";
             }
           } else {
+            if (mineKey) features.rememberMining(mineKey, mineT);
             mineKey = null;
             mineT = 0;
             crackMesh.visible = false;
@@ -3097,6 +3222,8 @@ export function SandboxGame({
         window.removeEventListener("bm-atmosphere", onAtmosphereEvt);
         window.removeEventListener("bm-fog-mode", onFogModeEvt);
         if (stopWaterAudio) stopWaterAudio();
+        features.dispose();
+        featuresRef.current = null;
         particles.dispose();
         skyEnv?.dispose();
         cosmicSky?.dispose();
@@ -3199,6 +3326,8 @@ export function SandboxGame({
       | (HTMLDivElement & {
           __api?: {
             place: () => void;
+            swapOffhand: () => void;
+            useOffhand: () => void;
             setMining: (v: boolean) => void;
             setAim: (n: { x: number; y: number } | null) => void;
             setThird: (v: boolean) => void;
@@ -3215,6 +3344,29 @@ export function SandboxGame({
     slotRef.current = i;
     setSlot(i);
     controlsRef.current?.onSlot?.(i);
+  };
+
+  const toggleBridgeAssist = useCallback(() => {
+    const features = featuresRef.current;
+    if (!features) return;
+    features.bridgeAssist = !features.bridgeAssist;
+    setBridgeAssist(features.bridgeAssist);
+    announce("Bridge assist", features.bridgeAssist ? "On: look down and place to snap" : "Off");
+  }, []);
+
+  const applyQuickBuy = (items: (number | string)[], name: string) => {
+    const bar = items.slice(0, 9);
+    setHotbar(bar);
+    setTileUrls((prev) => {
+      const next = { ...prev };
+      for (const id of bar) next[id] = api()?.getAtlasUrl(id) ?? "";
+      return next;
+    });
+    slotRef.current = 0;
+    setSlot(0);
+    api()?.setHeldTile(bar[0] ?? 0);
+    announce(`${name} kit`, "Equipped to your hotbar");
+    playSound("pop");
   };
 
   const toggleThird = useCallback(() => {
@@ -3243,11 +3395,21 @@ export function SandboxGame({
       } else if (e.code === "Escape") {
         setChestOpen(false);
         setInventoryOpen(false);
+        setWheelOpen(false);
+        setQuickBuyOpen(false);
+      } else if (!e.repeat && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        if (e.code === "KeyB") toggleBridgeAssist();
+        else if (e.code === "KeyF") api()?.swapOffhand();
+        else if (e.code === "KeyR") api()?.useOffhand();
+        else if (e.code === "KeyG") {
+          controlsRef.current?.exitLock();
+          setWheelOpen((open) => !open);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [toggleThird]);
+  }, [toggleThird, toggleBridgeAssist, api]);
 
   // settings → engine wiring (shared event names with the Skyblock game)
   useEffect(() => {
@@ -3382,9 +3544,9 @@ export function SandboxGame({
   const matchState = useStore(match.store);
   const progressState = useStore(progression.store);
   const backpack: (number | string)[] = skyblock
-    ? [...STARTER_BACKPACK, ...progressState.unlockedBlocks, ...crafted]
+    ? [...STARTER_BACKPACK, ...progressState.unlockedBlocks, ...crafted, ...NEW_BACKPACK_ITEMS]
     : bedwars
-      ? ["short_sword", ...crafted]
+      ? ["short_sword", "iron_sword", "diamond_sword", ...crafted, ...NEW_BACKPACK_ITEMS]
       : [];
 
   useEffect(() => {
@@ -3605,7 +3767,7 @@ export function SandboxGame({
           running={movementMode === "run"}
           thirdPerson={thirdPerson}
           muted={bgmMuted}
-          hasHotbar={skyblock && hotbar.length > 0}
+          hasHotbar={(skyblock || bedwars) && hotbar.length > 0}
           actions={v2Actions}
           topCenter={
             blockFall ? (
@@ -3645,7 +3807,7 @@ export function SandboxGame({
             if (open) controlsRef.current?.exitLock();
           }}
         >
-          {skyblock && (
+          {(skyblock || bedwars) && (
             <>
               <CinematicVignette />
               {totalSeeds > 0 && (
@@ -3659,10 +3821,37 @@ export function SandboxGame({
                 isTouch={isTouch}
                 onOpenInventory={() => setInventoryOpen(true)}
               />
+              <FeatureDock
+                hp={playerHp}
+                bridgeAssist={bridgeAssist}
+                offhandIcon={offhand === null ? "" : (tileUrls[offhand] ?? api()?.getAtlasUrl(offhand) ?? "")}
+                canQuickBuy={bedwars}
+                onToggleBridge={toggleBridgeAssist}
+                onSwapOffhand={() => api()?.swapOffhand()}
+                onUseOffhand={() => api()?.useOffhand()}
+                onOpenWheel={() => {
+                  controlsRef.current?.exitLock();
+                  setWheelOpen(true);
+                }}
+                onOpenQuickBuy={() => {
+                  controlsRef.current?.exitLock();
+                  setQuickBuyOpen(true);
+                }}
+              />
             </>
           )}
         </V2GameHud>
       )}
+      {wheelOpen && (
+        <RadialWheel
+          items={hotbar}
+          selected={slot}
+          iconOf={(id) => tileUrls[id] || (api()?.getAtlasUrl(id) ?? "")}
+          onPick={selectSlot}
+          onClose={() => setWheelOpen(false)}
+        />
+      )}
+      {quickBuyOpen && <QuickBuyPanel onApply={applyQuickBuy} onClose={() => setQuickBuyOpen(false)} />}
       {ready && blockFall && (
         <BlockFallOverlays
           match={match}
@@ -3780,10 +3969,8 @@ export function SandboxGame({
               next[target] = item;
               return next;
             });
-            if (typeof item === "number") {
-              const url = api()?.getAtlasUrl(item) ?? "";
-              if (url) setTileUrls((prev) => ({ ...prev, [item]: url }));
-            }
+            const url = api()?.getAtlasUrl(item) ?? "";
+            if (url) setTileUrls((prev) => ({ ...prev, [item]: url }));
             if (target === slotRef.current) api()?.setHeldTile(item);
           }}
           onCraft={

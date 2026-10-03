@@ -181,14 +181,14 @@ const SKY_RADIUS = 1000;
 
 const C = {
   // Vibrant, rich anime/celestial day atmosphere with deep sapphire & sunlit horizon
-  topDay: new THREE.Color("#083a88"),
-  midDay: new THREE.Color("#258cf5"),
-  horizonDay: new THREE.Color("#c8ebff"),
-  sunDay: new THREE.Color("#fffaf0"),
+  topDay: new THREE.Color("#4d8fd9"),
+  midDay: new THREE.Color("#7cb8ee"),
+  horizonDay: new THREE.Color("#d6ecf7"),
+  sunDay: new THREE.Color("#fff1d0"),
   cloudLitDay: new THREE.Color("#ffffff"),
   cloudShadeDay: new THREE.Color("#95b8d8"),
-  hemiSkyDay: new THREE.Color("#cbe7ff"),
-  hemiGroundDay: new THREE.Color("#56784d"),
+  hemiSkyDay: new THREE.Color("#d8e8ff"),
+  hemiGroundDay: new THREE.Color("#8a8f6a"),
 
   // Authentic, stunning Golden Hour (fiery amber-violet twilight)
   topGolden: new THREE.Color("#23346a"),
@@ -198,7 +198,7 @@ const C = {
   cloudLitGolden: new THREE.Color("#ffd9a8"),
   cloudShadeGolden: new THREE.Color("#7a4466"),
   hemiSkyGolden: new THREE.Color("#ffbf8a"),
-  hemiGroundGolden: new THREE.Color("#5e3a2a"),
+  hemiGroundGolden: new THREE.Color("#8a5c48"),
 
   // Celestial Night with rich galactic hues
   topNight: new THREE.Color("#030715"),
@@ -207,8 +207,8 @@ const C = {
   moon: new THREE.Color("#a8ccff"),
   cloudLitNight: new THREE.Color("#38486b"),
   cloudShadeNight: new THREE.Color("#10172a"),
-  hemiSkyNight: new THREE.Color("#22375f"),
-  hemiGroundNight: new THREE.Color("#09101d"),
+  hemiSkyNight: new THREE.Color("#3a4f86"),
+  hemiGroundNight: new THREE.Color("#1a2440"),
 };
 
 export type SkyOptions = {

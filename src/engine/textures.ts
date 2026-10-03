@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { paintTile } from "./procedural-tiles";
 
 /**
  * Builds a single padded texture atlas from the supplied cartoon block pack
@@ -83,6 +84,23 @@ export const TILE_NAMES = [
   "pink_wool",
   "terracotta",
   "water",
+  "iron_ore",
+  "diamond_ore",
+  "oak_door",
+  "oak_door_open",
+  "iron_door",
+  "iron_door_open",
+  "chest",
+  "trapped_chest",
+  "blast_glass",
+  "ladder",
+  "bed_top",
+  "bed_side",
+  "respawn_anchor",
+  "respawn_anchor_top",
+  "lava",
+  "slime_block",
+  "door_button",
 ] as const;
 
 export type TileName = (typeof TILE_NAMES)[number];
@@ -213,7 +231,11 @@ export async function buildAtlas(
         sourceUrls.set(name, source);
         return img;
       } catch {
-        // Keep the missing-texture marker below; do not fall back to legacy art.
+        const painted = paintTile(name);
+        if (painted) {
+          sourceUrls.set(name, painted.toDataURL());
+          return painted;
+        }
       }
       return null;
     }),
@@ -233,8 +255,11 @@ export async function buildAtlas(
       }
       // Draw the tile over the whole cell first to create a replicated border,
       // then redraw the inner tile at the final display resolution.
+      const crisp = img instanceof HTMLCanvasElement;
+      ctx.imageSmoothingEnabled = !crisp;
       ctx.drawImage(img, cx, cy, CELL, CELL);
       ctx.drawImage(img, cx + PAD, cy + PAD, INNER, INNER);
+      ctx.imageSmoothingEnabled = true;
       ctx.filter = "saturate(105%)";
     } else if (name === "water") {
       const grad = ctx.createLinearGradient(cx, cy, cx + CELL, cy + CELL);
