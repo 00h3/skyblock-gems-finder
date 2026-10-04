@@ -27,8 +27,12 @@ export function FragmentsPage() {
           <div className="w-12" />
         </div>
 
-        {/* Completely blank body for now */}
-        <div className="flex-1" />
+        {/* Under construction */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+          <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+            Under construction
+          </p>
+        </div>
       </div>
     </MobileShell>
   );

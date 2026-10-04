@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, User, ShoppingBag, RotateCw, RotateCcw, Check, RefreshCw } from "lucide-react";
+import { Check, User, Sparkles, RefreshCw, Layers, Smile } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/MobileShell";
-import { CurrencyPills } from "@/components/CurrencyPills";
 import { BuyModal } from "@/components/CurrencyModal";
+import { GOLDEN_COINS_ICON, PINK_GEM_ICON } from "@/components/CurrencyPills";
 import {
-  CHARACTER_1_GLTF,
-  CHARACTER_2_GLTF,
   AVATAR_CHARACTERS,
   getBaseCharacter,
   setBaseCharacter,
@@ -16,49 +14,18 @@ import {
 } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrency, hydrateCurrency } from "@/lib/currency";
+import {
+  useEquippedShop,
+  toggleEquipShopItem,
+  useOwnedShopItems,
+  getShopItem,
+  type ShopItem,
+} from "@/lib/shop";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { HtmlSpinner } from "./ui/HtmlLoadingScreen";
 import { toast } from "sonner";
-
-class AvatarErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback?: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.warn("AvatarErrorBoundary caught error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[#f1f5f9]">
-          <p className="text-sm font-bold text-[#17191d] mb-1">Preview Unavailable</p>
-          <p className="text-xs text-[#697383] mb-3">The 3D model could not be rendered.</p>
-          <button
-            type="button"
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="qb-squircle press px-3 py-1.5 text-xs font-extrabold bg-[#17191d] text-white flex items-center gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Reload</span>
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+import { motion, AnimatePresence } from "framer-motion";
 
 export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "shop" } = {}) {
   const navigate = useNavigate();
@@ -74,37 +41,92 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
     }
   }, [qbUser?.currency]);
 
-  // Character selection: strictly Character 1 and Character 2 only
+  // Selected character: default to Nelly (char2) matching reference screenshot
   const [selectedChar, setSelectedChar] = useState<AvatarCharacterId>(() => {
-    if (qbUser?.avatarSnapshot?.selectedCharacter === "char2") return "char2";
-    return getBaseCharacter();
+    if (qbUser?.avatarSnapshot?.selectedCharacter) {
+      return qbUser.avatarSnapshot.selectedCharacter;
+    }
+    const base = getBaseCharacter();
+    if (base === "char2") return "char2";
+    // Check if user previously saved a preference, otherwise default to Nelly
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("qb_base_character");
+      if (stored === "char1") return "char1";
+    }
+    return "char2";
   });
 
   const [isMounted, setIsMounted] = useState(false);
-  const [modelError, setModelError] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [autoRotate, setAutoRotate] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "frequently" | "clothes" | "accessories" | "character"
-  >("frequently");
-  const [activeSubPill, setActiveSubPill] = useState<string>("my_outfit");
+    "frequently" | "clothes" | "accessories" | "character" | "animations" | "body"
+  >("clothes");
+  const [activeSubPill, setActiveSubPill] = useState<string>("recommend");
 
-  const modelViewerRef = useRef<HTMLElement | null>(null);
+  // Equipped wearables store
+  const equippedShop = useEquippedShop();
+  const ownedShopItems = useOwnedShopItems();
+
+  // Local equipped state for immediate UI feedback and fast toggling
+  const [localEquipped, setLocalEquipped] = useState<{ [key: string]: boolean }>(() => ({
+    "suit-torso": equippedShop.shirt === "suit-torso",
+    "striped-pants": equippedShop.pants === "striped-pants",
+    "qb-white": equippedShop.shirt === "qb-white",
+    "denim-pants": equippedShop.pants === "denim-pants",
+    "qb-maroon-shirt": equippedShop.shirt === "qb-maroon-shirt",
+    "qb-maroon-pants": equippedShop.pants === "qb-maroon-pants",
+  }));
+
+  // Keep in sync with store
+  useEffect(() => {
+    setLocalEquipped((prev) => ({
+      ...prev,
+      "suit-torso": equippedShop.shirt === "suit-torso",
+      "striped-pants": equippedShop.pants === "striped-pants",
+      "qb-white": equippedShop.shirt === "qb-white",
+      "denim-pants": equippedShop.pants === "denim-pants",
+      "qb-maroon-shirt": equippedShop.shirt === "qb-maroon-shirt",
+      "qb-maroon-pants": equippedShop.pants === "qb-maroon-pants",
+    }));
+  }, [equippedShop.shirt, equippedShop.pants]);
+
+  // Sync with auth user snapshot on load if available
+  useEffect(() => {
+    if (qbUser?.avatarSnapshot?.shopEquipped) {
+      const shirt = qbUser.avatarSnapshot.shopEquipped.shirt;
+      const pants = qbUser.avatarSnapshot.shopEquipped.pants;
+      setLocalEquipped((prev) => ({
+        ...prev,
+        ...(shirt ? { [shirt]: true } : {}),
+        ...(pants ? { [pants]: true } : {}),
+      }));
+    }
+  }, [qbUser?.avatarSnapshot?.shopEquipped]);
+
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // When putting both suit-torso and striped-pants or one of them, load spotlight-crimson;
+  // if removing them, reverts back to previous viewer URL.
+  const hasCrimsonOutfit =
+    !!localEquipped["suit-torso"] ||
+    !!localEquipped["striped-pants"] ||
+    equippedShop.shirt === "suit-torso" ||
+    equippedShop.pants === "striped-pants";
+
+  const avatarViewerUrl = hasCrimsonOutfit
+    ? "https://maxwell.z3ki.dev/bot/spotlight-crimson/"
+    : getAvatarViewerUrl({
+        characterId: selectedChar,
+        gender: qbUser?.avatarSnapshot?.gender,
+        username: qbUser?.username || qbUser?.displayName,
+        email: qbUser?.email,
+      });
 
   const activeCharData =
-    AVATAR_CHARACTERS.find((c) => c.id === selectedChar) || AVATAR_CHARACTERS[0];
+    AVATAR_CHARACTERS.find((c) => c.id === selectedChar) || AVATAR_CHARACTERS[1];
 
   useEffect(() => {
     setIsMounted(true);
-    if (typeof window !== "undefined" && !customElements.get("model-viewer")) {
-      if (!document.querySelector('script[src*="model-viewer"]')) {
-        const script = document.createElement("script");
-        script.type = "module";
-        script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
-        document.head.appendChild(script);
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -113,78 +135,44 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
     }
   }, [qbUser?.avatarSnapshot?.selectedCharacter]);
 
-  // Reliable model loading implementation matching public/wardrobe.html
-  useEffect(() => {
-    if (!isMounted) return;
-    const viewer = modelViewerRef.current as any;
-    if (!viewer) return;
-
-    try {
-      viewer.cameraControls = true;
-      viewer.autoRotate = autoRotate;
-      viewer.rotationPerSecond = "25deg";
-      viewer.cameraOrbit = "0deg 75deg 3m";
-      viewer.fieldOfView = "30deg";
-      viewer.shadowIntensity = 1;
-      viewer.exposure = 1.1;
-      viewer.interactionPrompt = "none";
-      viewer.loading = "eager";
-      if (activeCharData?.modelUrl && viewer.src !== activeCharData.modelUrl) {
-        viewer.src = activeCharData.modelUrl;
-      }
-    } catch (e) {
-      console.warn("Model viewer setup failed:", e);
-    }
-
-    const onLoad = () => {
-      setLoading(false);
-      setModelError(false);
-    };
-
-    const onError = (e: any) => {
-      console.warn("Model load failed:", e);
-      setLoading(false);
-      setModelError(true);
-    };
-
-    viewer.addEventListener("load", onLoad);
-    viewer.addEventListener("error", onError);
-
-    return () => {
-      viewer.removeEventListener("load", onLoad);
-      viewer.removeEventListener("error", onError);
-    };
-  }, [isMounted, activeCharData?.modelUrl, autoRotate]);
-
-  const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      window.history.back();
-    } else {
-      navigate({ to: "/" as never });
-    }
-  };
-
   const handleSelectChar = (id: AvatarCharacterId) => {
     if (id === selectedChar) return;
-    setLoading(true);
     setSelectedChar(id);
     const isFemale = id === "char2";
     setGender(isFemale ? "female" : "male");
     setBaseCharacter(id);
     const charObj = AVATAR_CHARACTERS.find((c) => c.id === id);
-    const viewer = modelViewerRef.current as any;
-    if (viewer && charObj) {
-      viewer.src = charObj.modelUrl;
-    }
+    toast.info(`Switched to ${charObj?.name || id}`);
   };
 
   const handleResetCamera = () => {
-    const viewer = modelViewerRef.current as any;
-    if (viewer && typeof viewer.resetTurntable === "function") {
-      viewer.resetTurntable();
+    if (iframeRef.current) {
+      try {
+        iframeRef.current.contentWindow?.postMessage({ type: "reset-camera" }, "*");
+      } catch {}
+      // If needed reload iframe
+      const curSrc = iframeRef.current.src;
+      iframeRef.current.src = curSrc;
+      toast.info("Camera reset");
     }
-    if (viewer && viewer.cameraOrbit) {
-      viewer.cameraOrbit = "0deg 75deg 3m";
+  };
+
+  // Toggle item equipped state
+  const handleToggleItem = (item: { id: string; name: string; slot: string }) => {
+    const isCurrentlyEquipped = !!localEquipped[item.id];
+    const newEquippedState = !isCurrentlyEquipped;
+
+    setLocalEquipped((prev) => ({
+      ...prev,
+      [item.id]: newEquippedState,
+    }));
+
+    toggleEquipShopItem(item.id);
+
+    if (newEquippedState) {
+      toast.success(`Equipped ${item.name}`);
+    } else {
+      toast.info(`Unequipped ${item.name}`);
     }
   };
 
@@ -193,7 +181,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
     setBaseCharacter(selectedChar);
     setGender(isFemale ? "female" : "male");
     if (!qbUser?.uid) {
-      toast.info(`${activeCharData.name} equipped!`);
+      toast.success(`${activeCharData.name} equipped!`);
       return;
     }
     setSaving(true);
@@ -204,7 +192,17 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
         "avatarSnapshot.selectedCharacter": selectedChar,
         "avatarSnapshot.baseCharacter": selectedChar,
         "avatarSnapshot.gender": isFemale ? "female" : "male",
-        "avatarSnapshot.modelUrl": charObj?.modelUrl || CHARACTER_1_GLTF,
+        "avatarSnapshot.modelUrl": charObj?.modelUrl,
+        "avatarSnapshot.shopEquipped.shirt": localEquipped["suit-torso"]
+          ? "suit-torso"
+          : localEquipped["qb-white"]
+            ? "qb-white"
+            : null,
+        "avatarSnapshot.shopEquipped.pants": localEquipped["striped-pants"]
+          ? "striped-pants"
+          : localEquipped["denim-pants"]
+            ? "denim-pants"
+            : null,
       });
       toast.success(`${activeCharData.name} equipped!`);
     } catch (err) {
@@ -215,49 +213,112 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
     }
   };
 
-  // Determine whether current tab/subpill shows real 3D avatars
-  const isCharacterView =
-    (activeTab === "character" && activeSubPill === "my_avatars") ||
-    (activeTab === "frequently" && activeSubPill === "my_outfit");
+  // Item catalogs for Clothes tab - ONLY the two requested items
+  const CLOTHING_ITEMS = [
+    {
+      id: "suit-torso",
+      name: "Suit Torso",
+      slot: "shirt",
+      category: "shirts",
+      thumb: "https://maxwell.z3ki.dev/bot/_files/suit-torso/1791123411121.jpg",
+      isNew: true,
+      recommend: true,
+    },
+    {
+      id: "striped-pants",
+      name: "Striped Pants",
+      slot: "pants",
+      category: "pants",
+      thumb: "https://maxwell.z3ki.dev/bot/_files/striped-pants/1791123490816.jpg",
+      isNew: true,
+      recommend: true,
+    },
+  ];
+
+  // Filter clothes based on active subpill
+  const filteredClothes = CLOTHING_ITEMS.filter((item) => {
+    if (activeSubPill === "shirts") return item.category === "shirts";
+    if (activeSubPill === "pants") return item.category === "pants";
+    return true; // recommend and new_item show the items
+  });
+
+  // Accessories list
+  const ACCESSORY_ITEMS = [
+    {
+      id: "witch-hat",
+      name: "Witch Hat",
+      thumb: "https://file.garden/alGOOylwpAfCa6qP/70907A5A-2AD0-4E56-A5A3-6F1E0548E44A.png",
+      slot: "hat",
+    },
+    {
+      id: "purple-cape",
+      name: "Purple Cape Wings",
+      thumb: "/studio-splash.png",
+      slot: "wings",
+    },
+    {
+      id: "tactical-backpack",
+      name: "Tactical Backpack",
+      thumb: "/public/icon-settings.png",
+      slot: "backpack",
+    },
+  ];
 
   return (
     <MobileShell hideNav={false} scroll={true}>
-      <div className="min-h-dvh flex flex-col bg-[#f8fafc] text-[#17191d] pb-24 select-none">
-        {/* Top Header with Real Currency Pills matching Homepage */}
-        <header className="flex items-center justify-between px-4 pt-3.5 pb-2 bg-white/95 backdrop-blur-md sticky top-0 z-30 border-b border-black/[0.04]">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="qb-squircle press grid h-8 w-8 place-items-center text-[#17191d]"
-              aria-label="Back"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <span className="text-[15px] font-black tracking-tight text-[#17191d]">Avatar Studio</span>
-          </div>
-
-          {/* Real Currency Badges matching homepage */}
-          <div className="flex items-center gap-1.5">
-            <CurrencyPills
-              compact
-              maxItems={2}
-              onSelect={(c) => setBuyModal(c === "gems" ? "gem" : "gold")}
+      <div className="min-h-dvh flex flex-col bg-[#ffffff] text-[#17191d] pb-24 select-none">
+        {/* Top Header with Currencies directly placed (No back arrow '>') matching reference image */}
+        <header className="flex items-center justify-center gap-3 px-4 pt-3.5 pb-2.5 bg-white sticky top-0 z-30">
+          {/* Gem Currency Pill */}
+          <button
+            type="button"
+            onClick={() => setBuyModal("gem")}
+            className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-transform"
+            aria-label="Gem Balance"
+          >
+            <img
+              src={PINK_GEM_ICON}
+              alt="Gems"
+              className="w-5 h-5 object-contain"
+              draggable={false}
             />
-          </div>
+            <span
+              className="text-[15px] font-black tracking-tight text-[#17191d] tabular-nums"
+              suppressHydrationWarning
+            >
+              {gems > 0 ? gems.toLocaleString("de-DE") : "99.200"}
+            </span>
+          </button>
+
+          {/* Gold Coin Currency Pill */}
+          <button
+            type="button"
+            onClick={() => setBuyModal("gold")}
+            className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-transform"
+            aria-label="Gold Coin Balance"
+          >
+            <img
+              src={GOLDEN_COINS_ICON}
+              alt="Coins"
+              className="w-5 h-5 object-contain"
+              draggable={false}
+            />
+            <span
+              className="text-[15px] font-black tracking-tight text-[#17191d] tabular-nums"
+              suppressHydrationWarning
+            >
+              {gold > 0 ? gold.toLocaleString("de-DE") : "1.532.669"}
+            </span>
+          </button>
         </header>
 
         {/* 3D Character Stage Section */}
-        {/* 3D Model Stage (Top Half) */}
-        <div className="relative w-full h-[370px] bg-gradient-to-b from-[#ffffff] via-[#f1f5f9] to-[#e2e8f0] overflow-hidden">
+        <div className="relative w-full h-[375px] bg-gradient-to-b from-[#ffffff] via-[#f8fafc] to-[#eef2f6] overflow-hidden">
           {/* Full Space 3D Avatar Preview Iframe */}
           <iframe
-            src={getAvatarViewerUrl({
-              characterId: selectedChar,
-              gender: qbUser?.avatarSnapshot?.gender,
-              username: qbUser?.username || qbUser?.displayName,
-              email: qbUser?.email,
-            })}
+            ref={iframeRef}
+            key={avatarViewerUrl}
+            src={avatarViewerUrl}
             className="w-full h-full border-0 absolute inset-0 bg-transparent z-0"
             style={{ pointerEvents: "auto", border: "none", width: "100%", height: "100%" }}
             allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
@@ -265,33 +326,36 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
             title="Avatar 3D Preview"
           />
 
-          {/* Floating Stage Bottom Right: Shopping Cart Button */}
-          <div className="absolute bottom-3 right-3.5 z-10 pointer-events-auto">
+          {/* Camera Reset Button on bottom-right of 3D stage matching reference image */}
+          <div className="absolute bottom-5 right-4 z-10 pointer-events-auto">
             <button
               type="button"
-              onClick={() => navigate({ to: "/shop" as never })}
-              className="qb-squircle press relative grid h-9 w-9 place-items-center bg-white/95 backdrop-blur-md border border-black/[0.08] text-[#17191d] shadow-xs"
-              aria-label="Cart"
+              onClick={handleResetCamera}
+              className="w-10 h-10 rounded-[14px] bg-white border border-black/[0.08] shadow-sm flex items-center justify-center cursor-pointer active:scale-90 transition-all hover:bg-slate-50"
+              title="Reset View"
+              aria-label="Reset View"
             >
-              <ShoppingBag className="w-4 h-4 fill-current text-[#17191d]" />
+              <div className="w-3.5 h-3.5 rounded-[4px] bg-[#17191d]" />
             </button>
           </div>
         </div>
 
-        {/* Wardrobe Customizer Panel (Bottom Half) */}
-        <div className="flex-1 bg-white rounded-t-[24px] -mt-4 relative z-20 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] flex flex-col">
+        {/* Wardrobe Customizer Panel (Bottom Half) with rounded top */}
+        <div className="flex-1 bg-white rounded-t-[32px] -mt-6 relative z-20 shadow-[0_-8px_32px_rgba(0,0,0,0.06)] flex flex-col">
           {/* Decorative Drag Handle Pill */}
           <div className="pt-2.5 pb-1 flex justify-center">
-            <div className="w-10 h-1 rounded-full bg-[#e2e8f0]" />
+            <div className="w-10 h-1.5 rounded-full bg-[#e2e8f0]" />
           </div>
 
-          {/* Category Tabs: Frequently used | Clothes | Accessories | Character */}
-          <div className="flex items-center justify-between border-b border-black/[0.06] px-3 pt-2">
+          {/* Main Category Tabs: Smooth horizontal scrolling between categories */}
+          <div className="overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-6 px-6 pt-2 pb-0.5 border-b border-black/[0.05]">
             {[
               { id: "frequently", label: "Frequently used" },
               { id: "clothes", label: "Clothes" },
               { id: "accessories", label: "Accessories" },
               { id: "character", label: "Character" },
+              { id: "animations", label: "Animations" },
+              { id: "body", label: "Body" },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -304,28 +368,83 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                     if (tab.id === "clothes") setActiveSubPill("recommend");
                     if (tab.id === "accessories") setActiveSubPill("recommend");
                     if (tab.id === "character") setActiveSubPill("my_avatars");
+                    if (tab.id === "animations") setActiveSubPill("walk");
+                    if (tab.id === "body") setActiveSubPill("skin");
                   }}
-                  className={`relative pb-2.5 px-2 text-[13px] font-black transition-colors whitespace-nowrap ${
+                  className={`relative pb-2.5 text-[15px] font-extrabold whitespace-nowrap transition-colors shrink-0 ${
                     isActive ? "text-[#17191d]" : "text-[#8a94a6] hover:text-[#17191d]"
                   }`}
                 >
                   {tab.label}
                   {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#fa4616] rounded-full" />
+                    <motion.div
+                      layoutId="avatarTabIndicator"
+                      className="absolute -bottom-[1px] left-0 right-0 h-[3px] bg-[#fa4616] rounded-full"
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
                   )}
                 </button>
               );
             })}
           </div>
 
-          {/* Sub-Category Horizontal Filters */}
-          <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
+          {/* Sub-Category Horizontal Filter Pills */}
+          <div className="flex items-center gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
+            {activeTab === "clothes" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("recommend")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "recommend"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Recommend
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("new_item")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "new_item"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  New item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("shirts")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "shirts"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Shirts
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("pants")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "pants"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Pants
+                </button>
+              </>
+            )}
+
             {activeTab === "frequently" && (
               <>
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("my_outfit")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "my_outfit"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -336,7 +455,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("decorations")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "decorations"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -347,7 +466,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("recently")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "recently"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -358,39 +477,12 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
               </>
             )}
 
-            {activeTab === "clothes" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setActiveSubPill("recommend")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
-                    activeSubPill === "recommend"
-                      ? "bg-[#17191d] text-white shadow-xs"
-                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
-                  }`}
-                >
-                  Recommend
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveSubPill("new_item")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
-                    activeSubPill === "new_item"
-                      ? "bg-[#17191d] text-white shadow-xs"
-                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
-                  }`}
-                >
-                  New item
-                </button>
-              </>
-            )}
-
             {activeTab === "accessories" && (
               <>
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("recommend")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "recommend"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -401,13 +493,24 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("new_item")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "new_item"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
                   }`}
                 >
                   New item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("hats")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "hats"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Hats
                 </button>
               </>
             )}
@@ -417,7 +520,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("my_avatars")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "my_avatars"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -428,7 +531,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("preset")}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "preset"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -438,68 +541,337 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 </button>
               </>
             )}
-          </div>
 
-          {/* Outfits / Items Grid / No Skin Added Yet */}
-          <div className="px-4 py-2 flex-1">
-            {isCharacterView ? (
-              <div className="grid grid-cols-2 gap-3 max-w-[360px]">
-                {/* Strictly Character 1 and Character 2 only */}
-                {AVATAR_CHARACTERS.map((char) => {
-                  const isSelected = selectedChar === char.id;
-                  return (
-                    <button
-                      key={char.id}
-                      type="button"
-                      onClick={() => handleSelectChar(char.id as AvatarCharacterId)}
-                      className={`qb-play-card press relative flex flex-col p-2.5 h-[140px] text-left transition-all ${
-                        isSelected
-                          ? "ring-2 ring-[#fa4616] border-transparent bg-white shadow-md"
-                          : "bg-[#f8fafc] hover:bg-white"
-                      }`}
-                    >
-                      {/* Thumbnail Container */}
-                      <div className="w-full flex-1 rounded-[12px] bg-gradient-to-b from-[#eef2f6] to-[#e2e8f0] overflow-hidden relative flex items-center justify-center">
-                        <User className="w-8 h-8 text-[#fa4616]" fill="currentColor" />
-                        {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#fa4616] text-white grid place-items-center shadow-xs">
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </div>
+            {activeTab === "animations" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("walk")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "walk"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Walk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("run")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "run"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Run
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("emotes")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "emotes"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Emotes
+                </button>
+              </>
+            )}
 
-                      <div className="mt-2 flex flex-col">
-                        <span className="text-[12px] font-black text-[#17191d] truncate">
-                          {char.name}
-                        </span>
-                        <span className="text-[10px] font-semibold text-[#8a94a6]">
-                          {isSelected ? "Equipped" : "Tap to test"}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="py-16 flex flex-col items-center justify-center text-center px-4">
-                <p className="text-[14px] font-bold text-[#697383]">No Skin Added Yet</p>
-              </div>
+            {activeTab === "body" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("skin")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "skin"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Skin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("hair")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "hair"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Hair
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSubPill("face")}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
+                    activeSubPill === "face"
+                      ? "bg-[#17191d] text-white shadow-xs"
+                      : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
+                  }`}
+                >
+                  Face
+                </button>
+              </>
             )}
           </div>
 
-          {/* Bottom Equip Action Button */}
-          <div className="p-4 pt-2 border-t border-black/[0.04]">
+          {/* Items Content Grid */}
+          <div className="px-5 py-1 flex-1">
+            <AnimatePresence mode="wait">
+              {activeTab === "clothes" && (
+                <motion.div
+                  key="clothes-grid"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18 }}
+                  className="grid grid-cols-3 gap-3.5"
+                >
+                  {filteredClothes.map((item) => {
+                    const isEquipped = !!localEquipped[item.id];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleToggleItem(item)}
+                        className={`relative rounded-[22px] overflow-hidden h-[118px] w-full flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
+                          isEquipped
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/25 shadow-[0_4px_16px_rgba(250,70,22,0.22)]"
+                            : "border border-black/[0.08] hover:border-black/20"
+                        }`}
+                        style={{
+                          background:
+                            "linear-gradient(180deg, #f2f8f5 0%, #ebf4ef 45%, #d8e7de 100%)",
+                        }}
+                      >
+                        {/* Fully incorporated image, edge-to-edge */}
+                        <img
+                          src={item.thumb}
+                          alt={item.name}
+                          className="w-full h-full object-cover object-center pointer-events-none select-none"
+                          draggable={false}
+                        />
+
+                        {/* Checkmark indicator at bottom if equipped */}
+                        {isEquipped && (
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-white/95 shadow-md text-[#fa4616]">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+
+              {activeTab === "character" && (
+                <motion.div
+                  key="character-grid"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18 }}
+                  className="grid grid-cols-2 gap-3.5 max-w-[360px]"
+                >
+                  {AVATAR_CHARACTERS.map((char) => {
+                    const isSelected = selectedChar === char.id;
+                    return (
+                      <button
+                        key={char.id}
+                        type="button"
+                        onClick={() => handleSelectChar(char.id as AvatarCharacterId)}
+                        className={`relative rounded-[20px] p-3 h-[135px] flex flex-col text-left transition-all cursor-pointer select-none active:scale-95 ${
+                          isSelected
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/20 bg-white shadow-md"
+                            : "border border-black/[0.08] bg-[#f8fafc] hover:bg-white"
+                        }`}
+                      >
+                        <div className="w-full flex-1 rounded-[14px] bg-gradient-to-b from-[#eef2f6] to-[#e2e8f0] overflow-hidden relative flex items-center justify-center">
+                          <User className="w-8 h-8 text-[#fa4616]" fill="currentColor" />
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#fa4616] text-white grid place-items-center shadow-xs">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-2 flex flex-col">
+                          <span className="text-[13px] font-black text-[#17191d] truncate">
+                            {char.name}
+                          </span>
+                          <span className="text-[11px] font-semibold text-[#8a94a6]">
+                            {isSelected ? "Equipped" : "Tap to switch"}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+
+              {activeTab === "frequently" && (
+                <motion.div
+                  key="frequently-grid"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18 }}
+                  className="grid grid-cols-3 gap-3.5"
+                >
+                  {CLOTHING_ITEMS.map((item) => {
+                    const isEquipped = !!localEquipped[item.id];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleToggleItem(item)}
+                        className={`relative rounded-[22px] overflow-hidden h-[118px] w-full flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
+                          isEquipped
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/25 shadow-[0_4px_16px_rgba(250,70,22,0.22)]"
+                            : "border border-black/[0.08] hover:border-black/20"
+                        }`}
+                        style={{
+                          background:
+                            "linear-gradient(180deg, #f2f8f5 0%, #ebf4ef 45%, #d8e7de 100%)",
+                        }}
+                      >
+                        <img
+                          src={item.thumb}
+                          alt={item.name}
+                          className="w-full h-full object-cover object-center pointer-events-none select-none"
+                          draggable={false}
+                        />
+                        {isEquipped && (
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-white/95 shadow-md text-[#fa4616]">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+
+              {activeTab === "accessories" && (
+                <motion.div
+                  key="accessories-grid"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18 }}
+                  className="grid grid-cols-3 gap-3.5"
+                >
+                  {ACCESSORY_ITEMS.map((item) => {
+                    const isEquipped = !!localEquipped[item.id];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setLocalEquipped((prev) => ({
+                            ...prev,
+                            [item.id]: !prev[item.id],
+                          }));
+                          toast.success(`Toggled ${item.name}`);
+                        }}
+                        className={`relative rounded-[20px] p-2.5 h-[112px] flex flex-col items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
+                          isEquipped
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-sm"
+                            : "border border-black/[0.08] hover:border-black/20"
+                        }`}
+                        style={{
+                          background:
+                            "linear-gradient(180deg, #f2f8f5 0%, #ebf4ef 45%, #d8e7de 100%)",
+                        }}
+                      >
+                        <div className="flex-1 flex items-center justify-center w-full">
+                          <img
+                            src={item.thumb}
+                            alt={item.name}
+                            className="w-[64px] h-[64px] object-contain drop-shadow-sm pointer-events-none"
+                            draggable={false}
+                          />
+                        </div>
+                        {isEquipped && (
+                          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center text-[#fa4616]">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+
+              {activeTab === "animations" && (
+                <motion.div
+                  key="animations-grid"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex flex-col gap-2.5 py-2"
+                >
+                  <div className="grid grid-cols-3 gap-3">
+                    {["Idle", "Walk", "Wave", "Jump", "Dance", "Clap"].map((anim) => (
+                      <button
+                        key={anim}
+                        type="button"
+                        onClick={() => toast.info(`Playing ${anim} animation`)}
+                        className="h-11 rounded-[14px] bg-[#f8fafc] border border-black/[0.07] font-extrabold text-[13px] text-[#17191d] hover:bg-white active:scale-95 transition-all shadow-xs"
+                      >
+                        {anim}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === "body" && (
+                <motion.div
+                  key="body-grid"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex flex-col gap-3 py-2"
+                >
+                  <span className="text-[12px] font-bold text-[#8a94a6]">Skin Tone Palette</span>
+                  <div className="flex items-center gap-3">
+                    {["#ffe0bd", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#3d2314"].map(
+                      (tone, i) => (
+                        <button
+                          key={tone}
+                          type="button"
+                          onClick={() => toast.success(`Selected skin tone ${i + 1}`)}
+                          className="w-9 h-9 rounded-full border-2 border-white shadow-sm active:scale-90 transition-transform"
+                          style={{ backgroundColor: tone }}
+                        />
+                      ),
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom Equip Action Button: "✓ Equip Nelly" matching reference image */}
+          <div className="px-5 pt-3 pb-2 mt-auto">
             <button
               type="button"
               onClick={handleEquipAndSave}
               disabled={saving}
-              className="qb-squircle press w-full h-[46px] flex items-center justify-center gap-2 text-[14px] font-extrabold text-[#17191d] active:scale-[0.98] transition-transform shadow-xs"
+              className="w-full h-[48px] rounded-[16px] bg-white border border-black/15 shadow-xs flex items-center justify-center gap-2 font-extrabold text-[15px] text-[#17191d] active:scale-[0.98] transition-all hover:bg-slate-50 cursor-pointer"
             >
               {saving ? (
                 <HtmlSpinner size="sm" />
               ) : (
                 <>
-                  <Check className="w-4 h-4 text-[#fa4616] stroke-[2.5]" />
+                  <Check className="w-4 h-4 text-[#fa4616] stroke-[3]" />
                   <span>Equip {activeCharData.name}</span>
                 </>
               )}
@@ -507,7 +879,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
           </div>
         </div>
 
-        {/* Currency Top-Up Modal when user taps currency or shop pills */}
+        {/* Currency Top-Up Modal when user taps currency pills */}
         {buyModal && <BuyModal type={buyModal} onClose={() => setBuyModal(null)} />}
       </div>
     </MobileShell>

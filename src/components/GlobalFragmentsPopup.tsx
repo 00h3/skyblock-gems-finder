@@ -60,9 +60,11 @@ export function GlobalFragmentsPopup() {
               </button>
             </div>
 
-            {/* Completely blank body as requested */}
+            {/* Under construction */}
             <div className="flex-1 w-full flex flex-col items-center justify-center p-6 bg-white dark:bg-[#14151b]">
-              {/* Intentionally blank */}
+              <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+                Under construction
+              </p>
             </div>
           </motion.div>
         </div>

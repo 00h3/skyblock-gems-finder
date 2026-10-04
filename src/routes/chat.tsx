@@ -27,18 +27,7 @@ import { UserNameWithBadges } from "@/lib/user-style";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { ServerIconBadge } from "@/components/ServerIconBadge";
-import { CreateGroupModal } from "@/components/CreateGroupModal";
-import { GroupChatRoom } from "@/components/GroupChatRoom";
-import { JoinGroupModal } from "@/components/JoinGroupModal";
-import { GroupCard } from "@/components/GroupCard";
 import { ShinyButton } from "@/components/ui/shiny-button";
-import {
-  subscribeUserGroups,
-  subscribeDiscoverableGroups,
-  ensureDefaultCommunityGroups,
-  joinGroupChat,
-  type GroupChatData,
-} from "@/lib/group-chat";
 import {
   collection,
   query,
@@ -339,17 +328,11 @@ const DEV_TEST_USER_THREAD: Thread = {
 function ChatList() {
   const nav = useNavigate();
   const { qbUser } = useAuth();
-  const [tab, setTab] = useState<"friends" | "groups">("friends");
+  const [tab, setTab] = useState<"friends" | "tribes">("friends");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
-  const [userGroups, setUserGroups] = useState<GroupChatData[]>([]);
-  const [discoverGroups, setDiscoverGroups] = useState<GroupChatData[]>([]);
-  const [activeGroupRoom, setActiveGroupRoom] = useState<GroupChatData | null>(null);
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [showJoinGroup, setShowJoinGroup] = useState(false);
   const [searchQ, setSearchQ] = useState("");
-  const [groupSearchQ, setGroupSearchQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -378,22 +361,6 @@ function ChatList() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 2800);
   }
-
-  // ── Realtime group chat subscriptions ─────────────────────────────────────
-  useEffect(() => {
-    if (!qbUser) return;
-    void ensureDefaultCommunityGroups(qbUser.uid);
-    const unsubUser = subscribeUserGroups(qbUser.uid, (groups) => {
-      setUserGroups(groups);
-    });
-    const unsubDiscover = subscribeDiscoverableGroups((groups) => {
-      setDiscoverGroups(groups);
-    });
-    return () => {
-      unsubUser();
-      unsubDiscover();
-    };
-  }, [qbUser]);
 
   // ── Realtime thread list ──────────────────────────────────────────────────
   useEffect(() => {
@@ -657,12 +624,12 @@ function ChatList() {
           </div>
         </div>
 
-        {/* Friends / Friend Groups Top Bar (Requests removed and moved to Inbox) */}
+        {/* Friends / Tribes Top Bar */}
         <div className="mx-3.5 flex gap-1.5 rounded-[22px] p-1 mb-3 bg-black/[0.04] dark:bg-white/[0.06]">
           {(
             [
               { id: "friends", label: "Friends" },
-              { id: "groups", label: "Friend Groups", count: userGroups.length },
+              { id: "tribes", label: "Tribes" },
             ] as const
           ).map((t) => {
             const isSelected = tab === t.id;
@@ -687,11 +654,6 @@ function ChatList() {
                 }`}
               >
                 <span className="truncate">{t.label}</span>
-                {t.id === "groups" && t.count > 0 && (
-                  <span className="rounded-full bg-[#fa4616] px-1.5 py-0.2 text-[9px] font-medium text-white">
-                    {t.count}
-                  </span>
-                )}
               </motion.button>
             );
           })}
@@ -811,90 +773,11 @@ function ChatList() {
                 </button>
               ))}
           </div>
-        ) : tab === "groups" ? (
-          <div className="px-3.5 space-y-3.5 pb-24">
-            {/* Minimal Search Servers & Create Bar */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-[14px] px-3 h-[40px] flex-1 border border-black/5 dark:border-white/5">
-                <input
-                  type="text"
-                  value={groupSearchQ}
-                  onChange={(e) => setGroupSearchQ(e.target.value)}
-                  placeholder="Search servers..."
-                  className="bg-transparent outline-none text-[13px] font-normal flex-1 text-black dark:text-white placeholder:text-neutral-400"
-                />
-                {groupSearchQ && (
-                  <button
-                    type="button"
-                    onClick={() => setGroupSearchQ("")}
-                    className="text-[12px] font-normal text-neutral-400 hover:text-black dark:hover:text-white cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowCreateGroup(true)}
-                className="press h-[40px] px-3.5 rounded-[14px] bg-black text-white dark:bg-white dark:text-black text-[12px] font-normal cursor-pointer shadow-xs shrink-0"
-              >
-                + Create
-              </button>
-            </div>
-
-            {/* Groups Grid */}
-            <div className="space-y-3">
-              {(() => {
-                // Deduplicate groups by id
-                const combinedMap = new Map<string, GroupChatData>();
-                userGroups.forEach((g) => combinedMap.set(g.id, g));
-                discoverGroups.forEach((g) => {
-                  if (!combinedMap.has(g.id)) combinedMap.set(g.id, g);
-                });
-
-                const allGroups = Array.from(combinedMap.values());
-                const filteredGroups = allGroups.filter((g) => {
-                  if (!groupSearchQ.trim()) return true;
-                  const q = groupSearchQ.toLowerCase();
-                  return (
-                    g.name.toLowerCase().includes(q) ||
-                    Boolean(g.goal && g.goal.toLowerCase().includes(q)) ||
-                    Boolean(g.description && g.description.toLowerCase().includes(q))
-                  );
-                });
-
-                if (filteredGroups.length === 0) {
-                  return (
-                    <div className="py-12 text-center text-neutral-400 flex flex-col items-center gap-1.5">
-                      <p className="text-[13px] font-normal">No servers found</p>
-                    </div>
-                  );
-                }
-
-                return filteredGroups.map((group) => {
-                  const isMember = Boolean(qbUser && group.members?.includes(qbUser.uid));
-                  return (
-                    <GroupCard
-                      key={group.id}
-                      group={group}
-                      isMember={isMember}
-                      onOpen={(g) => setActiveGroupRoom(g)}
-                      onJoin={async (g) => {
-                        if (!qbUser) return;
-                        try {
-                          await joinGroupChat(g.id, qbUser.uid, qbUser.displayName || "Player");
-                          setActiveGroupRoom(g);
-                        } catch (err) {
-                          console.error("Failed to join group:", err);
-                        }
-                      }}
-                      onViewRules={(g) => setActiveGroupRoom(g)}
-                    />
-                  );
-                });
-              })()}
-            </div>
+        ) : tab === "tribes" ? (
+          <div className="py-24 flex flex-col items-center justify-center text-center px-4 animate-fade-in">
+            <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+              Under construction
+            </p>
           </div>
         ) : null}
 
@@ -954,64 +837,6 @@ function ChatList() {
             {toast}
           </div>
         ) : null}
-
-        {/* Create Group Modal */}
-        {showCreateGroup && (
-          <CreateGroupModal
-            isOpen={showCreateGroup}
-            onClose={() => setShowCreateGroup(false)}
-            currentUser={
-              qbUser
-                ? {
-                    uid: qbUser.uid,
-                    displayName: qbUser.displayName || qbUser.username || "Player",
-                    username: qbUser.username,
-                  }
-                : null
-            }
-            onGroupCreated={(_newGroupId) => {
-              setShowCreateGroup(false);
-              showToast("Group created!");
-            }}
-          />
-        )}
-
-        {/* Join Group Modal */}
-        {showJoinGroup && (
-          <JoinGroupModal
-            isOpen={showJoinGroup}
-            onClose={() => setShowJoinGroup(false)}
-            currentUser={
-              qbUser
-                ? {
-                    uid: qbUser.uid,
-                    displayName: qbUser.displayName || qbUser.username || "Player",
-                    username: qbUser.username,
-                  }
-                : null
-            }
-            onOpenGroup={(group) => {
-              setShowJoinGroup(false);
-              setActiveGroupRoom(group);
-            }}
-          />
-        )}
-
-        {/* Active Group Chat Room */}
-        {activeGroupRoom && (
-          <GroupChatRoom
-            group={activeGroupRoom}
-            currentUser={{
-              uid: qbUser?.uid || "guest",
-              displayName: qbUser?.displayName || qbUser?.username || "Player",
-              username: qbUser?.username,
-              avatarSnapshot: qbUser?.avatarSnapshot,
-              color: qbUser?.color,
-              staff: qbUser?.staff,
-            }}
-            onBack={() => setActiveGroupRoom(null)}
-          />
-        )}
       </div>
     </MobileShell>
   );

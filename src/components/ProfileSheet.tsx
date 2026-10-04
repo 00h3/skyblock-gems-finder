@@ -573,21 +573,21 @@ export function ProfileSheet({
                         title: "Skyblock",
                         mode: "Island Survival",
                         time: "0.0h",
-                        icon: "https://maxwell.z3ki.dev/bot/_files/qblock-phoenix-island/file_000000001170820a9af3a6c47a27b006.jpg",
+                        icon: baseplateIcon,
                       },
                       {
                         id: "blockfall",
                         title: "Block Fall",
                         mode: "Hexagon Tumble",
                         time: "0.0h",
-                        icon: "/assets/hud/v2/run_asset.png",
+                        icon: baseplateIcon,
                       },
                       {
                         id: "bedwars",
                         title: "BedWars",
                         mode: "Floating Arena",
                         time: "0.0h",
-                        icon: "/assets/controls/icon_fire.png",
+                        icon: baseplateIcon,
                       },
                     ].map((g) => (
                       <div

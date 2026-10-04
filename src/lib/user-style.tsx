@@ -82,12 +82,7 @@ export function getUserBadges(user: UserProfileLike | null | undefined): UserBad
     }
   };
 
-  // Only Group Owner and Verified for mammaettahiri@gmail.com - nothing else
-  add(
-    "group_owner",
-    "Group Owner",
-    "https://maxwell.z3ki.dev/bot/_files/qblock-red-owner-png/qblock-red-owner-transparent.png",
-  );
+  // Only Verified for mammaettahiri@gmail.com - no group badge or tag
   add("verified", "Verified", VERIFIED_BADGE_URL);
 
   return Array.from(badgesMap.values());

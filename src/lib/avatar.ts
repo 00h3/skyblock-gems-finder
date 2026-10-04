@@ -18,14 +18,29 @@ export function getAvatarViewerUrl(opts?: {
   customId?: string;
   isIra?: boolean;
   isStr?: boolean;
+  shirt?: string | null;
+  pants?: string | null;
+  hasCrimsonOutfit?: boolean;
 }): string {
+  if (
+    opts?.hasCrimsonOutfit ||
+    opts?.shirt === "suit-torso" ||
+    opts?.pants === "striped-pants"
+  ) {
+    return "https://maxwell.z3ki.dev/bot/spotlight-crimson/";
+  }
+
   const email = (opts?.email || "").toLowerCase();
   const username = (opts?.username || "").toLowerCase();
   const customId = (opts?.customId || "").toLowerCase();
 
+  const charId = (opts?.characterId || "").toLowerCase();
+
   const isIraOrStr =
     opts?.isIra ||
     opts?.isStr ||
+    charId === "char2" ||
+    charId === "nelly" ||
     email === "mammaettahiri@gmail.com" ||
     email.includes("ira") ||
     username === "ira" ||

@@ -53,7 +53,7 @@ const GAMES: DiscoveryGame[] = [
     title: "SkyBlock",
     subtitle: "Classic floating island",
     bio: "Build and expand your floating island in the sky starting with just a tree and a chest.",
-    img: "https://maxwell.z3ki.dev/bot/_files/qblock-phoenix-island/file_000000001170820a9af3a6c47a27b006.jpg",
+    img: baseplateIcon,
     hue: "from-sky-400 via-emerald-300 to-emerald-200",
     mode: "SkyBlock",
     modeColor: "#0284c7",

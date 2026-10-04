@@ -98,6 +98,28 @@ export const SHOP_CATALOG: ShopItem[] = [
 
   // ── Clothing & separates ────────────────────────────────────────────
   {
+    id: "suit-torso",
+    name: "Suit Torso",
+    slot: "shirt",
+    category: "clothes",
+    price: 0,
+    currency: "gold",
+    texture: "https://maxwell.z3ki.dev/bot/_files/suit-torso/1791123411121.jpg",
+    thumb: "https://maxwell.z3ki.dev/bot/_files/suit-torso/1791123411121.jpg",
+    note: "Striped suit torso shirt",
+  },
+  {
+    id: "striped-pants",
+    name: "Striped Pants",
+    slot: "pants",
+    category: "clothes",
+    price: 0,
+    currency: "gold",
+    texture: "https://maxwell.z3ki.dev/bot/_files/striped-pants/1791123490816.jpg",
+    thumb: "https://maxwell.z3ki.dev/bot/_files/striped-pants/1791123490816.jpg",
+    note: "Striped black and white stockings",
+  },
+  {
     id: "qb-maroon-shirt",
     name: "QB Maroon Shirt",
     slot: "shirt",
@@ -182,6 +204,10 @@ const AVATAR_SHOP_IDS = new Set([
   "denim-pants",
   "face-money",
   "face-sad",
+  "suit-torso",
+  "striped-pants",
+  "qb-maroon-shirt",
+  "qb-maroon-pants",
 ]);
 
 /** The focused avatar catalog: no duplicate hair or unrelated accessories. */

@@ -108,7 +108,7 @@ export const GAMES: Game[] = [
     bio: "Build your island from scratch in the sky.",
     mode: "SkyBlock",
     modeColor: "text-sky-600",
-    icon: "https://maxwell.z3ki.dev/bot/_files/qblock-phoenix-island/file_000000001170820a9af3a6c47a27b006.jpg",
+    icon: baseplateIcon,
     players: "2.1K",
     playable: true,
     likes: "9.2K",
