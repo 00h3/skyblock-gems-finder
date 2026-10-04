@@ -33,12 +33,17 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
           </span>
           <span className="text-[11px] font-bold text-amber-200/70">{p.title}</span>
         </div>
-        {/* Wood-grooved progress track */}
-        <div className="h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+        {/* Wood-grooved progress track with glossy glass finish */}
+        <div className="loader-glossy relative h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.1)]">
           <div
-            className="h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
+            className="loader-glossy relative h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_10px_rgba(245,158,11,0.7)] transition-[width] duration-500 overflow-hidden"
             style={{ width: `${pct}%` }}
-          />
+          >
+            {/* Glossy highlight sheen */}
+            <div className="absolute inset-x-0 top-0 h-[50%] bg-gradient-to-b from-white/80 via-white/30 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
+          </div>
+          <div className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
         </div>
         <div className="flex justify-between text-[10.5px] font-bold tabular-nums text-amber-200/60">
           <span>{p.xp} XP</span>
@@ -80,12 +85,15 @@ export function MilestoneTracker({ progression }: { progression: Progression }) 
                 +{m.rewardXp} XP
               </span>
             </div>
-            {/* Wood-grooved progress track matching island progress */}
-            <div className="h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+            {/* Wood-grooved progress track with glossy glass finish */}
+            <div className="relative h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
               <div
-                className="h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500"
+                className="relative h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500 overflow-hidden"
                 style={{ width: `${pct}%` }}
-              />
+              >
+                <div className="absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-white/75 via-white/25 to-transparent pointer-events-none" />
+              </div>
+              <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/25 to-transparent pointer-events-none" />
             </div>
             <div className="flex justify-between text-[10px] font-bold tabular-nums text-amber-200/70">
               <span>Quest progress</span>

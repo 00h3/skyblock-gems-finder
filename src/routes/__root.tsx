@@ -295,7 +295,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Lilita+One&family=Inter:wght@400;500;600;700;800;900&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
       },
     ],
   }),
@@ -630,7 +630,7 @@ function RootComponent() {
       "avatarSnapshot.shopEquipped": shopEquipped,
       "avatarSnapshot.shopOwned": shopOwned,
     }).catch(() => {});
-  }, [qbUser?.uid, equippedShop, ownedShopItems]);
+  }, [qbUser, qbUser?.uid, equippedShop, ownedShopItems]);
 
   // App-wide: no copying text/images, no pinch or double-tap zoom. The
   // viewport meta tag + CSS `user-select: none` already cover most of this;

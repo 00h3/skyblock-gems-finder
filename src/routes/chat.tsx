@@ -774,8 +774,13 @@ function ChatList() {
               ))}
           </div>
         ) : tab === "tribes" ? (
-          <div className="py-24 flex flex-col items-center justify-center text-center px-4 animate-fade-in">
-            <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+          <div className="tribes-page py-24 flex flex-col items-center justify-center text-center px-4 animate-fade-in font-[Inter]">
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+              alt="Tribes Mascot"
+              className="w-28 h-28 object-contain mb-4 drop-shadow-md"
+            />
+            <p className="text-[17px] font-bold text-[#17191d] dark:text-white font-[Inter] tracking-tight">
               Under construction
             </p>
           </div>

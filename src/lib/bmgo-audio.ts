@@ -74,6 +74,7 @@ export const BMGO_SOUND_URLS = {
   goldDig2: "https://maxwell.z3ki.dev/bot/_files/bmgo-gold-mining2/bmgo_gold_dig2.mp3",
   woodDig: "https://maxwell.z3ki.dev/bot/_files/bmgo-wood-dig/bmgo_wood_dig1.mp3",
   bgmSkywars: "https://maxwell.z3ki.dev/bot/_files/bmgo-skywars-bgm/bmgo_skywar_bgm.mp3",
+  bgmSkyblock: "https://soundimage.org/wp-content/uploads/2014/04/Sky-Game-Menu.mp3",
   bgmBlockFall: "https://maxwell.z3ki.dev/bot/_files/blockman-go-bgm/blockman_go_bgm.mp3",
 };
 
@@ -195,15 +196,52 @@ export const BmgoAudio = {
     }
   },
 
+  /** Start dedicated looped Skyblock BGM */
+  startSkyblockBgm(volume = 0.35) {
+    if (typeof window === "undefined") return;
+    if (!bgmAudio || !bgmAudio.src.includes("Sky-Game-Menu.mp3")) {
+      if (bgmAudio) {
+        bgmAudio.pause();
+      }
+      bgmAudio = new Audio(BMGO_SOUND_URLS.bgmSkyblock);
+      bgmAudio.loop = true;
+      bgmAudio.preload = "auto";
+    }
+    bgmAudio.volume = volume * masterVolume;
+    const playPromise = bgmAudio.play();
+    if (playPromise) {
+      playPromise
+        .then(() => {
+          isBgmPlaying = true;
+        })
+        .catch(() => {
+          const startOnGesture = () => {
+            if (bgmAudio) {
+              bgmAudio
+                .play()
+                .then(() => {
+                  isBgmPlaying = true;
+                })
+                .catch(() => {});
+            }
+            window.removeEventListener("pointerdown", startOnGesture);
+            window.removeEventListener("keydown", startOnGesture);
+          };
+          window.addEventListener("pointerdown", startOnGesture, { once: true });
+          window.addEventListener("keydown", startOnGesture, { once: true });
+        });
+    }
+  },
+
   startBlockFallBgm(volume = 0.45) {
     if (typeof window === "undefined") return;
-    if (!bgmAudio) {
+    if (!bgmAudio || !bgmAudio.src.includes("blockman_go_bgm.mp3")) {
+      if (bgmAudio) bgmAudio.pause();
       bgmAudio = new Audio(BMGO_SOUND_URLS.bgmBlockFall);
       bgmAudio.loop = true;
       bgmAudio.preload = "auto";
-      bgmAudio.volume = volume;
     }
-    bgmAudio.volume = volume;
+    bgmAudio.volume = volume * masterVolume;
     const playPromise = bgmAudio.play();
     if (playPromise) {
       playPromise
@@ -351,7 +389,8 @@ export const BmgoAudio = {
         if (dist <= minDist) factor = 1.0;
         else if (dist < maxDist) factor = 1.0 - (dist - minDist) / (maxDist - minDist);
 
-        const targetGain = factor * 0.42 * masterVolume;
+        // Lower volume water ambient per user request (very gentle and subtle)
+        const targetGain = factor * 0.035 * masterVolume;
         masterGain.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.1);
         animId = requestAnimationFrame(updateVolume);
       };
@@ -368,9 +407,9 @@ export const BmgoAudio = {
   },
 
   /**
-   * Authentic water splash sound effect (dropping into or wading through water)
+   * Authentic water splash sound effect (dropping into or wading through water) - subtle and lowered volume
    */
-  playWaterSplash(volume = 0.5) {
+  playWaterSplash(volume = 0.08) {
     initSounds();
     try {
       if (typeof window !== "undefined") {
@@ -388,7 +427,7 @@ export const BmgoAudio = {
         osc.type = "sine";
         osc.frequency.setValueAtTime(160, now);
         osc.frequency.exponentialRampToValueAtTime(45, now + 0.22);
-        oscGain.gain.setValueAtTime(0.35 * effVol, now);
+        oscGain.gain.setValueAtTime(0.22 * effVol, now);
         oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
         osc.connect(oscGain);
         oscGain.connect(ctx.destination);

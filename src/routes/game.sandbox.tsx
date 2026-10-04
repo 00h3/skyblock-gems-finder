@@ -31,6 +31,7 @@ import { Link } from "@tanstack/react-router";
 import { SandboxChat } from "@/components/SandboxChat";
 import { openFragments } from "@/lib/fragments-ui";
 import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
+import { UserSquareCardModal, type UserSquareCardData } from "@/components/UserSquareCardModal";
 import { getTargetDpr } from "@/lib/rendering";
 import { GameChatIcon } from "@/components/game-icons";
 import { BedwarsHud, type MovementMode } from "@/components/BedwarsHud";
@@ -388,30 +389,30 @@ function buildForestArena(world: World) {
 }
 
 /**
- * Hypixel-style SkyBlock starting island:
- * A fairly large organic floating L-shaped island floating high in the sky.
- * Top grass surface at Y = 16.
- * Contains ONLY:
+ * SkyBlock starting island:
+ * Sized a little bit smaller and tighter per user request (~15x15 compact organic footprint).
+ * Contains:
  * - A floating grass island (dirt core, stone/cobble bedrock tapered bottom)
- * - Exactly ONE tree (oak log + leaves)
- * - Exactly ONE chest (with starter supplies)
- * Nothing else (no NPCs, mobs, shops, or extra buildings).
+ * - Exactly ONE oak tree (oak log + oak leaves canopy)
+ * - Water source pool (more liquid & expanding)
+ * - Lava source pool (enclosed in cobblestone so player can make obsidian / cobblestone generator!)
+ * - Accents (cobblestone, mossy cobble, pumpkin)
  */
 function buildSkyblockIsland(world: World) {
   const surfaceY = 16;
-  const bottomTipY = 6;
+  const bottomTipY = 9;
 
-  // Fairly large, spacious island footprint (~24 x 20 blocks)
-  for (let x = -13; x <= 14; x++) {
-    for (let z = -13; z <= 14; z++) {
+  // Smaller, compact island footprint (radius ~6.8 blocks)
+  for (let x = -8; x <= 8; x++) {
+    for (let z = -8; z <= 8; z++) {
       const dMain = Math.hypot(x, z);
-      const dExt = Math.hypot(x - 6, z - 5);
-      const inIsland = dMain <= 9.4 || dExt <= 6.5 || (x >= -2 && x <= 8 && z >= -2 && z <= 7);
+      const dExt = Math.hypot(x - 3, z - 3);
+      const inIsland = dMain <= 6.8 || dExt <= 4.8 || (x >= -4 && x <= 4 && z >= -4 && z <= 4);
       if (!inIsland) continue;
 
       // Distance from edge: determines island depth tapering towards the center
-      const edgeDist = Math.max(9.4 - dMain, 6.5 - dExt, 0);
-      const islandDepth = Math.round(2 + edgeDist * 1.15);
+      const edgeDist = Math.max(6.8 - dMain, 4.8 - dExt, 0);
+      const islandDepth = Math.round(2 + edgeDist * 1.05);
       const bottomY = Math.max(bottomTipY, surfaceY - islandDepth);
 
       for (let y = bottomY; y <= surfaceY; y++) {
@@ -419,8 +420,8 @@ function buildSkyblockIsland(world: World) {
         if (y === surfaceY) {
           blockId = 1; // Grass
         } else if (y === bottomY) {
-          blockId = edgeDist > 5 ? 12 : 3; // Bedrock core or stone tip
-        } else if (y < surfaceY - 2) {
+          blockId = edgeDist > 3 ? 12 : 3; // Bedrock core or stone tip
+        } else if (y < surfaceY - 1) {
           blockId = (x + y + z) % 3 === 0 ? 4 : 3; // Cobblestone & stone underside
         }
         world.set(x, y, z, blockId);
@@ -428,33 +429,56 @@ function buildSkyblockIsland(world: World) {
     }
   }
 
-  // Starter Island Accents
-  world.set(1, 16, 1, 4); // Cobblestone
-  world.set(1, 16, 2, 14); // Mossy Cobblestone
-  world.set(2, 16, 1, 4); // Cobblestone
-  world.set(-1, 17, 4, 26); // Starter Pumpkin
-  world.set(5, 16, 2, 17); // Starter Ice Block
-
-  // Small spring pond on the east lobe; the shader water surface sits in it.
-  const { x: px, z: pz, radius } = SKYBLOCK_POND;
-  for (let dx = -3; dx <= 3; dx++) {
-    for (let dz = -3; dz <= 3; dz++) {
-      const d = Math.hypot(dx, dz);
-      if (d > radius) continue;
-      world.set(px + dx, 16, pz + dz, 0);
-      if (d < 1.6) {
-        world.set(px + dx, 15, pz + dz, 0);
-        world.set(px + dx, 14, pz + dz, 6);
-      } else {
-        world.set(px + dx, 15, pz + dz, 6);
+  // Starter Tree (Oak wood trunk + leaf canopy)
+  const treeX = -3;
+  const treeZ = -3;
+  for (let ty = 17; ty <= 21; ty++) {
+    world.set(treeX, ty, treeZ, 5); // Oak Log
+  }
+  // Leaves canopy
+  for (let lx = -2; lx <= 2; lx++) {
+    for (let lz = -2; lz <= 2; lz++) {
+      for (let ly = 20; ly <= 22; ly++) {
+        if (Math.abs(lx) + Math.abs(lz) <= 3 && !(lx === 0 && lz === 0 && ly < 22)) {
+          if (world.get(treeX + lx, ly, treeZ + lz) === 0) {
+            world.set(treeX + lx, ly, treeZ + lz, 9); // Oak Leaves
+          }
+        }
       }
     }
   }
+
+  // Starter Island Accents
+  world.set(0, 16, 0, 4); // Cobblestone
+  world.set(0, 16, 1, 14); // Mossy Cobblestone
+  world.set(-1, 17, 3, 26); // Starter Pumpkin
+
+  // Water spring pond (contained in grass/dirt basin)
+  world.set(2, 16, 2, 0);
+  world.set(3, 16, 2, 0);
+  world.set(2, 16, 3, 0);
+  world.set(3, 16, 3, 0);
+  world.set(2, 15, 2, 6); // Water block
+  world.set(3, 15, 2, 6); // Water block
+  world.set(2, 15, 3, 6); // Water block
+  world.set(3, 15, 3, 6); // Water block
+
+  // Lava pool (contained in cobblestone/stone basin so player has lava for obsidian/cobblestone)
+  world.set(3, 16, -3, 0);
+  world.set(4, 16, -3, 0);
+  world.set(3, 15, -3, 62); // Lava source block
+  world.set(4, 15, -3, 62); // Lava source block
+  world.set(2, 16, -3, 4);  // Cobblestone border
+  world.set(5, 16, -3, 4);  // Cobblestone border
+  world.set(3, 16, -4, 4);  // Cobblestone border
+  world.set(4, 16, -4, 4);  // Cobblestone border
+  world.set(3, 16, -2, 4);  // Cobblestone border
+  world.set(4, 16, -2, 4);  // Cobblestone border
 }
 
-const SKYBLOCK_POND = { x: 6, z: 5, radius: 2.7 };
-/** Water plane: 7x7 so its edges tuck under the surrounding grass blocks. */
-const SKYBLOCK_POND_SURFACE = { x: SKYBLOCK_POND.x + 0.5, y: 16.82, z: SKYBLOCK_POND.z + 0.5, size: 7 };
+const SKYBLOCK_POND = { x: 2.5, z: 2.5, radius: 1.8 };
+/** Water plane: fits cleanly inside pond basin */
+const SKYBLOCK_POND_SURFACE = { x: SKYBLOCK_POND.x, y: 15.88, z: SKYBLOCK_POND.z, size: 3.5 };
 
 export const BLOCK_FALL_PLATFORM_LEVELS = [36, 29, 22, 15, 8] as const;
 
@@ -982,7 +1006,8 @@ export function SandboxGame({
   const [quickBuyOpen, setQuickBuyOpen] = useState(false);
   const [playerHunger, setPlayerHunger] = useState(20);
   const [runesTimeLeft, setRunesTimeLeft] = useState(600);
-  const [hud, setHud] = useState({ fps: 0, x: 0, y: 0, z: 0 });
+  const [inspectUser, setInspectUser] = useState<UserSquareCardData | null>(null);
+  const inspectUserRef = useRef<((data: UserSquareCardData) => void) | null>(null);
   const [showHud, setShowHud] = useState(true);
   const [tileUrls, setTileUrls] = useState<Record<number | string, string>>({});
   const touchLook = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -2070,16 +2095,29 @@ export function SandboxGame({
         matchmaker.load(2.28).catch(() => {});
       }
 
-      // ── "Hit Me" training NPC: takes knockback, flashes red, heals back ──
+      // ── "Tutorial" NPC: takes knockback, flashes red, heals back ──
       const hitMe = new Avatar();
       hitMe.idleStill = true;
-      const hitMeHome = new THREE.Vector3(player.position.x + 3, player.position.y, player.position.z + 2);
+      const hitMeHome = new THREE.Vector3(player.position.x + 2.5, player.position.y, player.position.z + 2);
       hitMe.group.position.copy(hitMeHome);
-      scene.add(hitMe.group);
+      hitMe.group.visible = false;
       hitMe.load(2.28).catch(() => {});
       const hitMeVel = new THREE.Vector3();
-      const hitMeBar = createHpBar("Hit Me", 20);
+      const hitMeBar = createHpBar("Tutorial", 20);
       scene.add(hitMeBar.sprite);
+
+      // ── Floating animated indicator arrow upper the Tutorial NPC ──
+      const arrowGroup = new THREE.Group();
+      const arrowConeGeo = new THREE.ConeGeometry(0.26, 0.52, 8);
+      arrowConeGeo.rotateX(Math.PI); // Point down towards NPC
+      const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+      const arrowCone = new THREE.Mesh(arrowConeGeo, arrowMat);
+      arrowGroup.add(arrowCone);
+      const arrowStemGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.38, 8);
+      const arrowStem = new THREE.Mesh(arrowStemGeo, arrowMat);
+      arrowStem.position.y = 0.38;
+      arrowGroup.add(arrowStem);
+      scene.add(arrowGroup);
       let hitMeHp = 20;
       let hitMeRedT = 0;
       let hitMeHealT = 0;
@@ -2135,6 +2173,10 @@ export function SandboxGame({
         const faceYaw = Math.atan2(player.position.x - p.x, player.position.z - p.z);
         hitMe.update(dt, p, faceYaw, Math.hypot(hitMeVel.x, hitMeVel.z), hitMeOnGround, false, hitMeVel.y);
         hitMeBar.sprite.position.set(p.x, p.y + 2.7, p.z);
+        // Float & bounce the indicator arrow above Tutorial NPC
+        const arrowBounce = Math.sin(clock.getElapsedTime() * 4.2) * 0.16;
+        arrowGroup.position.set(p.x, p.y + 3.45 + arrowBounce, p.z);
+        arrowGroup.rotation.y += dt * 2.5;
 
         if (hitMeRedT > 0) {
           collectHitMeMats();
@@ -2340,11 +2382,14 @@ export function SandboxGame({
 
       controls = new Controls(renderer.domElement);
       controlsRef.current = controls;
+      if (skyblock) {
+        BmgoAudio.startSkyblockBgm();
+      }
       controls.onLockChange = (isLocked) => {
         setLocked(isLocked);
         if (isLocked) {
           BmgoAudio.unlock();
-          if (skyblock) BmgoAudio.startBgm();
+          if (skyblock) BmgoAudio.startSkyblockBgm();
           if (blockFall) BmgoAudio.startBlockFallBgm();
         }
       };
@@ -2462,7 +2507,13 @@ export function SandboxGame({
 
         const npcCenter = hitMe.group.position.clone().add(new THREE.Vector3(0, 1.1, 0));
         const npcDist = features.rayHitsPlayer(eye, dir, hitMe.group.position, stats.reach + 0.4);
+        /*
         if (npcDist >= 0) {
+          setInspectUser({
+            name: "Tutorial",
+            isNpc: true,
+            photo: "https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png",
+          });
           const damage = landDamage();
           const kb = features.knockback(hitDir, stats.knockback, sprinting, chargeMul);
           hitMeVel.set(kb.x, kb.y, kb.z);
@@ -2475,6 +2526,8 @@ export function SandboxGame({
           playSound("sword_hit");
           return true;
         }
+        */
+
 
         if (!remotes) return false;
         let best: { uid: string; center: THREE.Vector3; d: number } | null = null;
@@ -2485,6 +2538,12 @@ export function SandboxGame({
           if (!best || d < best.d) best = { uid, center, d };
         }
         if (!best) return false;
+        const targetPlayerName = names.get(best.uid) || "Player";
+        setInspectUser({
+          name: targetPlayerName,
+          uid: best.uid,
+          isNpc: false,
+        });
         const damage = landDamage();
         const s = hpFor(best.uid);
         if (s.respawnIn <= 0) {
@@ -2835,9 +2894,8 @@ export function SandboxGame({
         // 15ms at a steady 60Hz). Feeding that noise into movement makes the
         // camera micro-stutter, so we blend toward the raw delta; real frame
         // drops (>1.6x the average) pass through immediately.
-        const clamped = Math.min(raw, 0.05);
-        smoothDt = clamped > smoothDt * 1.6 ? clamped : smoothDt + (clamped - smoothDt) * 0.25;
-        const dt = smoothDt;
+        // High-precision display refresh rate delta (butter-smooth 60/120fps motion)
+        const dt = Math.min(Math.max(raw, 0.001), 0.05);
 
         const input = controls!.read();
         const tNow = matchNow();
@@ -3323,15 +3381,6 @@ export function SandboxGame({
           statusAcc = 0;
         }
         if (acc >= 0.5) {
-          const fps = Math.round(frames / acc);
-          setHud({
-            fps,
-            x: Math.floor(player.position.x),
-            y: Math.floor(player.position.y),
-            z: Math.floor(player.position.z),
-          });
-          // Max-quality mode: stay at full device resolution. Only drop a
-          // little (never below 1.5x) if the frame rate really collapses.
           frames = 0;
           acc = 0;
         }
@@ -4279,6 +4328,16 @@ export function SandboxGame({
         </div>
       )}
       {chatOpen && <SandboxChat onClose={() => setChatOpen(false)} />}
+      {inspectUser && (
+        <UserSquareCardModal
+          user={inspectUser}
+          onClose={() => setInspectUser(null)}
+          onVisit={() => {
+            setInspectUser(null);
+            console.log("Visiting:", inspectUser);
+          }}
+        />
+      )}
 
       {settingsOpen && (
         <FlatSquareSettingsModal onClose={() => setSettingsOpen(false)} />

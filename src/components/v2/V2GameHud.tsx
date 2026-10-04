@@ -19,6 +19,7 @@ type Props = {
   running: boolean;
   thirdPerson: boolean;
   muted: boolean;
+  isSkyblock?: boolean;
   /** When true, touch controls sit above the bottom-pinned inventory bar. */
   hasHotbar?: boolean;
   /** Mode-specific overlays (status bars, hotbar, countdown...). */
@@ -50,6 +51,7 @@ export function V2GameHud({
   running,
   thirdPerson,
   muted,
+  isSkyblock = false,
   hasHotbar = false,
   topCenter,
   children,
@@ -99,13 +101,15 @@ export function V2GameHud({
     { label: "Camera", icon: UI.video, onClick: onToggleCamera },
   ];
 
+  const effectiveControlsScale = isSkyblock ? controlsScale * 0.78 : controlsScale;
+
   return (
     <div
-      className="v2-ui pointer-events-none fixed inset-0 z-[100] select-none"
-      style={{ ["--hb" as string]: hasHotbar ? "52px" : "0px" }}
+      className={cn("v2-ui game-font-inter pointer-events-none fixed inset-0 z-[100] select-none", isSkyblock && "skyblock-scaled-ui")}
+      style={{ ["--hb" as string]: hasHotbar ? (isSkyblock ? "40px" : "52px") : "0px", fontFamily: "'Inter', sans-serif" }}
     >
-      <header className="absolute inset-x-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] flex flex-wrap items-start justify-between gap-1.5 sm:inset-x-5">
-        <nav aria-label="Game" className="pointer-events-auto flex gap-1.5">
+      <header className="absolute inset-x-3 top-[max(6px,calc(env(safe-area-inset-top)+4px))] flex flex-wrap items-start justify-between gap-1 sm:inset-x-4">
+        <nav aria-label="Game" className="pointer-events-auto flex gap-1">
           {topButtons.map((b) => (
             <button
               key={b.label}
@@ -115,31 +119,48 @@ export function V2GameHud({
               title={b.label}
               aria-expanded={b.label === "Menu" ? menuOpen : undefined}
               className={cn(
-                "relative grid h-10 w-10 place-items-center transition-all duration-150 active:scale-90 sm:h-11 sm:w-11 rounded-full",
+                "relative grid place-items-center transition-all duration-150 active:scale-90 rounded-full",
+                isSkyblock ? "h-7 w-7 sm:h-8 sm:w-8" : "h-10 w-10 sm:h-11 sm:w-11",
                 b.active && "ring-2 ring-purple-400 bg-purple-600/35 shadow-[0_0_16px_rgba(168,85,247,0.85)] animate-pulse",
               )}
             >
               <img src={b.icon} alt="" draggable={false} className="h-full w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]" />
               {b.active && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500 shadow-[0_0_6px_#c084fc]"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500 shadow-[0_0_6px_#c084fc]"></span>
                 </span>
               )}
             </button>
           ))}
+          {isSkyblock && (
+            <div className="hidden sm:flex items-center gap-1.5 ml-2 p-1.5 rounded-xl bg-black/35 backdrop-blur-md border border-white/10 shadow-lg">
+              <span className="text-[12px] font-bold text-[#ff80bf] [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+                [Skyblock Team]
+              </span>
+              <span className="text-[12px] font-bold text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+                Welcome to skyblock!
+              </span>
+            </div>
+          )}
         </nav>
         {topCenter && (
-          <div className="pointer-events-none flex w-full justify-center sm:w-auto sm:flex-1 sm:justify-end">
+          <div className={cn("pointer-events-none flex w-full justify-center sm:w-auto sm:flex-1 sm:justify-end", isSkyblock && "scale-[0.80] origin-top-right")}>
             {topCenter}
           </div>
         )}
       </header>
 
-      {children}
+      {isSkyblock ? (
+        <div className="scale-[0.82] origin-bottom-center pointer-events-none w-full h-full flex flex-col justify-end">
+          {children}
+        </div>
+      ) : (
+        children
+      )}
 
       {isTouch && (
-        <div style={{ transform: controlsScale !== 1.0 ? `scale(${controlsScale})` : undefined, transformOrigin: "bottom center" }}>
+        <div style={{ transform: effectiveControlsScale !== 1.0 ? `scale(${effectiveControlsScale})` : undefined, transformOrigin: "bottom center" }}>
           <DPad
             onMove={onMove}
             running={running}

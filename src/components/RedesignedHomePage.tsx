@@ -214,7 +214,7 @@ export function RedesignedHomePage({
                     <PlayersIcon className="h-3.5 w-3.5" /> 1
                   </span>
                   <span className="flex items-center gap-1">
-                    <ClapIcon className="h-[12px] w-[12px]" /> 1
+                    <ClapIcon className="h-[12px] w-[12px] text-transparent bg-clip-text bg-gradient-to-br from-pink-500 to-red-500" /> 1
                   </span>
                 </span>
               </span>
@@ -256,7 +256,7 @@ export function RedesignedHomePage({
                     <PlayersIcon className="h-3 w-3" /> 1
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <ClapIcon className="h-[10px] w-[10px]" /> 1
+                    <ClapIcon className="h-[10px] w-[10px] text-transparent bg-clip-text bg-gradient-to-br from-pink-500 to-red-500" /> 1
                   </span>
                 </span>
               </button>

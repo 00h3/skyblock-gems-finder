@@ -53,7 +53,7 @@ function RewardsPage() {
 
   return (
     <SubPage title="Redeem Code">
-      <div className="min-h-full bg-slate-50 dark:bg-[#0e0f12] px-4 pb-12 pt-4">
+      <div className="rewards-under-construction min-h-full bg-slate-50 dark:bg-[#0e0f12] px-4 pb-12 pt-4 font-[Inter]">
         {/* Banner Card */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 p-6 text-white shadow-lg shadow-amber-500/20">
           <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
@@ -70,8 +70,12 @@ function RewardsPage() {
                 Enter secret promotional codes to unlock coins, cosmetics, and passes.
               </p>
             </div>
-            <div className="shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 grid place-items-center shadow-inner">
-              <Gift className="h-9 w-9 text-white fill-white/20 stroke-[1.8]" />
+            <div className="shrink-0 w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 grid place-items-center shadow-inner overflow-hidden p-1">
+              <img
+                src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+                alt="Rewards Mascot"
+                className="w-full h-full object-contain drop-shadow"
+              />
             </div>
           </div>
         </div>

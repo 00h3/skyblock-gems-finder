@@ -15,7 +15,7 @@ function EventsPage() {
 
   return (
     <MobileShell>
-      <div className="events-page app-page min-h-screen bg-[#f5f6f7] dark:bg-[#0d0e14] flex flex-col select-none">
+      <div className="events-page app-page min-h-screen bg-[#f5f6f7] dark:bg-[#0d0e14] flex flex-col select-none font-[Inter]">
         {/* Top Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#111218]">
           <button
@@ -26,13 +26,18 @@ function EventsPage() {
             <ChevronLeft className="h-4 w-4" />
             Back
           </button>
-          <span className="text-[15px] font-extrabold text-[#1e293b] dark:text-white">Events</span>
+          <span className="text-[15px] font-extrabold text-[#1e293b] dark:text-white font-[Inter]">Events</span>
           <div className="w-12" />
         </div>
 
         {/* Under construction */}
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-          <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+          <img
+            src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+            alt="Events Mascot"
+            className="w-28 h-28 object-contain mb-4 drop-shadow-md"
+          />
+          <p className="text-[17px] font-bold text-[#17191d] dark:text-white font-[Inter] tracking-tight">
             Under construction
           </p>
         </div>

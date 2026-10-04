@@ -62,7 +62,12 @@ export function GlobalEventsPopup() {
 
             {/* Under construction */}
             <div className="flex-1 w-full flex flex-col items-center justify-center p-6 bg-white dark:bg-[#14151b]">
-              <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+              <img
+                src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+                alt="Events Mascot"
+                className="w-28 h-28 object-contain mb-4 drop-shadow-md"
+              />
+              <p className="text-[17px] font-bold text-[#17191d] dark:text-white font-sans tracking-tight">
                 Under construction
               </p>
             </div>

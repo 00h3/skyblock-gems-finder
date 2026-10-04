@@ -388,7 +388,7 @@ export const BLOCKS: BlockDef[] = [
   { id: 59, name: "Ladder", top: "ladder", side: "ladder", bottom: "ladder", transparent: true, passable: true, climb: true, hardness: 0.4 },
   { id: 60, name: "Bed", top: "bed_top", side: "bed_side", bottom: "oak_planks", hardness: 0.6 },
   { id: 61, name: "Respawn Anchor", top: "respawn_anchor_top", side: "respawn_anchor", bottom: "respawn_anchor_top", hardness: 5, glow: 0.6 },
-  { id: 62, name: "Lava", top: "lava", side: "lava", bottom: "lava", passable: true, hardness: 0.2, glow: 1 },
+  { id: 62, name: "Lava", top: "lava", side: "lava", bottom: "lava", transparent: true, liquid: true, passable: true, hardness: 0.2, glow: 1 },
   { id: 63, name: "Slime Block", top: "slime_block", side: "slime_block", bottom: "slime_block", hardness: 0.4 },
   { id: 64, name: "Oak Slab", top: "oak_planks", side: "oak_planks", bottom: "oak_planks", shape: "slab", hardness: 1.5 },
   { id: 65, name: "Stone Slab", top: "smooth_stone", side: "smooth_stone", bottom: "smooth_stone", shape: "slab", hardness: 2.2 },
@@ -559,7 +559,7 @@ export class World {
   private material: THREE.Material;
   private transparentMaterial: THREE.Material;
   private waterMaterial: THREE.Material;
-  private pendingWaterFlows: { x: number; y: number; z: number; time: number; spread: number }[] = [];
+  private pendingWaterFlows: { x: number; y: number; z: number; time: number; spread: number; isLava?: boolean }[] = [];
   private queuedWaterCoords = new Set<string>();
 
   constructor(
@@ -654,11 +654,20 @@ export class World {
   }
 
   queueWaterFlow(x: number, y: number, z: number, delayMs = 320, spread = 0) {
+    this.queueLiquidFlow(x, y, z, false, delayMs, spread);
+  }
+
+  queueLavaFlow(x: number, y: number, z: number, delayMs = 420, spread = 0) {
+    this.queueLiquidFlow(x, y, z, true, delayMs, spread);
+  }
+
+  queueLiquidFlow(x: number, y: number, z: number, isLava = false, delayMs = 320, spread = 0) {
     if (y < 2 || y >= WORLD_H) return;
-    if (spread > 5) return;
+    if (spread > 8) return;
     const key = `${x},${y},${z}`;
     if (this.queuedWaterCoords.has(key)) return;
-    if (this.get(x, y, z) !== 0) return;
+    const existing = this.get(x, y, z);
+    if (existing !== 0 && existing !== (isLava ? WATER_ID : LAVA_ID)) return;
     this.queuedWaterCoords.add(key);
     this.pendingWaterFlows.push({
       x,
@@ -666,6 +675,7 @@ export class World {
       z,
       time: performance.now() + delayMs,
       spread,
+      isLava,
     });
   }
 
@@ -675,6 +685,28 @@ export class World {
     if (!c) return;
     const lx = ((x % CHUNK) + CHUNK) % CHUNK;
     const lz = ((z % CHUNK) + CHUNK) % CHUNK;
+
+    // Check liquid interaction: Water + Lava collision yields Obsidian (11) or Cobblestone (4)
+    if (id === WATER_ID || id === LAVA_ID) {
+      const otherLiquid = id === WATER_ID ? LAVA_ID : WATER_ID;
+      const dirs = [
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, -1, 0],
+        [0, 0, 1],
+        [0, 0, -1],
+      ];
+      for (const [dx, dy, dz] of dirs) {
+        const neighbor = this.get(x + dx, y + dy, z + dz);
+        if (neighbor === otherLiquid) {
+          // Water touching lava quenches into Obsidian (11) or Cobblestone (4)
+          id = (id === WATER_ID || dy === -1) ? 11 : 4;
+          break;
+        }
+      }
+    }
+
     c.data[c.idx(lx, y, lz)] = id;
     if (id !== 0) this.activeChunks.add(`${c.cx},${c.cz}`);
     c.dirty = true;
@@ -684,15 +716,21 @@ export class World {
     if (lz === 0) this.markDirty(x, z - 1);
     if (lz === CHUNK - 1) this.markDirty(x, z + 1);
 
-    // Liquid flow simulation: if a block was removed (became air), check if adjacent water should flow into it slowly
+    // Liquid flow simulation: if a block became air, check if adjacent liquid flows in
     if (id === 0) {
       if (this.get(x, y + 1, z) === WATER_ID) {
-        this.queueWaterFlow(x, y, z, 220, 0);
+        this.queueWaterFlow(x, y, z, 200, 0);
+      } else if (this.get(x, y + 1, z) === LAVA_ID) {
+        this.queueLavaFlow(x, y, z, 300, 0);
       } else {
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         for (const [dx, dz] of dirs) {
-          if (this.get(x + dx, y, z + dz) === WATER_ID) {
-            this.queueWaterFlow(x, y, z, 340, 1);
+          const adj = this.get(x + dx, y, z + dz);
+          if (adj === WATER_ID) {
+            this.queueWaterFlow(x, y, z, 300, 1);
+            break;
+          } else if (adj === LAVA_ID) {
+            this.queueLavaFlow(x, y, z, 420, 1);
             break;
           }
         }
@@ -700,12 +738,24 @@ export class World {
     } else if (id === WATER_ID) {
       // Flow downward first if air below
       if (y > 2 && this.get(x, y - 1, z) === 0) {
-        this.queueWaterFlow(x, y - 1, z, 240, 0);
+        this.queueWaterFlow(x, y - 1, z, 200, 0);
       } else {
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         for (const [dx, dz] of dirs) {
           if (this.get(x + dx, y, z + dz) === 0) {
-            this.queueWaterFlow(x + dx, y, z + dz, 380, 1);
+            this.queueWaterFlow(x + dx, y, z + dz, 320, 1);
+          }
+        }
+      }
+    } else if (id === LAVA_ID) {
+      // Lava expands slightly slower and thicker
+      if (y > 2 && this.get(x, y - 1, z) === 0) {
+        this.queueLavaFlow(x, y - 1, z, 320, 0);
+      } else {
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (const [dx, dz] of dirs) {
+          if (this.get(x + dx, y, z + dz) === 0) {
+            this.queueLavaFlow(x + dx, y, z + dz, 450, 1);
           }
         }
       }
@@ -794,8 +844,15 @@ export class World {
         if (now >= flow.time) {
           this.pendingWaterFlows.splice(i, 1);
           this.queuedWaterCoords.delete(`${flow.x},${flow.y},${flow.z}`);
-          if (this.get(flow.x, flow.y, flow.z) === 0) {
-            this.set(flow.x, flow.y, flow.z, WATER_ID);
+          const current = this.get(flow.x, flow.y, flow.z);
+          if (current === 0) {
+            this.set(flow.x, flow.y, flow.z, flow.isLava ? LAVA_ID : WATER_ID);
+          } else if (flow.isLava && current === WATER_ID) {
+            // Lava expands into water -> cobblestone (4)
+            this.set(flow.x, flow.y, flow.z, 4);
+          } else if (!flow.isLava && current === LAVA_ID) {
+            // Water expands into lava -> obsidian (11)
+            this.set(flow.x, flow.y, flow.z, 11);
           }
         }
       }
