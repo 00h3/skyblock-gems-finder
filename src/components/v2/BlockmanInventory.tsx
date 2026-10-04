@@ -17,7 +17,12 @@ export const ITEM_INFO: Record<string, { name: string; damage: number; rarity: R
 };
 
 for (const [id, info] of Object.entries(UTILITY_INFO)) {
-  ITEM_INFO[id] = { name: info.name, damage: 0, rarity: id === "ender_pearl" || id === "fire_charge" ? "epic" : "rare", desc: info.desc };
+  ITEM_INFO[id] = {
+    name: info.name,
+    damage: 0,
+    rarity: id === "ender_pearl" || id === "fire_charge" || id === "wind_charge" ? "epic" : "rare",
+    desc: info.desc,
+  };
 }
 
 type Rarity = "common" | "rare" | "epic" | "legend";

@@ -5,7 +5,6 @@ import type { Hit } from "./interact";
 
 export type ItemId = number | string;
 
-/** Utility items that live in the backpack next to swords and blocks. */
 export const UTILITY_ITEMS = [
   "water_bucket",
   "lava_bucket",
@@ -14,6 +13,9 @@ export const UTILITY_ITEMS = [
   "ender_pearl",
   "golden_apple",
   "shield",
+  "wind_charge",
+  "speed_potion",
+  "slime_ball",
 ] as const;
 
 export const UTILITY_INFO: Record<string, { name: string; desc: string }> = {
@@ -24,6 +26,9 @@ export const UTILITY_INFO: Record<string, { name: string; desc: string }> = {
   ender_pearl: { name: "Ender Pearl", desc: "Throw and teleport to where it lands." },
   golden_apple: { name: "Golden Apple", desc: "Restores health. Great from the off-hand." },
   shield: { name: "Shield", desc: "Raise just before a hit to parry. Hold it in the off-hand." },
+  wind_charge: { name: "Wind Charge", desc: "Launch compressed air! Propels you high into the sky on impact." },
+  speed_potion: { name: "Swiftness Potion", desc: "Drink for an agile +50% speed boost and bouncy strides for 15s." },
+  slime_ball: { name: "Slime Ball", desc: "Bouncy gel blob. Throw to launch yourself or trigger a mega-bounce." },
 };
 
 export const NEW_BLOCK_IDS: number[] = [
@@ -53,8 +58,8 @@ export const NEW_BACKPACK_ITEMS: ItemId[] = [...UTILITY_ITEMS, ...NEW_BLOCK_IDS]
 export const QUICK_BUY_PRESETS: { name: string; blurb: string; items: ItemId[] }[] = [
   {
     name: "Rusher",
-    blurb: "Fast bridge and a pearl to escape",
-    items: ["iron_sword", 5, 13, 10, "ender_pearl", "water_bucket", "golden_apple", 59, 63],
+    blurb: "Fast bridge, pearl, and wind charge to escape",
+    items: ["iron_sword", 5, 13, 10, "ender_pearl", "wind_charge", "speed_potion", "golden_apple", 59, 63],
   },
   {
     name: "Defender",
@@ -63,17 +68,23 @@ export const QUICK_BUY_PRESETS: { name: string; blurb: string; items: ItemId[] }
   },
   {
     name: "Raider",
-    blurb: "TNT, igniters and a diamond blade",
-    items: ["diamond_sword", 57, "flint_steel", "fire_charge", "ender_pearl", 5, "water_bucket", "golden_apple", 59],
+    blurb: "TNT, igniters, wind burst and a diamond blade",
+    items: ["diamond_sword", 57, "flint_steel", "fire_charge", "wind_charge", "ender_pearl", 5, "water_bucket", "golden_apple", 59],
   },
 ];
 
-const THROWABLE = new Set(["ender_pearl", "fire_charge"]);
+const THROWABLE = new Set(["ender_pearl", "fire_charge", "wind_charge", "slime_ball"]);
 const THROW_SPEED = 22;
 const MAX_HP = 20;
 
 type Primed = { mesh: THREE.Mesh; t: number; fuse: number; power: number; x: number; y: number; z: number };
-type Projectile = { mesh: THREE.Mesh; pos: THREE.Vector3; vel: THREE.Vector3; kind: "ender_pearl" | "fire_charge"; life: number };
+type Projectile = {
+  mesh: THREE.Mesh;
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  kind: "ender_pearl" | "fire_charge" | "wind_charge" | "slime_ball";
+  life: number;
+};
 type Timed = { x: number; y: number; z: number; id: number; t: number };
 
 export type FeatureCtx = {
@@ -101,6 +112,7 @@ export class Features {
   chargeT = 0;
   shieldT = 0;
   shieldUp = false;
+  speedBoostTimer = 0;
 
   private ctx: FeatureCtx;
   private primed: Primed[] = [];
@@ -396,6 +408,19 @@ export class Features {
       case "ender_pearl":
         if (this.ready(id, 1.0)) this.throwProjectile("ender_pearl");
         return true;
+      case "wind_charge":
+        if (this.ready(id, 0.8)) this.throwProjectile("wind_charge");
+        return true;
+      case "slime_ball":
+        if (this.ready(id, 0.8)) this.throwProjectile("slime_ball");
+        return true;
+      case "speed_potion":
+        if (this.ready(id, 3.0)) {
+          this.speedBoostTimer = 15;
+          this.ctx.announce("Swiftness II", "+50% Movement Speed for 15s!");
+          this.ctx.sound("pop");
+        }
+        return true;
       case "golden_apple":
         if (this.hp >= MAX_HP) {
           if (this.ready("apple_full", 2)) this.ctx.announce("Already full health");
@@ -540,11 +565,21 @@ export class Features {
     }
   }
 
-  private throwProjectile(kind: "ender_pearl" | "fire_charge") {
+  private throwProjectile(kind: "ender_pearl" | "fire_charge" | "wind_charge" | "slime_ball") {
     const { origin, dir } = this.ctx.aim();
+    const color =
+      kind === "ender_pearl"
+        ? 0x2cd5b0
+        : kind === "wind_charge"
+          ? 0xd8f5ff
+          : kind === "slime_ball"
+            ? 0x72e438
+            : 0xff8a2a;
+    const radius =
+      kind === "ender_pearl" ? 0.18 : kind === "wind_charge" ? 0.22 : kind === "slime_ball" ? 0.18 : 0.2;
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(kind === "ender_pearl" ? 0.17 : 0.2, 12, 10),
-      new THREE.MeshBasicMaterial({ color: kind === "ender_pearl" ? 0x9a6bff : 0xff8a2a }),
+      new THREE.SphereGeometry(radius, 12, 10),
+      new THREE.MeshBasicMaterial({ color }),
     );
     const pos = origin.clone().addScaledVector(dir, 0.6);
     mesh.position.copy(pos);
@@ -554,13 +589,15 @@ export class Features {
   }
 
   private gravityFor(kind: string) {
+    if (kind === "wind_charge") return 8;
+    if (kind === "slime_ball") return 18;
     return kind === "ender_pearl" ? 20 : 6;
   }
 
   /* ── Per-frame update ────────────────────────────────────────────── */
 
   update(dt: number) {
-    const { world } = this.ctx;
+    const { world, player } = this.ctx;
 
     for (const [k, v] of this.cooldowns) this.cooldowns.set(k, Math.max(0, v - dt));
     if (this.memory) {
@@ -570,6 +607,17 @@ export class Features {
     if (this.shieldUp) {
       this.shieldT += dt;
       if (this.shieldT > 0.9) this.shieldUp = false;
+    }
+
+    if (this.speedBoostTimer > 0) {
+      this.speedBoostTimer -= dt;
+      player.profile.walk = 6.4;
+      player.profile.sprint = 8.6;
+      if (this.speedBoostTimer <= 0) {
+        this.speedBoostTimer = 0;
+        player.profile.walk = 4.31;
+        player.profile.sprint = 5.61;
+      }
     }
 
     for (let i = this.timed.length - 1; i >= 0; i--) {
@@ -621,11 +669,49 @@ export class Features {
       (pr.mesh.material as THREE.Material).dispose();
       this.projectiles.splice(i, 1);
       if (!landed) continue;
-      if (pr.kind === "ender_pearl") this.teleportTo(pr.pos);
-      else this.explode(pr.pos, 1.8);
+      if (pr.kind === "ender_pearl") {
+        this.teleportTo(pr.pos);
+      } else if (pr.kind === "wind_charge") {
+        this.windBurst(pr.pos);
+      } else if (pr.kind === "slime_ball") {
+        this.slimeBounce(pr.pos);
+      } else {
+        this.explode(pr.pos, 1.8);
+      }
     }
 
     this.updateArc();
+  }
+
+  private windBurst(at: THREE.Vector3) {
+    const { player, sound, announce } = this.ctx;
+    sound("air_whoosh");
+    const d = player.position.distanceTo(at);
+    if (d < 6.0) {
+      player.velocity.y = Math.max(player.velocity.y + 13, 14.5);
+      const dx = player.position.x - at.x;
+      const dz = player.position.z - at.z;
+      const distH = Math.hypot(dx, dz);
+      if (distH > 0.05) {
+        player.velocity.x += (dx / distH) * Math.min(10, (6 - d) * 2.2);
+        player.velocity.z += (dz / distH) * Math.min(10, (6 - d) * 2.2);
+      }
+      player.onGround = false;
+      this.peakY = player.position.y;
+      announce("Wind Burst!", "Rocket jump launched!");
+    }
+  }
+
+  private slimeBounce(at: THREE.Vector3) {
+    const { player, sound, announce } = this.ctx;
+    sound("pop");
+    const d = player.position.distanceTo(at);
+    if (d < 5.0) {
+      player.velocity.y = Math.max(player.velocity.y + 14, 15);
+      player.onGround = false;
+      this.peakY = player.position.y;
+      announce("Super Bounce!", "Spring loaded!");
+    }
   }
 
   private teleportTo(at: THREE.Vector3) {
@@ -674,6 +760,14 @@ export class Features {
     this.arc.visible = true;
     this.arcMarker.position.set(pos.x, pos.y + 0.05, pos.z);
     this.arcMarker.visible = true;
-    (this.arc.material as THREE.LineBasicMaterial).color.setHex(kind === "ender_pearl" ? 0xc9a8ff : 0xffc27a);
+    const arcColor =
+      kind === "ender_pearl"
+        ? 0x2cd5b0
+        : kind === "wind_charge"
+          ? 0x8be5ff
+          : kind === "slime_ball"
+            ? 0x76db40
+            : 0xffc27a;
+    (this.arc.material as THREE.LineBasicMaterial).color.setHex(arcColor);
   }
 }

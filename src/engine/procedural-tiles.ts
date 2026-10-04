@@ -147,13 +147,49 @@ const PAINTERS: Record<string, Paint> = {
     for (let i = 0; i < 18; i++) px(Math.floor(rnd() * 16), Math.floor(rnd() * 16), "#ffe9a8");
   },
   slime_block: (px, rect, rnd) => {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, rnd() > 0.5 ? "#7ddc4a" : "#8ee85a");
-    rect(0, 0, 16, 1, "#4fa82b");
-    rect(0, 15, 16, 1, "#4fa82b");
-    rect(0, 0, 1, 16, "#4fa82b");
-    rect(15, 0, 1, 16, "#4fa82b");
-    rect(3, 3, 10, 10, "rgba(200,255,170,0.35)");
-    rect(4, 4, 3, 2, "#d6ffbd");
+    // Outer semi-translucent lime jelly background
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) {
+        px(x, y, rnd() > 0.5 ? "#76db40" : "#84e44e");
+      }
+    }
+
+    // Outer gel borders & bevelled shading
+    rect(0, 0, 16, 1, "#5ebf30");
+    rect(0, 1, 1, 14, "#5ebf30");
+    rect(0, 15, 16, 1, "#337817");
+    rect(15, 1, 1, 14, "#337817");
+
+    // Top-left outer corner highlight
+    rect(1, 1, 3, 1, "#b5f777");
+    rect(1, 2, 1, 2, "#b5f777");
+
+    // Floating 3D Dark Lime Slime Core (8x8 box inside)
+    rect(4, 4, 8, 8, "#255f11"); // core border
+    rect(5, 5, 6, 6, "#52b525"); // core body
+    for (let cy = 5; cy <= 10; cy++) {
+      for (let cx = 5; cx <= 10; cx++) {
+        if (rnd() > 0.6) px(cx, cy, "#5ec42c");
+      }
+    }
+    // Core top-left highlight & rim
+    rect(5, 5, 3, 1, "#8ceb4b");
+    rect(5, 6, 1, 2, "#8ceb4b");
+    px(6, 6, "#a9f56e"); // specular dot on core
+    // Core bottom-right shadow
+    rect(5, 10, 6, 1, "#347a16");
+    rect(10, 5, 1, 5, "#347a16");
+
+    // Outer translucent jelly reflections & gloss
+    rect(2, 2, 4, 1, "#e6ffb5");
+    rect(2, 3, 1, 2, "#e6ffb5");
+    px(3, 3, "#ffffff"); // crisp bright glint
+
+    // Suspended internal gel bubbles
+    px(3, 12, "#b7f871");
+    px(12, 3, "#b7f871");
+    px(13, 11, "#a8f45f");
+    px(12, 12, "#60bb2d");
   },
   door_button: (px, rect, rnd) => {
     stoneBase(px, rnd);
