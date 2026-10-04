@@ -127,7 +127,7 @@ export function BuyModal({ type, onClose }: { type: "gold" | "gem"; onClose: () 
                 className={`press flex-1 h-10 rounded-xl font-bold text-[13px] flex items-center justify-center gap-2 transition-all duration-200 ${tab === t ? "bg-background shadow-level1" : ""}`}
               >
                 <img
-                  src={t === "gold" ? "/gold-coin.png" : "/gem-coin.png"}
+                  src={t === "gold" ? GOLDEN_COINS_ICON : PINK_GEM_ICON}
                   alt=""
                   className="h-5 w-5 object-contain"
                   draggable={false}
@@ -147,12 +147,12 @@ export function BuyModal({ type, onClose }: { type: "gold" | "gem"; onClose: () 
                 className={`press w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200 ${selected === p.id ? "border-primary bg-primary/8 shadow-[0_0_0_2px_var(--primary)]" : "border-border bg-surface-2 hover:border-primary/40"}`}
               >
                 <div
-                  className={`h-11 w-11 rounded-xl grid place-items-center shadow-level1 shrink-0 ${isGold ? "bg-gradient-to-br from-amber-400 to-yellow-600" : "bg-gradient-to-br from-yellow-300 to-yellow-500"}`}
+                  className={`h-11 w-11 rounded-xl grid place-items-center shadow-level1 shrink-0 ${isGold ? "bg-gradient-to-br from-amber-400 to-yellow-600" : "bg-gradient-to-br from-pink-400 to-rose-600"}`}
                 >
                   <img
-                    src={isGold ? "/gold-coin.png" : "/gem-coin.png"}
+                    src={isGold ? GOLDEN_COINS_ICON : PINK_GEM_ICON}
                     alt=""
-                    className="h-7 w-7 object-contain"
+                    className="h-7 w-7 object-contain drop-shadow-md"
                     draggable={false}
                   />
                 </div>

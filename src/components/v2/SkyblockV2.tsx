@@ -129,11 +129,11 @@ export function V2Hotbar({
 }) {
   if (hotbar.length === 0) return null;
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(10px,calc(env(safe-area-inset-bottom)+6px))] flex justify-center px-3">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(1px,calc(env(safe-area-inset-bottom)+1px))] flex justify-center px-2">
       <div
         role="toolbar"
         aria-label="Inventory"
-        className="flex max-w-[min(94vw,620px)] gap-0.5 overflow-x-auto [scrollbar-width:none]"
+        className="flex max-w-[min(98vw,680px)] gap-1 overflow-x-auto [scrollbar-width:none]"
       >
         {hotbar.map((id, i) => {
           const active = slot === i;
@@ -145,7 +145,7 @@ export function V2Hotbar({
               aria-label={`Slot ${i + 1}`}
               aria-pressed={active}
               className={cn(
-                "blockman-slot relative grid h-11 w-11 shrink-0 place-items-center rounded-[4px] transition-transform duration-100 active:scale-95",
+                "blockman-slot relative grid h-12 w-12 shrink-0 place-items-center rounded-[5px] transition-transform duration-100 active:scale-95",
               )}
             >
               {tileUrls[id] ? (
@@ -154,10 +154,10 @@ export function V2Hotbar({
                     src={tileUrls[id]}
                     alt=""
                     draggable={false}
-                    className="h-7 w-7 rounded-[4px] object-cover [image-rendering:pixelated]"
+                    className="h-8 w-8 rounded-[4px] object-cover [image-rendering:pixelated]"
                   />
                   {id !== 0 && (
-                    <span className="absolute bottom-0.5 right-1 font-lilita text-[11px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
+                    <span className="absolute bottom-0.5 right-1 font-lilita text-[11.5px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
                       {typeof id === "number" ? 64 : String(id).includes("sword") || id === "shield" ? 1 : 16}
                     </span>
                   )}

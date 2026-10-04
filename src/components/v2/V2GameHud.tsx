@@ -37,14 +37,32 @@ type Props = {
   onToggleMute: () => void;
   onEmote: () => void;
   emoting?: boolean;
+  freeLook?: boolean;
+  onToggleFreeLook?: () => void;
   onLeave: () => void;
   onMenuChange?: (open: boolean) => void;
 };
 
+function EyeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 /**
  * V2 game chrome shared by every sandbox mode: top button row, text D-pad,
- * action keys and the pause menu. Text only — no icons until the custom
- * icon set lands.
+ * action keys and the pause menu. Scaled down by 40% for optimal mobile visibility.
  */
 export function V2GameHud({
   isTouch,
@@ -67,6 +85,8 @@ export function V2GameHud({
   onToggleMute,
   onEmote,
   emoting = false,
+  freeLook = false,
+  onToggleFreeLook,
   onLeave,
   onMenuChange,
 }: Props) {
@@ -99,17 +119,28 @@ export function V2GameHud({
     { label: "Chat", icon: UI.chat, onClick: onOpenChat },
     { label: "Emote", icon: UI.smile, onClick: onEmote, active: emoting },
     { label: "Camera", icon: UI.video, onClick: onToggleCamera },
+    ...(onToggleFreeLook
+      ? [
+          {
+            label: "Free-Look",
+            icon: "eye",
+            onClick: onToggleFreeLook,
+            active: freeLook,
+          },
+        ]
+      : []),
   ];
 
-  const effectiveControlsScale = isSkyblock ? controlsScale * 0.78 : controlsScale;
+  // Scale down controls by 40% across all games per request
+  const effectiveControlsScale = controlsScale * 0.60;
 
   return (
     <div
       className={cn("v2-ui game-font-inter pointer-events-none fixed inset-0 z-[100] select-none", isSkyblock && "skyblock-scaled-ui")}
-      style={{ ["--hb" as string]: hasHotbar ? (isSkyblock ? "40px" : "52px") : "0px", fontFamily: "'Inter', sans-serif" }}
+      style={{ ["--hb" as string]: hasHotbar ? "34px" : "0px", fontFamily: "'Inter', sans-serif" }}
     >
       <header className="absolute inset-x-3 top-[max(6px,calc(env(safe-area-inset-top)+4px))] flex flex-wrap items-start justify-between gap-1 sm:inset-x-4">
-        <nav aria-label="Game" className="pointer-events-auto flex gap-1">
+        <nav aria-label="Game" className="pointer-events-auto flex gap-1 scale-[0.80] origin-top-left">
           {topButtons.map((b) => (
             <button
               key={b.label}
@@ -119,48 +150,48 @@ export function V2GameHud({
               title={b.label}
               aria-expanded={b.label === "Menu" ? menuOpen : undefined}
               className={cn(
-                "relative grid place-items-center transition-all duration-150 active:scale-90 rounded-full",
-                isSkyblock ? "h-7 w-7 sm:h-8 sm:w-8" : "h-10 w-10 sm:h-11 sm:w-11",
-                b.active && "ring-2 ring-purple-400 bg-purple-600/35 shadow-[0_0_16px_rgba(168,85,247,0.85)] animate-pulse",
+                "relative grid place-items-center transition-all duration-150 active:scale-90 rounded-full h-8 w-8 sm:h-9 sm:w-9",
+                b.active && "ring-2 ring-amber-400 bg-amber-500/35 shadow-[0_0_14px_rgba(245,158,11,0.85)] animate-pulse",
               )}
             >
-              <img src={b.icon} alt="" draggable={false} className="h-full w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]" />
+              {b.icon === "eye" ? (
+                <EyeIcon className="h-4 w-4 text-white drop-shadow-[0_2px_3px_rgba(0,0,0,.7)]" />
+              ) : (
+                <img src={b.icon} alt="" draggable={false} className="h-full w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]" />
+              )}
               {b.active && (
                 <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500 shadow-[0_0_6px_#c084fc]"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 shadow-[0_0_6px_#fbbf24]"></span>
                 </span>
               )}
             </button>
           ))}
           {isSkyblock && (
-            <div className="hidden sm:flex items-center gap-1.5 ml-2 p-1.5 rounded-xl bg-black/35 backdrop-blur-md border border-white/10 shadow-lg">
-              <span className="text-[12px] font-bold text-[#ff80bf] [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+            <div className="hidden sm:flex items-center gap-1.5 ml-1 p-1 rounded-lg bg-black/35 backdrop-blur-md border border-white/10 shadow-lg text-[11px]">
+              <span className="font-bold text-[#ff80bf] [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
                 [Skyblock Team]
               </span>
-              <span className="text-[12px] font-bold text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+              <span className="font-bold text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
                 Welcome to skyblock!
               </span>
             </div>
           )}
         </nav>
         {topCenter && (
-          <div className={cn("pointer-events-none flex w-full justify-center sm:w-auto sm:flex-1 sm:justify-end", isSkyblock && "scale-[0.80] origin-top-right")}>
+          <div className="pointer-events-none flex w-full justify-center sm:w-auto sm:flex-1 sm:justify-end scale-[0.68] origin-top-center sm:origin-top-right">
             {topCenter}
           </div>
         )}
       </header>
 
-      {isSkyblock ? (
-        <div className="scale-[0.82] origin-bottom-center pointer-events-none w-full h-full flex flex-col justify-end">
-          {children}
-        </div>
-      ) : (
-        children
-      )}
+      {/* Hotbar / bottom items placed directly on the bottom and a lil bigger per user request */}
+      <div className="scale-[0.92] origin-bottom pointer-events-none w-full h-full flex flex-col justify-end items-center pb-0">
+        {children}
+      </div>
 
       {isTouch && (
-        <div style={{ transform: effectiveControlsScale !== 1.0 ? `scale(${effectiveControlsScale})` : undefined, transformOrigin: "bottom center" }}>
+        <>
           <DPad
             onMove={onMove}
             running={running}
@@ -169,7 +200,7 @@ export function V2GameHud({
             onToggleSneak={onToggleSneak}
           />
           <ActionCluster actions={actions} />
-        </div>
+        </>
       )}
 
       <V2Announcer />
@@ -300,7 +331,11 @@ function DPad({
 
   return (
     <div
-      className="pointer-events-auto absolute bottom-[calc(max(18px,calc(env(safe-area-inset-bottom)+12px))+var(--hb,0px))] left-[max(14px,env(safe-area-inset-left))] sm:left-8"
+      className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] left-[max(2px,calc(env(safe-area-inset-left)+1px))] sm:left-2"
+      style={{
+        transform: "scale(1.22)",
+        transformOrigin: "bottom left",
+      }}
     >
       <div
         ref={padRef}
@@ -415,7 +450,13 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
   const primary = actions.find((a) => a.primary) ?? actions[0];
   const secondary = actions.filter((a) => a !== primary);
   return (
-    <div className="pointer-events-auto absolute bottom-[calc(max(14px,calc(env(safe-area-inset-bottom)+8px))+var(--hb,0px))] right-[max(12px,env(safe-area-inset-right))] flex items-end gap-1.5 sm:right-6">
+    <div
+      className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] right-[max(4px,calc(env(safe-area-inset-right)+2px))] flex items-end gap-1.5 sm:right-4"
+      style={{
+        transform: "scale(1.05)",
+        transformOrigin: "bottom right",
+      }}
+    >
       {secondary.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {secondary.map((a) => (

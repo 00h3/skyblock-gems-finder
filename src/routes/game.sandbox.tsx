@@ -946,6 +946,8 @@ export function SandboxGame({
   const [slot, setSlot] = useState(0);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
+  const [engineReady, setEngineReady] = useState(false);
+  const [loadingDismissed, setLoadingDismissed] = useState(false);
   const [locked, setLocked] = useState(false);
   const [hotbar, setHotbar] = useState<(number | string)[]>(
     goldenDays
@@ -1025,6 +1027,8 @@ export function SandboxGame({
   const [avatarReady, setAvatarReady] = useState(false);
   const [emoting, setEmoting] = useState(false);
   const emotingRef = useRef(false);
+  const [freeLook, setFreeLook] = useState(false);
+  const freeLookRef = useRef(false);
   const avatarInstanceRef = useRef<Avatar | null>(null);
   const thirdRef = useRef(true);
   
@@ -1032,6 +1036,20 @@ export function SandboxGame({
   useEffect(() => {
     thirdRef.current = thirdPerson;
   }, [thirdPerson]);
+
+  useEffect(() => {
+    freeLookRef.current = freeLook;
+  }, [freeLook]);
+
+  const toggleFreeLook = () => {
+    const next = !freeLookRef.current;
+    freeLookRef.current = next;
+    setFreeLook(next);
+    announce(
+      next ? "Free-Look Enabled" : "Free-Look Disabled",
+      next ? "Camera orbits 360° around player" : "Standard facing restored",
+    );
+  };
   
   // Listen for the custom event from settings
   useEffect(() => {
@@ -2430,8 +2448,24 @@ export function SandboxGame({
 
       const castHit = () => {
         if (!world) return null;
-        _cachedOrigin.set(player.position.x, player.eyeY, player.position.z);
-        return raycastVoxel(world, _cachedOrigin, aimDir(), 7);
+        // Project block-selection raycast directly from the camera center into the world,
+        // not from the character's chest, so the block highlight always matches exactly where the reticle points.
+        _cachedOrigin.copy(camera.position);
+        const camDistanceToPlayer = camera.position.distanceTo(player.position);
+        const maxRange = 6.5 + (thirdRef.current ? camDistanceToPlayer : 0);
+        const hit = raycastVoxel(world, _cachedOrigin, aimDir(), maxRange);
+        if (hit) {
+          // Verify reach distance from player
+          const reachDist = Math.hypot(
+            hit.x + 0.5 - player.position.x,
+            hit.y + 0.5 - player.eyeY,
+            hit.z + 0.5 - player.position.z,
+          );
+          if (reachDist <= 7.2) {
+            return hit;
+          }
+        }
+        return null;
       };
 
       // ── Gameplay features: items, TNT, fall damage, shield, bridge assist ──
@@ -2861,6 +2895,7 @@ export function SandboxGame({
       let lastNotice = 0;
       let sprintFov = 0;
 
+      setEngineReady(true);
       setReady(true);
       setVeilToken((v) => v + 1);
       announce(
@@ -2987,11 +3022,20 @@ export function SandboxGame({
           camera.updateProjectionMatrix();
         }
 
-        // Character faces the direction it is actually moving, never the camera.
-        const heading = facing.update(player.velocity.x, player.velocity.z, input.yaw + Math.PI);
+        // Combat / Reticle Mode: Character torso and head always lock to the camera yaw when swinging weapons or placing blocks.
+        // Idle / Free-look Option: Lets the player rotate camera 360° around character without rotating the character body.
+        const isCombatOrPlacing = swing > 0.05 || (mining || controls!.holding.break) || controls!.holding.place;
+        const heading = facing.update(
+          player.velocity.x,
+          player.velocity.z,
+          input.yaw + Math.PI,
+          isCombatOrPlacing,
+          freeLookRef.current,
+        );
         if (avatar?.loaded) {
           _avatarPos.set(player.position.x, player.position.y, player.position.z);
           const isSneaking = controls?.touch?.crouch || movementModeRef.current === "crouch";
+          avatar.setAlpha(thirdRef.current ? rig.playerAlpha : 1.0);
           avatar.update(
             dt,
             _avatarPos,
@@ -3959,7 +4003,7 @@ export function SandboxGame({
       )}
 
       {/* ── V2 HUD (Skyblock + Block Fall) ── */}
-      {ready && isV2 && (
+      {ready && isV2 && loadingDismissed && (
         <V2GameHud
           isTouch={isTouch}
           running={movementMode === "run"}
@@ -4010,6 +4054,8 @@ export function SandboxGame({
               announce("Dance Stopped", "Normal posture restored.");
             }
           }}
+          freeLook={freeLook}
+          onToggleFreeLook={toggleFreeLook}
           onLeave={() => {
             controlsRef.current?.exitLock();
             setShowQuitDialog(true);
@@ -4048,14 +4094,14 @@ export function SandboxGame({
         />
       )}
       {quickBuyOpen && <QuickBuyPanel onApply={applyQuickBuy} onClose={() => setQuickBuyOpen(false)} />}
-      {ready && blockFall && (
+      {ready && blockFall && loadingDismissed && (
         <BlockFallOverlays
           match={match}
           onLeave={() => setShowQuitDialog(true)}
         />
       )}
-      {ready && isV2 && veilToken > 0 && <V2Veil token={veilToken} />}
-      {showClickToPlay && (
+      {ready && isV2 && veilToken > 0 && loadingDismissed && <V2Veil token={veilToken} />}
+      {showClickToPlay && loadingDismissed && (
         <V2ClickToPlay
           title={skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
           hint={
@@ -4259,11 +4305,13 @@ export function SandboxGame({
       )}
 
       {/* Loading menu */}
-      {!ready && !graphicsError && isV2 && (
+      {!loadingDismissed && !graphicsError && isV2 && (
         <V2LoadingScreen
           title={skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
           subtitle={skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
           progress={progress}
+          isAssetsLoaded={engineReady}
+          onFinished={() => setLoadingDismissed(true)}
         />
       )}
       {!ready && !graphicsError && !isV2 && (

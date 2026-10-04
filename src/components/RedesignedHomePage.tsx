@@ -30,9 +30,8 @@ export function RedesignedHomePage({
 
   const [showSelfProfile, setShowSelfProfile] = useState(false);
 
-  const playedIds = getRecentlyPlayedGameIds();
   const visibleGames = GAMES.filter((g) => g.id !== "sandbox" && g.id !== "bedwars-golden-days");
-  const lastPlayed = visibleGames.find((g) => playedIds.includes(g.id)) || null;
+
   const grid =
     visibleGames.length > 1
       ? visibleGames
@@ -188,47 +187,6 @@ export function RedesignedHomePage({
           </button>
         </div>
 
-        {/* Last played */}
-        {lastPlayed ? (
-          <section className="mt-4 px-4">
-            <SectionHeader title="Last played" />
-            <button
-              onClick={() => setSheetGame(lastPlayed)}
-              className="qb-play-card qb-play-card--gloss press mt-2 flex w-full items-center gap-3 p-2.5 text-left"
-            >
-              <span className="qb-play-thumb qb-play-thumb--gloss relative h-[54px] w-[54px] shrink-0 overflow-hidden">
-                {lastPlayed.icon ? (
-                  <img src={lastPlayed.icon} alt="" className="h-full w-full object-cover" />
-                ) : null}
-                <span className="qb-play-thumb-gloss pointer-events-none absolute inset-0" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13.5px] font-extrabold tracking-tight bg-gradient-to-br from-[#141414] to-[#6b7280] bg-clip-text text-transparent drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-                  {lastPlayed.t}
-                </span>
-                <span className="mt-0.5 block truncate text-[11px] font-medium text-[#8b929d]">
-                  {lastPlayed.mode || "Experience"}
-                </span>
-                <span className="mt-1 flex items-center gap-2.5 text-[11px] font-bold text-[#5f646d]">
-                  <span className="flex items-center gap-1">
-                    <PlayersIcon className="h-3.5 w-3.5" /> 1
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <ClapIcon className="h-[12px] w-[12px] text-transparent bg-clip-text bg-gradient-to-br from-pink-500 to-red-500" /> 1
-                  </span>
-                </span>
-              </span>
-              <span className="qb-play-cta grid h-9 w-9 shrink-0 place-items-center">
-                <img
-                  src="/icons/stopwatch-play-svgrepo-com.svg"
-                  alt="Play"
-                  className="h-[17px] w-[17px] object-contain brightness-0 invert"
-                />
-              </span>
-            </button>
-          </section>
-        ) : null}
-
         {/* Popular grid */}
         <section className="mt-5 px-4">
           <SectionHeader
@@ -256,7 +214,7 @@ export function RedesignedHomePage({
                     <PlayersIcon className="h-3 w-3" /> 1
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <ClapIcon className="h-[10px] w-[10px] text-transparent bg-clip-text bg-gradient-to-br from-pink-500 to-red-500" /> 1
+                    <ClapIcon className="h-3 w-3 text-[#fa4616]" /> 1
                   </span>
                 </span>
               </button>
