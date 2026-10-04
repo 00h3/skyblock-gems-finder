@@ -35,6 +35,7 @@ type Props = {
   onToggleCamera: () => void;
   onToggleMute: () => void;
   onEmote: () => void;
+  emoting?: boolean;
   onLeave: () => void;
   onMenuChange?: (open: boolean) => void;
 };
@@ -63,6 +64,7 @@ export function V2GameHud({
   onToggleCamera,
   onToggleMute,
   onEmote,
+  emoting = false,
   onLeave,
   onMenuChange,
 }: Props) {
@@ -90,10 +92,10 @@ export function V2GameHud({
     onMenuChange?.(open);
   };
 
-  const topButtons: { label: string; icon: string; onClick: () => void }[] = [
+  const topButtons: { label: string; icon: string; onClick: () => void; active?: boolean }[] = [
     { label: "Menu", icon: UI.menu, onClick: () => setMenu(!menuOpen) },
     { label: "Chat", icon: UI.chat, onClick: onOpenChat },
-    { label: "Emote", icon: UI.smile, onClick: onEmote },
+    { label: "Emote", icon: UI.smile, onClick: onEmote, active: emoting },
     { label: "Camera", icon: UI.video, onClick: onToggleCamera },
   ];
 
@@ -112,9 +114,18 @@ export function V2GameHud({
               aria-label={b.label}
               title={b.label}
               aria-expanded={b.label === "Menu" ? menuOpen : undefined}
-              className="grid h-10 w-10 place-items-center transition-transform duration-100 active:scale-90 sm:h-11 sm:w-11"
+              className={cn(
+                "relative grid h-10 w-10 place-items-center transition-all duration-150 active:scale-90 sm:h-11 sm:w-11 rounded-full",
+                b.active && "ring-2 ring-purple-400 bg-purple-600/35 shadow-[0_0_16px_rgba(168,85,247,0.85)] animate-pulse",
+              )}
             >
               <img src={b.icon} alt="" draggable={false} className="h-full w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]" />
+              {b.active && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500 shadow-[0_0_6px_#c084fc]"></span>
+                </span>
+              )}
             </button>
           ))}
         </nav>

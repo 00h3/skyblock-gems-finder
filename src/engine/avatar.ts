@@ -8,6 +8,143 @@ import {
 } from "@/engine/avatar-model";
 
 /**
+ * Sparkling Purple Aura effect with glowing runic rings and swirling particles.
+ */
+class PurpleAuraFx {
+  readonly group = new THREE.Group();
+  private rings: THREE.Mesh[] = [];
+  private particles: THREE.Points;
+  private particleGeo: THREE.BufferGeometry;
+  private particlePositions: Float32Array;
+  private particleVelocities: { angle: number; speed: number; radius: number; y: number }[] = [];
+  private count = 42;
+  private time = 0;
+
+  constructor() {
+    // 1. Dual rotating runic rings on the ground
+    const ringGeo = new THREE.RingGeometry(0.55, 0.78, 32);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xa855f7,
+      transparent: true,
+      opacity: 0.7,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const ring1 = new THREE.Mesh(ringGeo, ringMat);
+    ring1.position.y = 0.05;
+    this.rings.push(ring1);
+    this.group.add(ring1);
+
+    const ringGeo2 = new THREE.RingGeometry(0.85, 1.05, 32);
+    ringGeo2.rotateX(-Math.PI / 2);
+    const ringMat2 = new THREE.MeshBasicMaterial({
+      color: 0xc084fc,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+    ring2.position.y = 0.07;
+    this.rings.push(ring2);
+    this.group.add(ring2);
+
+    // 2. Swirling sparkling purple particles
+    this.particlePositions = new Float32Array(this.count * 3);
+    for (let i = 0; i < this.count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 0.35 + Math.random() * 0.5;
+      const y = Math.random() * 2.2;
+      this.particleVelocities.push({
+        angle,
+        speed: 1.5 + Math.random() * 1.8,
+        radius,
+        y,
+      });
+      this.particlePositions[i * 3] = Math.cos(angle) * radius;
+      this.particlePositions[i * 3 + 1] = y;
+      this.particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
+    }
+
+    this.particleGeo = new THREE.BufferGeometry();
+    this.particleGeo.setAttribute(
+      "position",
+      new THREE.BufferAttribute(this.particlePositions, 3),
+    );
+
+    const canvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+    let sparkTex: THREE.Texture | null = null;
+    if (canvas) {
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 30);
+        grad.addColorStop(0, "rgba(255, 255, 255, 1)");
+        grad.addColorStop(0.35, "rgba(216, 180, 254, 0.95)");
+        grad.addColorStop(0.7, "rgba(168, 85, 247, 0.6)");
+        grad.addColorStop(1, "rgba(126, 34, 206, 0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 64, 64);
+      }
+      sparkTex = new THREE.CanvasTexture(canvas);
+      sparkTex.colorSpace = THREE.SRGBColorSpace;
+    }
+
+    const pMat = new THREE.PointsMaterial({
+      size: 0.24,
+      map: sparkTex,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      color: 0xf3e8ff,
+    });
+    this.particles = new THREE.Points(this.particleGeo, pMat);
+    this.group.add(this.particles);
+
+    this.group.visible = false;
+  }
+
+  update(dt: number) {
+    if (!this.group.visible) return;
+    this.time += dt;
+
+    if (this.rings[0]) {
+      this.rings[0].rotation.y += dt * 1.6;
+      const s = 1 + Math.sin(this.time * 4) * 0.1;
+      this.rings[0].scale.set(s, s, s);
+    }
+    if (this.rings[1]) {
+      this.rings[1].rotation.y -= dt * 1.1;
+      const s = 1 + Math.cos(this.time * 3.2) * 0.08;
+      this.rings[1].scale.set(s, s, s);
+    }
+
+    const pos = this.particlePositions;
+    for (let i = 0; i < this.count; i++) {
+      const v = this.particleVelocities[i];
+      v.angle += dt * v.speed;
+      v.y += dt * 0.75;
+      if (v.y > 2.4) {
+        v.y = 0.05;
+        v.radius = 0.35 + Math.random() * 0.5;
+      }
+      pos[i * 3] = Math.cos(v.angle) * v.radius;
+      pos[i * 3 + 1] = v.y + Math.sin(this.time * 6 + i) * 0.04;
+      pos[i * 3 + 2] = Math.sin(v.angle) * v.radius;
+    }
+    this.particleGeo.attributes.position.needsUpdate = true;
+  }
+
+  setVisible(v: boolean) {
+    this.group.visible = v;
+  }
+}
+
+/**
  * Universal character model for Skyblock and Block Fall.
  * Guarantees zero-delay visibility with procedural rig fallback,
  * and loads the universal GLB model with baked animations.
@@ -46,6 +183,9 @@ export class Avatar {
 
   loaded = true; // Always visible from frame 0
   isDying = false;
+  isEmoting = false;
+  emoteTime = 0;
+  private purpleAura: PurpleAuraFx | null = null;
   private deathCallback: (() => void) | null = null;
   private deathTimer: number | null = null;
 
@@ -54,6 +194,20 @@ export class Avatar {
     this.buildProceduralRig();
     if (this.proceduralRig) {
       this.proceduralRig.visible = false;
+    }
+    this.purpleAura = new PurpleAuraFx();
+    this.group.add(this.purpleAura.group);
+  }
+
+  setEmote(active: boolean) {
+    this.isEmoting = active;
+    this.purpleAura?.setVisible(active);
+    if (!active) {
+      this.emoteTime = 0;
+      if (this.model) {
+        this.model.position.y = 0;
+        this.model.rotation.z = 0;
+      }
     }
   }
 
@@ -460,11 +614,30 @@ export class Avatar {
     this.wasOnGround = onGround;
     this.landSquash = Math.max(0, this.landSquash - dt * 5);
 
+    // Update Sparkling Purple Aura effect
+    if (this.purpleAura) {
+      this.purpleAura.update(dt);
+    }
+
     if (this.model) {
-      const hasCrouchClip = !!this.animActions.crouch;
-      const crouch = sneaking && !hasCrouchClip ? -0.16 : 0;
-      this.model.position.y = crouch - this.landSquash * 0.08;
-      this.model.rotation.x = sneaking && !hasCrouchClip ? 0.14 : 0;
+      if (this.isEmoting) {
+        this.emoteTime += dt;
+        // Smooth continuous looping dance motion with bounce, sway, and groove
+        const danceY = Math.sin(this.emoteTime * 5.8) * 0.12;
+        const danceSway = Math.sin(this.emoteTime * 4.2) * 0.18;
+        const danceTurn = Math.sin(this.emoteTime * 2.6) * 0.28;
+        this.model.position.y = danceY;
+        this.model.rotation.z = danceSway;
+        this.model.rotation.y = danceTurn;
+        this.model.rotation.x = 0;
+      } else {
+        const hasCrouchClip = !!this.animActions.crouch;
+        const crouch = sneaking && !hasCrouchClip ? -0.16 : 0;
+        this.model.position.y = crouch - this.landSquash * 0.08;
+        this.model.rotation.x = sneaking && !hasCrouchClip ? 0.14 : 0;
+        this.model.rotation.z *= Math.max(0, 1 - dt * 8);
+        this.model.rotation.y *= Math.max(0, 1 - dt * 8);
+      }
     }
   }
 

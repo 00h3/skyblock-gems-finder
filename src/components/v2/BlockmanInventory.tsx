@@ -54,6 +54,16 @@ export const RECIPES: Recipe[] = [
 const nameOf = (id: ItemId) =>
   typeof id === "string" ? (ITEM_INFO[id]?.name ?? id) : (BLOCKS.find((b) => b.id === id)?.name ?? "Block");
 
+export function defaultItemCount(id: ItemId | undefined): number {
+  if (id === undefined || id === 0) return 0;
+  if (typeof id === "number") return 64; // Block stack
+  if (id.includes("sword") || id === "shield") return 1;
+  if (id === "water_bucket" || id === "lava_bucket" || id === "flint_steel") return 1;
+  if (id === "ender_pearl" || id === "wind_charge" || id === "fire_charge" || id === "slime_ball") return 16;
+  if (id === "speed_potion" || id === "golden_apple") return 8;
+  return 1;
+}
+
 export function BlockmanInventory({
   hotbar,
   tileUrls,
@@ -64,6 +74,7 @@ export function BlockmanInventory({
   blockUrl,
   level = 1,
   playerName = "Player",
+  counts,
   onEquip,
   onCraft,
 }: {
@@ -77,6 +88,7 @@ export function BlockmanInventory({
   blockUrl?: (id: ItemId) => string;
   level?: number;
   playerName?: string;
+  counts?: Record<ItemId, number>;
   onEquip?: (item: ItemId, hotbarSlot: number) => void;
   /** When provided, the Make (crafting table) tab is enabled. */
   onCraft?: (item: ItemId, count: number) => void;
@@ -94,6 +106,12 @@ export function BlockmanInventory({
 
   const iconOf = (id: ItemId | undefined) =>
     id === undefined ? "" : tileUrls[id] || (blockUrl ? blockUrl(id) : "");
+
+  const getCount = (id: ItemId | undefined) => {
+    if (id === undefined || id === 0) return 0;
+    if (counts && counts[id] !== undefined) return counts[id];
+    return defaultItemCount(id);
+  };
 
   const owned = useMemo(() => {
     const all: ItemId[] = [];
@@ -127,17 +145,22 @@ export function BlockmanInventory({
           role="dialog"
           aria-modal="true"
           aria-label={tab === "role" ? "Inventory" : "Crafting table"}
-          className="wood-panel v2-anim-pop flex max-h-[86dvh] min-w-0 flex-1 flex-col overflow-hidden"
+          className="wood-panel v2-anim-pop flex max-h-[86dvh] min-w-0 flex-1 flex-col overflow-hidden select-none"
         >
-          <header className="wood-header relative flex h-10 shrink-0 items-center justify-center">
-            <h2 className="font-lilita text-[20px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
-              {tab === "role" ? "Role" : "Make"}
-            </h2>
+          <header className="wood-header relative flex h-10 shrink-0 items-center justify-between px-3">
+            <div className="flex items-center gap-2">
+              <h2 className="font-lilita text-[20px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
+                {tab === "role" ? "Role" : "Make"}
+              </h2>
+              <span className="font-lilita text-[13px] text-amber-200/90 [text-shadow:0_1px_2px_#000]">
+                ({owned.length}/{STORAGE_SLOTS} slots)
+              </span>
+            </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close inventory"
-              className="absolute right-2 grid h-7 w-7 place-items-center text-white/90 active:scale-90"
+              className="grid h-7 w-7 place-items-center text-white/90 active:scale-90"
             >
               <X className="h-5 w-5 stroke-[3.5]" aria-hidden="true" />
             </button>
@@ -171,12 +194,13 @@ export function BlockmanInventory({
                   {Array.from({ length: STORAGE_SLOTS }, (_, i) => {
                     const id = owned[i];
                     const info = typeof id === "string" ? ITEM_INFO[id] : undefined;
+                    const qty = getCount(id);
                     return (
                       <button
                         key={i}
                         type="button"
                         disabled={id === undefined}
-                        aria-label={id === undefined ? `Empty slot ${i + 1}` : nameOf(id)}
+                        aria-label={id === undefined ? `Empty slot ${i + 1}` : `${nameOf(id)} x${qty}`}
                         aria-pressed={picked !== null && picked === id}
                         onClick={() => id !== undefined && setPicked(id)}
                         className={cn(
@@ -186,6 +210,11 @@ export function BlockmanInventory({
                         )}
                       >
                         <ItemIcon src={iconOf(id)} />
+                        {id !== undefined && qty > 0 && (
+                          <span className="absolute bottom-0.5 right-1 font-lilita text-[12px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none select-none pointer-events-none">
+                            {qty}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -197,13 +226,16 @@ export function BlockmanInventory({
                   ) : (
                     <>
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="wood-slot grid h-11 w-11 shrink-0 place-items-center rounded-[4px]">
+                        <span className="wood-slot relative grid h-11 w-11 shrink-0 place-items-center rounded-[4px]">
                           <ItemIcon src={iconOf(picked)} />
+                          <span className="absolute bottom-0.5 right-1 font-lilita text-[12px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none">
+                            {getCount(picked)}
+                          </span>
                         </span>
                         <div className="min-w-0">
                           <p className="truncate font-lilita text-[15px] text-white">{nameOf(picked)}</p>
-                          <p className="truncate text-[11px] font-bold text-amber-100/70">
-                            {typeof picked === "string" ? ITEM_INFO[picked]?.desc : "Building block"}
+                          <p className="truncate text-[11px] font-bold text-amber-100/90">
+                            Quantity: <span className="text-white font-black">{getCount(picked)}</span> • {typeof picked === "string" ? ITEM_INFO[picked]?.desc : "Building block"}
                           </p>
                         </div>
                       </div>
@@ -230,12 +262,17 @@ export function BlockmanInventory({
               <button
                 key={i}
                 type="button"
-                aria-label={`Slot ${i + 1}${id !== undefined ? `: ${nameOf(id)}` : ""}`}
+                aria-label={`Slot ${i + 1}${id !== undefined ? `: ${nameOf(id)} x${getCount(id)}` : ""}`}
                 aria-pressed={slot === i}
                 onClick={() => onSelect(i)}
                 className={cn("wood-slot relative grid aspect-square place-items-center rounded-[4px]", slot === i && "wood-slot-picked")}
               >
                 <ItemIcon src={iconOf(id)} />
+                {id !== undefined && id !== 0 && (
+                  <span className="absolute bottom-0.5 right-1 font-lilita text-[12px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none select-none pointer-events-none">
+                    {getCount(id)}
+                  </span>
+                )}
               </button>
             ))}
           </div>

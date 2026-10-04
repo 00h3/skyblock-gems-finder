@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, Gift, Loader2, ShieldAlert, X } from "lucide-react";
 import { ShinyButton } from "@/components/ui/shiny-button";
 const fragmentIcon =
-  "https://maxwell.z3ki.dev/bot/_files/qblock-puzzle-fragments-png/qblock-puzzle-fragments-transparent.png";
+  "https://file.garden/alGOOylwpAfCa6qP/file_00000000ded48210a85ba665493b1474.png";
 const chestIcon = "/icon-packs/reward-chest.png";
 const scarletArt = "/studio-splash.png";
 import {

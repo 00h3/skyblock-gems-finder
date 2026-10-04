@@ -170,31 +170,15 @@ export function HeartIcon({ className, filled = false }: { className?: string; f
   );
 }
 
-// ── Player/Joystick — used on game-card player-count chips ────────────────
-export function PlayerIcon({ className }: { className?: string }) {
+export function PlayerIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden>
-      {/* Controller body */}
-      <path
-        opacity="0.35"
-        d="M24 14c.2 0 .5 0 .7 0 .5-1.6.3-3.2-.5-4.7-.9-1.6-2.4-2.8-4.1-3.2-1.5-.3-2.9-.1-4.3.6-1.3.7-3.4.7-4.8 0C9.7 6 8.3 5.8 6.8 6.1 5.1 6.5 3.5 7.7 2.7 9.3c-.8 1.5-1 3.1-.5 4.8l-2 6.6c-.3 1-.1 2.1.5 2.9.6.9 1.6 1.4 2.7 1.4 1.1 0 2-.5 2.7-1.3L9.5 19h5.8C17.1 16 20.3 14 24 14Z"
-        fill="currentColor"
-      />
-      {/* D-pad cross */}
-      <path
-        d="M10 13H9v1c0 .6-.4 1-1 1s-1-.4-1-1v-1H6c-.6 0-1-.4-1-1s.4-1 1-1h1v-1c0-.6.4-1 1-1s1 .4 1 1v1h1c.6 0 1 .4 1 1s-.4 1-1 1Z"
-        fill="currentColor"
-      />
-      {/* Right face dots */}
-      <circle cx="19" cy="10" r="1" fill="currentColor" />
-      <circle cx="17" cy="12" r="1" fill="currentColor" />
-      {/* Player-add ring + plus */}
-      <circle cx="24" cy="24" r="7" fill="currentColor" opacity="0.9" />
-      <path
-        d="M27 25h-2v2c0 .6-.4 1-1 1s-1-.4-1-1v-2h-2c-.6 0-1-.4-1-1s.4-1 1-1h2v-2c0-.6.4-1 1-1s1 .4 1 1v2h2c.6 0 1 .4 1 1s-.4 1-1 1Z"
-        fill="white"
-      />
-    </svg>
+    <img
+      src="https://file.garden/alGOOylwpAfCa6qP/ghost-smile-svgrepo-com.svg"
+      alt="Players"
+      className={`object-contain inline-block shrink-0 ${className}`}
+      draggable={false}
+      aria-hidden="true"
+    />
   );
 }
 

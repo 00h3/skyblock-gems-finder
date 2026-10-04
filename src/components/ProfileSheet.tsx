@@ -26,6 +26,7 @@ import {
   type AvatarFrameId,
   CHARACTER_1_GLTF,
   CHARACTER_2_GLTF,
+  getAvatarViewerUrl,
 } from "@/lib/avatar";
 import { badgeUrlsFor, getUserBadges, UserNameWithBadges } from "@/lib/user-style";
 import { setNavHidden } from "@/lib/ui-bus";
@@ -342,11 +343,13 @@ export function ProfileSheet({
           <div className="relative h-[220px] shrink-0 w-full overflow-hidden bg-[#e9ebf2] dark:bg-[#12141a] flex flex-col justify-between p-4 border-b border-black/[0.04] dark:border-white/5">
             {/* Live 3D character on the stage covering full space */}
             <iframe
-              src={
-                user.email === "mammaettahiri@gmail.com"
-                  ? "https://maxwell.z3ki.dev/bot/avatar-id4-breathe-preview/"
-                  : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
-              }
+              src={getAvatarViewerUrl({
+                username: user.username || user.n,
+                email: user.email,
+                customId: user.customId,
+                gender: user.avatarSnapshot?.gender,
+                characterId: user.avatarSnapshot?.selectedCharacter,
+              })}
               title="3D Avatar"
               className="w-full h-full border-0 absolute inset-0 bg-transparent z-0"
               style={{ pointerEvents: "auto", border: "none", width: "100%", height: "100%" }}
@@ -392,11 +395,13 @@ export function ProfileSheet({
               {/* PFP container with 3D avatar iframe */}
               <div className="relative shrink-0 h-[52px] w-[52px] rounded-[14px] overflow-hidden border border-black/10 dark:border-white/10 bg-[#e9ebf2] dark:bg-[#12141a]">
                 <iframe
-                  src={
-                    user.email === "mammaettahiri@gmail.com"
-                      ? "https://maxwell.z3ki.dev/bot/avatar-id4-breathe-preview/"
-                      : "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
-                  }
+                  src={getAvatarViewerUrl({
+                    username: user.username || user.n,
+                    email: user.email,
+                    customId: user.customId,
+                    gender: user.avatarSnapshot?.gender,
+                    characterId: user.avatarSnapshot?.selectedCharacter,
+                  })}
                   title="PFP Avatar"
                   className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
                   style={{ border: "none" }}

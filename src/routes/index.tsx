@@ -56,6 +56,7 @@ import qblockGameLoaderUrl from "../assets/imported/IMG_6930_1786893754942.png?u
 import skyblockNewHorizonUrl from "../assets/skyblock/sky-pass-placeholder.png?url";
 import scpEscapeBannerUrl from "../assets/skyblock/sky-pass-placeholder.png?url";
 import { GlossyAvatar, isIraAccount } from "@/components/GlossyAvatar";
+import { PlayersIcon } from "@/components/icons/PlayersIcon";
 import { QBlockMailIcon } from "@/components/icons";
 import { useEquippedFrame } from "@/lib/avatar";
 
@@ -303,7 +304,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
             className="press group relative aspect-[4/5] overflow-hidden rounded-[18px] bg-slate-900 text-left shadow-[0_6px_16px_rgba(0,0,0,0.12)] border-0 cursor-pointer"
           >
             <img
-              src="/file_000000004b948209b18b615fa89a5390_1788908449731.png"
+              src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ab448210ace3ea08875f15f6.png"
               alt="Events"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
@@ -330,7 +331,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
             className="press group relative aspect-[4/5] overflow-hidden rounded-[18px] bg-slate-900 text-left shadow-[0_6px_16px_rgba(0,0,0,0.12)] border-0 cursor-pointer"
           >
             <img
-              src="/file_000000003b508210b9ef5285b5568fe6_1788908741423.png"
+              src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ded48210a85ba665493b1474.png"
               alt="Fragments"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
@@ -405,7 +406,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
                     <div className="truncate text-[12px] font-lilita tracking-wide leading-tight">{game.t}</div>
                     <div className="mt-1 flex items-center gap-2.5 text-[10px] text-text-muted">
                       <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
+                        <PlayersIcon className="h-3 w-3" />
                         {game.likes}
                       </span>
                     </div>
@@ -1549,7 +1550,7 @@ function TrendingCard({ g, onPlay }: { g: Game; onPlay: () => void }) {
           {g.t}
         </div>
         <div className="flex items-center gap-1 mt-0.5">
-          <Users className="h-3 w-3" style={{ color: "#9ca3af" }} />
+          <PlayersIcon className="h-3 w-3" />
           <span className="text-[10px] font-semibold" style={{ color: "#9ca3af" }}>
             {g.players}
           </span>

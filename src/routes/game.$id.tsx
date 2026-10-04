@@ -2418,7 +2418,7 @@ function EngineGame({
             : isSkyblock
               ? 0x9bdef7
               : 0x87ceeb;
-      const FOG_DENSITY = isSpleef ? 0.004 : isTntRush ? 0.014 : isSkyblock ? 0.0035 : 0.007;
+      const FOG_DENSITY = isSpleef ? 0.007 : isTntRush ? 0.018 : isSkyblock ? 0.0075 : 0.012;
       scene.fog = new THREE.FogExp2(FOG_COLOR, FOG_DENSITY);
       let fogOn = true;
       let renderDistPct = 70;
@@ -2703,11 +2703,9 @@ function EngineGame({
       // and RENDER_SCALE take effect on next game mount (requires renderer recreation).
       const qualityHandler = (e: Event) => {
         const q = (e as CustomEvent<string>).detail as "low" | "medium" | "high";
-        const newScale = q === "low" ? 0.75 : q === "medium" ? 0.9 : 1.0;
-        const newMaxDpr =
-          q === "low" ? 1.0 : q === "medium" ? 1.5 : Math.min(2, window.devicePixelRatio || 1);
-        curScale = newScale;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, newMaxDpr) * newScale);
+        const dpr = getTargetDpr(q);
+        curScale = q === "low" ? 0.85 : 1.0;
+        renderer.setPixelRatio(dpr);
         const shadowMapSz = q === "low" ? 512 : q === "medium" ? 1024 : 2048;
         sun.shadow.mapSize.set(shadowMapSz, shadowMapSz);
         renderer.shadowMap.needsUpdate = true;

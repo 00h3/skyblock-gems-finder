@@ -998,6 +998,9 @@ export function SandboxGame({
     return true;
   });
   const [avatarReady, setAvatarReady] = useState(false);
+  const [emoting, setEmoting] = useState(false);
+  const emotingRef = useRef(false);
+  const avatarInstanceRef = useRef<Avatar | null>(null);
   const thirdRef = useRef(true);
   
   // Update thirdRef whenever thirdPerson changes
@@ -1063,10 +1066,10 @@ export function SandboxGame({
       try {
         fogMode = localStorage.getItem("qb_fog_mode") || "realistic";
       } catch {}
-      if (fogMode === "dense") skyRef.current.setRange(6, 42);
-      else if (fogMode === "subtle") skyRef.current.setRange(22, 110);
+      if (fogMode === "dense") skyRef.current.setRange(5, 34);
+      else if (fogMode === "subtle") skyRef.current.setRange(18, 90);
       else if (fogMode === "off") skyRef.current.setRange(90, 450);
-      else skyRef.current.setRange(12, 68);
+      else skyRef.current.setRange(10, 64);
       if (celestialSunRef.current) celestialSunRef.current.visible = true;
       if (celestialMoonRef.current) celestialMoonRef.current.visible = false;
       if (auroraGroupRef.current) auroraGroupRef.current.visible = false;
@@ -1338,14 +1341,14 @@ export function SandboxGame({
       const applyFogMode = (mode: string) => {
         if (!sky) return;
         if (mode === "dense") {
-          sky.setRange(6, 42);
+          sky.setRange(5, 34);
         } else if (mode === "subtle") {
-          sky.setRange(22, 110);
+          sky.setRange(18, 90);
         } else if (mode === "off") {
           sky.setRange(90, 450);
         } else {
-          // "realistic" (default) — panoramic visibility so the gorgeous sky and floating island are clearly visible
-          sky.setRange(28, blockFall ? 85 : 180);
+          // "realistic" (default) — close atmospheric fog with rich depth
+          sky.setRange(10, blockFall ? 50 : 64);
         }
       };
 
@@ -1875,7 +1878,56 @@ export function SandboxGame({
       handSprite.rotation.set(0, 0, 0.18);
       heldHand.add(handSprite);
 
-      heldHand.position.set(0.32, -0.28, -0.46);
+      // 2D-but-3D Minecraft style held item in right hand
+      const heldItemHolder = new THREE.Group();
+      heldItemHolder.name = "heldItemHolder";
+      // Positioned right in the grasp of the hand's fingers
+      heldItemHolder.position.set(-0.06, 0.10, 0.04);
+      // Minecraft 3D isometric item angle in first-person
+      heldItemHolder.rotation.set(-0.16, 0.42, -0.22);
+      // Made big (0.48) per user request
+      heldItemHolder.scale.set(0.48, 0.48, 0.48);
+
+      const itemTexLoader = new THREE.TextureLoader();
+      const itemFrontMat = new THREE.MeshBasicMaterial({
+        transparent: true,
+        side: THREE.DoubleSide,
+        alphaTest: 0.05,
+        toneMapped: false,
+      });
+      const itemBackMat = new THREE.MeshBasicMaterial({
+        transparent: true,
+        side: THREE.DoubleSide,
+        alphaTest: 0.05,
+        color: 0x999999, // shaded back face for depth
+        toneMapped: false,
+      });
+      const itemEdgeMat = new THREE.MeshBasicMaterial({
+        transparent: true,
+        side: THREE.DoubleSide,
+        alphaTest: 0.05,
+        color: 0x444444, // dark extruded voxel edges for 3D thickness
+        toneMapped: false,
+      });
+
+      const itemGeo = new THREE.PlaneGeometry(1, 1);
+      const frontMesh = new THREE.Mesh(itemGeo, itemFrontMat);
+      frontMesh.position.set(0, 0, 0.012);
+
+      const backMesh = new THREE.Mesh(itemGeo, itemBackMat);
+      backMesh.position.set(0, 0, -0.012);
+
+      const edgeMesh1 = new THREE.Mesh(itemGeo, itemEdgeMat);
+      edgeMesh1.position.set(0.005, 0.005, 0);
+      const edgeMesh2 = new THREE.Mesh(itemGeo, itemEdgeMat);
+      edgeMesh2.position.set(-0.005, -0.005, 0);
+
+      heldItemHolder.add(frontMesh, backMesh, edgeMesh1, edgeMesh2);
+      heldItemHolder.visible = false;
+      heldHand.add(heldItemHolder);
+
+      // Right hand shifted 10% more to the right per user request (0.32 -> 0.352)
+      heldHand.position.set(0.352, -0.28, -0.46);
       heldHand.rotation.set(-0.1, -0.15, -0.05);
       heldHand.visible = false;
       heldRig.add(heldHand);
@@ -1883,9 +1935,9 @@ export function SandboxGame({
       camera.add(heldRig);
       scene.add(camera);
       const heldBasePose = {
-        hand: { px: 0.32, py: -0.28, pz: -0.46, rx: -0.25, ry: 0.35, rz: -0.12 },
-        block: { px: 0.3, py: -0.26, pz: -0.62, rx: -0.25, ry: 0.6, rz: 0.15 },
-        item: { px: 0.24, py: -0.38, pz: -0.44, rx: -0.12, ry: 0.2, rz: 0.08 },
+        hand: { px: 0.352, py: -0.28, pz: -0.46, rx: -0.25, ry: 0.35, rz: -0.12 },
+        block: { px: 0.33, py: -0.26, pz: -0.62, rx: -0.25, ry: 0.6, rz: 0.15 },
+        item: { px: 0.264, py: -0.38, pz: -0.44, rx: -0.12, ry: 0.2, rz: 0.08 },
       };
       let swing = 0;
       let placePulse = 0;
@@ -1920,8 +1972,30 @@ export function SandboxGame({
         if (typeof id === "string") {
           meleeDamage = SWORD_STATS[id]?.damage ?? damageForItem(id);
           held.visible = false;
-          heldHand.visible = !heldSword;
-          if (heldSword) heldSword.visible = true;
+          if (heldSword) {
+            heldSword.visible = true;
+            heldHand.visible = false;
+            heldItemHolder.visible = false;
+          } else {
+            // Utility items (slime balls, ender pearls, wind charges, etc.) shown in right hand
+            heldHand.visible = true;
+            heldItemHolder.visible = true;
+            const url = utilityIconUrl(id) || `/items/${id}.png`;
+            if (url) {
+              itemTexLoader.load(url, (tex) => {
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.magFilter = THREE.NearestFilter;
+                tex.minFilter = THREE.NearestFilter;
+                tex.generateMipmaps = false;
+                itemFrontMat.map = tex;
+                itemBackMat.map = tex;
+                itemEdgeMat.map = tex;
+                itemFrontMat.needsUpdate = true;
+                itemBackMat.needsUpdate = true;
+                itemEdgeMat.needsUpdate = true;
+              });
+            }
+          }
           heldRig.scale.set(1.22, 1.22, 1.22);
         } else if (id === 0) {
           // Empty / bare hand
@@ -1929,12 +2003,14 @@ export function SandboxGame({
           held.visible = false;
           if (heldSword) heldSword.visible = false;
           heldHand.visible = true;
+          heldItemHolder.visible = false;
           heldRig.scale.set(1, 1, 1);
         } else {
           meleeDamage = 1;
           held.visible = true;
           if (heldSword) heldSword.visible = false;
           heldHand.visible = false;
+          heldItemHolder.visible = false;
           heldRig.scale.set(1, 1, 1);
 
           const def = BLOCKS.find((b) => b.id === id);
@@ -1970,6 +2046,8 @@ export function SandboxGame({
 
       // third-person QBLOCK character (bigger, Roblox-style presence)
       avatar = new Avatar();
+      avatarInstanceRef.current = avatar;
+      if (emotingRef.current) avatar.setEmote(true);
       scene.add(avatar.group);
       avatar.setVisible(thirdRef.current);
       avatar.load(2.28).then(() => {
@@ -2592,15 +2670,19 @@ export function SandboxGame({
       // the root cause of the blurry/pixelated horizon in landscape.
       const onResize = () => {
         if (!renderer) return;
-        const w = Math.max(1, mount.clientWidth);
-        const h = Math.max(1, mount.clientHeight);
+        const w = Math.max(1, mount.clientWidth || window.innerWidth);
+        const h = Math.max(1, mount.clientHeight || window.innerHeight);
         camera.aspect = w / h;
         baseFov = fovForAspect(camera.aspect, 90, userFov);
         camera.fov = baseFov;
         camera.updateProjectionMatrix();
-        renderer.setPixelRatio(getTargetDpr(readQualityPref()));
+        const dpr = getTargetDpr(readQualityPref());
+        renderer.setPixelRatio(dpr);
         renderer.setSize(w, h, false);
-        cinematicPost?.setSize(w, h, renderer.getPixelRatio());
+        cinematicPost?.setSize(w, h, dpr);
+        renderer.domElement.style.width = "100%";
+        renderer.domElement.style.height = "100%";
+        renderer.domElement.style.imageRendering = "auto";
       };
       const resizeObserver = new ResizeObserver(onResize);
       resizeObserver.observe(mount);
@@ -2614,6 +2696,7 @@ export function SandboxGame({
       screen.orientation?.addEventListener?.("change", onOrientation);
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
+      renderer.domElement.style.imageRendering = "auto";
 
       const onFovEvt = (e: Event) => {
         const val = (e as CustomEvent<number>).detail;
@@ -3313,6 +3396,7 @@ export function SandboxGame({
         }
       }
       avatar?.dispose();
+      avatarInstanceRef.current = null;
       sky?.dispose();
       fx?.dispose();
       ownBedIndicator?.material.map?.dispose();
@@ -3862,7 +3946,21 @@ export function SandboxGame({
           }}
           onToggleCamera={toggleThird}
           onToggleMute={toggleMute}
-          onEmote={() => window.dispatchEvent(new CustomEvent("qb-self-say", { detail: "Hello!" }))}
+          emoting={emoting}
+          onEmote={() => {
+            const next = !emotingRef.current;
+            emotingRef.current = next;
+            setEmoting(next);
+            avatarInstanceRef.current?.setEmote(next);
+            if (next) {
+              if (!thirdRef.current) {
+                toggleThird();
+              }
+              announce("Dance Mode", "Looping dance with sparkling purple aura! Click icon again to stop.");
+            } else {
+              announce("Dance Stopped", "Normal posture restored.");
+            }
+          }}
           onLeave={() => {
             controlsRef.current?.exitLock();
             setShowQuitDialog(true);

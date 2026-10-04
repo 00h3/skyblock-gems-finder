@@ -145,7 +145,7 @@ export function RedesignedHomePage({
           >
             <div className="w-[42px] h-[42px] rounded-[10px] overflow-hidden shrink-0 shadow-inner bg-[#fff3ec] flex items-center justify-center p-1">
               <img
-                src="https://maxwell.z3ki.dev/bot/_files/qblock-puzzle-fragments-png/qblock-puzzle-fragments-transparent.png"
+                src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ded48210a85ba665493b1474.png"
                 alt="Fragments"
                 className="w-full h-full object-contain"
                 draggable={false}
@@ -171,7 +171,7 @@ export function RedesignedHomePage({
           >
             <div className="w-[42px] h-[42px] rounded-[10px] overflow-hidden shrink-0 shadow-inner bg-[#f1f2f4] flex items-center justify-center p-1">
               <img
-                src="https://maxwell.z3ki.dev/bot/_files/qblock-event-calendar-png/qblock-event-calendar-transparent.png"
+                src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ab448210ace3ea08875f15f6.png"
                 alt="Events"
                 className="w-full h-full object-contain"
                 draggable={false}

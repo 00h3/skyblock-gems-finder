@@ -11,6 +11,7 @@ import {
   getBaseCharacter,
   setBaseCharacter,
   setGender,
+  getAvatarViewerUrl,
   type AvatarCharacterId,
 } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
@@ -251,7 +252,12 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
         <div className="relative w-full h-[370px] bg-gradient-to-b from-[#ffffff] via-[#f1f5f9] to-[#e2e8f0] overflow-hidden">
           {/* Full Space 3D Avatar Preview Iframe */}
           <iframe
-            src="https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+            src={getAvatarViewerUrl({
+              characterId: selectedChar,
+              gender: qbUser?.avatarSnapshot?.gender,
+              username: qbUser?.username || qbUser?.displayName,
+              email: qbUser?.email,
+            })}
             className="w-full h-full border-0 absolute inset-0 bg-transparent z-0"
             style={{ pointerEvents: "auto", border: "none", width: "100%", height: "100%" }}
             allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"

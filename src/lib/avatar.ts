@@ -1,13 +1,46 @@
 import { useEffect, useState } from "react";
 
 export const CHARACTER_4_GLTF = "https://file.garden/alGOOylwpAfCa6qP/avatar4_walk.glb"; // For IRA
-export const CHARACTER_1_GLTF = "https://maxwell.z3ki.dev/bot/_files/char1-opt/char1_opt.gltf";
-export const CHARACTER_2_GLTF = "https://maxwell.z3ki.dev/bot/_files/char2-opt/char2_opt.gltf";
+export const CHARACTER_1_GLTF = "https://file.garden/alGOOylwpAfCa6qP/Nuovo%20Progetto%205.gltf";
+export const CHARACTER_2_GLTF = "https://file.garden/alGOOylwpAfCa6qP/Nuovo%20Progetto%205.gltf";
+export const AVATAR_CUSTOMIZATION_GLTF = "https://file.garden/alGOOylwpAfCa6qP/Nuovo%20Progetto%205.gltf";
 
 export const NED_AVATAR_GLB =
   "https://maxwell.z3ki.dev/bot/_files/avatar-walk-legs-glb/Avatar_Walk_LegsOnly.glb";
 export const NELLY_AVATAR_GLB =
   "https://maxwell.z3ki.dev/bot/_files/female-walk-legs-glb/Female_Walk_LegsOnly.glb";
+
+export function getAvatarViewerUrl(opts?: {
+  characterId?: string;
+  gender?: string;
+  username?: string;
+  email?: string;
+  customId?: string;
+  isIra?: boolean;
+  isStr?: boolean;
+}): string {
+  const email = (opts?.email || "").toLowerCase();
+  const username = (opts?.username || "").toLowerCase();
+  const customId = (opts?.customId || "").toLowerCase();
+
+  const isIraOrStr =
+    opts?.isIra ||
+    opts?.isStr ||
+    email === "mammaettahiri@gmail.com" ||
+    email.includes("ira") ||
+    username === "ira" ||
+    username === "str" ||
+    username.startsWith("str") ||
+    customId === "str" ||
+    customId.startsWith("str");
+
+  if (isIraOrStr) {
+    return "https://maxwell.z3ki.dev/bot/witch-studio-viewer/";
+  }
+
+  // Globally for girl id2 and default
+  return "https://maxwell.z3ki.dev/bot/progetto-5-viewer/";
+}
 
 export function getSkyblockCharacterModelUrl(
   selectedCharacter?: string | null,

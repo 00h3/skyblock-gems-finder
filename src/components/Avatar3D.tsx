@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { SKINS, AVATAR_COLORS } from "@/lib/avatar";
+import { SKINS, AVATAR_COLORS, getAvatarViewerUrl } from "@/lib/avatar";
 import { SANDBOX_AVATAR_FALLBACK_MODEL, SANDBOX_AVATAR_MODEL } from "@/engine/avatar-model";
 
 export const LOCAL_AVATAR_GLB = SANDBOX_AVATAR_MODEL;
@@ -117,9 +117,10 @@ export function Avatar3D({
 }: Avatar3DProps & { characterId?: string; iframeSrc?: string }) {
   const iframeSrc =
     customSrc ||
-    (characterId === "nelly" || characterId === "id2" || characterId === "2" || gender === "female"
-      ? "https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
-      : "https://maxwell.z3ki.dev/bot/avatar-3d-preview/");
+    getAvatarViewerUrl({
+      characterId,
+      gender,
+    });
 
   const containerStyle: React.CSSProperties = {
     ...style,

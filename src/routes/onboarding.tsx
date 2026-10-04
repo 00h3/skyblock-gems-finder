@@ -117,7 +117,7 @@ const CHARACTER_PRESETS = [
     id: "ned",
     name: "Nelly",
     alias: "Ned",
-    previewUrl: "https://maxwell.z3ki.dev/bot/avatar-boy-preview/",
+    previewUrl: "https://maxwell.z3ki.dev/bot/progetto-5-viewer/",
     gender: "female" as const,
     tagline: "Modern Pioneer",
     skin: "#ffe8df",

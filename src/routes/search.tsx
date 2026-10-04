@@ -24,7 +24,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { uidColor, userDisplayName, sendFriendRequest, getFriendStatus } from "@/lib/friends-utils";
 import { UserNameWithBadges } from "@/lib/user-style";
-import { normalizeAvatarSnapshot, CHARACTER_1_GLTF, CHARACTER_2_GLTF } from "@/lib/avatar";
+import { normalizeAvatarSnapshot, CHARACTER_1_GLTF, CHARACTER_2_GLTF, getAvatarViewerUrl } from "@/lib/avatar";
 import { HtmlElementLoader, HtmlSpinner } from "@/components/ui/HtmlLoadingScreen";
 import { toast } from "sonner";
 
@@ -237,7 +237,12 @@ function SearchPage() {
                       {/* 3D Character thumbnail iframe preview */}
                       <div className="w-full h-[140px] rounded-[14px] overflow-hidden bg-[#eef2f6] relative flex items-center justify-center">
                         <iframe
-                          src="https://maxwell.z3ki.dev/bot/avatar-boy-preview/"
+                          src={getAvatarViewerUrl({
+                            username: player.username || player.n,
+                            customId: player.customId,
+                            characterId: player.avatarSnapshot?.selectedCharacter,
+                            gender: player.avatarSnapshot?.gender,
+                          })}
                           className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
                           style={{ border: "none" }}
                           loading="lazy"

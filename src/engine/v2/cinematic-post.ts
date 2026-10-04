@@ -74,7 +74,7 @@ export class CinematicPost {
     camera: THREE.PerspectiveCamera,
     _strength = 0.22,
   ) {
-    const dpr = Math.min(renderer.getPixelRatio(), 1.5);
+    const dpr = Math.min(renderer.getPixelRatio(), 2.25);
     const canvas = renderer.domElement;
     const w = canvas.clientWidth || window.innerWidth || 1280;
     const h = canvas.clientHeight || window.innerHeight || 720;
@@ -110,7 +110,7 @@ export class CinematicPost {
   }
 
   setSize(w: number, h: number, pixelRatio: number) {
-    const dpr = Math.min(pixelRatio, 1.5);
+    const dpr = Math.min(pixelRatio, 2.25);
     const targetW = Math.max(64, Math.round(w * dpr));
     const targetH = Math.max(64, Math.round(h * dpr));
     this.composer.setPixelRatio(1);

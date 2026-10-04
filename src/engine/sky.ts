@@ -311,15 +311,15 @@ export class Sky {
     this.group.add(this.sunLight.target);
     scene.add(this.hemi, this.ambient, this.group);
 
-    let initialNear = 12;
-    let initialFar = 68;
+    let initialNear = 10;
+    let initialFar = 64;
     try {
       if (typeof window !== "undefined") {
         const mode = localStorage.getItem("qb_fog_mode") || "realistic";
-        if (mode === "dense") { initialNear = 6; initialFar = 42; }
-        else if (mode === "subtle") { initialNear = 22; initialFar = 110; }
+        if (mode === "dense") { initialNear = 5; initialFar = 34; }
+        else if (mode === "subtle") { initialNear = 18; initialFar = 90; }
         else if (mode === "off") { initialNear = 90; initialFar = 450; }
-        else { initialNear = 12; initialFar = 68; }
+        else { initialNear = 10; initialFar = 64; }
       }
     } catch {}
 

@@ -141,12 +141,19 @@ export function V2Hotbar({
               )}
             >
               {tileUrls[id] ? (
-                <img
-                  src={tileUrls[id]}
-                  alt=""
-                  draggable={false}
-                  className="h-7 w-7 rounded-[4px] object-cover [image-rendering:pixelated]"
-                />
+                <>
+                  <img
+                    src={tileUrls[id]}
+                    alt=""
+                    draggable={false}
+                    className="h-7 w-7 rounded-[4px] object-cover [image-rendering:pixelated]"
+                  />
+                  {id !== 0 && (
+                    <span className="absolute bottom-0.5 right-1 font-lilita text-[11px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
+                      {typeof id === "number" ? 64 : String(id).includes("sword") || id === "shield" ? 1 : 16}
+                    </span>
+                  )}
+                </>
               ) : null}
               {!isTouch && i < 9 && (
                 <span
