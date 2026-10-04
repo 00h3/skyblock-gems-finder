@@ -1,19 +1,16 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { SANDBOX_AVATAR_FALLBACK_MODEL, SANDBOX_AVATAR_MODEL } from "@/engine/avatar-model";
-
-const JUMP_CLIP_URL = "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_jump.glb";
-const CROUCH_CLIP_URL = "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_crouch.glb";
+import {
+  SANDBOX_AVATAR_FALLBACK_MODEL,
+  SANDBOX_AVATAR_MODEL,
+  WITCH_AVATAR_MODEL,
+  WITCH_AVATAR_REMOTE_URL,
+} from "@/engine/avatar-model";
 
 /**
  * Universal character model for Skyblock and Block Fall.
  * Guarantees zero-delay visibility with procedural rig fallback,
- * and loads the universal GLB model with baked animations:
- * - Breathe (idle breathing)
- * - Walk (walking/running)
- * - Jump (jumping / in-air)
- * - Climb (ladder/climb)
- * - Die (angel death sequence before respawning)
+ * and loads the universal GLB model with baked animations.
  */
 export class Avatar {
   readonly group = new THREE.Group();
@@ -133,10 +130,10 @@ export class Avatar {
   async load(targetHeight = 2.28) {
     const loader = new GLTFLoader();
 
-    // Priority candidates: Local Avatar_Walk_LegsOnly.glb first, then remote file.garden link
+    // Priority candidates: Local QBlock_Witch_Walk.glb first, then remote CDN
     const candidates = [
-      "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_walk.gltf",
-      "https://file.garden/alGOOylwpAfCa6qP/Nuovo_Progetto_10_walk.gltf",
+      WITCH_AVATAR_MODEL,
+      WITCH_AVATAR_REMOTE_URL,
       SANDBOX_AVATAR_MODEL,
       SANDBOX_AVATAR_FALLBACK_MODEL,
     ].filter(Boolean);
@@ -255,11 +252,13 @@ export class Avatar {
         this.animActions.walk.setLoop(THREE.LoopRepeat, Infinity);
       }
 
-      // Automatically start the character's walking animation
+      // Automatically start the character animation immediately
       if (this.animActions.walk) {
         this.animActions.walk.reset();
         this.animActions.walk.setLoop(THREE.LoopRepeat, Infinity);
-        this.animActions.walk.setEffectiveWeight(1);
+        this.animActions.walk.clampWhenFinished = false;
+        this.animActions.walk.enabled = true;
+        this.animActions.walk.setEffectiveWeight(1.0);
         this.animActions.walk.setEffectiveTimeScale(1.0);
         this.animActions.walk.play();
       }
@@ -286,36 +285,9 @@ export class Avatar {
           this.completeDeath();
         }
       });
-
-      void this.loadStateClips(loader);
     }
 
     return this;
-  }
-
-  /** Dedicated jump + crouch clips share the walk rig, so they bind by bone name. */
-  private async loadStateClips(loader: GLTFLoader) {
-    const load = async (url: string) => {
-      const g = await loader.loadAsync(url).catch(() => null);
-      return g?.animations?.[0] ?? null;
-    };
-    const [jumpClip, crouchClip] = await Promise.all([load(JUMP_CLIP_URL), load(CROUCH_CLIP_URL)]);
-    if (!this.mixer) return;
-    if (jumpClip) {
-      this.animActions.jump?.stop();
-      const a = this.mixer.clipAction(jumpClip);
-      a.setLoop(THREE.LoopRepeat, Infinity);
-      a.play();
-      a.setEffectiveWeight(0);
-      this.animActions.jump = a;
-    }
-    if (crouchClip) {
-      const a = this.mixer.clipAction(crouchClip);
-      a.setLoop(THREE.LoopRepeat, Infinity);
-      a.play();
-      a.setEffectiveWeight(0);
-      this.animActions.crouch = a;
-    }
   }
 
   triggerDeath(onRespawn?: () => void) {
@@ -427,40 +399,22 @@ export class Avatar {
     const moving = speed > 0.35 && onGround;
     const inAir = !onGround || Math.abs(verticalVelocity) > 2.0;
 
-    let targetWalk = 1; // Automatically keep walking animation active
-    let targetBreathe = 0;
-    let targetJump = 0;
-    let targetClimb = 0;
-    let targetCrouch = 0;
+    // Character animation runs continuously across all states: walking, jumping, and staying still
+    let targetTimeScale = 1.0;
 
-    if (climbing && this.animActions.climb) {
-      targetClimb = 1;
-    } else if (inAir && this.animActions.jump) {
-      targetJump = 1;
-      targetWalk = 0;
-    } else if (sneaking && this.animActions.crouch) {
-      targetCrouch = 1;
-      targetWalk = 0;
-    } else if (moving && this.animActions.walk) {
-      targetWalk = 1;
+    if (inAir) {
+      // JUMPING: energetic playback speed so legs and flowing cape stay active mid-air
+      targetTimeScale = 1.2;
+    } else if (moving) {
+      // WALKING / RUNNING: playback speed matches movement speed
+      targetTimeScale = sneaking ? 0.75 : speed > 5 ? 1.55 : Math.max(0.95, speed * 0.28);
     } else {
-      targetWalk = 1;
-      targetBreathe = 0.2;
+      // STAYING STILL (IDLE): smooth idle pacing so character breathes and cape sways naturally
+      targetTimeScale = this.idleStill ? 0.45 : 0.85;
     }
 
-    const blendFactor = 1 - Math.exp(-14 * dt);
-
     if (this.animActions.walk) {
-      const w = THREE.MathUtils.lerp(
-        this.animActions.walk.getEffectiveWeight(),
-        targetWalk,
-        blendFactor,
-      );
-      // Walk stays the base layer unless a dedicated state clip takes over.
-      this.animActions.walk.setEffectiveWeight(targetWalk === 0 ? w : Math.max(0.9, w));
-      const targetTimeScale =
-        this.idleStill && !moving ? 0 : sneaking ? 0.65 : speed > 5 ? 1.55 : 1.0;
-      if (targetTimeScale === 0) this.animActions.walk.time = 0;
+      this.animActions.walk.setEffectiveWeight(1.0);
       this.animActions.walk.setEffectiveTimeScale(targetTimeScale);
       if (!this.animActions.walk.isRunning()) {
         this.animActions.walk.play();
@@ -468,38 +422,8 @@ export class Avatar {
     }
 
     if (this.animActions.breathe) {
-      const w = THREE.MathUtils.lerp(
-        this.animActions.breathe.getEffectiveWeight(),
-        targetBreathe,
-        blendFactor,
-      );
-      this.animActions.breathe.setEffectiveWeight(w);
+      this.animActions.breathe.setEffectiveWeight(0.2);
       this.animActions.breathe.setEffectiveTimeScale(1.0);
-    }
-
-    if (this.animActions.jump) {
-      const w = THREE.MathUtils.lerp(
-        this.animActions.jump.getEffectiveWeight(),
-        targetJump,
-        blendFactor,
-      );
-      this.animActions.jump.setEffectiveWeight(w);
-      this.animActions.jump.setEffectiveTimeScale(1.0);
-    }
-
-    if (this.animActions.climb) {
-      const w = THREE.MathUtils.lerp(
-        this.animActions.climb.getEffectiveWeight(),
-        targetClimb,
-        blendFactor,
-      );
-      this.animActions.climb.setEffectiveWeight(w);
-    }
-
-    if (this.animActions.crouch) {
-      const w = THREE.MathUtils.lerp(this.animActions.crouch.getEffectiveWeight(), targetCrouch, blendFactor);
-      this.animActions.crouch.setEffectiveWeight(w);
-      this.animActions.crouch.setEffectiveTimeScale(moving ? 1 : 0.35);
     }
 
     if (this.mixer) {

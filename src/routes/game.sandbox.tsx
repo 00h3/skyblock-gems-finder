@@ -8,6 +8,7 @@ import { World, BLOCKS, WATER_ID, WIND } from "@/engine/world";
 import { Features, UTILITY_ITEMS, NEW_BACKPACK_ITEMS } from "@/engine/features";
 import { utilityIconUrl } from "@/engine/item-icons";
 import { FeatureDock, RadialWheel, QuickBuyPanel } from "@/components/v2/FeatureDock";
+import { createVoxelLantern, createCrystalCluster, type VoxelPropHandle } from "@/engine/v2/voxel-props";
 import { GrassField } from "@/engine/v2/grass-field";
 import { CinematicPost } from "@/engine/v2/cinematic-post";
 import { CombatFx } from "@/engine/v2/combat-fx";
@@ -427,34 +428,12 @@ function buildSkyblockIsland(world: World) {
     }
   }
 
-  // Exactly ONE Tree at (-4, 16, -4):
-  // 6-block tall Oak Log trunk (id: 7)
-  for (let y = 17; y <= 22; y++) {
-    world.set(-4, y, -4, 7);
-  }
-  // Full lush canopy of Oak Leaves (id: 9)
-  for (let dy = 0; dy <= 3; dy++) {
-    const y = 20 + dy;
-    const r = dy < 2 ? 2 : 1;
-    for (let dx = -r; dx <= r; dx++) {
-      for (let dz = -r; dz <= r; dz++) {
-        if (Math.abs(dx) === r && Math.abs(dz) === r && dy !== 0) continue;
-        if (world.get(-4 + dx, y, -4 + dz) === 0) {
-          world.set(-4 + dx, y, -4 + dz, 9);
-        }
-      }
-    }
-  }
-  // Top tip of tree
-  world.set(-4, 24, -4, 9);
-
-  // Decorative Starter Island Accents
+  // Starter Island Accents
   world.set(1, 16, 1, 4); // Cobblestone
   world.set(1, 16, 2, 14); // Mossy Cobblestone
   world.set(2, 16, 1, 4); // Cobblestone
   world.set(-1, 17, 4, 26); // Starter Pumpkin
   world.set(5, 16, 2, 17); // Starter Ice Block
-  world.set(-4, 25, -4, 18); // Tree-top Glowstone Lantern
 
   // Small spring pond on the east lobe; the shader water surface sits in it.
   const { x: px, z: pz, radius } = SKYBLOCK_POND;
@@ -998,7 +977,7 @@ export function SandboxGame({
   const [playerHp, setPlayerHp] = useState(20);
   const featuresRef = useRef<Features | null>(null);
   const [offhand, setOffhand] = useState<number | string | null>(null);
-  const [bridgeAssist, setBridgeAssist] = useState(false);
+  const [bridgeAssist, setBridgeAssist] = useState(true);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [quickBuyOpen, setQuickBuyOpen] = useState(false);
   const [playerHunger, setPlayerHunger] = useState(20);
@@ -1056,6 +1035,16 @@ export function SandboxGame({
   const phoenixModelRef = useRef<THREE.Group | null>(null);
   const phoenixMixerRef = useRef<THREE.AnimationMixer | null>(null);
   const voxelTorchRef = useRef<VoxelTorchHandle | null>(null);
+  const voxelPropsRef = useRef<VoxelPropHandle[]>([]);
+  const gltfTreesRef = useRef<
+    {
+      group: THREE.Group;
+      foliage: THREE.Mesh[];
+      baseRotZ: number;
+      baseRotX: number;
+      seed: number;
+    }[]
+  >([]);
   const cosmicSkyRef = useRef<CosmicSky | null>(null);
 
   useEffect(() => {
@@ -1065,7 +1054,7 @@ export function SandboxGame({
       skyRef.current.setNight();
       if (celestialSunRef.current) celestialSunRef.current.visible = false;
       if (celestialMoonRef.current) celestialMoonRef.current.visible = true;
-      if (auroraGroupRef.current) auroraGroupRef.current.visible = true;
+      if (auroraGroupRef.current) auroraGroupRef.current.visible = false;
       // Glowing phoenix remains soaring as a fiery celestial beacon at night
       if (phoenixModelRef.current) phoenixModelRef.current.visible = true;
     } else {
@@ -1280,7 +1269,7 @@ export function SandboxGame({
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.18;
+      renderer.toneMappingExposure = 1.25;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.shadowMap.autoUpdate = false;
@@ -1444,47 +1433,9 @@ export function SandboxGame({
         scene.add(moonGroup);
         celestialMoonRef.current = moonGroup;
 
-        // ── 3. Shimmering Aurora Borealis Ribbons ──
+        // ── 3. Shimmering Aurora Ribbons (Removed per user request to eliminate spectrum of light) ──
         const aGroup = new THREE.Group();
-        aGroup.position.set(0, 95, -110);
         aGroup.visible = false;
-
-        const ribbonCount = 3;
-        for (let r = 0; r < ribbonCount; r++) {
-          const segs = 64;
-          const ribbonGeo = new THREE.PlaneGeometry(280, 42, segs, 8);
-          const pos = ribbonGeo.attributes.position;
-          const colors = new Float32Array(pos.count * 3);
-          const color1 = new THREE.Color(0x10b981); // Emerald
-          const color2 = new THREE.Color(0x06b6d4); // Cyan
-          const color3 = new THREE.Color(0xa855f7); // Violet
-
-          for (let i = 0; i < pos.count; i++) {
-            const u = (pos.getX(i) + 140) / 280;
-            const c =
-              u < 0.5
-                ? color1.clone().lerp(color2, u * 2)
-                : color2.clone().lerp(color3, (u - 0.5) * 2);
-            colors[i * 3] = c.r;
-            colors[i * 3 + 1] = c.g;
-            colors[i * 3 + 2] = c.b;
-          }
-          ribbonGeo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
-          const ribbonMat = new THREE.MeshBasicMaterial({
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.55 - r * 0.1,
-            side: THREE.DoubleSide,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-          });
-          const ribbonMesh = new THREE.Mesh(ribbonGeo, ribbonMat);
-          ribbonMesh.position.set(r * 18 - 18, r * 8, -r * 25);
-          ribbonMesh.rotation.x = 0.18 + r * 0.05;
-          aGroup.add(ribbonMesh);
-        }
-        scene.add(aGroup);
         auroraGroupRef.current = aGroup;
 
         // ── 4. Soaring Phoenix Companion (Near Radiant Sun) ──
@@ -1511,21 +1462,17 @@ export function SandboxGame({
                         mat.map.magFilter = THREE.LinearFilter;
                         mat.map.minFilter = THREE.LinearMipmapLinearFilter;
                         mat.map.generateMipmaps = true;
-                        mat.map.anisotropy = 16;
+                        mat.map.anisotropy = 8;
                         mat.map.needsUpdate = true;
                       }
                       mat.emissive = new THREE.Color(0xff6a10);
                       if (mat.map && !mat.emissiveMap) mat.emissiveMap = mat.map;
-                      mat.emissiveIntensity = 2.6;
+                      mat.emissiveIntensity = 2.4;
                       mat.needsUpdate = true;
                     });
                   }
                 }
               });
-
-              // Strong fire light with physical falloff so it lights the island below.
-              const pFireLight = new THREE.PointLight(0xff6a10, 7.5, 60, 1.6);
-              pModel.add(pFireLight);
 
               // Layered additive corona: hot inner core + wide soft halo.
               const auraCore = new THREE.Mesh(
@@ -1574,6 +1521,108 @@ export function SandboxGame({
         const starterTorch = createVoxelTorch(1.5, 17.0, 1.5);
         scene.add(starterTorch.group);
         voxelTorchRef.current = starterTorch;
+
+        // Cozy lantern on iron stand near camp (Reference Image 3)
+        const campLantern = createVoxelLantern(-2.8, 16.0, -3.0);
+        scene.add(campLantern.group);
+
+        voxelPropsRef.current = [campLantern];
+
+        // ── 6. High-Fidelity 3D Stylized Tree (Upright & Grounded) ──
+        try {
+          const treeLoader = new GLTFLoader();
+          const treeAsset = await treeLoader.loadAsync("/nuovo_progetto_20.gltf").catch(() =>
+            treeLoader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/Nuovo%20Progetto%2020.gltf"),
+          );
+          if (!disposed && treeAsset?.scene) {
+            // Strip any unintended lights (Faretto, Direzionale) and default blender cubes
+            const unwanted: THREE.Object3D[] = [];
+            treeAsset.scene.traverse((obj) => {
+              if (
+                (obj as THREE.Light).isLight ||
+                obj.name === "Faretto" ||
+                obj.name === "Direzionale" ||
+                obj.name.startsWith("Cubo")
+              ) {
+                unwanted.push(obj);
+              }
+            });
+            unwanted.forEach((obj) => obj.removeFromParent());
+
+            // Extract tree model (low_poly_tree node)
+            const templateTree = treeAsset.scene.getObjectByName("low_poly_tree") || treeAsset.scene;
+
+            // Placements for upright trees on the island
+            const placements = [
+              { x: -4.0, y: 16.0, z: -4.0, scale: 0.58, rotY: 0.35, seed: 1.2 },
+            ];
+
+            const createdTrees: {
+              group: THREE.Group;
+              foliage: THREE.Mesh[];
+              baseRotZ: number;
+              baseRotX: number;
+              seed: number;
+            }[] = [];
+
+            placements.forEach((p) => {
+              const treeClone = templateTree.clone(true) as THREE.Group;
+
+              // Stand tree upright (compensate for tilted Blender scene export)
+              treeClone.rotation.set(105 * Math.PI / 180, 0, -80 * Math.PI / 180);
+              treeClone.scale.setScalar(p.scale);
+
+              const pivot = new THREE.Group();
+              pivot.rotation.y = p.rotY;
+              pivot.add(treeClone);
+              pivot.updateMatrixWorld(true);
+
+              const trunkObj = treeClone.getObjectByName("Plane1065_Material002_0") || treeClone;
+              const trunkBox = new THREE.Box3().setFromObject(trunkObj);
+              const center = trunkBox.getCenter(new THREE.Vector3());
+
+              // Ground trunk base exactly at island grass (p.y = 16.0) and center at (p.x, p.z)
+              treeClone.position.x += (p.x - center.x);
+              treeClone.position.y += (p.y - trunkBox.min.y);
+              treeClone.position.z += (p.z - center.z);
+              pivot.updateMatrixWorld(true);
+
+              const foliage: THREE.Mesh[] = [];
+              treeClone.traverse((child) => {
+                if ((child as THREE.Mesh).isMesh) {
+                  const m = child as THREE.Mesh;
+                  m.castShadow = true;
+                  m.receiveShadow = true;
+                  if (m.material) {
+                    const mat = m.material as THREE.MeshStandardMaterial;
+                    if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+                    mat.side = THREE.DoubleSide;
+                    mat.alphaTest = 0.25;
+                    mat.needsUpdate = true;
+                  }
+                  if (m.name.includes("Plane") || m.name.includes("Material")) {
+                    m.userData.baseRotY = m.rotation.y;
+                    foliage.push(m);
+                  }
+                }
+              });
+
+              scene.add(pivot);
+
+              createdTrees.push({
+                group: pivot,
+                foliage,
+                baseRotZ: 0,
+                baseRotX: 0,
+                seed: p.seed,
+              });
+            });
+
+            gltfTreesRef.current = createdTrees;
+          }
+        } catch (treeLoadErr) {
+          console.warn("Could not load stylized GLTF trees:", treeLoadErr);
+        }
       }
 
       if (goldenDays) {
@@ -2311,6 +2360,7 @@ export function SandboxGame({
         onOffhand: (item) => setOffhand(item),
       });
       features.survival = !blockFall;
+      features.bridgeAssist = true;
       features.setHeld(heldItemId);
       featuresRef.current = features;
 
@@ -3021,24 +3071,18 @@ export function SandboxGame({
           if (voxelTorchRef.current) {
             voxelTorchRef.current.update(tNow);
           }
+          voxelPropsRef.current.forEach((p) => p.update?.(tNow));
 
-          if (auroraGroupRef.current && auroraGroupRef.current.visible) {
-            auroraGroupRef.current.children.forEach((child, idx) => {
-              if (child instanceof THREE.Mesh) {
-                const pos = child.geometry.attributes.position;
-                const arr = pos.array as Float32Array;
-                for (let i = 0; i < pos.count; i++) {
-                  const ix = i * 3;
-                  const x = arr[ix];
-                  const waveY =
-                    Math.sin(tNow * 1.8 + x * 0.04 + idx * 1.5) * 5.5 +
-                    Math.cos(tNow * 0.9 + x * 0.02) * 3.0;
-                  arr[ix + 1] = (i % 9) * 4.6 - 21 + waveY;
-                }
-                pos.needsUpdate = true;
-              }
+          // Natural organic wind sway on stylized trees (gentle upright breeze sway)
+          gltfTreesRef.current.forEach((t) => {
+            const swayZ = Math.sin(tNow * 1.25 + t.seed) * 0.012;
+            const swayX = Math.cos(tNow * 0.95 + t.seed * 1.3) * 0.010;
+            t.group.rotation.z = t.baseRotZ + swayZ;
+            t.group.rotation.x = t.baseRotX + swayX;
+            t.foliage.forEach((f, idx) => {
+              f.rotation.y = (f.userData.baseRotY ?? 0) + Math.sin(tNow * 2.0 + idx * 0.4 + t.seed) * 0.015;
             });
-          }
+          });
         }
 
         // target highlight
@@ -3283,6 +3327,20 @@ export function SandboxGame({
       workbenchTags.forEach((tag) => tag.dispose());
       runesTags.forEach((tag) => tag.dispose());
       runesTimers.forEach((timer) => timer.dispose());
+      voxelPropsRef.current.forEach((p) => p.dispose());
+      voxelPropsRef.current = [];
+      gltfTreesRef.current.forEach((t) => {
+        t.group.traverse((obj) => {
+          if ((obj as THREE.Mesh).isMesh) {
+            const m = obj as THREE.Mesh;
+            m.geometry?.dispose();
+            if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
+            else m.material?.dispose();
+          }
+        });
+        t.group.removeFromParent();
+      });
+      gltfTreesRef.current = [];
       runesMixers.forEach((mixer) => mixer.stopAllAction());
       [...runesModels, heldSword].forEach((model) =>
         model?.traverse((object) => {
@@ -3566,29 +3624,37 @@ export function SandboxGame({
     setBgmMuted(next);
     BmgoAudio.setMuted(next);
   };
+  const [isMiningActive, setIsMiningActive] = useState(false);
+
+  const handleMine = useCallback((down: boolean) => {
+    setIsMiningActive(down);
+    api()?.setAim(null);
+    api()?.setMining(down);
+  }, [api]);
+
+  const handleBuild = useCallback(() => {
+    api()?.setAim(null);
+    api()?.place();
+  }, [api]);
+
   const totalSeeds = seeds.oak + seeds.birch + seeds.spruce;
-  const v2Actions: HudAction[] = skyblock
-    ? [
+  const v2Actions: HudAction[] = blockFall
+    ? [{ id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump }]
+    : [
         { id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump },
         {
           id: "mine",
           label: "Mine",
           kind: "hold",
-          onPress: (down) => {
-            api()?.setAim(null);
-            api()?.setMining(down);
-          },
+          onPress: handleMine,
         },
         {
           id: "build",
           label: "Build",
           kind: "tap",
-          onPress: () => {
-            api()?.setAim(null);
-            api()?.place();
-          },
+          onPress: handleBuild,
         },
-        ...(totalSeeds > 0
+        ...(skyblock && totalSeeds > 0
           ? [
               {
                 id: "plant",
@@ -3603,8 +3669,7 @@ export function SandboxGame({
               },
             ]
           : []),
-      ]
-    : [{ id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump }];
+      ];
 
   useEffect(() => {
     if (blockFall && matchState.phase === "results") controlsRef.current?.exitLock();
@@ -3821,23 +3886,7 @@ export function SandboxGame({
                 isTouch={isTouch}
                 onOpenInventory={() => setInventoryOpen(true)}
               />
-              <FeatureDock
-                hp={playerHp}
-                bridgeAssist={bridgeAssist}
-                offhandIcon={offhand === null ? "" : (tileUrls[offhand] ?? api()?.getAtlasUrl(offhand) ?? "")}
-                canQuickBuy={bedwars}
-                onToggleBridge={toggleBridgeAssist}
-                onSwapOffhand={() => api()?.swapOffhand()}
-                onUseOffhand={() => api()?.useOffhand()}
-                onOpenWheel={() => {
-                  controlsRef.current?.exitLock();
-                  setWheelOpen(true);
-                }}
-                onOpenQuickBuy={() => {
-                  controlsRef.current?.exitLock();
-                  setQuickBuyOpen(true);
-                }}
-              />
+              {/* FeatureDock side buttons hidden per user request; builder helper is already on */}
             </>
           )}
         </V2GameHud>

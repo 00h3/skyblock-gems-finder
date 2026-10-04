@@ -95,7 +95,7 @@ export type FeatureCtx = {
 export class Features {
   hp = MAX_HP;
   survival = true;
-  bridgeAssist = false;
+  bridgeAssist = true;
   offhand: ItemId | null = null;
   heldId: ItemId = 0;
   chargeT = 0;

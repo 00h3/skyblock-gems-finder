@@ -161,7 +161,7 @@ export const BLOCKS: BlockDef[] = [
     side: "glowstone",
     bottom: "glowstone",
     hardness: 0.6,
-    glow: 0.85,
+    glow: 0.95,
   },
   {
     id: 19,
@@ -178,6 +178,7 @@ export const BLOCKS: BlockDef[] = [
     side: "diamond_block",
     bottom: "diamond_block",
     hardness: 3.5,
+    glow: 0.65,
   },
   {
     id: 21,
@@ -186,6 +187,7 @@ export const BLOCKS: BlockDef[] = [
     side: "emerald_block",
     bottom: "emerald_block",
     hardness: 3.5,
+    glow: 0.72,
   },
   {
     id: 22,
@@ -194,6 +196,7 @@ export const BLOCKS: BlockDef[] = [
     side: "lapis_block",
     bottom: "lapis_block",
     hardness: 2.5,
+    glow: 0.55,
   },
   {
     id: 23,
@@ -202,6 +205,7 @@ export const BLOCKS: BlockDef[] = [
     side: "amethyst_block",
     bottom: "amethyst_block",
     hardness: 2,
+    glow: 0.88,
   },
   {
     id: 24,
@@ -301,6 +305,7 @@ export const BLOCKS: BlockDef[] = [
     side: "redstone_ore",
     bottom: "redstone_ore",
     hardness: 3,
+    glow: 0.82,
   },
   {
     id: 38,
@@ -564,18 +569,18 @@ export class World {
     this.material = new THREE.MeshStandardMaterial({
       map: atlas.texture,
       vertexColors: true,
-      roughness: 0.78,
-      metalness: 0.02,
-      emissive: new THREE.Color(0x26313b),
-      emissiveIntensity: 0.16,
+      roughness: 0.70,
+      metalness: 0.04,
+      emissive: new THREE.Color(0x18222b),
+      emissiveIntensity: 0.12,
     });
     this.transparentMaterial = new THREE.MeshStandardMaterial({
       map: atlas.texture,
       vertexColors: true,
-      roughness: 0.78,
-      metalness: 0.02,
-      emissive: new THREE.Color(0x26313b),
-      emissiveIntensity: 0.13,
+      roughness: 0.70,
+      metalness: 0.04,
+      emissive: new THREE.Color(0x18222b),
+      emissiveIntensity: 0.11,
       transparent: true,
       alphaTest: 0.35,
       depthWrite: true,
@@ -611,8 +616,8 @@ export class World {
       vertexColors: true,
       roughness: 0.12,
       metalness: 0.08,
-      emissive: new THREE.Color(0x113a5c),
-      emissiveIntensity: 0.22,
+      emissive: new THREE.Color(0x000000),
+      emissiveIntensity: 0.0,
       transparent: true,
       opacity: 0.76,
       depthWrite: false,
@@ -886,7 +891,7 @@ export class World {
           N.push(f.dir[0], f.dir[1], f.dir[2]);
           const uv = f.uvs[i];
           U.push(uv[0] ? u1 : u0, uv[1] ? v1 : v0);
-          const light = f.light * 0.98;
+          const light = def.glow ? Math.max(f.light * 0.98, def.glow) : f.light * 0.98;
           const tint = TINTS[tile];
           if (tint) C.push(light * tint[0], light * tint[1], light * tint[2]);
           else C.push(light, light, light);
@@ -966,8 +971,10 @@ export class World {
                 (this.opaque(s1[0], s1[1], s1[2]) ? 1 : 0) +
                 (this.opaque(s2[0], s2[1], s2[2]) ? 1 : 0) +
                 (this.opaque(cr[0], cr[1], cr[2]) ? 1 : 0);
-              const ao = 1 - Math.min(occ, 3) * 0.1;
-              const l = f.light * ao;
+              // Hytale-style multi-step ambient occlusion table
+              const AO_CURVE = [1.0, 0.82, 0.64, 0.44];
+              const ao = AO_CURVE[Math.min(occ, 3)];
+              const l = def.glow ? Math.max(f.light * ao, def.glow) : f.light * ao;
               const t = TINTS[tile];
               if (t) C.push(l * t[0], l * t[1], l * t[2]);
               else C.push(l, l, l);

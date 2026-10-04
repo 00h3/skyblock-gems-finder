@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Crosshair, Heart, Hand, LayoutGrid, ShoppingBag, ArrowLeftRight, X } from "lucide-react";
+import { Crosshair, Heart, Hand, LayoutGrid, ShoppingBag, ArrowLeftRight, X, Pickaxe, Hammer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QUICK_BUY_PRESETS, type ItemId } from "@/engine/features";
 
@@ -10,11 +10,13 @@ function DockButton({
   active,
   onPress,
   children,
+  className,
 }: {
   label: string;
   active?: boolean;
   onPress: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <button
@@ -26,8 +28,66 @@ function DockButton({
       onTouchStart={stop}
       onClick={onPress}
       className={cn(
-        "grid h-9 w-9 place-items-center rounded-xl border-2 border-black/40 bg-[#3a2a1a]/80 text-white shadow-[0_3px_0_rgba(0,0,0,.35)] backdrop-blur-sm transition active:translate-y-0.5 active:shadow-none",
-        active && "border-amber-300 bg-amber-500/80",
+        "grid h-9 w-9 place-items-center rounded-xl border-2 border-black/40 bg-[#3a2a1a]/85 text-white shadow-[0_3px_0_rgba(0,0,0,.35)] backdrop-blur-sm transition active:translate-y-0.5 active:shadow-none select-none",
+        active && "border-amber-300 bg-amber-500/90 shadow-[0_0_10px_rgba(245,158,11,0.6)]",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function HoldDockButton({
+  label,
+  active,
+  onHold,
+  children,
+  className,
+}: {
+  label: string;
+  active?: boolean;
+  onHold: (down: boolean) => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  const [down, setDown] = useState(false);
+
+  const start = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+    setDown(true);
+    onHold(true);
+  };
+
+  const end = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!down) return;
+    setDown(false);
+    onHold(false);
+  };
+
+  const isHeld = active || down;
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={isHeld}
+      title={label}
+      onPointerDown={start}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onLostPointerCapture={end}
+      className={cn(
+        "grid h-10 w-10 place-items-center rounded-xl border-2 border-black/40 bg-[#3a2a1a]/85 text-white shadow-[0_3px_0_rgba(0,0,0,.35)] backdrop-blur-sm transition select-none touch-none",
+        isHeld
+          ? "scale-105 border-orange-400 bg-orange-600/95 shadow-[0_0_14px_rgba(249,115,22,0.9)] translate-y-0.5"
+          : "hover:bg-[#4a3622]",
+        className,
       )}
     >
       {children}
@@ -45,6 +105,9 @@ export function FeatureDock({
   onUseOffhand,
   onOpenWheel,
   onOpenQuickBuy,
+  onMine,
+  onBuild,
+  isMining = false,
 }: {
   hp: number;
   bridgeAssist: boolean;
@@ -55,38 +118,85 @@ export function FeatureDock({
   onUseOffhand: () => void;
   onOpenWheel: () => void;
   onOpenQuickBuy: () => void;
+  onMine?: (down: boolean) => void;
+  onBuild?: () => void;
+  isMining?: boolean;
 }) {
+  const [showExtras, setShowExtras] = useState(false);
+
   return (
     <div
       className="pointer-events-auto absolute left-2 top-1/2 z-[60] flex -translate-y-1/2 flex-col items-center gap-1.5"
       onPointerDown={stop}
     >
-      <div className="flex items-center gap-1 rounded-full border-2 border-black/40 bg-[#3a2a1a]/80 px-2 py-0.5 text-[12px] font-black text-white">
+      {/* Health Badge */}
+      <div className="flex items-center gap-1 rounded-full border-2 border-black/40 bg-[#3a2a1a]/85 px-2 py-0.5 text-[12px] font-black text-white shadow-md">
         <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" aria-hidden="true" />
         {Math.ceil(hp)}
       </div>
+
+      {/* Primary Action 1: MINE / BREAK BLOCK (Hold) */}
+      {onMine && (
+        <HoldDockButton
+          label="Mine block (Hold)"
+          active={isMining}
+          onHold={onMine}
+          className="border-amber-400/80 bg-[#3a2818] hover:border-amber-300"
+        >
+          <Pickaxe className={cn("h-5 w-5 text-amber-200 transition-transform", isMining && "animate-pulse")} aria-hidden="true" />
+        </HoldDockButton>
+      )}
+
+      {/* Primary Action 2: BUILD / PLACE BLOCK (Tap) */}
+      {onBuild && (
+        <DockButton
+          label="Build / Place block"
+          onPress={onBuild}
+          className="h-10 w-10 border-blue-400/80 bg-[#1e2e3e]/90 hover:border-blue-300 active:scale-95"
+        >
+          <Hammer className="h-5 w-5 text-blue-200" aria-hidden="true" />
+        </DockButton>
+      )}
+
+      {/* Bridge assist toggle */}
       <DockButton label="Bridge assist" active={bridgeAssist} onPress={onToggleBridge}>
         <Crosshair className="h-5 w-5" aria-hidden="true" />
       </DockButton>
+
+      {/* Item Wheel */}
       <DockButton label="Item wheel" onPress={onOpenWheel}>
         <LayoutGrid className="h-5 w-5" aria-hidden="true" />
       </DockButton>
+
+      {/* Use off-hand */}
       <DockButton label="Use off-hand" onPress={onUseOffhand}>
         {offhandIcon ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={offhandIcon} alt="" draggable={false} className="h-6 w-6 [image-rendering:pixelated]" />
         ) : (
           <Hand className="h-5 w-5" aria-hidden="true" />
         )}
       </DockButton>
-      <DockButton label="Swap off-hand" onPress={onSwapOffhand}>
-        <ArrowLeftRight className="h-5 w-5" aria-hidden="true" />
-      </DockButton>
-      {canQuickBuy && (
-        <DockButton label="Quick buy" onPress={onOpenQuickBuy}>
-          <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+
+      {/* Swap off-hand & Quick Buy (secondary access) */}
+      <div className="flex items-center gap-1">
+        <DockButton
+          label="Swap off-hand"
+          onPress={onSwapOffhand}
+          className="h-8 w-8 text-white/80"
+        >
+          <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
         </DockButton>
-      )}
+
+        {canQuickBuy && (
+          <DockButton
+            label="Quick buy"
+            onPress={onOpenQuickBuy}
+            className="h-8 w-8 text-amber-300"
+          >
+            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+          </DockButton>
+        )}
+      </div>
     </div>
   );
 }
@@ -164,7 +274,6 @@ export function RadialWheel({
               )}
             >
               {iconOf(slot.id) ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={iconOf(slot.id)} alt="" draggable={false} className="h-8 w-8 object-contain [image-rendering:pixelated]" />
               ) : (
                 <span className="text-[10px] font-black text-white">{String(slot.id).slice(0, 4)}</span>

@@ -70,20 +70,19 @@ void main() {
 
   vec3 h = normalize(uSunDir + v);
   float ndh = max(dot(n, h), 0.0);
-  float specSharp = pow(ndh, 320.0) * 4.5;
-  float specBroad = pow(ndh, 32.0) * 0.35;
-  float glitter = pow(ndh, 12.0) * 0.12;
+  // Soft, subtle specular sheen (removed harsh 4.5x blinding light hotspot)
+  float spec = pow(ndh, 32.0) * 0.15;
 
   // Crystal clear tropical water gradient with depth
   vec3 body = mix(uDeep, uShallow, pow(ndv, 1.3) * 0.85);
 
-  // Animated caustics pattern moving with the waves
+  // Gentle caustics pattern moving with the waves
   if (uIsPond > 0.5) {
     float caust = caustic(vWorld.xz * 1.8);
-    body += vec3(0.08, 0.18, 0.22) * caust;
+    body += vec3(0.02, 0.05, 0.07) * caust;
   }
 
-  vec3 col = mix(body, sky, fresnel) + uSunColor * (specSharp + specBroad + glitter);
+  vec3 col = mix(body, sky, fresnel) + uSunColor * spec;
 
   float fog = smoothstep(uFogNear, uFogFar, vViewDepth);
   col = mix(col, uFogColor, fog);
