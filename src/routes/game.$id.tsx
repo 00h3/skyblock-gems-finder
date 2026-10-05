@@ -2298,8 +2298,7 @@ function EngineGame({
       renderer.domElement.style.background = skyBg;
       renderer.setClearColor(new THREE.Color(skyBg), 1);
       renderer.shadowMap.enabled = true;
-      // High-performance shadow caching: avoids full shadow map re-render on every frame
-      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.autoUpdate = true;
       renderer.shadowMap.needsUpdate = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;

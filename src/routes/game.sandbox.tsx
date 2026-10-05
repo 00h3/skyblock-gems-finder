@@ -1376,8 +1376,8 @@ export function SandboxGame({
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.25;
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFShadowMap;
-      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.autoUpdate = true;
       renderer.shadowMap.needsUpdate = true;
 
       // Full anisotropic filtering keeps grazing-angle (distant floor) texels
