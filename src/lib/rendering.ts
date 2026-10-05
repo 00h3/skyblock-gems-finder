@@ -12,27 +12,24 @@ export const getTargetDpr = (quality: RenderQuality): number => {
     window.innerHeight <= 840 ||
     /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-  // On mobile screens with small CSS pixel dimensions (e.g. 390x844),
-  // clamping DPR too low (1.25 or 1.5) stretches a small buffer over a high-density
-  // 1080p/1200p phone screen causing obvious pixelation.
-  // We compute an adaptive DPR that stays native & sharp on all phone ratios
-  // without exceeding thermal/GPU limits:
+  // High-performance adaptive DPR: maintains native visual sharpness on all screens
+  // while capping excessive over-sampling (e.g. 2.5x-3x) that cripples GPU fillrate.
   if (isMobile) {
     if (quality === "low") {
-      return Math.min(deviceDpr, 1.5);
+      return Math.min(deviceDpr, 1.25);
     }
     if (quality === "medium") {
-      return Math.min(deviceDpr, 2.0);
+      return Math.min(deviceDpr, 1.5);
     }
-    return Math.min(deviceDpr, 2.5);
+    return Math.min(deviceDpr, 1.75);
   }
 
-  const cap = quality === "high" ? 2.0 : quality === "medium" ? 1.6 : 1.25;
+  const cap = quality === "high" ? 1.75 : quality === "medium" ? 1.5 : 1.25;
   return Math.max(1, Math.min(deviceDpr, cap));
 };
 
 export const getShadowMapSize = (quality: RenderQuality) =>
-  quality === "high" ? 2048 : quality === "medium" ? 1536 : 1024;
+  quality === "high" ? 1024 : quality === "medium" ? 1024 : 512;
 
 export const readQualityPref = (): RenderQuality => {
   try {

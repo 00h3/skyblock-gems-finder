@@ -17,6 +17,7 @@ export function V2LoadingScreen({
 }) {
   const startTimeRef = useRef<number>(Date.now());
   const [actualProgress, setActualProgress] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
   const finishedRef = useRef(false);
 
   useEffect(() => {
@@ -25,7 +26,8 @@ export function V2LoadingScreen({
   }, []);
 
   useEffect(() => {
-    const MIN_DURATION_MS = 20000; // 20 seconds minimum duration
+    // Fast, responsive loading: snappy 2.5s minimum experience so assets initialize smoothly
+    const MIN_DURATION_MS = 2500;
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;
@@ -33,18 +35,13 @@ export function V2LoadingScreen({
       const rawAssetProgress = Math.min(100, Math.max(0, progress ?? 0));
       const assetRatio = isAssetsLoaded ? 1 : rawAssetProgress / 100;
 
-      // The progress must reflect real asset loading while also staying active for 20s.
-      // If assets are still loading after 20s, wait for them.
       let computed = 0;
       if (elapsed < MIN_DURATION_MS) {
-        // Still in minimum 20s window: progress advances up to 99% proportionally
-        computed = Math.min(99, Math.round(timeRatio * 90 + assetRatio * 9));
+        computed = Math.min(95, Math.round(timeRatio * 75 + assetRatio * 20));
       } else {
-        // 20 seconds have elapsed. Check if all assets & models are fully loaded.
-        if (isAssetsLoaded || rawAssetProgress >= 100) {
+        if (isAssetsLoaded || rawAssetProgress >= 90) {
           computed = 100;
         } else {
-          // Keep at 95% until assets are actually loaded
           computed = Math.min(98, 90 + Math.round(assetRatio * 8));
         }
       }
@@ -56,26 +53,39 @@ export function V2LoadingScreen({
         clearInterval(interval);
         setTimeout(() => {
           onFinished?.();
-        }, 400);
+        }, 300);
       }
-    }, 50);
+    }, 40);
 
     return () => clearInterval(interval);
   }, [progress, isAssetsLoaded, onFinished]);
 
   return (
     <div
-      className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-black"
+      className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#090b10]"
       style={{ touchAction: "none" }}
     >
-      {/* Background MP4 Animation */}
+      {/* Fallback stylized voxel backdrop so screen is NEVER black while video streams */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#141a24] via-[#0d1017] to-[#06080b] flex items-center justify-center">
+        <div className="relative flex flex-col items-center gap-3">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-1 shadow-[0_0_40px_rgba(250,70,22,0.45)] animate-pulse flex items-center justify-center">
+            <span className="font-lilita text-[32px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
+          </div>
+          <span className="font-lilita text-[18px] tracking-wider text-white/80">QBLOCK</span>
+        </div>
+      </div>
+
+      {/* Background MP4 Animation with smooth opacity fade-in once buffered */}
       <video
         src="https://maxwell.z3ki.dev/bot/_files/qblock-animation/qblock_animation.mp4"
         autoPlay
         muted
         loop
         playsInline
-        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+        preload="auto"
+        onCanPlay={() => setVideoReady(true)}
+        onLoadedData={() => setVideoReady(true)}
+        className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${videoReady ? "opacity-100" : "opacity-0"}`}
       />
 
       {/* Dark overlay for contrast */}

@@ -74,7 +74,7 @@ export class CinematicPost {
     camera: THREE.PerspectiveCamera,
     _strength = 0.22,
   ) {
-    const dpr = Math.min(renderer.getPixelRatio(), 2.25);
+    const dpr = Math.min(renderer.getPixelRatio(), 1.5);
     const canvas = renderer.domElement;
     const w = canvas.clientWidth || window.innerWidth || 1280;
     const h = canvas.clientHeight || window.innerHeight || 720;
@@ -90,9 +90,9 @@ export class CinematicPost {
     this.composer.setSize(targetW, targetH);
     this.composer.addPass(new RenderPass(scene, camera));
 
-    // Soft, luscious bloom for lanterns, fire and sun
-    const bloomW = Math.max(64, Math.round(targetW / 2));
-    const bloomH = Math.max(64, Math.round(targetH / 2));
+    // Soft, luscious bloom for lanterns, fire and sun (downsampled to 1/4th for ultra-smooth 60/120fps)
+    const bloomW = Math.max(64, Math.round(targetW / 4));
+    const bloomH = Math.max(64, Math.round(targetH / 4));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.38, 0.65, 0.85);
     this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
@@ -110,12 +110,12 @@ export class CinematicPost {
   }
 
   setSize(w: number, h: number, pixelRatio: number) {
-    const dpr = Math.min(pixelRatio, 2.25);
+    const dpr = Math.min(pixelRatio, 1.5);
     const targetW = Math.max(64, Math.round(w * dpr));
     const targetH = Math.max(64, Math.round(h * dpr));
     this.composer.setPixelRatio(1);
     this.composer.setSize(targetW, targetH);
-    this.bloom.setSize(Math.max(64, Math.round(targetW / 2)), Math.max(64, Math.round(targetH / 2)));
+    this.bloom.setSize(Math.max(64, Math.round(targetW / 4)), Math.max(64, Math.round(targetH / 4)));
   }
 
   render(dt: number) {

@@ -497,45 +497,91 @@ export function buildBlockFallArena(world: World) {
   const minY = 2;
   const maxY = 42;
 
-  // 1. Bedrock base and glowing hazard stripes at minY (2)
+  // 1. Circus Candy Peppermint Void Floor at minY (2)
   for (let x = minX; x <= maxX; x++) {
     for (let z = minZ; z <= maxZ; z++) {
       if (Math.abs(x) === maxX || Math.abs(z) === maxZ) {
-        world.set(x, minY, z, 18); // Glowstone edge
-      } else if ((Math.abs(x) + Math.abs(z)) % 2 === 0) {
-        world.set(x, minY, z, 30); // Red wool
+        world.set(x, minY, z, 23); // Amethyst glowing perimeter
       } else {
-        world.set(x, minY, z, 12); // Bedrock
+        const pattern = (Math.abs(x) + Math.abs(z)) % 4;
+        const candyId = pattern === 0 ? 30 : pattern === 1 ? 29 : pattern === 2 ? 43 : 29; // Red, White, Pink Peppermint
+        world.set(x, minY, z, candyId);
       }
     }
   }
 
-  // 2. Glass bottom floor at Y = 3
+  // 2. Sugar Glass bottom floor at Y = 3
   for (let x = minX; x <= maxX; x++) {
     for (let z = minZ; z <= maxZ; z++) {
       world.set(x, 3, z, 10); // Glass
     }
   }
 
-  // 3. Glass outer walls on all 4 sides from Y = 3 to 42
+  // Helper for circus candy striped pillars & panoramic sugar glass windows:
+  // - Candy cane corner towers
+  // - Vertical striped circus candy columns every 6 blocks
+  // - Expansive sugar glass observation windows from Y = 6 to 39
+  // - Candy arches & circus canopy trim
+  const getWallBlock = (x: number, y: number, z: number, isCorner: boolean, isPillar: boolean) => {
+    // Corner towers: Candy cane spiral
+    if (isCorner) {
+      const step = Math.floor((y + (x + z)) / 2) % 3;
+      return step === 0 ? 30 : step === 1 ? 29 : 43; // Red, White, Pink candy cane
+    }
+    // Vertical circus candy pillars
+    if (isPillar) {
+      if (y === 22 || y === 29 || y === 36) return 18; // Glowstone candy lamp
+      const step = y % 3;
+      return step === 0 ? 43 : step === 1 ? 29 : 33; // Pink, White, Yellow candy stripe
+    }
+    // Top circus valance/arch
+    if (y >= 40) {
+      return (x + z) % 2 === 0 ? 30 : 29; // Red and White circus tent trim
+    }
+    // Bottom circus wainscot
+    if (y <= 5) {
+      return y === 4 ? 43 : 33; // Pink and Yellow sweet base
+    }
+    // Panoramic sugar glass windows to watch the candy cruiser outside!
+    return 10;
+  };
+
+  // 3. Walls along X and Z with circus pillars and panoramic sugar glass windows
   for (let y = 3; y <= maxY; y++) {
     for (let z = minZ; z <= maxZ; z++) {
-      world.set(minX, y, z, 10);
-      world.set(maxX, y, z, 10);
+      const isCorner = z === minZ || z === maxZ;
+      const isPillar = z % 6 === 0;
+      world.set(minX, y, z, getWallBlock(minX, y, z, isCorner, isPillar));
+      world.set(maxX, y, z, getWallBlock(maxX, y, z, isCorner, isPillar));
     }
     for (let x = minX + 1; x < maxX; x++) {
-      world.set(x, y, minZ, 10);
-      world.set(x, y, maxZ, 10);
+      const isPillar = x % 6 === 0;
+      world.set(x, y, minZ, getWallBlock(x, y, minZ, false, isPillar));
+      world.set(x, y, maxZ, getWallBlock(x, y, maxZ, false, isPillar));
     }
   }
 
-  // 4. Glass ceiling with glowstone chandeliers at maxY (42)
+  // 4. Circus Tent Big-Top Canopy Ceiling at maxY (42) with hanging candy chandeliers
   for (let x = minX; x <= maxX; x++) {
     for (let z = minZ; z <= maxZ; z++) {
-      if (x === 0 && z % 4 === 0) {
-        world.set(x, maxY, z, 18); // Glowstone
+      const distFromCenter = Math.hypot(x, z * 1.8);
+      const ring = Math.floor(distFromCenter / 3) % 4;
+      if (Math.abs(x) < 3 && Math.abs(z) < 3) {
+        // Grand Central Sugar Chandelier
+        world.set(x, maxY, z, 23); // Amethyst
+        world.set(x, maxY - 1, z, 18); // Glowstone
+      } else if (Math.abs(x) % 12 === 0 && Math.abs(z) % 6 === 0) {
+        // Secondary candy chandeliers
+        world.set(x, maxY, z, 19); // Gold
+        world.set(x, maxY - 1, z, 18); // Glowstone
       } else {
-        world.set(x, maxY, z, 10); // Glass
+        // Striped circus big-top canopy with sugar glass skylights
+        if ((x + z) % 7 === 0) {
+          world.set(x, maxY, z, 10); // Glass skylight
+        } else {
+          const tentBlock = ring === 0 ? 30 : ring === 1 ? 29 : ring === 2 ? 43 : 33; // Red, White, Pink, Yellow
+          world.set(x, maxY, z, tentBlock);
+        }
       }
     }
   }
@@ -552,24 +598,34 @@ export function rebuildBlockFallPlatforms(world: World) {
 
   for (let x = pMinX; x <= pMaxX; x++) {
     for (let z = pMinZ; z <= pMaxZ; z++) {
-      // Level 1: Emerald & Green Wool & Grass (Y = 36)
-      const l1 = (x + z) % 3 === 0 ? 21 : (x + z) % 2 === 0 ? 32 : 1;
+      // Level 1: Cotton Candy & Marshmallow Swirl (Y = 36)
+      // Pink wool (43), White wool (29), Snow icing (16), Amethyst sparkle (23)
+      const swirl1 = (Math.abs(x) + Math.abs(z)) % 4;
+      const l1 = swirl1 === 0 ? 43 : swirl1 === 1 ? 29 : swirl1 === 2 ? 16 : 23;
       world.set(x, 36, z, l1);
 
-      // Level 2: Gold & Yellow Wool & Sand (Y = 29)
-      const l2 = (x + z) % 3 === 0 ? 19 : (x + z) % 2 === 0 ? 33 : 6;
+      // Level 2: Lemon Drops & Honey Taffy (Y = 29)
+      // Yellow wool (33), Gold block (19), White wool (29), Glowstone sparkle (18)
+      const swirl2 = (x * 2 + z) % 5;
+      const l2 = swirl2 === 0 ? 33 : swirl2 === 1 ? 19 : swirl2 === 2 ? 29 : swirl2 === 3 ? 33 : 18;
       world.set(x, 29, z, l2);
 
-      // Level 3: Diamond & Blue Wool & Lapis (Y = 22)
-      const l3 = (x + z) % 3 === 0 ? 20 : (x + z) % 2 === 0 ? 31 : 22;
+      // Level 3: Blue Raspberry & Mint Frosting (Y = 22)
+      // Blue wool (31), Diamond block (20), Pink wool (43), Emerald sour candy (21)
+      const swirl3 = (x + z * 2) % 4;
+      const l3 = swirl3 === 0 ? 31 : swirl3 === 1 ? 20 : swirl3 === 2 ? 43 : 21;
       world.set(x, 22, z, l3);
 
-      // Level 4: Red Wool & Terracotta & TNT (Y = 15)
-      const l4 = (x + z) % 4 === 0 ? 28 : (x + z) % 2 === 0 ? 30 : 34;
+      // Level 4: Strawberry Licorice & Circus Ribbon (Y = 15)
+      // Red wool (30), Pink wool (43), White wool (29), Redstone candy (37)
+      const swirl4 = Math.abs(x % 4);
+      const l4 = swirl4 === 0 ? 30 : swirl4 === 1 ? 43 : swirl4 === 2 ? 29 : 37;
       world.set(x, 15, z, l4);
 
-      // Level 5: Obsidian & Amethyst & Glowstone (Y = 8)
-      const l5 = (x + z) % 5 === 0 ? 18 : (x + z) % 2 === 0 ? 23 : 11;
+      // Level 5: Grape Gummy & Obsidian Sugar Crystals (Y = 8)
+      // Amethyst crystal (23), Gold block (19), Glowstone (18), Obsidian licorice (11), Pink wool (43)
+      const swirl5 = (x + z) % 5;
+      const l5 = swirl5 === 0 ? 23 : swirl5 === 1 ? 19 : swirl5 === 2 ? 18 : swirl5 === 3 ? 43 : 11;
       world.set(x, 8, z, l5);
     }
   }
@@ -1262,6 +1318,9 @@ export function SandboxGame({
     let heldSwordMixer: THREE.AnimationMixer | null = null;
     let workbenchModels: THREE.Object3D[] = [];
     let workbenchTags: NameTag[] = [];
+    let candyCruiser: THREE.Group | null = null;
+    let candyCruiserMixer: THREE.AnimationMixer | null = null;
+    let candyCruiserAngle = 0;
     let remotes: RemotePlayers | null = null;
     let selfTag: NameTag | null = null;
     let matchmaker: Avatar | null = null;
@@ -1317,7 +1376,7 @@ export function SandboxGame({
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.25;
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
 
@@ -1391,7 +1450,7 @@ export function SandboxGame({
           sky.setRange(90, 450);
         } else {
           // "realistic" (default) — close atmospheric fog with rich depth
-          sky.setRange(10, blockFall ? 50 : 64);
+          sky.setRange(10, blockFall ? 100 : 64);
         }
       };
 
@@ -1770,6 +1829,40 @@ export function SandboxGame({
           }
         } catch (error) {
           console.error("Could not load the center showcase assets:", error);
+        }
+      }
+
+      if (blockFall) {
+        try {
+          const cruiserAsset = await new GLTFLoader().loadAsync(
+            "https://file.garden/alGOOylwpAfCa6qP/the_candy_cruiser.glb",
+          );
+          if (!disposed) {
+            candyCruiser = new THREE.Group();
+            const model = cruiserAsset.scene;
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z, 0.01);
+            const scale = 8.8 / maxDim; // Beautiful cruiser ship scaled to be prominently visible outside windows
+            model.scale.setScalar(scale);
+
+            // Center model inside group
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.sub(center.multiplyScalar(scale));
+            candyCruiser.add(model);
+
+            if (cruiserAsset.animations && cruiserAsset.animations.length > 0) {
+              candyCruiserMixer = new THREE.AnimationMixer(model);
+              cruiserAsset.animations.forEach((clip) => {
+                candyCruiserMixer!.clipAction(clip).play();
+              });
+            }
+
+            candyCruiser.position.set(48, 25.5, 0);
+            scene.add(candyCruiser);
+          }
+        } catch (err) {
+          console.warn("Could not load the candy cruiser model:", err);
         }
       }
 
@@ -2917,6 +3010,7 @@ export function SandboxGame({
       const _pivot = new THREE.Vector3();
       const _avatarPos = new THREE.Vector3();
       const _upOffset = new THREE.Vector3(0, 0.22, 0);
+      const _scratchBreakVec = new THREE.Vector3();
 
       const loop = () => {
         raf = requestAnimationFrame(loop);
@@ -3087,7 +3181,7 @@ export function SandboxGame({
                 crumblingBlocks.delete(key);
                 world.set(b.x, b.y, b.z, 0);
                 const blockDef = BLOCKS.find((bl) => bl.id === b.blockId);
-                fx?.spawn("break", new THREE.Vector3(b.x, b.y, b.z), blockDef?.side || "dirt");
+                fx?.spawn("break", _scratchBreakVec.set(b.x, b.y, b.z), blockDef?.side || "dirt");
                 playSound("pop");
               }
             }
@@ -3184,9 +3278,9 @@ export function SandboxGame({
           }
         }
 
-        // Periodic light/shadow update (every 1.5s rather than every single frame)
+        // Periodic light/shadow update (every 2.5s rather than thrashing shadow buffer)
         shadowAcc += dt;
-        if (shadowAcc >= 1.5) {
+        if (shadowAcc >= 2.5) {
           shadowAcc = 0;
           if (renderer) renderer.shadowMap.needsUpdate = true;
         }
@@ -3268,6 +3362,29 @@ export function SandboxGame({
               f.rotation.y = (f.userData.baseRotY ?? 0) + Math.sin(tNow * 2.0 + idx * 0.4 + t.seed) * 0.015;
             });
           });
+        }
+
+        // Orbiting Candy Cruiser outside Block Fall stadium windows
+        if (candyCruiser) {
+          candyCruiserAngle += dt * 0.28;
+          // Smooth orbital trajectory ("tragitto") around the arena perimeter outside windows
+          const orbitRx = 48; // arena is X: ±30
+          const orbitRz = 32; // arena is Z: ±15
+          const cx = Math.cos(candyCruiserAngle) * orbitRx;
+          const cz = Math.sin(candyCruiserAngle) * orbitRz;
+          const cy = 25.5 + Math.sin(candyCruiserAngle * 2.0) * 2.8;
+          candyCruiser.position.set(cx, cy, cz);
+
+          // Face tangent to the orbital trajectory path with gentle banking
+          const tx = -Math.sin(candyCruiserAngle) * orbitRx;
+          const tz = Math.cos(candyCruiserAngle) * orbitRz;
+          candyCruiser.rotation.y = Math.atan2(-tz, tx) + Math.PI / 2;
+          candyCruiser.rotation.z = Math.sin(candyCruiserAngle * 2.0) * 0.12; // Bank into turn
+          candyCruiser.rotation.x = Math.cos(candyCruiserAngle * 2.0) * 0.04;
+
+          if (candyCruiserMixer) {
+            candyCruiserMixer.update(dt);
+          }
         }
 
         // target highlight
@@ -3353,7 +3470,7 @@ export function SandboxGame({
             if (p >= 1) {
               const oldId = world!.get(hit.x, hit.y, hit.z);
               playSound("break");
-              fx!.spawn("break", new THREE.Vector3(hit.x, hit.y, hit.z), def!.side);
+              fx!.spawn("break", _scratchBreakVec.set(hit.x, hit.y, hit.z), def!.side);
               world!.set(hit.x, hit.y, hit.z, 0);
               features.forgetMining();
               if (skyblock) progression.recordMine();
@@ -3547,6 +3664,20 @@ export function SandboxGame({
           materials.forEach((material) => material.dispose());
         }),
       );
+      if (candyCruiser) {
+        candyCruiserMixer?.stopAllAction();
+        candyCruiserMixer = null;
+        scene.remove(candyCruiser);
+        candyCruiser.traverse((child) => {
+          const m = child as THREE.Mesh;
+          if (m.isMesh) {
+            m.geometry?.dispose();
+            if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
+            else m.material?.dispose();
+          }
+        });
+        candyCruiser = null;
+      }
       world?.dispose();
       BmgoAudio.stopBgm();
       if (renderer) {

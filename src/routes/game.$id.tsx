@@ -2313,13 +2313,8 @@ function EngineGame({
       renderer.domElement.style.webkitUserSelect = "none";
       renderer.domElement.style.outline = "none";
       mount.appendChild(renderer.domElement);
-      // ── RTX-grade CSS filter ─────────────────────────────────────────────────
-      // High saturation + contrast + gentle brightness gives the scene a punchy,
-      // "RTX ON" cinematic feel with zero GPU cost. Skyblock gets the richest
-      // grade; other worlds are vivid but not over-cooked.
-      renderer.domElement.style.filter = isSkyblock
-        ? "saturate(1.14) contrast(1.14) brightness(1.02)"
-        : "saturate(1.72) contrast(1.10) brightness(1.10)";
+      // Clean native WebGL presentation without compositor filter overhead
+      renderer.domElement.style.filter = "none";
 
       // ── Post-processing: SSAO + Bloom ────────────────────────────────────────
       // Bloom:  UnrealBloomPass adds HDR glow on bright/emissive surfaces
