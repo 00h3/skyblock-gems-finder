@@ -645,23 +645,6 @@ export class Avatar {
     this.group.visible = v;
   }
 
-  setAlpha(alpha: number) {
-    const clamped = THREE.MathUtils.clamp(alpha, 0.05, 1.0);
-    this.group.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh && m.material) {
-        const mats = Array.isArray(m.material) ? m.material : [m.material];
-        mats.forEach((mat) => {
-          if (mat) {
-            mat.transparent = clamped < 0.99;
-            mat.opacity = clamped;
-            mat.needsUpdate = true;
-          }
-        });
-      }
-    });
-  }
-
   dispose() {
     this.mixer?.stopAllAction();
     this.group.traverse((o) => {

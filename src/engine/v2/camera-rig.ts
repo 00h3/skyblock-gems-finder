@@ -3,61 +3,59 @@ import type { World } from "../world";
 import { raycastVoxel } from "../interact";
 
 /**
- * Mobile-tuned FOV: base 66°-70° for comfortable over-the-shoulder framing,
- * with subtle aspect adaptation so neither wide phones nor tablets feel distorted.
+ * Dynamic FOV calculation that guarantees spacious, comfortable perspective
+ * across all mobile devices (Samsung, iPhone, iPad) and desktop displays,
+ * in both landscape and portrait orientations.
+ *
+ * In landscape (especially modern mobile devices with 19.5:9 or 20:9 aspect ratios):
+ * Keeps vertical FOV generously open (~72°-76°) so the view is never cramped or zoomed in.
+ *
+ * In portrait:
+ * Slightly expands vertical FOV so the narrow width still provides adequate peripheral view.
  */
-export function fovForAspect(aspect: number, _horizontalDeg = 90, baseTargetFov = 68): number {
-  const target = Number.isFinite(baseTargetFov) && baseTargetFov >= 50 && baseTargetFov <= 95
+export function fovForAspect(aspect: number, _horizontalDeg = 90, baseTargetFov = 72): number {
+  const target = Number.isFinite(baseTargetFov) && baseTargetFov >= 50 && baseTargetFov <= 100
     ? baseTargetFov
-    : 68;
-  const userScale = THREE.MathUtils.clamp(target / 68, 0.85, 1.35);
+    : 72;
+  const userScale = THREE.MathUtils.clamp(target / 70, 0.85, 1.35);
 
   if (aspect <= 0 || !Number.isFinite(aspect)) {
-    return THREE.MathUtils.clamp(68 * userScale, 60, 75);
+    return THREE.MathUtils.clamp(72 * userScale, 65, 85);
   }
 
   if (aspect >= 1.0) {
-    const wideBoost = aspect >= 1.9 ? 2.5 : aspect >= 1.6 ? 1.5 : 0.5;
-    const landscapeFov = (67 + wideBoost) * userScale;
-    return THREE.MathUtils.clamp(landscapeFov, 65, 75);
+    // Landscape orientation:
+    // On wide phone screens (Samsung Galaxy 20:9 ~ 2.22, iPhone 19.5:9 ~ 2.16),
+    // provide a generous vertical FOV so first and third person never look overly zoomed in.
+    const wideBoost = aspect >= 1.9 ? 3.0 : aspect >= 1.6 ? 2.0 : 0.5;
+    const landscapeFov = (72 + wideBoost) * userScale;
+    return THREE.MathUtils.clamp(landscapeFov, 68, 86);
   }
 
-  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 6;
-  const portraitFov = (68 + portraitExpansion) * userScale;
-  return THREE.MathUtils.clamp(portraitFov, 66, 78);
+  // Portrait mode (phones held vertically, aspect < 1.0):
+  // Expand vertical FOV to maintain horizontal vision.
+  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 9;
+  const portraitFov = (72 + portraitExpansion) * userScale;
+  return THREE.MathUtils.clamp(portraitFov, 72, 88);
 }
 
 /**
- * Blockman GO style Over-The-Shoulder Third Person Rig:
- * - Tight distance (2.2m - 2.6m) so avatar skins and feet are clearly visible
- * - Lateral right-shoulder offset (+0.38m) keeping reticle line-of-sight clear
- * - Pitch-based lift and forward lerp when looking down (bridging assist)
- * - Multi-ray SphereCast clipping (radius ~0.18m) preventing wall clipping
- * - Alpha fade factor when camera is pushed closer than 0.85m to character
- * - Snappy rotation with spring-damped position translation
+ * Smoothed third-person camera: the pivot eases toward the player (hides
+ * step-up pops), collision pulls the camera in instantly and eases back out smoothly.
+ * Distance is pulled back comfortably (4.1m - 4.4m) so the character does not dominate
+ * the viewport on mobile or in landscape.
  */
 export class ThirdPersonRig {
-  /** Target distance behind the player (Blockman GO signature: 2.3m - 2.5m) */
-  distance = 2.4;
-  minDistance = 0.55;
-  /** Lateral right-shoulder offset (units) */
-  lateralOffset = 0.38;
-
-  /** Player model opacity fade factor: 1.0 (fully opaque) to 0.0 (transparent) */
-  playerAlpha = 1.0;
-
+  distance = 4.1;
+  minDistance = 1.2;
   private pivot = new THREE.Vector3();
   private initialized = false;
-  private currentDistance = 2.4;
+  private currentDistance = 4.1;
   private _back = new THREE.Vector3();
-  private _right = new THREE.Vector3();
-  private _up = new THREE.Vector3();
-  private _rayOrigin = new THREE.Vector3();
   private _wall = new THREE.Vector3();
 
   snap(target: THREE.Vector3) {
     this.pivot.copy(target);
-    this.currentDistance = this.distance;
     this.initialized = true;
   }
 
@@ -68,123 +66,49 @@ export class ThirdPersonRig {
     world: World,
   ) {
     if (!this.initialized) this.snap(target);
+    const follow = 1 - Math.exp(-24 * dt);
+    this.pivot.x += (target.x - this.pivot.x) * follow;
+    this.pivot.z += (target.z - this.pivot.z) * follow;
+    // Vertical follows smoothly so step-ups and landings feel grounded.
+    this.pivot.y += (target.y - this.pivot.y) * (1 - Math.exp(-18 * dt));
+    // Never let the pivot trail far behind (teleports, respawns).
+    if (this.pivot.distanceToSquared(target) > 16) this.pivot.copy(target);
 
-    // Spring position damping for translation so jumps don't violently jerk the screen
-    const followXZ = 1 - Math.exp(-24 * dt);
-    const followY = 1 - Math.exp(-15 * dt);
-    this.pivot.x += (target.x - this.pivot.x) * followXZ;
-    this.pivot.z += (target.z - this.pivot.z) * followXZ;
-    this.pivot.y += (target.y - this.pivot.y) * followY;
+    // On landscape screens (especially mobile landscape), pull back slightly more
+    // so the character doesn't fill the vertical space
+    const isLandscape = camera.aspect >= 1.2;
+    const targetDist = isLandscape ? Math.max(this.distance, 4.35) : this.distance;
 
-    if (this.pivot.distanceToSquared(target) > 16) {
-      this.pivot.copy(target);
-    }
-
-    // Direction vectors from camera quaternion
     const back = this._back.set(0, 0, 1).applyQuaternion(camera.quaternion);
-    const right = this._right.set(1, 0, 0).applyQuaternion(camera.quaternion);
-    const up = this._up.set(0, 1, 0).applyQuaternion(camera.quaternion);
-
-    // Pitch-based height and distance adjustment:
-    // When looking down (bridging, placing blocks beneath feet), lerp camera forward and up
-    // so the character's head doesn't block the viewport or clip
-    const pitch = camera.rotation.x;
-    const lookDownFactor = Math.max(0, -pitch / 1.35); // 0 at horizon, up to ~1 when looking down
-    const targetDist = Math.max(1.5, this.distance - lookDownFactor * 0.45);
-    const verticalLift = lookDownFactor * 0.32;
-
-    // Shift pivot over right shoulder and apply vertical lift
-    const shoulderPivot = this.pivot.clone()
-      .addScaledVector(right, this.lateralOffset * (1 - lookDownFactor * 0.4))
-      .add(new THREE.Vector3(0, verticalLift, 0));
-
-    // Multi-sample SphereCast collision (~0.18m radius):
-    // Cast center ray and 4 surrounding perimeter rays to prevent block clipping
-    const sphereRadius = 0.18;
-    const testOffsets = [
-      new THREE.Vector3(0, 0, 0),
-      right.clone().multiplyScalar(sphereRadius),
-      right.clone().multiplyScalar(-sphereRadius),
-      up.clone().multiplyScalar(sphereRadius),
-      up.clone().multiplyScalar(-sphereRadius),
-    ];
-
-    let minHitDist = targetDist + 0.3;
-    for (const off of testOffsets) {
-      this._rayOrigin.copy(shoulderPivot).add(off);
-      const hit = raycastVoxel(world, this._rayOrigin, back, targetDist + 0.3);
-      if (hit) {
-        this._wall.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-        const dist = this._rayOrigin.distanceTo(this._wall) - 0.45;
-        if (dist < minHitDist) {
-          minHitDist = dist;
-        }
-      }
+    let wanted = targetDist;
+    const hit = raycastVoxel(world, this.pivot, back, targetDist + 0.35);
+    if (hit) {
+      this._wall.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+      wanted = Math.max(this.minDistance, this._wall.distanceTo(this.pivot) - 0.7);
     }
-
-    const wanted = THREE.MathUtils.clamp(minHitDist, this.minDistance, targetDist);
-
-    // Pull camera in instantly on collision; ease out smoothly when leaving walls
     if (wanted < this.currentDistance) {
       this.currentDistance = wanted;
     } else {
-      this.currentDistance += (wanted - this.currentDistance) * (1 - Math.exp(-16 * dt));
+      this.currentDistance += (wanted - this.currentDistance) * (1 - Math.exp(-14 * dt));
     }
 
-    // Dither / Alpha Fade: When pushed closer than 0.85m to the player, fade avatar mesh
-    if (this.currentDistance < 0.85) {
-      this.playerAlpha = THREE.MathUtils.clamp((this.currentDistance - 0.4) / 0.45, 0.05, 1.0);
-    } else {
-      this.playerAlpha = 1.0;
-    }
-
-    camera.position.copy(shoulderPivot).addScaledVector(back, this.currentDistance);
+    camera.position.copy(this.pivot).addScaledVector(back, this.currentDistance);
   }
 }
 
 /**
- * Character heading controller supporting:
- * - Movement-based facing during regular traversal
- * - Combat / Reticle Mode: torso and head lock to camera yaw when attacking / placing
- * - Free-Look Mode: 360° camera orbit while character body stays locked to its previous heading
+ * Character heading derived from actual horizontal velocity, so the model
+ * always faces where it is moving (not where the camera looks).
  */
 export class MovementFacing {
   heading = 0;
-  private lockedHeading = 0;
 
-  update(
-    vx: number,
-    vz: number,
-    cameraYaw: number,
-    isCombatOrPlacing = false,
-    isFreeLook = false,
-    initialized = true,
-  ) {
-    // Combat / Reticle Mode: always face camera aim direction
-    if (isCombatOrPlacing) {
-      this.heading = cameraYaw;
-      this.lockedHeading = this.heading;
-      return this.heading;
-    }
-
-    // Free-Look Mode: keep previous body heading while camera turns 360°
-    if (isFreeLook) {
-      if (Math.hypot(vx, vz) > 0.35) {
-        this.heading = Math.atan2(vx, vz);
-        this.lockedHeading = this.heading;
-      }
-      return this.heading;
-    }
-
-    // Standard movement facing
+  update(vx: number, vz: number, fallbackYaw: number, initialized = true) {
     if (Math.hypot(vx, vz) > 0.35) {
       this.heading = Math.atan2(vx, vz);
-      this.lockedHeading = this.heading;
     } else if (!initialized) {
-      this.heading = cameraYaw;
-      this.lockedHeading = cameraYaw;
+      this.heading = fallbackYaw;
     }
-
     return this.heading;
   }
 }

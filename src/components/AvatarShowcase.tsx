@@ -267,23 +267,23 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
   return (
     <MobileShell hideNav={false} scroll={true}>
       <div className="min-h-dvh flex flex-col bg-[#ffffff] text-[#17191d] pb-24 select-none">
-        {/* Top Header with Currencies directly placed */}
-        <header className="flex items-center justify-center gap-2 px-3 pt-2 pb-1.5 bg-white sticky top-0 z-30">
+        {/* Top Header with Currencies directly placed (No back arrow '>') matching reference image */}
+        <header className="flex items-center justify-center gap-3 px-4 pt-3.5 pb-2.5 bg-white sticky top-0 z-30">
           {/* Gem Currency Pill */}
           <button
             type="button"
             onClick={() => setBuyModal("gem")}
-            className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-black/[0.08] shadow-[0_1px_4px_rgba(0,0,0,0.03)] active:scale-95 transition-transform"
+            className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-transform"
             aria-label="Gem Balance"
           >
             <img
               src={PINK_GEM_ICON}
               alt="Gems"
-              className="w-4 h-4 object-contain"
+              className="w-5 h-5 object-contain"
               draggable={false}
             />
             <span
-              className="text-[13px] font-black tracking-tight text-[#17191d] tabular-nums"
+              className="text-[15px] font-black tracking-tight text-[#17191d] tabular-nums"
               suppressHydrationWarning
             >
               {gems > 0 ? gems.toLocaleString("de-DE") : "99.200"}
@@ -294,17 +294,17 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
           <button
             type="button"
             onClick={() => setBuyModal("gold")}
-            className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-black/[0.08] shadow-[0_1px_4px_rgba(0,0,0,0.03)] active:scale-95 transition-transform"
+            className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-transform"
             aria-label="Gold Coin Balance"
           >
             <img
               src={GOLDEN_COINS_ICON}
               alt="Coins"
-              className="w-4 h-4 object-contain"
+              className="w-5 h-5 object-contain"
               draggable={false}
             />
             <span
-              className="text-[13px] font-black tracking-tight text-[#17191d] tabular-nums"
+              className="text-[15px] font-black tracking-tight text-[#17191d] tabular-nums"
               suppressHydrationWarning
             >
               {gold > 0 ? gold.toLocaleString("de-DE") : "1.532.669"}
@@ -312,8 +312,8 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
           </button>
         </header>
 
-        {/* 3D Character Stage Section - Way smaller & compact per user request */}
-        <div className="relative w-full h-[225px] sm:h-[250px] bg-gradient-to-b from-[#ffffff] via-[#f8fafc] to-[#eef2f6] overflow-hidden">
+        {/* 3D Character Stage Section */}
+        <div className="relative w-full h-[375px] bg-gradient-to-b from-[#ffffff] via-[#f8fafc] to-[#eef2f6] overflow-hidden">
           {/* Full Space 3D Avatar Preview Iframe */}
           <iframe
             ref={iframeRef}
@@ -326,29 +326,29 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
             title="Avatar 3D Preview"
           />
 
-          {/* Camera Reset Button on bottom-right of 3D stage */}
-          <div className="absolute bottom-3 right-3 z-10 pointer-events-auto">
+          {/* Camera Reset Button on bottom-right of 3D stage matching reference image */}
+          <div className="absolute bottom-5 right-4 z-10 pointer-events-auto">
             <button
               type="button"
               onClick={handleResetCamera}
-              className="w-8 h-8 rounded-[10px] bg-white border border-black/[0.08] shadow-xs flex items-center justify-center cursor-pointer active:scale-90 transition-all hover:bg-slate-50"
+              className="w-10 h-10 rounded-[14px] bg-white border border-black/[0.08] shadow-sm flex items-center justify-center cursor-pointer active:scale-90 transition-all hover:bg-slate-50"
               title="Reset View"
               aria-label="Reset View"
             >
-              <div className="w-2.5 h-2.5 rounded-[3px] bg-[#17191d]" />
+              <div className="w-3.5 h-3.5 rounded-[4px] bg-[#17191d]" />
             </button>
           </div>
         </div>
 
-        {/* Wardrobe Customizer Panel (Bottom Half) with squircle top */}
-        <div className="flex-1 bg-white rounded-t-[20px] -mt-4 relative z-20 shadow-[0_-6px_24px_rgba(0,0,0,0.05)] flex flex-col">
+        {/* Wardrobe Customizer Panel (Bottom Half) with rounded top */}
+        <div className="flex-1 bg-white rounded-t-[32px] -mt-6 relative z-20 shadow-[0_-8px_32px_rgba(0,0,0,0.06)] flex flex-col">
           {/* Decorative Drag Handle Pill */}
-          <div className="pt-2 pb-0.5 flex justify-center">
-            <div className="w-8 h-1 rounded-full bg-[#e2e8f0]" />
+          <div className="pt-2.5 pb-1 flex justify-center">
+            <div className="w-10 h-1.5 rounded-full bg-[#e2e8f0]" />
           </div>
 
-          {/* Main Category Tabs: Compact horizontal scrolling between categories */}
-          <div className="overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-4 px-4 pt-1.5 pb-0.5 border-b border-black/[0.05]">
+          {/* Main Category Tabs: Smooth horizontal scrolling between categories */}
+          <div className="overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-6 px-6 pt-2 pb-0.5 border-b border-black/[0.05]">
             {[
               { id: "frequently", label: "Frequently used" },
               { id: "clothes", label: "Clothes" },
@@ -371,7 +371,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                     if (tab.id === "animations") setActiveSubPill("walk");
                     if (tab.id === "body") setActiveSubPill("skin");
                   }}
-                  className={`relative pb-2 text-[13px] font-extrabold whitespace-nowrap transition-colors shrink-0 ${
+                  className={`relative pb-2.5 text-[15px] font-extrabold whitespace-nowrap transition-colors shrink-0 ${
                     isActive ? "text-[#17191d]" : "text-[#8a94a6] hover:text-[#17191d]"
                   }`}
                 >
@@ -379,7 +379,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   {isActive && (
                     <motion.div
                       layoutId="avatarTabIndicator"
-                      className="absolute -bottom-[1px] left-0 right-0 h-[2.5px] bg-[#fa4616] rounded-full"
+                      className="absolute -bottom-[1px] left-0 right-0 h-[3px] bg-[#fa4616] rounded-full"
                       transition={{ type: "spring", stiffness: 500, damping: 35 }}
                     />
                   )}
@@ -389,13 +389,13 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
           </div>
 
           {/* Sub-Category Horizontal Filter Pills */}
-          <div className="flex items-center gap-1.5 px-4 py-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
             {activeTab === "clothes" && (
               <>
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("recommend")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all shrink-0 active:scale-95 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "recommend"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -406,7 +406,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("new_item")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all shrink-0 active:scale-95 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "new_item"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -417,7 +417,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("shirts")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all shrink-0 active:scale-95 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "shirts"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -428,7 +428,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("pants")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all shrink-0 active:scale-95 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "pants"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -444,7 +444,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                 <button
                   type="button"
                   onClick={() => setActiveSubPill("my_outfit")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all shrink-0 active:scale-95 ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all shrink-0 active:scale-95 ${
                     activeSubPill === "my_outfit"
                       ? "bg-[#17191d] text-white shadow-xs"
                       : "bg-[#f1f5f9] text-[#697383] hover:bg-[#e2e8f0]"
@@ -620,7 +620,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
           </div>
 
           {/* Items Content Grid */}
-          <div className="px-4 py-1 flex-1">
+          <div className="px-5 py-1 flex-1">
             <AnimatePresence mode="wait">
               {activeTab === "clothes" && (
                 <motion.div
@@ -629,7 +629,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.18 }}
-                  className="grid grid-cols-3 sm:grid-cols-4 gap-2"
+                  className="grid grid-cols-3 gap-3.5"
                 >
                   {filteredClothes.map((item) => {
                     const isEquipped = !!localEquipped[item.id];
@@ -638,9 +638,9 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                         key={item.id}
                         type="button"
                         onClick={() => handleToggleItem(item)}
-                        className={`relative rounded-[14px] overflow-hidden h-[86px] sm:h-[92px] w-full flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
+                        className={`relative rounded-[22px] overflow-hidden h-[118px] w-full flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
                           isEquipped
-                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/25 shadow-[0_2px_8px_rgba(250,70,22,0.20)]"
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/25 shadow-[0_4px_16px_rgba(250,70,22,0.22)]"
                             : "border border-black/[0.08] hover:border-black/20"
                         }`}
                         style={{
@@ -658,8 +658,8 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
 
                         {/* Checkmark indicator at bottom if equipped */}
                         {isEquipped && (
-                          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-white/95 shadow-xs text-[#fa4616]">
-                            <Check className="w-3 h-3 stroke-[3]" />
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-white/95 shadow-md text-[#fa4616]">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         )}
                       </button>
@@ -675,7 +675,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.18 }}
-                  className="grid grid-cols-2 gap-2.5 max-w-[320px]"
+                  className="grid grid-cols-2 gap-3.5 max-w-[360px]"
                 >
                   {AVATAR_CHARACTERS.map((char) => {
                     const isSelected = selectedChar === char.id;
@@ -684,26 +684,26 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                         key={char.id}
                         type="button"
                         onClick={() => handleSelectChar(char.id as AvatarCharacterId)}
-                        className={`relative rounded-[14px] p-2 h-[100px] flex flex-col text-left transition-all cursor-pointer select-none active:scale-95 ${
+                        className={`relative rounded-[20px] p-3 h-[135px] flex flex-col text-left transition-all cursor-pointer select-none active:scale-95 ${
                           isSelected
-                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/20 bg-white shadow-xs"
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/20 bg-white shadow-md"
                             : "border border-black/[0.08] bg-[#f8fafc] hover:bg-white"
                         }`}
                       >
-                        <div className="w-full flex-1 rounded-[10px] bg-gradient-to-b from-[#eef2f6] to-[#e2e8f0] overflow-hidden relative flex items-center justify-center">
-                          <User className="w-6 h-6 text-[#fa4616]" fill="currentColor" />
+                        <div className="w-full flex-1 rounded-[14px] bg-gradient-to-b from-[#eef2f6] to-[#e2e8f0] overflow-hidden relative flex items-center justify-center">
+                          <User className="w-8 h-8 text-[#fa4616]" fill="currentColor" />
                           {isSelected && (
-                            <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[#fa4616] text-white grid place-items-center shadow-xs">
-                              <Check className="w-2 h-2 stroke-[3]" />
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#fa4616] text-white grid place-items-center shadow-xs">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
                             </div>
                           )}
                         </div>
 
-                        <div className="mt-1.5 flex flex-col">
-                          <span className="text-[12px] font-black text-[#17191d] truncate">
+                        <div className="mt-2 flex flex-col">
+                          <span className="text-[13px] font-black text-[#17191d] truncate">
                             {char.name}
                           </span>
-                          <span className="text-[10px] font-semibold text-[#8a94a6]">
+                          <span className="text-[11px] font-semibold text-[#8a94a6]">
                             {isSelected ? "Equipped" : "Tap to switch"}
                           </span>
                         </div>
@@ -720,7 +720,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.18 }}
-                  className="grid grid-cols-3 sm:grid-cols-4 gap-2"
+                  className="grid grid-cols-3 gap-3.5"
                 >
                   {CLOTHING_ITEMS.map((item) => {
                     const isEquipped = !!localEquipped[item.id];
@@ -729,9 +729,9 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                         key={item.id}
                         type="button"
                         onClick={() => handleToggleItem(item)}
-                        className={`relative rounded-[14px] overflow-hidden h-[86px] sm:h-[92px] w-full flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
+                        className={`relative rounded-[22px] overflow-hidden h-[118px] w-full flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
                           isEquipped
-                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/25 shadow-[0_2px_8px_rgba(250,70,22,0.20)]"
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/25 shadow-[0_4px_16px_rgba(250,70,22,0.22)]"
                             : "border border-black/[0.08] hover:border-black/20"
                         }`}
                         style={{
@@ -746,8 +746,8 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                           draggable={false}
                         />
                         {isEquipped && (
-                          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-white/95 shadow-xs text-[#fa4616]">
-                            <Check className="w-3 h-3 stroke-[3]" />
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-white/95 shadow-md text-[#fa4616]">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         )}
                       </button>
@@ -763,7 +763,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.18 }}
-                  className="grid grid-cols-3 sm:grid-cols-4 gap-2"
+                  className="grid grid-cols-3 gap-3.5"
                 >
                   {ACCESSORY_ITEMS.map((item) => {
                     const isEquipped = !!localEquipped[item.id];
@@ -778,9 +778,9 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                           }));
                           toast.success(`Toggled ${item.name}`);
                         }}
-                        className={`relative rounded-[14px] p-2 h-[86px] sm:h-[92px] flex flex-col items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
+                        className={`relative rounded-[20px] p-2.5 h-[112px] flex flex-col items-center justify-center transition-all cursor-pointer select-none active:scale-95 ${
                           isEquipped
-                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-xs"
+                            ? "border-2 border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-sm"
                             : "border border-black/[0.08] hover:border-black/20"
                         }`}
                         style={{
@@ -792,13 +792,13 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                           <img
                             src={item.thumb}
                             alt={item.name}
-                            className="w-[46px] h-[46px] object-contain drop-shadow-xs pointer-events-none"
+                            className="w-[64px] h-[64px] object-contain drop-shadow-sm pointer-events-none"
                             draggable={false}
                           />
                         </div>
                         {isEquipped && (
-                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center justify-center text-[#fa4616]">
-                            <Check className="w-3 h-3 stroke-[3]" />
+                          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center text-[#fa4616]">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         )}
                       </button>
@@ -814,15 +814,15 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.18 }}
-                  className="flex flex-col gap-2 py-1.5"
+                  className="flex flex-col gap-2.5 py-2"
                 >
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     {["Idle", "Walk", "Wave", "Jump", "Dance", "Clap"].map((anim) => (
                       <button
                         key={anim}
                         type="button"
                         onClick={() => toast.info(`Playing ${anim} animation`)}
-                        className="h-8.5 rounded-[10px] bg-[#f8fafc] border border-black/[0.07] font-extrabold text-[12px] text-[#17191d] hover:bg-white active:scale-95 transition-all shadow-xs"
+                        className="h-11 rounded-[14px] bg-[#f8fafc] border border-black/[0.07] font-extrabold text-[13px] text-[#17191d] hover:bg-white active:scale-95 transition-all shadow-xs"
                       >
                         {anim}
                       </button>
@@ -838,17 +838,17 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.18 }}
-                  className="flex flex-col gap-2 py-1.5"
+                  className="flex flex-col gap-3 py-2"
                 >
-                  <span className="text-[11px] font-bold text-[#8a94a6]">Skin Tone Palette</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-bold text-[#8a94a6]">Skin Tone Palette</span>
+                  <div className="flex items-center gap-3">
                     {["#ffe0bd", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#3d2314"].map(
                       (tone, i) => (
                         <button
                           key={tone}
                           type="button"
                           onClick={() => toast.success(`Selected skin tone ${i + 1}`)}
-                          className="w-7 h-7 rounded-full border-2 border-white shadow-xs active:scale-90 transition-transform"
+                          className="w-9 h-9 rounded-full border-2 border-white shadow-sm active:scale-90 transition-transform"
                           style={{ backgroundColor: tone }}
                         />
                       ),
@@ -859,19 +859,19 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
             </AnimatePresence>
           </div>
 
-          {/* Bottom Equip Action Button */}
-          <div className="px-4 pt-2 pb-1.5 mt-auto">
+          {/* Bottom Equip Action Button: "✓ Equip Nelly" matching reference image */}
+          <div className="px-5 pt-3 pb-2 mt-auto">
             <button
               type="button"
               onClick={handleEquipAndSave}
               disabled={saving}
-              className="w-full h-[40px] rounded-[12px] bg-white border border-black/15 shadow-xs flex items-center justify-center gap-2 font-extrabold text-[13.5px] text-[#17191d] active:scale-[0.98] transition-all hover:bg-slate-50 cursor-pointer"
+              className="w-full h-[48px] rounded-[16px] bg-white border border-black/15 shadow-xs flex items-center justify-center gap-2 font-extrabold text-[15px] text-[#17191d] active:scale-[0.98] transition-all hover:bg-slate-50 cursor-pointer"
             >
               {saving ? (
                 <HtmlSpinner size="sm" />
               ) : (
                 <>
-                  <Check className="w-3.5 h-3.5 text-[#fa4616] stroke-[3]" />
+                  <Check className="w-4 h-4 text-[#fa4616] stroke-[3]" />
                   <span>Equip {activeCharData.name}</span>
                 </>
               )}

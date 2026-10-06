@@ -129,14 +129,14 @@ export function BlockmanInventory({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex w-full max-w-[580px] scale-[0.85] origin-center sm:scale-90 items-start gap-1.5">
+      <div className="flex w-full max-w-[720px] items-start gap-1.5">
         {onCraft && (
-          <nav aria-label="Inventory tabs" className="mt-10 flex flex-col gap-1.5">
+          <nav aria-label="Inventory tabs" className="mt-12 flex flex-col gap-1.5">
             <TabButton label="Role" active={tab === "role"} onClick={() => setTab("role")}>
-              <Backpack className="h-4.5 w-4.5 fill-current" aria-hidden="true" />
+              <Backpack className="h-5 w-5 fill-current" aria-hidden="true" />
             </TabButton>
             <TabButton label="Make" active={tab === "make"} onClick={() => setTab("make")}>
-              <Hammer className="h-4.5 w-4.5 fill-current" aria-hidden="true" />
+              <Hammer className="h-5 w-5 fill-current" aria-hidden="true" />
             </TabButton>
           </nav>
         )}
@@ -145,14 +145,14 @@ export function BlockmanInventory({
           role="dialog"
           aria-modal="true"
           aria-label={tab === "role" ? "Inventory" : "Crafting table"}
-          className="wood-panel v2-anim-pop flex max-h-[82dvh] min-w-0 flex-1 flex-col overflow-hidden select-none"
+          className="wood-panel v2-anim-pop flex max-h-[86dvh] min-w-0 flex-1 flex-col overflow-hidden select-none"
         >
-          <header className="wood-header relative flex h-9 shrink-0 items-center justify-between px-2.5">
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-lilita text-[17px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
+          <header className="wood-header relative flex h-10 shrink-0 items-center justify-between px-3">
+            <div className="flex items-center gap-2">
+              <h2 className="font-lilita text-[20px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
                 {tab === "role" ? "Role" : "Make"}
               </h2>
-              <span className="font-lilita text-[11.5px] text-amber-200/90 [text-shadow:0_1px_2px_#000]">
+              <span className="font-lilita text-[13px] text-amber-200/90 [text-shadow:0_1px_2px_#000]">
                 ({owned.length}/{STORAGE_SLOTS} slots)
               </span>
             </div>
@@ -160,36 +160,36 @@ export function BlockmanInventory({
               type="button"
               onClick={onClose}
               aria-label="Close inventory"
-              className="grid h-6 w-6 place-items-center text-white/90 active:scale-90"
+              className="grid h-7 w-7 place-items-center text-white/90 active:scale-90"
             >
-              <X className="h-4 w-4 stroke-[3.5]" aria-hidden="true" />
+              <X className="h-5 w-5 stroke-[3.5]" aria-hidden="true" />
             </button>
           </header>
 
           {tab === "role" ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5 sm:flex-row sm:p-2">
-              <div className="wood-inset flex shrink-0 flex-col items-center gap-1 p-1.5 sm:w-[32%]">
-                <p className="font-lilita text-[13px] text-amber-300 [text-shadow:0_1px_0_rgba(0,0,0,.6)]">{playerName}</p>
-                <div className="h-[110px] w-full sm:h-[140px]">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 sm:flex-row sm:p-2.5">
+              <div className="wood-inset flex shrink-0 flex-col items-center gap-1.5 p-2 sm:w-[32%]">
+                <p className="font-lilita text-[15px] text-amber-300 [text-shadow:0_1px_0_rgba(0,0,0,.6)]">{playerName}</p>
+                <div className="h-[150px] w-full sm:h-[200px]">
                   <GlbAvatar height="100%" width="100%" autoRotate interactive />
                 </div>
-                <div className="wood-slot flex w-full items-center justify-around rounded-[4px] px-1.5 py-0.5 font-lilita text-[12px] text-white">
-                  <span className="flex items-center gap-0.5">
-                    <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" aria-hidden="true" />
+                <div className="wood-slot flex w-full items-center justify-around rounded-[4px] px-2 py-1 font-lilita text-[14px] text-white">
+                  <span className="flex items-center gap-1">
+                    <Heart className="h-4 w-4 fill-red-500 text-red-500" aria-hidden="true" />
                     20
                   </span>
-                  <span className="flex items-center gap-0.5">
-                    <Sword className="h-3.5 w-3.5 fill-amber-300 text-amber-300" aria-hidden="true" />
+                  <span className="flex items-center gap-1">
+                    <Sword className="h-4 w-4 fill-amber-300 text-amber-300" aria-hidden="true" />
                     {heldDamage.toFixed(1)}
                   </span>
-                  <span className="flex items-center gap-0.5">
-                    <Shield className="h-3.5 w-3.5 fill-amber-400 text-amber-500" aria-hidden="true" />
+                  <span className="flex items-center gap-1">
+                    <Shield className="h-4 w-4 fill-amber-400 text-amber-500" aria-hidden="true" />
                     {`Lv ${level}`}
                   </span>
                 </div>
               </div>
 
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <div className="grid grid-cols-9 gap-1" aria-label="Backpack">
                   {Array.from({ length: STORAGE_SLOTS }, (_, i) => {
                     const id = owned[i];

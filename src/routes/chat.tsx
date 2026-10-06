@@ -608,8 +608,8 @@ function ChatList() {
   return (
     <MobileShell>
       <div className="min-h-[100dvh] bg-white pb-28">
-        <header className="px-3.5 pt-[max(env(safe-area-inset-top),10px)] pb-1.5 flex items-center justify-between">
-          {/* Header text omitted so Chat does not appear at top */}
+        <header className="px-3.5 pt-[max(env(safe-area-inset-top),12px)] pb-2 flex items-center justify-between">
+          <h1 className="text-[19px] font-extrabold tracking-[-0.02em] text-[#141414]">Chat</h1>
         </header>
 
         <div className="px-3.5 pb-2.5">

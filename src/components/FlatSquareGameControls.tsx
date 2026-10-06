@@ -352,9 +352,9 @@ export function FlatSquareGameControls({
 
       {/* ── Left Side: Mode Toggle Button + Flat Square Joystick ── */}
       <div
-        className="absolute left-2 sm:left-3 bottom-[max(12px,calc(env(safe-area-inset-bottom)+8px))] flex flex-col items-center gap-2 pointer-events-auto"
+        className="absolute left-6 bottom-[max(24px,calc(env(safe-area-inset-bottom)+16px))] flex flex-col items-center gap-3 pointer-events-auto"
         style={{
-          transform: `scale(${controlsScale * 1.15})`,
+          transform: `scale(${controlsScale})`,
           transformOrigin: "bottom left",
         }}
       >
@@ -472,9 +472,9 @@ export function FlatSquareGameControls({
 
       {/* ── Right Side: Jump button using hosted blank-button PNG (no text) ── */}
       <div
-        className="absolute right-3 sm:right-4 bottom-[max(12px,calc(env(safe-area-inset-bottom)+8px))] pointer-events-auto"
+        className="absolute right-6 bottom-[max(24px,calc(env(safe-area-inset-bottom)+16px))] pointer-events-auto"
         style={{
-          transform: `scale(${controlsScale * 1.0})`,
+          transform: `scale(${controlsScale})`,
           transformOrigin: "bottom right",
         }}
       >
