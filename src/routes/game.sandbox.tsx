@@ -459,10 +459,10 @@ function buildSkyblockIsland(world: World) {
   world.set(3, 16, 2, 0);
   world.set(2, 16, 3, 0);
   world.set(3, 16, 3, 0);
-  world.set(2, 15, 2, WATER_ID);
-  world.set(3, 15, 2, WATER_ID);
-  world.set(2, 15, 3, WATER_ID);
-  world.set(3, 15, 3, WATER_ID);
+  world.set(2, 15, 2, 6); // Water block
+  world.set(3, 15, 2, 6); // Water block
+  world.set(2, 15, 3, 6); // Water block
+  world.set(3, 15, 3, 6); // Water block
 
   // Lava pool (contained in cobblestone/stone basin so player has lava for obsidian/cobblestone)
   world.set(3, 16, -3, 0);
@@ -1131,7 +1131,6 @@ export function SandboxGame({
   const [celestialNight, setCelestialNight] = useState(false);
   const celestialNightRef = useRef(false);
   celestialNightRef.current = celestialNight;
-  const highQualityRef = useRef(false);
   const skyRef = useRef<Sky | null>(null);
   const celestialSunRef = useRef<THREE.Group | null>(null);
   const celestialMoonRef = useRef<THREE.Group | null>(null);
@@ -1372,7 +1371,6 @@ export function SandboxGame({
           }
         }
       const qualityPref = readQualityPref();
-      highQualityRef.current = qualityPref === "high";
       renderer.setPixelRatio(getTargetDpr(qualityPref));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -1430,7 +1428,7 @@ export function SandboxGame({
       try {
         initialAtm = localStorage.getItem("qb_atmosphere") || "day";
       } catch {}
-      if (initialAtm === "golden" || initialAtm === "evening") {
+      if (initialAtm === "golden") {
         sky.setGoldenHour();
       } else if (initialAtm === "night") {
         sky.setNight();
@@ -1516,9 +1514,6 @@ export function SandboxGame({
         (skyblock || blockFall || bedwars) && qualityPref !== "low"
           ? new CinematicPost(renderer, scene, camera, 0.18)
           : null;
-      if (cinematicPost && highQualityRef.current) {
-        cinematicPost.setUltraHigh(true);
-      }
       const applyGraphicsV2 = (on: boolean) => {
         sky?.setGraphicsV2(on);
         cinematicPost?.setGraphicsV2(on);
@@ -2909,51 +2904,12 @@ export function SandboxGame({
       window.addEventListener("bm-fov", onFovEvt);
 
       const onAtmosphereEvt = (e: Event) => {
-        const mode = String((e as CustomEvent<string>).detail || "normal").toLowerCase();
-        if (mode === "golden" || mode === "evening") {
-          sky.setGoldenHour();
-          setCelestialNight(false);
-          celestialNightRef.current = false;
-          cosmicSkyRef.current?.setNight(false);
-          if (celestialSunRef.current) celestialSunRef.current.visible = true;
-          if (celestialMoonRef.current) celestialMoonRef.current.visible = false;
-        } else if (mode === "night") {
-          sky.setNight();
-          setCelestialNight(true);
-          celestialNightRef.current = true;
-          cosmicSkyRef.current?.setNight(true);
-          if (celestialSunRef.current) celestialSunRef.current.visible = false;
-          if (celestialMoonRef.current) celestialMoonRef.current.visible = true;
-        } else {
-          // "normal" or "day"
-          sky.setNormalDay();
-          setCelestialNight(false);
-          celestialNightRef.current = false;
-          cosmicSkyRef.current?.setNight(false);
-          if (celestialSunRef.current) celestialSunRef.current.visible = true;
-          if (celestialMoonRef.current) celestialMoonRef.current.visible = false;
-        }
-        if (renderer) renderer.shadowMap.needsUpdate = true;
+        const mode = (e as CustomEvent<string>).detail;
+        if (mode === "golden") sky.setGoldenHour();
+        else if (mode === "night") sky.setNight();
+        else sky.setNormalDay();
       };
       window.addEventListener("bm-atmosphere", onAtmosphereEvt);
-
-      const onQualityEvt = (e: Event) => {
-        const q = ((e as CustomEvent<string>).detail || "normal") as RenderQuality;
-        const isHigh = q === "high";
-        highQualityRef.current = isHigh;
-        const dpr = getTargetDpr(q);
-        renderer.setPixelRatio(dpr);
-        const shadowSz = getShadowMapSize(q);
-        if (sky?.sun?.shadow) {
-          sky.sun.shadow.mapSize.set(shadowSz, shadowSz);
-        }
-        cinematicPost?.setUltraHigh(isHigh);
-        if (particles) {
-          particles.ultra = isHigh;
-        }
-        renderer.shadowMap.needsUpdate = true;
-      };
-      window.addEventListener("bm-quality", onQualityEvt);
 
       const onFogModeEvt = (e: Event) => {
         const mode = (e as CustomEvent<string>).detail;
@@ -2998,7 +2954,6 @@ export function SandboxGame({
 
       // Ambient particles — white motes removed per user request
       const particles = new AmbientParticles(qualityPref === "low" ? 80 : 160);
-      particles.ultra = highQualityRef.current;
       particles.setMode("off");
       scene.add(particles.points);
 
@@ -3054,8 +3009,6 @@ export function SandboxGame({
       let statusAcc = 0;
       let presenceAcc = 0;
       let shadowAcc = 0;
-      let lastShadowX = 0;
-      let lastShadowZ = 0;
       let frames = 0;
       let footstepT = 0.12;
       let smoothDt = 1 / 60;
@@ -3333,14 +3286,10 @@ export function SandboxGame({
           }
         }
 
-        // Periodic light/shadow update: high quality gets rapid 0.16s updates, normal gets throttled updates
+        // Periodic light/shadow update (throttled to keep rendering silky-smooth)
         shadowAcc += dt;
-        const isHigh = highQualityRef.current;
-        const dShadow = Math.hypot(player.position.x - lastShadowX, player.position.z - lastShadowZ);
-        if (isHigh ? (dShadow > 1.2 || shadowAcc >= 0.16) : (dShadow > 4.5 || shadowAcc >= 2.5)) {
+        if (shadowAcc >= 0.35 || player.velocity.lengthSq() > 16) {
           shadowAcc = 0;
-          lastShadowX = player.position.x;
-          lastShadowZ = player.position.z;
           if (renderer) renderer.shadowMap.needsUpdate = true;
         }
 
@@ -3616,7 +3565,6 @@ export function SandboxGame({
         window.removeEventListener("qb-menu-respawn", onRespawn);
         window.removeEventListener("bm-fov", onFovEvt);
         window.removeEventListener("bm-atmosphere", onAtmosphereEvt);
-        window.removeEventListener("bm-quality", onQualityEvt);
         window.removeEventListener("bm-fog-mode", onFogModeEvt);
         if (stopWaterAudio) stopWaterAudio();
         features.dispose();

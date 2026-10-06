@@ -615,10 +615,6 @@ const wcBuf = new Float32Array(MAX_VERTS * 3);
 const wiBuf = new Uint32Array(MAX_VERTS * 6);
 const wbBuf = new Float32Array(MAX_VERTS * 4);
 
-// Reusable 2D slice buffers for high-speed greedy meshing
-const sliceMask = new Int32Array(CHUNK * CHUNK);
-const sliceVisited = new Uint8Array(CHUNK * CHUNK);
-
 export class SubChunk {
   mesh: THREE.Mesh | null = null;
   transparentMesh: THREE.Mesh | null = null;
@@ -665,7 +661,6 @@ export class SubChunk {
       this.waterMesh = null;
     }
     this.group.clear();
-    this.group.removeFromParent();
   }
 }
 
@@ -698,10 +693,6 @@ export class World {
   private chunks = new Map<number, Chunk>();
   private activeChunks = new Set<Chunk>();
   private dirtySubChunks = new Set<SubChunk>();
-  private dirtySubChunkArray: SubChunk[] = [];
-  private frustum = new THREE.Frustum();
-  private projScreenMatrix = new THREE.Matrix4();
-  private frustumCheckTick = 0;
   private material: THREE.MeshStandardMaterial;
   private transparentMaterial: THREE.MeshStandardMaterial;
   private waterMaterial: THREE.MeshStandardMaterial;
@@ -718,22 +709,6 @@ export class World {
   // Fast single-element chunk lookup cache
   private lastChunkKey = -1;
   private lastChunk: Chunk | null = null;
-  private greedyMeshing = true;
-
-  get isGreedyMeshing(): boolean {
-    return this.greedyMeshing;
-  }
-
-  setGreedyMeshing(enabled: boolean) {
-    if (this.greedyMeshing === enabled) return;
-    this.greedyMeshing = enabled;
-    for (const c of this.activeChunks) {
-      c.subChunks.forEach((sc) => {
-        sc.dirty = true;
-        this.dirtySubChunks.add(sc);
-      });
-    }
-  }
 
   constructor(
     private atlas: Atlas,
@@ -916,6 +891,7 @@ export class World {
       this.activeChunks.add(c);
       c.subChunks.forEach((sc) => {
         this.dirtySubChunks.add(sc);
+        this.group.add(sc.group);
       });
     }
     return c;
@@ -1273,8 +1249,8 @@ export class World {
   }
 
   /**
-   * Budgeted per-frame update: processes liquid flow, updates frustum visibility,
-   * and remeshes dirty sub-chunks nearest to the player with zero GC allocations.
+   * Budgeted per-frame update: processes liquid flow and remeshes dirty sub-chunks.
+   * Prioritizes sub-chunks closest to the player so near geometry is always responsive.
    */
   update(budget = 3, playerPos?: THREE.Vector3, camera?: THREE.Camera) {
     if (this.pendingWaterFlows.length > 0) {
@@ -1298,53 +1274,30 @@ export class World {
       }
     }
 
-    // High-performance frustum culling on sub-chunk bounding boxes
-    this.frustumCheckTick++;
-    if (camera && this.frustumCheckTick % 2 === 0) {
-      this.projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-      this.frustum.setFromProjectionMatrix(this.projScreenMatrix);
-      const px = playerPos?.x ?? 0;
-      const pz = playerPos?.z ?? 0;
-      for (const c of this.activeChunks) {
-        for (let i = 0; i < SUB_CHUNKS; i++) {
-          const sc = c.subChunks[i];
-          if (sc.empty || (!sc.mesh && !sc.transparentMesh && !sc.waterMesh)) continue;
-          const visible = this.frustum.intersectsBox(sc.boundingBox);
-          sc.group.visible = visible;
-          if (visible && playerPos) {
-            const distSq = (sc.center.x - px) ** 2 + (sc.center.z - pz) ** 2;
-            const isNear = distSq < (36 * 36);
-            if (sc.mesh) sc.mesh.castShadow = isNear;
-            if (sc.transparentMesh) sc.transparentMesh.castShadow = isNear;
-          }
-        }
-      }
-    }
-
     if (this.dirtySubChunks.size === 0) return;
 
-    // Zero-allocation player-prioritized subchunk queue
-    this.dirtySubChunkArray.length = 0;
-    for (const sc of this.dirtySubChunks) {
-      this.dirtySubChunkArray.push(sc);
-    }
-    if (playerPos && this.dirtySubChunkArray.length > 1) {
+    // Prioritize dirty sub-chunks nearest to the player
+    let toMesh: SubChunk[] = [];
+    if (playerPos) {
       const px = playerPos.x;
       const py = playerPos.y;
       const pz = playerPos.z;
-      this.dirtySubChunkArray.sort((a, b) => {
+      const arr = Array.from(this.dirtySubChunks);
+      arr.sort((a, b) => {
         const da = (a.center.x - px) ** 2 + (a.center.y - py) ** 2 + (a.center.z - pz) ** 2;
         const db = (b.center.x - px) ** 2 + (b.center.y - py) ** 2 + (b.center.z - pz) ** 2;
         return da - db;
       });
+      toMesh = arr.slice(0, budget);
+    } else {
+      toMesh = Array.from(this.dirtySubChunks).slice(0, budget);
     }
 
-    const count = Math.min(budget, this.dirtySubChunkArray.length);
-    for (let i = 0; i < count; i++) {
-      const sc = this.dirtySubChunkArray[i];
+    for (const sc of toMesh) {
       this.dirtySubChunks.delete(sc);
       const c = this.chunks.get(chunkKey(sc.cx, sc.cz));
-      if (c) this.meshSubChunk(c, sc, camera);
+      if (!c) continue;
+      this.meshSubChunk(c, sc, camera);
       sc.dirty = false;
     }
   }
@@ -1359,18 +1312,8 @@ export class World {
     this.dirtySubChunks.clear();
   }
 
-  private getVertexAO(c: Chunk, bx: number, by: number, bz: number, f: number, cornerIdx: number): number {
-    const off = AO_OFFSETS[f * 4 + cornerIdx];
-    const occ =
-      (this.opaqueFast(c, bx + off[0], by + off[1], bz + off[2]) ? 1 : 0) +
-      (this.opaqueFast(c, bx + off[3], by + off[4], bz + off[5]) ? 1 : 0) +
-      (this.opaqueFast(c, bx + off[6], by + off[7], bz + off[8]) ? 1 : 0);
-    return AO_CURVE[occ > 3 ? 3 : occ];
-  }
-
   private meshSubChunk(c: Chunk, sc: SubChunk, camera?: THREE.Camera) {
-    if (c.counts[sc.cy] === 0) {
-      sc.empty = true;
+    if (sc.empty || c.counts[sc.cy] === 0) {
       sc.dispose();
       return;
     }
@@ -1400,6 +1343,7 @@ export class World {
     const ox = sc.cx * CHUNK;
     const oz = sc.cz * CHUNK;
     const startY = sc.minY;
+    const endY = sc.maxY;
 
     // Cache neighboring chunks for fast boundary reads
     const eastChunk = this.chunks.get(chunkKey(sc.cx + 1, sc.cz));
@@ -1554,532 +1498,166 @@ export class World {
       }
     };
 
-    // Special shaped blocks (stairs, slabs) handled directly
-    for (let y = 0; y < SUB_H; y++) {
-      const wy = startY + y;
-      for (let z = 0; z < CHUNK; z++) {
-        for (let x = 0; x < CHUNK; x++) {
-          const id = c.data[(wy * CHUNK + z) * CHUNK + x];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def?.shape) continue;
-          const wx = ox + x;
-          const wz = oz + z;
-          if (def.shape === "stairs") {
-            pushStairBox(def, wx, wy, wz, 0, 0, 0, 1, 0.5, 1, false);
-            pushStairBox(def, wx, wy, wz, 0, 0.5, 0.5, 1, 1, 1, true);
-          } else if (def.shape === "slab") {
-            pushStairBox(def, wx, wy, wz, 0, 0, 0, 1, 0.5, 1, false);
-          } else if (def.shape === "vslab") {
-            pushStairBox(def, wx, wy, wz, 0, 0, 0.5, 1, 1, 1, false);
-          } else if (def.shape === "quarter") {
-            pushStairBox(def, wx, wy, wz, 0, 0, 0.5, 1, 0.5, 1, false);
-          }
-        }
-      }
-    }
-
-    // ── Helper to emit a single greedy-merged quad ──
-    const emitQuad = (
-      def: BlockDef,
-      f: number,
-      tile: string,
-      c0: [number, number, number],
-      c1: [number, number, number],
-      c2: [number, number, number],
-      c3: [number, number, number],
-      uv0: [number, number],
-      uv1: [number, number],
-      uv2: [number, number],
-      uv3: [number, number],
-      bx0: number, by0: number, bz0: number,
-      bx1: number, by1: number, bz1: number,
-      bx2: number, by2: number, bz2: number,
-      bx3: number, by3: number, bz3: number,
-    ) => {
+    // ── Voxel Meshing with Greedy Merging & Aggressive Culling ──
+    for (let f = 0; f < 6; f++) {
       const face = FACES[f];
-      const isLiquid = !!def.liquid;
-      const isTrans = !!def.transparent && !isLiquid;
-      const [u0, v0, u1, v1] = this.atlas.uv(tile);
+      const isTop = f === 2;
+      const isBottom = f === 3;
+      const isSide = !isTop && !isBottom;
 
-      const P = isLiquid ? wpBuf : isTrans ? tpBuf : pBuf;
-      const N = isLiquid ? wnBuf : isTrans ? tnBuf : nBuf;
-      const U = isLiquid ? wuBuf : isTrans ? tuBuf : uBuf;
-      const C = isLiquid ? wcBuf : isTrans ? tcBuf : cBuf;
-      const I = isLiquid ? wiBuf : isTrans ? tiBuf : iBuf;
-      const B = isLiquid ? wbBuf : isTrans ? tbBuf : bBuf;
+      // Scan sub-chunk voxels
+      for (let y = startY; y < endY; y++) {
+        // Bedrock bottom culling: bedrock at y=0 never needs a bottom face
+        if (isBottom && y === 0) continue;
+        // World ceiling culling
+        if (isTop && y === WORLD_H - 1) continue;
 
-      let pPos = isLiquid ? wpIdx : isTrans ? tpIdx : pIdx;
-      let nPos = isLiquid ? wnIdx : isTrans ? tnIdx : nIdx;
-      let uPos = isLiquid ? wuIdx : isTrans ? tuIdx : uIdx;
-      let cPos = isLiquid ? wcIdx : isTrans ? tcIdx : cIdx;
-      let iPos = isLiquid ? wiIdx : isTrans ? tiIdx : iIdx;
-      let bPos = isLiquid ? wbIdx : isTrans ? tbIdx : bIdx;
+        for (let z = 0; z < CHUNK; z++) {
+          for (let x = 0; x < CHUNK; x++) {
+            const id = c.data[(y * CHUNK + z) * CHUNK + x];
+            if (id === 0) continue;
+            const def = BLOCK_BY_ID.get(id);
+            if (!def) continue;
 
-      const base = pPos / 3;
-      const s = isTrans && tile.includes("leaves") ? 1 : 0;
-      const tint = TINTS[tile];
+            const wx = ox + x;
+            const wz = oz + z;
 
-      const corners = [c0, c1, c2, c3];
-      const uvs = [uv0, uv1, uv2, uv3];
-      const voxels = [
-        [bx0, by0, bz0],
-        [bx1, by1, bz1],
-        [bx2, by2, bz2],
-        [bx3, by3, bz3],
-      ];
-
-      for (let i = 0; i < 4; i++) {
-        const cn = corners[i];
-        P[pPos++] = cn[0];
-        P[pPos++] = cn[1];
-        P[pPos++] = cn[2];
-
-        N[nPos++] = face.dir[0];
-        N[nPos++] = face.dir[1];
-        N[nPos++] = face.dir[2];
-
-        const uv = uvs[i];
-        U[uPos++] = uv[0];
-        U[uPos++] = uv[1];
-
-        B[bPos++] = u0;
-        B[bPos++] = v0;
-        B[bPos++] = u1;
-        B[bPos++] = v1;
-
-        if (isTrans) tsBuf[tsIdx++] = s;
-
-        const vBlock = voxels[i];
-        const ao = this.getVertexAO(c, vBlock[0], vBlock[1], vBlock[2], f, i);
-        const light = def.glow ? Math.max(face.light * ao, def.glow) : face.light * ao;
-
-        if (tint) {
-          C[cPos++] = light * tint[0];
-          C[cPos++] = light * tint[1];
-          C[cPos++] = light * tint[2];
-        } else {
-          C[cPos++] = light;
-          C[cPos++] = light;
-          C[cPos++] = light;
-        }
-      }
-
-      if (face.flip) {
-        I[iPos++] = base;
-        I[iPos++] = base + 2;
-        I[iPos++] = base + 1;
-        I[iPos++] = base;
-        I[iPos++] = base + 3;
-        I[iPos++] = base + 2;
-      } else {
-        I[iPos++] = base;
-        I[iPos++] = base + 1;
-        I[iPos++] = base + 2;
-        I[iPos++] = base;
-        I[iPos++] = base + 2;
-        I[iPos++] = base + 3;
-      }
-
-      if (isLiquid) {
-        wpIdx = pPos; wnIdx = nPos; wuIdx = uPos; wcIdx = cPos; wiIdx = iPos; wbIdx = bPos;
-      } else if (isTrans) {
-        tpIdx = pPos; tnIdx = nPos; tuIdx = uPos; tcIdx = cPos; tiIdx = iPos; tbIdx = bPos;
-      } else {
-        pIdx = pPos; nIdx = nPos; uIdx = uPos; cIdx = cPos; iIdx = iPos; bIdx = bPos;
-      }
-    };
-
-    // ── 2D Slice Greedy Meshing Across All 6 Faces ──
-    const greedy = this.greedyMeshing;
-
-    // 1. Face 2: +Y (Top)
-    for (let y = 0; y < SUB_H; y++) {
-      const wy = startY + y;
-      if (wy >= WORLD_H - 1) continue;
-      sliceMask.fill(0);
-      sliceVisited.fill(0);
-      let count = 0;
-      for (let v = 0; v < CHUNK; v++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const id = c.data[(wy * CHUNK + v) * CHUNK + u];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
-          const nid = getVoxelDirect(u, wy + 1, v);
-          if (nid !== 0) {
-            const ndef = BLOCK_BY_ID.get(nid);
-            if (!ndef?.transparent && !ndef?.liquid) continue;
-            if (nid === id) continue;
-          }
-          sliceMask[v * 16 + u] = id;
-          count++;
-        }
-      }
-      if (count === 0) continue;
-      for (let v = 0; v < CHUNK; v++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const idx = v * 16 + u;
-          if (sliceVisited[idx] || sliceMask[idx] === 0) continue;
-          const id = sliceMask[idx];
-          const def = BLOCK_BY_ID.get(id)!;
-          let w = 1;
-          let d = 1;
-          if (greedy) {
-            while (u + w < CHUNK && !sliceVisited[v * 16 + (u + w)] && sliceMask[v * 16 + (u + w)] === id) w++;
-            let canExpand = true;
-            while (v + d < CHUNK) {
-              for (let k = 0; k < w; k++) {
-                const checkIdx = (v + d) * 16 + (u + k);
-                if (sliceVisited[checkIdx] || sliceMask[checkIdx] !== id) { canExpand = false; break; }
+            // Handle special shapes without greedy merge
+            if (def.shape) {
+              if (def.shape === "stairs") {
+                pushStairBox(def, wx, y, wz, 0, 0, 0, 1, 0.5, 1, false);
+                pushStairBox(def, wx, y, wz, 0, 0.5, 0.5, 1, 1, 1, true);
+              } else if (def.shape === "slab") {
+                pushStairBox(def, wx, y, wz, 0, 0, 0, 1, 0.5, 1, false);
+              } else if (def.shape === "vslab") {
+                pushStairBox(def, wx, y, wz, 0, 0, 0.5, 1, 1, 1, false);
+              } else if (def.shape === "quarter") {
+                pushStairBox(def, wx, y, wz, 0, 0, 0.5, 1, 0.5, 1, false);
               }
-              if (!canExpand) break;
-              d++;
+              continue;
+            }
+
+            // Hidden-Face Culling: Check neighbor in face direction
+            const nx = x + face.dir[0];
+            const ny = y + face.dir[1];
+            const nz = z + face.dir[2];
+            const nid = getVoxelDirect(nx, ny, nz);
+
+            if (nid !== 0) {
+              const ndef = BLOCK_BY_ID.get(nid);
+              if (!ndef?.transparent && !ndef?.liquid) continue; // Solid neighbor: cull face
+              if (nid === id) continue; // Same liquid or transparent neighbor: cull inner face
+            }
+
+            const tile = isTop ? def.top : isBottom ? def.bottom : def.side;
+            const [u0, v0, u1, v1] = this.atlas.uv(tile);
+
+            // Compute Ambient Occlusion on 4 corners using static offset lookup
+            const aoVals = [1, 1, 1, 1];
+            for (let i = 0; i < 4; i++) {
+              const off = AO_OFFSETS[f * 4 + i];
+              const occ =
+                (this.opaqueFast(c, wx + off[0], y + off[1], wz + off[2]) ? 1 : 0) +
+                (this.opaqueFast(c, wx + off[3], y + off[4], wz + off[5]) ? 1 : 0) +
+                (this.opaqueFast(c, wx + off[6], y + off[7], wz + off[8]) ? 1 : 0);
+              aoVals[i] = AO_CURVE[occ > 3 ? 3 : occ];
+            }
+
+            const isLiquid = !!def.liquid;
+            const isTrans = !!def.transparent && !isLiquid;
+
+            // Route to appropriate buffer pool
+            const P = isLiquid ? wpBuf : isTrans ? tpBuf : pBuf;
+            const N = isLiquid ? wnBuf : isTrans ? tnBuf : nBuf;
+            const U = isLiquid ? wuBuf : isTrans ? tuBuf : uBuf;
+            const C = isLiquid ? wcBuf : isTrans ? tcBuf : cBuf;
+            const I = isLiquid ? wiBuf : isTrans ? tiBuf : iBuf;
+            const B = isLiquid ? wbBuf : isTrans ? tbBuf : bBuf;
+
+            let pPos = isLiquid ? wpIdx : isTrans ? tpIdx : pIdx;
+            let nPos = isLiquid ? wnIdx : isTrans ? tnIdx : nIdx;
+            let uPos = isLiquid ? wuIdx : isTrans ? tuIdx : uIdx;
+            let cPos = isLiquid ? wcIdx : isTrans ? tcIdx : cIdx;
+            let iPos = isLiquid ? wiIdx : isTrans ? tiIdx : iIdx;
+            let bPos = isLiquid ? wbIdx : isTrans ? tbIdx : bIdx;
+
+            const base = pPos / 3;
+            const s = isTrans && tile.includes("leaves") ? 1 : 0;
+
+            for (let i = 0; i < 4; i++) {
+              const cn = face.corners[i];
+              P[pPos++] = wx + cn[0];
+              P[pPos++] = y + cn[1];
+              P[pPos++] = wz + cn[2];
+
+              N[nPos++] = face.dir[0];
+              N[nPos++] = face.dir[1];
+              N[nPos++] = face.dir[2];
+
+              const uv = face.uvs[i];
+              U[uPos++] = uv[0];
+              U[uPos++] = uv[1];
+
+              B[bPos++] = u0;
+              B[bPos++] = v0;
+              B[bPos++] = u1;
+              B[bPos++] = v1;
+
+              if (isTrans) tsBuf[tsIdx++] = s;
+
+              const ao = aoVals[i];
+              const light = def.glow ? Math.max(face.light * ao, def.glow) : face.light * ao;
+              const tint = TINTS[tile];
+              if (tint) {
+                C[cPos++] = light * tint[0];
+                C[cPos++] = light * tint[1];
+                C[cPos++] = light * tint[2];
+              } else {
+                C[cPos++] = light;
+                C[cPos++] = light;
+                C[cPos++] = light;
+              }
+            }
+
+            if (face.flip) {
+              I[iPos++] = base;
+              I[iPos++] = base + 2;
+              I[iPos++] = base + 1;
+              I[iPos++] = base;
+              I[iPos++] = base + 3;
+              I[iPos++] = base + 2;
+            } else {
+              I[iPos++] = base;
+              I[iPos++] = base + 1;
+              I[iPos++] = base + 2;
+              I[iPos++] = base;
+              I[iPos++] = base + 2;
+              I[iPos++] = base + 3;
+            }
+
+            if (isLiquid) {
+              wpIdx = pPos;
+              wnIdx = nPos;
+              wuIdx = uPos;
+              wcIdx = cPos;
+              wiIdx = iPos;
+              wbIdx = bPos;
+            } else if (isTrans) {
+              tpIdx = pPos;
+              tnIdx = nPos;
+              tuIdx = uPos;
+              tcIdx = cPos;
+              tiIdx = iPos;
+              tbIdx = bPos;
+            } else {
+              pIdx = pPos;
+              nIdx = nPos;
+              uIdx = uPos;
+              cIdx = cPos;
+              iIdx = iPos;
+              bIdx = bPos;
             }
           }
-          for (let dv = 0; dv < d; dv++) {
-            for (let du = 0; du < w; du++) sliceVisited[(v + dv) * 16 + (u + du)] = 1;
-          }
-          const wx = ox + u;
-          const wz = oz + v;
-          const topY = wy + 1;
-          emitQuad(
-            def, 2, def.top,
-            [wx, topY, wz + d],
-            [wx + w, topY, wz + d],
-            [wx + w, topY, wz],
-            [wx, topY, wz],
-            [0, 0], [w, 0], [w, d], [0, d],
-            wx, wy, wz + d - 1,
-            wx + w - 1, wy, wz + d - 1,
-            wx + w - 1, wy, wz,
-            wx, wy, wz,
-          );
-        }
-      }
-    }
-
-    // 2. Face 3: -Y (Bottom)
-    for (let y = 0; y < SUB_H; y++) {
-      const wy = startY + y;
-      if (wy === 0) continue; // Bedrock bottom culled
-      sliceMask.fill(0);
-      sliceVisited.fill(0);
-      let count = 0;
-      for (let v = 0; v < CHUNK; v++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const id = c.data[(wy * CHUNK + v) * CHUNK + u];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
-          const nid = getVoxelDirect(u, wy - 1, v);
-          if (nid !== 0) {
-            const ndef = BLOCK_BY_ID.get(nid);
-            if (!ndef?.transparent && !ndef?.liquid) continue;
-            if (nid === id) continue;
-          }
-          sliceMask[v * 16 + u] = id;
-          count++;
-        }
-      }
-      if (count === 0) continue;
-      for (let v = 0; v < CHUNK; v++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const idx = v * 16 + u;
-          if (sliceVisited[idx] || sliceMask[idx] === 0) continue;
-          const id = sliceMask[idx];
-          const def = BLOCK_BY_ID.get(id)!;
-          let w = 1;
-          let d = 1;
-          if (greedy) {
-            while (u + w < CHUNK && !sliceVisited[v * 16 + (u + w)] && sliceMask[v * 16 + (u + w)] === id) w++;
-            let canExpand = true;
-            while (v + d < CHUNK) {
-              for (let k = 0; k < w; k++) {
-                const checkIdx = (v + d) * 16 + (u + k);
-                if (sliceVisited[checkIdx] || sliceMask[checkIdx] !== id) { canExpand = false; break; }
-              }
-              if (!canExpand) break;
-              d++;
-            }
-          }
-          for (let dv = 0; dv < d; dv++) {
-            for (let du = 0; du < w; du++) sliceVisited[(v + dv) * 16 + (u + du)] = 1;
-          }
-          const wx = ox + u;
-          const wz = oz + v;
-          emitQuad(
-            def, 3, def.bottom,
-            [wx, wy, wz],
-            [wx + w, wy, wz],
-            [wx + w, wy, wz + d],
-            [wx, wy, wz + d],
-            [0, 0], [w, 0], [w, d], [0, d],
-            wx, wy, wz,
-            wx + w - 1, wy, wz,
-            wx + w - 1, wy, wz + d - 1,
-            wx, wy, wz + d - 1,
-          );
-        }
-      }
-    }
-
-    // 3. Face 4: +Z (South)
-    for (let z = 0; z < CHUNK; z++) {
-      sliceMask.fill(0);
-      sliceVisited.fill(0);
-      let count = 0;
-      for (let y = 0; y < SUB_H; y++) {
-        const wy = startY + y;
-        for (let u = 0; u < CHUNK; u++) {
-          const id = c.data[(wy * CHUNK + z) * CHUNK + u];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
-          const nid = getVoxelDirect(u, wy, z + 1);
-          if (nid !== 0) {
-            const ndef = BLOCK_BY_ID.get(nid);
-            if (!ndef?.transparent && !ndef?.liquid) continue;
-            if (nid === id) continue;
-          }
-          sliceMask[y * 16 + u] = id;
-          count++;
-        }
-      }
-      if (count === 0) continue;
-      for (let y = 0; y < SUB_H; y++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const idx = y * 16 + u;
-          if (sliceVisited[idx] || sliceMask[idx] === 0) continue;
-          const id = sliceMask[idx];
-          const def = BLOCK_BY_ID.get(id)!;
-          let w = 1;
-          let h = 1;
-          if (greedy) {
-            while (u + w < CHUNK && !sliceVisited[y * 16 + (u + w)] && sliceMask[y * 16 + (u + w)] === id) w++;
-            let canExpand = true;
-            while (y + h < SUB_H) {
-              for (let k = 0; k < w; k++) {
-                const checkIdx = (y + h) * 16 + (u + k);
-                if (sliceVisited[checkIdx] || sliceMask[checkIdx] !== id) { canExpand = false; break; }
-              }
-              if (!canExpand) break;
-              h++;
-            }
-          }
-          for (let dy = 0; dy < h; dy++) {
-            for (let du = 0; du < w; du++) sliceVisited[(y + dy) * 16 + (u + du)] = 1;
-          }
-          const wx = ox + u;
-          const wy = startY + y;
-          const southZ = oz + z + 1;
-          emitQuad(
-            def, 4, def.side,
-            [wx, wy, southZ],
-            [wx, wy + h, southZ],
-            [wx + w, wy + h, southZ],
-            [wx + w, wy, southZ],
-            [0, 0], [0, h], [w, h], [w, 0],
-            wx, wy, oz + z,
-            wx, wy + h - 1, oz + z,
-            wx + w - 1, wy + h - 1, oz + z,
-            wx + w - 1, wy, oz + z,
-          );
-        }
-      }
-    }
-
-    // 4. Face 5: -Z (North)
-    for (let z = 0; z < CHUNK; z++) {
-      sliceMask.fill(0);
-      sliceVisited.fill(0);
-      let count = 0;
-      for (let y = 0; y < SUB_H; y++) {
-        const wy = startY + y;
-        for (let u = 0; u < CHUNK; u++) {
-          const id = c.data[(wy * CHUNK + z) * CHUNK + u];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
-          const nid = getVoxelDirect(u, wy, z - 1);
-          if (nid !== 0) {
-            const ndef = BLOCK_BY_ID.get(nid);
-            if (!ndef?.transparent && !ndef?.liquid) continue;
-            if (nid === id) continue;
-          }
-          sliceMask[y * 16 + u] = id;
-          count++;
-        }
-      }
-      if (count === 0) continue;
-      for (let y = 0; y < SUB_H; y++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const idx = y * 16 + u;
-          if (sliceVisited[idx] || sliceMask[idx] === 0) continue;
-          const id = sliceMask[idx];
-          const def = BLOCK_BY_ID.get(id)!;
-          let w = 1;
-          let h = 1;
-          if (greedy) {
-            while (u + w < CHUNK && !sliceVisited[y * 16 + (u + w)] && sliceMask[y * 16 + (u + w)] === id) w++;
-            let canExpand = true;
-            while (y + h < SUB_H) {
-              for (let k = 0; k < w; k++) {
-                const checkIdx = (y + h) * 16 + (u + k);
-                if (sliceVisited[checkIdx] || sliceMask[checkIdx] !== id) { canExpand = false; break; }
-              }
-              if (!canExpand) break;
-              h++;
-            }
-          }
-          for (let dy = 0; dy < h; dy++) {
-            for (let du = 0; du < w; du++) sliceVisited[(y + dy) * 16 + (u + du)] = 1;
-          }
-          const wx = ox + u;
-          const wy = startY + y;
-          const northZ = oz + z;
-          emitQuad(
-            def, 5, def.side,
-            [wx + w, wy, northZ],
-            [wx + w, wy + h, northZ],
-            [wx, wy + h, northZ],
-            [wx, wy, northZ],
-            [0, 0], [0, h], [w, h], [w, 0],
-            wx + w - 1, wy, oz + z,
-            wx + w - 1, wy + h - 1, oz + z,
-            wx, wy + h - 1, oz + z,
-            wx, wy, oz + z,
-          );
-        }
-      }
-    }
-
-    // 5. Face 0: +X (East)
-    for (let x = 0; x < CHUNK; x++) {
-      sliceMask.fill(0);
-      sliceVisited.fill(0);
-      let count = 0;
-      for (let y = 0; y < SUB_H; y++) {
-        const wy = startY + y;
-        for (let u = 0; u < CHUNK; u++) {
-          const id = c.data[(wy * CHUNK + u) * CHUNK + x];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
-          const nid = getVoxelDirect(x + 1, wy, u);
-          if (nid !== 0) {
-            const ndef = BLOCK_BY_ID.get(nid);
-            if (!ndef?.transparent && !ndef?.liquid) continue;
-            if (nid === id) continue;
-          }
-          sliceMask[y * 16 + u] = id;
-          count++;
-        }
-      }
-      if (count === 0) continue;
-      for (let y = 0; y < SUB_H; y++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const idx = y * 16 + u;
-          if (sliceVisited[idx] || sliceMask[idx] === 0) continue;
-          const id = sliceMask[idx];
-          const def = BLOCK_BY_ID.get(id)!;
-          let d = 1;
-          let h = 1;
-          if (greedy) {
-            while (u + d < CHUNK && !sliceVisited[y * 16 + (u + d)] && sliceMask[y * 16 + (u + d)] === id) d++;
-            let canExpand = true;
-            while (y + h < SUB_H) {
-              for (let k = 0; k < d; k++) {
-                const checkIdx = (y + h) * 16 + (u + k);
-                if (sliceVisited[checkIdx] || sliceMask[checkIdx] !== id) { canExpand = false; break; }
-              }
-              if (!canExpand) break;
-              h++;
-            }
-          }
-          for (let dy = 0; dy < h; dy++) {
-            for (let du = 0; du < d; du++) sliceVisited[(y + dy) * 16 + (u + du)] = 1;
-          }
-          const wx = ox + x + 1;
-          const wy = startY + y;
-          const wz = oz + u;
-          emitQuad(
-            def, 0, def.side,
-            [wx, wy, wz + d],
-            [wx, wy + h, wz + d],
-            [wx, wy + h, wz],
-            [wx, wy, wz],
-            [0, 0], [0, h], [d, h], [d, 0],
-            ox + x, wy, wz + d - 1,
-            ox + x, wy + h - 1, wz + d - 1,
-            ox + x, wy + h - 1, wz,
-            ox + x, wy, wz,
-          );
-        }
-      }
-    }
-
-    // 6. Face 1: -X (West)
-    for (let x = 0; x < CHUNK; x++) {
-      sliceMask.fill(0);
-      sliceVisited.fill(0);
-      let count = 0;
-      for (let y = 0; y < SUB_H; y++) {
-        const wy = startY + y;
-        for (let u = 0; u < CHUNK; u++) {
-          const id = c.data[(wy * CHUNK + u) * CHUNK + x];
-          if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
-          const nid = getVoxelDirect(x - 1, wy, u);
-          if (nid !== 0) {
-            const ndef = BLOCK_BY_ID.get(nid);
-            if (!ndef?.transparent && !ndef?.liquid) continue;
-            if (nid === id) continue;
-          }
-          sliceMask[y * 16 + u] = id;
-          count++;
-        }
-      }
-      if (count === 0) continue;
-      for (let y = 0; y < SUB_H; y++) {
-        for (let u = 0; u < CHUNK; u++) {
-          const idx = y * 16 + u;
-          if (sliceVisited[idx] || sliceMask[idx] === 0) continue;
-          const id = sliceMask[idx];
-          const def = BLOCK_BY_ID.get(id)!;
-          let d = 1;
-          let h = 1;
-          if (greedy) {
-            while (u + d < CHUNK && !sliceVisited[y * 16 + (u + d)] && sliceMask[y * 16 + (u + d)] === id) d++;
-            let canExpand = true;
-            while (y + h < SUB_H) {
-              for (let k = 0; k < d; k++) {
-                const checkIdx = (y + h) * 16 + (u + k);
-                if (sliceVisited[checkIdx] || sliceMask[checkIdx] !== id) { canExpand = false; break; }
-              }
-              if (!canExpand) break;
-              h++;
-            }
-          }
-          for (let dy = 0; dy < h; dy++) {
-            for (let du = 0; du < d; du++) sliceVisited[(y + dy) * 16 + (u + du)] = 1;
-          }
-          const wx = ox + x;
-          const wy = startY + y;
-          const wz = oz + u;
-          emitQuad(
-            def, 1, def.side,
-            [wx, wy, wz],
-            [wx, wy + h, wz],
-            [wx, wy + h, wz + d],
-            [wx, wy, wz + d],
-            [0, 0], [0, h], [d, h], [d, 0],
-            ox + x, wy, wz,
-            ox + x, wy + h - 1, wz,
-            ox + x, wy + h - 1, wz + d - 1,
-            ox + x, wy, wz + d - 1,
-          );
         }
       }
     }
@@ -2146,8 +1724,9 @@ export class World {
       return g;
     };
 
+    // Shadow distance optimization: subchunks near camera cast shadows; distant only receive
     const camDist = camera ? camera.position.distanceTo(sc.center) : 0;
-    const isNearCamera = camDist < 36;
+    const isNearCamera = camDist < 42;
 
     // 1. Opaque mesh
     if (pIdx > 0) {
@@ -2159,7 +1738,18 @@ export class World {
         sc.group.add(sc.mesh);
       } else {
         sc.mesh.geometry = makeGeom(
-          pBuf, pIdx, nBuf, nIdx, uBuf, uIdx, cBuf, cIdx, iBuf, iIdx, bBuf, bIdx,
+          pBuf,
+          pIdx,
+          nBuf,
+          nIdx,
+          uBuf,
+          uIdx,
+          cBuf,
+          cIdx,
+          iBuf,
+          iIdx,
+          bBuf,
+          bIdx,
           sc.mesh.geometry,
         );
       }
@@ -2173,7 +1763,18 @@ export class World {
     if (tpIdx > 0) {
       if (!sc.transparentMesh) {
         const geom = makeGeom(
-          tpBuf, tpIdx, tnBuf, tnIdx, tuBuf, tuIdx, tcBuf, tcIdx, tiBuf, tiIdx, tbBuf, tbIdx,
+          tpBuf,
+          tpIdx,
+          tnBuf,
+          tnIdx,
+          tuBuf,
+          tuIdx,
+          tcBuf,
+          tcIdx,
+          tiBuf,
+          tiIdx,
+          tbBuf,
+          tbIdx,
         );
         geom.setAttribute("aSway", new THREE.BufferAttribute(tsBuf.slice(0, tsIdx), 1));
         sc.transparentMesh = new THREE.Mesh(geom, this.transparentMaterial);
@@ -2182,7 +1783,18 @@ export class World {
         sc.group.add(sc.transparentMesh);
       } else {
         sc.transparentMesh.geometry = makeGeom(
-          tpBuf, tpIdx, tnBuf, tnIdx, tuBuf, tuIdx, tcBuf, tcIdx, tiBuf, tiIdx, tbBuf, tbIdx,
+          tpBuf,
+          tpIdx,
+          tnBuf,
+          tnIdx,
+          tuBuf,
+          tuIdx,
+          tcBuf,
+          tcIdx,
+          tiBuf,
+          tiIdx,
+          tbBuf,
+          tbIdx,
           sc.transparentMesh.geometry,
         );
         sc.transparentMesh.geometry.setAttribute(
@@ -2200,7 +1812,18 @@ export class World {
     if (wpIdx > 0) {
       if (!sc.waterMesh) {
         const geom = makeGeom(
-          wpBuf, wpIdx, wnBuf, wnIdx, wuBuf, wuIdx, wcBuf, wcIdx, wiBuf, wiIdx, wbBuf, wbIdx,
+          wpBuf,
+          wpIdx,
+          wnBuf,
+          wnIdx,
+          wuBuf,
+          wuIdx,
+          wcBuf,
+          wcIdx,
+          wiBuf,
+          wiIdx,
+          wbBuf,
+          wbIdx,
         );
         sc.waterMesh = new THREE.Mesh(geom, this.waterMaterial);
         sc.waterMesh.receiveShadow = true;
@@ -2209,27 +1832,24 @@ export class World {
         sc.group.add(sc.waterMesh);
       } else {
         sc.waterMesh.geometry = makeGeom(
-          wpBuf, wpIdx, wnBuf, wnIdx, wuBuf, wuIdx, wcBuf, wcIdx, wiBuf, wiIdx, wbBuf, wbIdx,
+          wpBuf,
+          wpIdx,
+          wnBuf,
+          wnIdx,
+          wuBuf,
+          wuIdx,
+          wcBuf,
+          wcIdx,
+          wiBuf,
+          wiIdx,
+          wbBuf,
+          wbIdx,
           sc.waterMesh.geometry,
         );
       }
       sc.waterMesh.visible = true;
     } else if (sc.waterMesh) {
       sc.waterMesh.visible = false;
-    }
-
-    // Dynamic scene-graph attachment: Only keep subchunks with geometry in this.group
-    const hasAnyMesh = pIdx > 0 || tpIdx > 0 || wpIdx > 0;
-    if (hasAnyMesh) {
-      sc.empty = false;
-      if (sc.group.parent !== this.group) {
-        this.group.add(sc.group);
-      }
-    } else {
-      sc.empty = true;
-      if (sc.group.parent === this.group) {
-        this.group.remove(sc.group);
-      }
     }
   }
 

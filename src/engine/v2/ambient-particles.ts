@@ -32,8 +32,6 @@ export class AmbientParticles {
   private mode: ParticleMode = "motes";
   private half = 22;
   private t = 0;
-  private acc = 0;
-  public ultra = false;
 
   constructor(private count = 220) {
     this.positions = new Float32Array(count * 3);
@@ -87,12 +85,7 @@ export class AmbientParticles {
 
   update(dt: number, center: THREE.Vector3) {
     if (this.mode === "off") return;
-    this.points.position.set(center.x, center.y - 2, center.z);
-    this.acc += dt;
-    if (!this.ultra && this.acc < 0.033) return;
-    const simDt = this.ultra ? dt : this.acc;
-    this.acc = 0;
-    this.t += simDt;
+    this.t += dt;
     const p = this.positions;
     const h = this.half;
     const isUpward = this.mode === "spores" || this.mode === "embers";
@@ -100,9 +93,9 @@ export class AmbientParticles {
     for (let i = 0; i < this.count; i++) {
       const s = this.seeds[i];
       const ix = i * 3;
-      p[ix] += Math.sin(this.t * 0.45 + s) * 0.35 * simDt + (this.mode === "sparks" ? 2.5 * simDt : 0);
-      p[ix + 1] += (Math.sin(this.t * 0.75 + s * 1.3) * 0.25 - fall) * simDt;
-      p[ix + 2] += Math.cos(this.t * 0.4 + s) * 0.35 * simDt;
+      p[ix] += Math.sin(this.t * 0.45 + s) * 0.35 * dt + (this.mode === "sparks" ? 2.5 * dt : 0);
+      p[ix + 1] += (Math.sin(this.t * 0.75 + s * 1.3) * 0.25 - fall) * dt;
+      p[ix + 2] += Math.cos(this.t * 0.4 + s) * 0.35 * dt;
       if (p[ix + 1] < -4) p[ix + 1] += h + 4;
       else if (p[ix + 1] > h + 4) p[ix + 1] = -4;
       if (p[ix] > h) p[ix] -= h * 2;
@@ -110,6 +103,7 @@ export class AmbientParticles {
       if (p[ix + 2] > h) p[ix + 2] -= h * 2;
       else if (p[ix + 2] < -h) p[ix + 2] += h * 2;
     }
+    this.points.position.set(center.x, center.y - 2, center.z);
     (this.points.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
   }
 

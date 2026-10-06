@@ -118,7 +118,7 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
   float v = 0.0;
   float a = 0.5;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < CLOUD_OCTAVES; i++) {
     v += a * noise(p);
     p = p * 2.03 + vec2(17.1, 9.2);
     a *= 0.5;
@@ -131,8 +131,8 @@ void main() {
   vec2 p = vWorld.xz * 0.011 + drift + uSeed * 3.7;
   float d = fbm(p);
   float density = smoothstep(uCover, uCover + 0.26, d);
-  // Efficient single-tap offset sample toward light for self-shadowing cloud tops
-  float lightSample = d * 0.65 + noise(p * 2.03 + vec2(0.035, 0.05)) * 0.35;
+  // Offset sample toward the light fakes self-shadowing on the cloud tops.
+  float lightSample = fbm(p + vec2(0.035, 0.05));
   float lit = clamp(0.55 + (d - lightSample) * 5.0 + (d - uCover) * 0.9, 0.0, 1.0);
   vec3 col = mix(uShade, uLit, lit);
 
@@ -140,6 +140,7 @@ void main() {
   float fog = smoothstep(uFogNear, uFogFar, vViewDepth);
   col = mix(col, uFogColor, fog * 0.85);
   float alpha = density * uOpacity * nearFade * (1.0 - fog * 0.6);
+  if (alpha < 0.003) discard;
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -210,8 +211,9 @@ export class SkyblockEnvironment {
     const layers = low
       ? [{ y: -10, cover: 0.5, opacity: 0.9, seed: 0 }]
       : [
-          { y: -18, cover: 0.52, opacity: 0.78, seed: 1 },
-          { y: -8, cover: 0.54, opacity: 0.88, seed: 0 },
+          { y: -22, cover: 0.52, opacity: 0.7, seed: 2 },
+          { y: -14, cover: 0.5, opacity: 0.82, seed: 1 },
+          { y: -7, cover: 0.56, opacity: 0.9, seed: 0 },
         ];
     layers.forEach((l, i) => {
       const mat = new THREE.ShaderMaterial({
@@ -220,7 +222,7 @@ export class SkyblockEnvironment {
         defines: { CLOUD_OCTAVES: low ? 3 : 5 },
         transparent: true,
         depthWrite: false,
-        side: THREE.FrontSide,
+        side: THREE.DoubleSide,
         fog: false,
         uniforms: {
           uTime: { value: 0 },

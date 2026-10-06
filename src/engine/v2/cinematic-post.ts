@@ -83,37 +83,21 @@ export class CinematicPost {
 
     const target = new THREE.WebGLRenderTarget(targetW, targetH, {
       type: THREE.HalfFloatType,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      depthBuffer: true,
-      stencilBuffer: false,
+      samples: 2,
     });
     this.composer = new EffectComposer(renderer, target);
     this.composer.setPixelRatio(dpr);
     this.composer.setSize(w, h);
     this.composer.addPass(new RenderPass(scene, camera));
 
-    // High-efficiency soft diffuse bloom for lanterns, fire, and sun
-    // 320x180 resolution produces wide, smooth, ethereal ambient bloom with ~85% less GPU fill-rate overhead
-    const bloomW = Math.min(320, Math.max(48, Math.round(targetW * 0.25)));
-    const bloomH = Math.min(180, Math.max(48, Math.round(targetH * 0.25)));
+    // High-efficiency soft bloom for lanterns, fire, and sun
+    const bloomW = Math.max(32, Math.round(targetW * 0.5));
+    const bloomH = Math.max(32, Math.round(targetH * 0.5));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.38, 0.65, 0.85);
     this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
-    this.motion.renderToScreen = true;
     this.composer.addPass(this.motion);
-  }
-
-  private ultraHigh = false;
-
-  /** Toggle ultra high resolution bloom passes or normal optimized bloom */
-  setUltraHigh(on: boolean) {
-    this.ultraHigh = on;
-    const canvas = this.composer.renderer.domElement;
-    const dpr = this.composer.renderer.getPixelRatio() || 1;
-    const w = canvas.clientWidth || window.innerWidth || 1280;
-    const h = canvas.clientHeight || window.innerHeight || 720;
-    this.setSize(w, h, dpr);
+    this.composer.addPass(new OutputPass());
   }
 
   /** Graphics V2: richer bloom on bright sun/emissives plus a filmic grade. */
@@ -131,13 +115,7 @@ export class CinematicPost {
     const targetH = Math.max(64, Math.round(h * dpr));
     this.composer.setPixelRatio(dpr);
     this.composer.setSize(w, h);
-    const bloomW = this.ultraHigh
-      ? Math.max(32, Math.round(targetW * 0.25))
-      : Math.min(320, Math.max(48, Math.round(targetW * 0.25)));
-    const bloomH = this.ultraHigh
-      ? Math.max(32, Math.round(targetH * 0.25))
-      : Math.min(180, Math.max(48, Math.round(targetH * 0.25)));
-    this.bloom.setSize(bloomW, bloomH);
+    this.bloom.setSize(Math.max(32, Math.round(targetW * 0.5)), Math.max(32, Math.round(targetH * 0.5)));
   }
 
   render(dt: number) {
