@@ -1,31 +1,30 @@
-export type RenderQuality = "low" | "medium" | "high";
+export type RenderQuality = "low" | "medium" | "normal" | "high";
 
 /**
- * Full HD / Retina resolution across all phone screen aspect ratios,
- * orientations (horizontal landscape and vertical portrait), and devices.
- * Restores crisp, crystal-clear native rendering without pixelation.
+ * Normal = Optimized 60–120 FPS profile (1.5 max DPR, light bloom, optimized cycles).
+ * High = Restores original ultra-high quality (native 2.0+ Retina DPR, full bloom, 60fps particles, 1536 dynamic shadows).
  */
 export const getTargetDpr = (quality?: RenderQuality): number => {
   if (typeof window === "undefined") return 1;
   const deviceDpr = window.devicePixelRatio || 1;
 
   if (quality === "low") {
-    return Math.min(deviceDpr, 1.75);
+    return Math.min(deviceDpr, 1.25);
   }
-  if (quality === "medium") {
-    return Math.min(deviceDpr, 2.25);
+  if (quality === "normal" || quality === "medium") {
+    return Math.min(deviceDpr, 1.5);
   }
-  // High quality (default): Full native device pixel ratio for true HD
-  return Math.min(deviceDpr, 3);
+  // High quality: restores native Retina ultra quality
+  return Math.min(deviceDpr, 2.0);
 };
 
 export const getShadowMapSize = (quality?: RenderQuality) =>
-  quality === "high" ? 2048 : quality === "medium" ? 1024 : 512;
+  quality === "high" ? 1536 : quality === "low" ? 512 : 1024;
 
 export const readQualityPref = (): RenderQuality => {
   try {
     const q = localStorage.getItem("bm-quality");
-    if (q === "low" || q === "medium" || q === "high") return q;
+    if (q === "low" || q === "medium" || q === "normal" || q === "high") return q as RenderQuality;
   } catch {}
-  return "high";
+  return "normal";
 };

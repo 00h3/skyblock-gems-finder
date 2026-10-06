@@ -82,20 +82,36 @@ export function createHighlight() {
   return edges;
 }
 
-/** Short-lived block animations (pop-in on place, shrink+crack on break). */
+/** Short-lived block animations (pop-in on place, shrink+crack on break) with zero-allocation object pooling. */
 export class BlockFx {
   readonly group = new THREE.Group();
-  private items: { mesh: THREE.Mesh; t: number; life: number; kind: "place" | "break" }[] = [];
-  private particles: { mesh: THREE.Mesh; v: THREE.Vector3; t: number; life: number }[] = [];
+  private items: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; t: number; life: number; kind: "place" | "break"; active: boolean }[] = [];
+  private particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; t: number; life: number; active: boolean }[] = [];
 
-  // Shared geometry + per-tile material cache: breaking blocks used to
-  // allocate 11 geometries and a texture clone every time, which caused GC
-  // hitches on mobile while mining.
   private static readonly cube = new THREE.BoxGeometry(1, 1, 1);
   private static readonly chip = new THREE.BoxGeometry(0.14, 0.14, 0.14);
   private readonly tileMats = new Map<string, THREE.MeshBasicMaterial>();
 
-  constructor(private atlas: Atlas) {}
+  // Object pools
+  private readonly itemPool: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial }[] = [];
+  private readonly particlePool: THREE.Mesh[] = [];
+
+  constructor(private atlas: Atlas) {
+    // Pre-populate pool
+    for (let i = 0; i < 16; i++) {
+      const mat = new THREE.MeshBasicMaterial({ transparent: true });
+      const mesh = new THREE.Mesh(BlockFx.cube, mat);
+      mesh.visible = false;
+      this.group.add(mesh);
+      this.itemPool.push({ mesh, mat });
+    }
+    for (let i = 0; i < 64; i++) {
+      const mesh = new THREE.Mesh(BlockFx.chip, new THREE.MeshBasicMaterial());
+      mesh.visible = false;
+      this.group.add(mesh);
+      this.particlePool.push(mesh);
+    }
+  }
 
   materialFor(tile: string) {
     let mat = this.tileMats.get(tile);
@@ -113,27 +129,54 @@ export class BlockFx {
 
   spawn(kind: "place" | "break", pos: THREE.Vector3, tile: string, chips = 10) {
     const shared = this.materialFor(tile);
-    const fading = shared.clone();
-    fading.transparent = true;
-    const mesh = new THREE.Mesh(BlockFx.cube, fading);
-    mesh.position.copy(pos).addScalar(0.5);
-    this.group.add(mesh);
-    this.items.push({ mesh, t: 0, life: kind === "place" ? 0.22 : 0.26, kind });
+
+    // Reuse from pool or allocate if pool exhausted
+    let item = this.itemPool.pop();
+    if (!item) {
+      const mat = new THREE.MeshBasicMaterial({ transparent: true });
+      const mesh = new THREE.Mesh(BlockFx.cube, mat);
+      this.group.add(mesh);
+      item = { mesh, mat };
+    }
+    item.mat.map = shared.map;
+    item.mat.opacity = 1.0;
+    item.mat.needsUpdate = true;
+    item.mesh.position.set(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
+    item.mesh.rotation.set(0, 0, 0);
+    item.mesh.scale.set(1, 1, 1);
+    item.mesh.visible = true;
+    this.items.push({
+      mesh: item.mesh,
+      mat: item.mat,
+      t: 0,
+      life: kind === "place" ? 0.22 : 0.26,
+      kind,
+      active: true,
+    });
 
     if (kind === "break") {
-      for (let i = 0; i < chips; i++) {
-        const p = new THREE.Mesh(BlockFx.chip, shared);
-        p.position.copy(pos).addScalar(0.5);
-        this.group.add(p);
+      const count = Math.min(chips, 12);
+      for (let i = 0; i < count; i++) {
+        let pMesh = this.particlePool.pop();
+        if (!pMesh) {
+          pMesh = new THREE.Mesh(BlockFx.chip, shared);
+          this.group.add(pMesh);
+        } else {
+          pMesh.material = shared;
+        }
+        pMesh.position.set(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
+        pMesh.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+        pMesh.scale.set(1, 1, 1);
+        pMesh.visible = true;
+
         this.particles.push({
-          mesh: p,
-          v: new THREE.Vector3(
-            (Math.random() - 0.5) * 4,
-            Math.random() * 4 + 1,
-            (Math.random() - 0.5) * 4,
-          ),
+          mesh: pMesh,
+          vx: (Math.random() - 0.5) * 4,
+          vy: Math.random() * 3.5 + 1.2,
+          vz: (Math.random() - 0.5) * 4,
           t: 0,
-          life: 0.6,
+          life: 0.55,
+          active: true,
         });
       }
     }
@@ -147,40 +190,52 @@ export class BlockFx {
       if (it.kind === "place") {
         const s = 1 + Math.sin(p * Math.PI) * 0.22;
         it.mesh.scale.setScalar(s * (0.4 + 0.6 * p));
-        (it.mesh.material as THREE.Material).opacity = 1 - p;
+        it.mat.opacity = 1 - p;
       } else {
         it.mesh.scale.setScalar(1 - p);
         it.mesh.rotation.y = p * 1.2;
-        (it.mesh.material as THREE.Material).opacity = 1 - p;
+        it.mat.opacity = 1 - p;
       }
       if (p >= 1) {
-        this.group.remove(it.mesh);
-        (it.mesh.material as THREE.Material).dispose();
+        it.mesh.visible = false;
+        this.itemPool.push({ mesh: it.mesh, mat: it.mat });
         this.items.splice(i, 1);
       }
     }
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.t += dt;
-      p.v.y -= 18 * dt;
-      p.mesh.position.addScaledVector(p.v, dt);
+      p.vy -= 18 * dt;
+      p.mesh.position.x += p.vx * dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.position.z += p.vz * dt;
       p.mesh.rotation.x += dt * 6;
       p.mesh.scale.setScalar(Math.max(0.01, 1 - p.t / p.life));
       if (p.t >= p.life) {
-        this.group.remove(p.mesh);
+        p.mesh.visible = false;
+        this.particlePool.push(p.mesh);
         this.particles.splice(i, 1);
       }
     }
   }
 
   dispose() {
+    this.itemPool.forEach((it) => {
+      it.mat.dispose();
+      it.mesh.geometry.dispose();
+    });
+    this.particlePool.forEach((m) => {
+      m.geometry.dispose();
+    });
     this.tileMats.forEach((m) => {
       m.map?.dispose();
       m.dispose();
     });
+    this.itemPool.length = 0;
+    this.particlePool.length = 0;
+    this.items.length = 0;
+    this.particles.length = 0;
     this.tileMats.clear();
     this.group.clear();
-    this.items = [];
-    this.particles = [];
   }
 }

@@ -58,7 +58,7 @@ export class GrassField {
   private readonly material: THREE.MeshLambertMaterial;
   private readonly texture: THREE.Texture;
   private scanAcc = 0;
-  private signature = "";
+  private hashSignature = 0;
   private readonly dummy = new THREE.Object3D();
 
   constructor(
@@ -121,9 +121,13 @@ export class GrassField {
 
   rebuild() {
     const spots = this.collect();
-    const sig = spots.map((s) => s.join(",")).join("|");
-    if (sig === this.signature) return;
-    this.signature = sig;
+    let h = spots.length;
+    for (let i = 0; i < spots.length; i++) {
+      const s = spots[i];
+      h = (h * 31 + ((s[0] * 73856093) ^ (s[1] * 19349663) ^ (s[2] * 83492791))) | 0;
+    }
+    if (h === this.hashSignature && spots.length === this.mesh.count) return;
+    this.hashSignature = h;
     spots.forEach(([x, y, z], i) => {
       const r = hash(x + 11, y, z - 7);
       this.dummy.position.set(x + 0.25 + r * 0.5, y + 1, z + 0.25 + hash(x, y + 3, z) * 0.5);
