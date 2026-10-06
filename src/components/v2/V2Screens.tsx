@@ -1,23 +1,154 @@
+import { useEffect, useRef, useState } from "react";
 import WetPaintButton from "@/components/ui/wet-paint-button";
 import { V2Button } from "./primitives";
 
-export function V2LoadingScreen({ title, subtitle, progress }: { title: string; subtitle: string; progress: number }) {
+export function V2LoadingScreen({
+  title,
+  subtitle,
+  progress = 0,
+  isAssetsLoaded = false,
+  onFinished,
+}: {
+  title: string;
+  subtitle: string;
+  progress?: number;
+  isAssetsLoaded?: boolean;
+  onFinished?: () => void;
+}) {
+  const startTimeRef = useRef<number>(Date.now());
+  const [actualProgress, setActualProgress] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+    finishedRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    // Fast, responsive loading: snappy 2.5s minimum experience so assets initialize smoothly
+    const MIN_DURATION_MS = 2500;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const timeRatio = Math.min(1, elapsed / MIN_DURATION_MS);
+      const rawAssetProgress = Math.min(100, Math.max(0, progress ?? 0));
+      const assetRatio = isAssetsLoaded ? 1 : rawAssetProgress / 100;
+
+      let computed = 0;
+      if (elapsed < MIN_DURATION_MS) {
+        computed = Math.min(95, Math.round(timeRatio * 75 + assetRatio * 20));
+      } else {
+        if (isAssetsLoaded || rawAssetProgress >= 90) {
+          computed = 100;
+        } else {
+          computed = Math.min(98, 90 + Math.round(assetRatio * 8));
+        }
+      }
+
+      setActualProgress((prev) => Math.max(prev, computed));
+
+      if (computed >= 100 && !finishedRef.current) {
+        finishedRef.current = true;
+        clearInterval(interval);
+        setTimeout(() => {
+          onFinished?.();
+        }, 300);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [progress, isAssetsLoaded, onFinished]);
+
   return (
-    <div className="v2-ui fixed inset-0 z-[150] grid place-items-center bg-white px-6">
-      <div className="w-full max-w-[320px] text-center text-[#16181d]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">{subtitle}</p>
-        <p className="mt-1 text-[34px] font-bold leading-tight tracking-tight">{title}</p>
-        <div
-          className="mt-6 h-1 overflow-hidden rounded-full bg-black/[0.07]"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-          aria-label="Loading world"
-        >
-          <div className="h-full rounded-full bg-[#16181d] transition-[width] duration-300" style={{ width: `${progress}%` }} />
+    <div
+      className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#090b10]"
+      style={{ touchAction: "none" }}
+    >
+      {/* Fallback stylized voxel backdrop so screen is NEVER black while video streams */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#141a24] via-[#0d1017] to-[#06080b] flex items-center justify-center">
+        <div className="relative flex flex-col items-center gap-3">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-1 shadow-[0_0_40px_rgba(250,70,22,0.45)] animate-pulse flex items-center justify-center">
+            <span className="font-lilita text-[32px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
+          </div>
+          <span className="font-lilita text-[18px] tracking-wider text-white/80">QBLOCK</span>
         </div>
-        <p className="mt-2.5 text-[12px] font-medium tabular-nums text-black/40">{progress}%</p>
+      </div>
+
+      {/* Background MP4 Animation with smooth opacity fade-in once buffered */}
+      <video
+        src="https://maxwell.z3ki.dev/bot/_files/qblock-animation/qblock_animation.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        onCanPlay={() => setVideoReady(true)}
+        onLoadedData={() => setVideoReady(true)}
+        className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${videoReady ? "opacity-100" : "opacity-0"}`}
+      />
+
+      {/* Dark overlay for contrast */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px] pointer-events-none" />
+
+      {/* Loader stuck on the bottom — shows only the loader and what is loading */}
+      <div className="absolute inset-x-4 sm:inset-x-8 bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] z-20 mx-auto w-full max-w-[480px]">
+        {/* Pixelated, glossy orange rectangular progress bar */}
+        <div className="w-full">
+          {/* Outer rectangular pixel frame */}
+          <div className="p-1 bg-[#0d0e12] border-4 border-black shadow-[0_6px_0_#000,0_12px_28px_rgba(0,0,0,0.85)]">
+            {/* Inner track */}
+            <div className="relative h-7 sm:h-8 w-full bg-[#1b1d24] overflow-hidden border-2 border-black/80">
+              {/* Subtle pixel grid pattern */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-25"
+                style={{
+                  backgroundImage: "linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)",
+                  backgroundSize: "16px 100%",
+                }}
+              />
+
+              {/* Glossy orange rectangular fill */}
+              <div
+                className="relative h-full transition-[width] duration-150 ease-out bg-gradient-to-b from-[#ffa34d] via-[#fa4616] to-[#b82f05]"
+                style={{ width: `${actualProgress}%` }}
+              >
+                {/* Upper-half gloss reflection highlight */}
+                <div className="absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-white/55 to-white/10 pointer-events-none" />
+
+                {/* Pixelated segment notches */}
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-35"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(90deg, transparent, transparent 12px, #000 12px, #000 14px)",
+                  }}
+                />
+
+                {/* Specular front edge */}
+                <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-white/80 shadow-[0_0_8px_#fff]" />
+              </div>
+            </div>
+          </div>
+
+          {/* What is loading & percentage */}
+          <div className="mt-2.5 flex items-center justify-between px-1">
+            <span className="text-[12px] sm:text-[13px] font-black tracking-wide uppercase text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+              {actualProgress < 30
+                ? "Loading world & textures…"
+                : actualProgress < 65
+                  ? "Preparing 3D voxel models…"
+                  : actualProgress < 95
+                    ? "Compiling shaders & entities…"
+                    : !isAssetsLoaded
+                      ? "Finalizing assets…"
+                      : "Ready!"}
+            </span>
+            <span className="text-[13px] sm:text-[14px] font-black tabular-nums text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+              {Math.round(actualProgress)}%
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

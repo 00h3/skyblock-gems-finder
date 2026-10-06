@@ -137,14 +137,15 @@ export class GrassField {
     this.mesh.instanceMatrix.needsUpdate = true;
   }
 
+  private dirty = false;
+
   markDirty() {
-    this.scanAcc = 10;
+    this.dirty = true;
   }
 
-  update(dt: number) {
-    this.scanAcc += dt;
-    if (this.scanAcc >= 3.5) {
-      this.scanAcc = 0;
+  update(_dt: number) {
+    if (this.dirty) {
+      this.dirty = false;
       this.rebuild();
     }
   }

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
+import { ClapIcon } from "@/components/QbIcons";
 import {
   ArrowRight,
   ChevronRight,
@@ -120,13 +121,11 @@ function UploadedDiscoverPage() {
   return (
     <MobileShell>
       <div className="min-h-full bg-background pb-24">
-        <div className="px-4 pt-4 pb-1">
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="text-[20px] font-medium tracking-tight">Discover</h1>
-          </div>
+        <div className="px-4 pt-3 pb-1">
+          {/* Header text omitted so Discover does not appear at top */}
         </div>
 
-        <div className="mt-2 px-4">
+        <div className="mt-1 px-4">
           <div className="mb-2 text-[10.5px] font-normal uppercase tracking-[0.14em] text-text-secondary">
             {UPLOADED_DISCOVER_TABS[tab]}
           </div>
@@ -169,13 +168,11 @@ function UploadedDiscoverPage() {
                       className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer"
                       aria-label="Like game"
                     >
-                      <img
-                        src="/icons/clap.svg"
-                        alt="Clap"
+                      <ClapIcon
                         className={
                           isLiked
-                            ? "h-[15px] w-[15px] opacity-100 invert sepia hue-rotate-[180deg] saturate-[300%]"
-                            : "h-[15px] w-[15px] opacity-40"
+                            ? "h-[15px] w-[15px] text-[#fa4616]"
+                            : "h-[15px] w-[15px] text-black/35 dark:text-white/40"
                         }
                       />
                     </button>
@@ -408,13 +405,11 @@ function ArchiveDiscoverPage() {
                       className={`press grid h-7 w-7 shrink-0 place-items-center rounded-full ${isLiked ? "bg-rose-50 text-rose-500" : "bg-surface-2 text-text-muted"}`}
                       aria-label={isLiked ? `Unlike ${game.title}` : `Like ${game.title}`}
                     >
-                      <img
-                        src="/icons/clap.svg"
-                        alt="Clap"
+                      <ClapIcon
                         className={
                           isLiked
-                            ? "h-3.5 w-3.5 opacity-100 invert sepia hue-rotate-[180deg] saturate-[300%]"
-                            : "h-3.5 w-3.5 opacity-50"
+                            ? "h-3.5 w-3.5 text-[#fa4616]"
+                            : "h-3.5 w-3.5 text-black/40 dark:text-white/40"
                         }
                       />
                     </button>
@@ -816,10 +811,8 @@ function PopularCard({
         aria-label={favorite ? `Remove ${game.title} from favorites` : `Favorite ${game.title}`}
         className="press android-control absolute bottom-2 right-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-[#d97706] shadow-sm backdrop-blur-sm"
       >
-        <img
-          src="/icons/clap.svg"
-          alt="Clap"
-          className={favorite ? "h-4 w-4 opacity-100" : "h-4 w-4 opacity-40"}
+        <ClapIcon
+          className={favorite ? "h-4 w-4 text-[#fa4616]" : "h-4 w-4 text-black/40"}
         />
       </button>
     </div>
@@ -948,10 +941,8 @@ function WorldRow({
           aria-label={favorite ? `Remove ${game.title} from favorites` : `Favorite ${game.title}`}
           className="press grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#d97706]"
         >
-          <img
-            src="/icons/clap.svg"
-            alt="Clap"
-            className={favorite ? "h-4 w-4 opacity-100" : "h-4 w-4 opacity-40"}
+          <ClapIcon
+            className={favorite ? "h-4 w-4 text-[#fa4616]" : "h-4 w-4 text-black/40"}
           />
         </button>
       )}

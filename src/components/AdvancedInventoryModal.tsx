@@ -304,7 +304,7 @@ export function AdvancedInventoryModal({
       )}
 
       <div
-        className="w-full max-w-[740px] max-h-[84dvh] min-h-0 overflow-hidden flex flex-col"
+        className="w-full max-w-[580px] max-h-[80dvh] min-h-0 overflow-hidden flex flex-col scale-[0.85] origin-center sm:scale-90"
         style={PANEL_OUTER}
       >
         {/* Header */}

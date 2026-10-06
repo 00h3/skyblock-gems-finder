@@ -319,15 +319,20 @@ export class Player {
       }
     }
 
-    const step = Math.sign(amount) * 0.01;
-    let moved = 0;
-    while (Math.abs(moved) < Math.abs(amount)) {
+    // Fast binary search bisection to find the exact point of contact without linear loop stalls
+    let min = 0;
+    let max = amount;
+    for (let i = 0; i < 5; i++) {
+      const mid = (min + max) * 0.5;
       const probe = this._probe.copy(this.position);
-      probe[key] += step;
-      if (this.collides(probe)) break;
-      this.position.copy(probe);
-      moved += step;
+      probe[key] += mid;
+      if (this.collides(probe)) {
+        max = mid;
+      } else {
+        min = mid;
+      }
     }
+    this.position[key] += min;
     if (axis === 1) {
       if (amount < 0) this.onGround = true;
       this.velocity.y = 0;

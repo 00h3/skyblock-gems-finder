@@ -131,6 +131,7 @@ import { BedwarsGoldenDays } from "@/components/BedwarsGoldenDays";
 import { BlockFall } from "@/components/BlockFall";
 import { SandboxGame } from "@/routes/game.sandbox";
 import { ChestModal } from "@/components/ChestModal";
+import { V2LoadingScreen } from "@/components/v2/V2Screens";
 // Blocky Plaza: real minigames-hub map, voxelised from a Minecraft world
 // export (Mineways OBJ → glTF → nearest-block-type voxel grid) instead of
 // being hand-authored — see glb-to-voxels-mc.mjs at the repo root. Every
@@ -213,29 +214,14 @@ export const Route = createFileRoute("/game/$id")({
   component: GamePage,
 });
 
-function QblockGameLoadingScreen() {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    let p = 0;
-    const interval = setInterval(() => {
-      p = Math.min(100, p + Math.floor(Math.random() * 8) + 4);
-      setProgress(p);
-      if (p >= 100) clearInterval(interval);
-    }, 60);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
-
+function QblockGameLoadingScreen({ title = "Loading Experience" }: { title?: string }) {
   return (
-    <div
-      className="absolute inset-0 z-[90] overflow-hidden bg-black flex flex-col items-center justify-center select-none"
-      style={{ touchAction: "none" }}
-    >
-      <IsometricGridLoader progress={progress} subtitle="Loading Game..." />
-    </div>
+    <V2LoadingScreen
+      title={title}
+      subtitle="Connecting to server"
+      progress={100}
+      isAssetsLoaded={true}
+    />
   );
 }
 
@@ -2312,8 +2298,7 @@ function EngineGame({
       renderer.domElement.style.background = skyBg;
       renderer.setClearColor(new THREE.Color(skyBg), 1);
       renderer.shadowMap.enabled = true;
-      // High-performance shadow caching: avoids full shadow map re-render on every frame
-      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.autoUpdate = true;
       renderer.shadowMap.needsUpdate = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2327,13 +2312,8 @@ function EngineGame({
       renderer.domElement.style.webkitUserSelect = "none";
       renderer.domElement.style.outline = "none";
       mount.appendChild(renderer.domElement);
-      // ── RTX-grade CSS filter ─────────────────────────────────────────────────
-      // High saturation + contrast + gentle brightness gives the scene a punchy,
-      // "RTX ON" cinematic feel with zero GPU cost. Skyblock gets the richest
-      // grade; other worlds are vivid but not over-cooked.
-      renderer.domElement.style.filter = isSkyblock
-        ? "saturate(1.14) contrast(1.14) brightness(1.02)"
-        : "saturate(1.72) contrast(1.10) brightness(1.10)";
+      // Clean native WebGL presentation without compositor filter overhead
+      renderer.domElement.style.filter = "none";
 
       // ── Post-processing: SSAO + Bloom ────────────────────────────────────────
       // Bloom:  UnrealBloomPass adds HDR glow on bright/emissive surfaces
@@ -10573,27 +10553,21 @@ function EngineGame({
         </div>
       )}
       {worldLoadingVisible && isSkyblock && !isEscape && (
-        <div className="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-[#0d1117] text-white">
-          <img
-            src={islandHouseArt}
-            alt=""
-            className="mb-4 h-24 w-24 object-contain drop-shadow-[0_16px_28px_rgba(0,0,0,.6)] animate-pulse"
-          />
-          <GearboxLoader />
-          <p className="mt-5 text-[10.5px] font-black uppercase tracking-[0.24em] text-amber-500">
-            {visitingUserId && visitingUserId !== qbUser?.uid ? "Visiting Realm" : "Skyblock"}
-          </p>
-          <p className="mt-2 text-[15px] font-extrabold text-white/95">
-            {visitingUserId && visitingUserId !== qbUser?.uid
-              ? `Going to ${visitingHostName || "Friend"}'s island…`
-              : "Building your island…"}
-          </p>
-          <p className="mt-1 text-[11.5px] font-medium text-white/50">
-            {visitingUserId && visitingUserId !== qbUser?.uid
-              ? "Preparing island blocks…"
-              : "Generating floating realm…"}
-          </p>
-        </div>
+        <V2LoadingScreen
+          title="Skyblock"
+          subtitle={visitingUserId && visitingUserId !== qbUser?.uid ? "Visiting Realm" : "Building your island"}
+          progress={skyblockLoadingDone ? 100 : 75}
+          isAssetsLoaded={skyblockLoadingDone}
+          onFinished={() => setSkyblockLoadingDone(true)}
+        />
+      )}
+      {worldLoadingVisible && (isBedwars || isBlockFall) && (
+        <V2LoadingScreen
+          title={isBedwars ? "BedWars" : "Block Fall"}
+          subtitle={isBedwars ? "Loading map & arena" : "Generating arena"}
+          progress={worldReady ? 100 : 75}
+          isAssetsLoaded={worldReady}
+        />
       )}
       {isSkyblock && skyblockTeleporting && (
         <div
@@ -10617,6 +10591,8 @@ function EngineGame({
       {worldLoadingVisible &&
         !isBlockyplaza &&
         !isSkyblock &&
+        !isBedwars &&
+        !isBlockFall &&
         (() => {
           const loadCfg = isBedwars
             ? { accent: "#ff4444", icon: "⚔️", name: "BedWars", verb: "Loading map…" }

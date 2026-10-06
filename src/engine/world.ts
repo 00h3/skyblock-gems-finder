@@ -963,7 +963,8 @@ export class World {
         for (let y = 0; y < WORLD_H; y++) {
           const id = c.data[c.idx(x, y, z)];
           if (id === 0) continue;
-          const def = BLOCK_BY_ID.get(id)!;
+          const def = BLOCK_BY_ID.get(id);
+          if (!def) continue;
           const wx = ox + x;
           const wz = oz + z;
           if (def.shape === "stairs") {
@@ -1065,7 +1066,7 @@ export class World {
     const mesh = new THREE.Mesh(makeGeom(positions, normals, uvs, colors, indices), this.material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
+    mesh.frustumCulled = true;
     if (tPositions.length) {
       const tm = new THREE.Mesh(
         makeGeom(tPositions, tNormals, tUvs, tColors, tIndices),
@@ -1074,7 +1075,7 @@ export class World {
       tm.geometry.setAttribute("aSway", new THREE.Float32BufferAttribute(tSway, 1));
       tm.castShadow = true;
       tm.receiveShadow = true;
-      tm.frustumCulled = false;
+      tm.frustumCulled = true;
       mesh.add(tm);
     }
     if (wPositions.length) {
@@ -1083,7 +1084,7 @@ export class World {
         this.waterMaterial,
       );
       wm.receiveShadow = true;
-      wm.frustumCulled = false;
+      wm.frustumCulled = true;
       wm.renderOrder = 2;
       mesh.add(wm);
     }

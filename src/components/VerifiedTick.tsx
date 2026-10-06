@@ -16,7 +16,7 @@ export function VerifiedTick({
   const badgeUrls: Record<BadgeType, string> = {
     verified: "https://file.garden/alGOOylwpAfCa6qP/IMG_7218.png",
     character: "https://file.garden/alGOOylwpAfCa6qP/IMG_7216.png",
-    event: "/public/assets/ui/icon-events.svg",
+    event: "/assets/ui/icon-events.svg",
     cod: "https://file.garden/alGOOylwpAfCa6qP/IMG_7220.png",
     youtuber: "/badges/youtuber-star.png",
   };
@@ -58,7 +58,7 @@ export function VerifiedTick({
         />
       ) : (
         <img
-          src="/public/assets/ui/icon-events.svg"
+          src="/assets/ui/icon-events.svg"
           alt="Event"
           className="h-full w-full object-contain drop-shadow-[0_2px_4px_rgba(236,72,153,0.35)]"
           referrerPolicy="no-referrer"

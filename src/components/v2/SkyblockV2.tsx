@@ -129,11 +129,11 @@ export function V2Hotbar({
 }) {
   if (hotbar.length === 0) return null;
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(10px,calc(env(safe-area-inset-bottom)+6px))] flex justify-center px-3">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(1px,calc(env(safe-area-inset-bottom)+1px))] flex justify-center px-2 scale-[0.88] origin-bottom">
       <div
         role="toolbar"
         aria-label="Inventory"
-        className="flex max-w-[min(94vw,620px)] gap-0.5 overflow-x-auto [scrollbar-width:none]"
+        className="flex max-w-[min(98vw,640px)] gap-1 overflow-x-auto [scrollbar-width:none]"
       >
         {hotbar.map((id, i) => {
           const active = slot === i;
@@ -145,7 +145,7 @@ export function V2Hotbar({
               aria-label={`Slot ${i + 1}`}
               aria-pressed={active}
               className={cn(
-                "blockman-slot relative grid h-11 w-11 shrink-0 place-items-center rounded-[4px] transition-transform duration-100 active:scale-95",
+                "blockman-slot relative grid h-10 w-10 sm:h-10.5 sm:w-10.5 shrink-0 place-items-center rounded-[4px] transition-transform duration-100 active:scale-95",
               )}
             >
               {tileUrls[id] ? (
@@ -154,10 +154,10 @@ export function V2Hotbar({
                     src={tileUrls[id]}
                     alt=""
                     draggable={false}
-                    className="h-7 w-7 rounded-[4px] object-cover [image-rendering:pixelated]"
+                    className="h-6.5 w-6.5 sm:h-7 sm:w-7 rounded-[3px] object-cover [image-rendering:pixelated]"
                   />
                   {id !== 0 && (
-                    <span className="absolute bottom-0.5 right-1 font-lilita text-[11px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
+                    <span className="absolute bottom-0.5 right-0.5 font-lilita text-[10px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
                       {typeof id === "number" ? 64 : String(id).includes("sword") || id === "shield" ? 1 : 16}
                     </span>
                   )}
@@ -166,7 +166,7 @@ export function V2Hotbar({
               {!isTouch && i < 9 && (
                 <span
                   className={cn(
-                    "absolute left-1 top-0.5 text-[9.5px] font-semibold tabular-nums",
+                    "absolute left-0.5 top-0.5 text-[8.5px] font-semibold tabular-nums",
                     active ? "text-white" : "text-white/50",
                   )}
                 >
@@ -181,7 +181,7 @@ export function V2Hotbar({
             type="button"
             onClick={onOpenInventory}
             aria-label="Open inventory"
-            className="blockman-slot grid h-11 w-11 shrink-0 place-items-center rounded-[4px] text-[18px] font-black leading-none tracking-[0.1em] text-white/85 active:scale-95"
+            className="blockman-slot grid h-9.5 w-9.5 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-[4px] text-[15px] font-black leading-none tracking-[0.1em] text-white/85 active:scale-95"
           >
             {"•••"}
           </button>

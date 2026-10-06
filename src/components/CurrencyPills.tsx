@@ -5,8 +5,10 @@ export const PINK_GEM_ICON =
 
 type CurrencyPillsProps = {
   onSelect?: (currency: Extract<CurrencyKey, "gold" | "gems" | "pinkCube">) => void;
+  onOpenModal?: (type: "gold" | "gem" | "pinkCube") => void;
   compact?: boolean;
   maxItems?: 2;
+  className?: string;
 };
 
 const currencies = [
@@ -15,14 +17,22 @@ const currencies = [
   { key: "pinkCube" as const, label: "Gems", src: PINK_GEM_ICON, tone: "#ec4899" },
 ];
 
-export function CurrencyPills({ onSelect, compact = false, maxItems }: CurrencyPillsProps) {
+export function CurrencyPills({ onSelect, onOpenModal, compact = false, maxItems, className = "" }: CurrencyPillsProps) {
   const gems = useCurrency("gems");
   const gold = useCurrency("gold");
   const newGen = useCurrency("pinkCube");
   const values = { gems, gold, pinkCube: newGen };
 
+  const handleAction = (currencyKey: Extract<CurrencyKey, "gold" | "gems" | "pinkCube">) => {
+    if (onOpenModal) {
+      onOpenModal(currencyKey === "gems" ? "gem" : currencyKey);
+    } else if (onSelect) {
+      onSelect(currencyKey);
+    }
+  };
+
   return (
-    <div className={`flex items-center gap-1.5 ${compact ? "" : "w-full"}`} aria-label="Currencies">
+    <div className={`flex items-center gap-1.5 ${compact ? "" : "w-full"} ${className}`} aria-label="Currencies">
       {currencies.slice(0, maxItems).map((currency) => {
         const pill = (
           <span
@@ -44,11 +54,11 @@ export function CurrencyPills({ onSelect, compact = false, maxItems }: CurrencyP
           </span>
         );
 
-        return onSelect ? (
+        return onSelect || onOpenModal ? (
           <button
             key={currency.key}
             type="button"
-            onClick={() => onSelect(currency.key)}
+            onClick={() => handleAction(currency.key)}
             className="press min-w-0 flex-1"
             aria-label={currency.label}
           >

@@ -1,37 +1,10 @@
 import { WATER_ID, type World } from "@/engine/world";
-
-const B = {
-  grass: 1,
-  dirt: 2,
-  stone: 3,
-  cobble: 4,
-  bricks: 5,
-  oakLog: 7,
-  leaves: 9,
-  glass: 10,
-  obsidian: 11,
-  bedrock: 12,
-  planks: 13,
-  snow: 16,
-  glowstone: 18,
-  gold: 19,
-  diamond: 20,
-  emerald: 21,
-  lapis: 22,
-  amethyst: 23,
-  whiteWool: 29,
-  redWool: 30,
-  blueWool: 31,
-  greenWool: 32,
-  yellowWool: 33,
-  terracotta: 34,
-  smooth: 42,
-} as const;
+import jerrysWorkshopVoxels from "@/assets/bedwars-jerrys-workshop-voxels.json";
 
 export const BEDWARS_LOBBY_SURFACE_Y = 16;
-export const BEDWARS_LOBBY_SPAWN = { x: 0.5, y: 17.5, z: 6.5 };
-export const BEDWARS_MATCHMAKER_POS = { x: 0.5, y: 17, z: -8.5 };
-export const BEDWARS_LOBBY_BOUNDS = { minX: -48, maxX: 48, minZ: -48, maxZ: 48, minY: 2, maxY: 42 };
+export const BEDWARS_LOBBY_SPAWN = { x: 0.5, y: 17.5, z: 2.5 };
+export const BEDWARS_MATCHMAKER_POS = { x: 0.5, y: 17, z: -5.5 };
+export const BEDWARS_LOBBY_BOUNDS = { minX: -26, maxX: 26, minZ: -26, maxZ: 26, minY: 0, maxY: 35 };
 
 function hash(x: number, z: number) {
   const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
@@ -264,16 +237,13 @@ function buildOpenClouds(world: World) {
 }
 
 /**
- * Bedwars Extended Floating Base (Amino Style):
- * - Wide and expansive floating island
- * - Absolutely NO buildings (no shops, no towers, no obstructive walls)
- * - Clean unobstructed sightlines and full 360-degree open sky views!
+/**
+ * Jerry's Workshop Bedwars Arena:
+ * Populates real collision voxels corresponding to the Jerry's Workshop Hypixel island.
  */
 export function buildBedwarsLobby(world: World) {
-  const y = BEDWARS_LOBBY_SURFACE_Y;
-  buildAminoFloatingIsland(world, y);
-  buildCentralFountain(world, y);
-  buildTeamStations(world, y);
-  buildCornerGardens(world, y);
-  buildOpenClouds(world);
+  // Populate Jerry's Workshop collision voxels
+  for (const [x, y, z, id] of jerrysWorkshopVoxels as Array<[number, number, number, number]>) {
+    world.set(x, y, z, id);
+  }
 }

@@ -26,7 +26,8 @@ import {
 } from "@/lib/shop";
 import { setHairColor } from "@/lib/avatar";
 import { redeemFaceFragment, useFragments } from "@/lib/fragments";
-const fragmentIcon = "/gem-coin.png";
+import { PINK_GEM_ICON } from "@/components/CurrencyModal";
+const fragmentIcon = PINK_GEM_ICON;
 
 export function ShopItemModal({ item, onClose }: { item: ShopItem; onClose: () => void }) {
   const owned = useOwnedShopItems();
