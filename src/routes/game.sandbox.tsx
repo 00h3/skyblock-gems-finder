@@ -21,7 +21,7 @@ import {
   BEDWARS_MATCHMAKER_POS,
   buildBedwarsLobby,
 } from "@/engine/v2/bedwars-lobby";
-import { loadJerrysWorkshop } from "@/engine/v2/jerrys-workshop";
+import { loadBedwarsLobby } from "@/engine/v2/bedwars-lobby-model";
 import { Player } from "@/engine/player";
 import { Controls } from "@/engine/controls";
 import { BlockFx, createHighlight, raycastVoxel } from "@/engine/interact";
@@ -1321,6 +1321,7 @@ export function SandboxGame({
     let workbenchTags: NameTag[] = [];
     let candyCruiser: THREE.Group | null = null;
     let candyCruiserMixer: THREE.AnimationMixer | null = null;
+    let bedwarsLobbyMixer: THREE.AnimationMixer | null = null;
     let candyCruiserAngle = 0;
     let remotes: RemotePlayers | null = null;
     let selfTag: NameTag | null = null;
@@ -1465,20 +1466,22 @@ export function SandboxGame({
 
       // Chunk render distance: tuned per mode for rock-solid performance
       if (bedwars) {
-        sky.setGoldenHour();
+        sky.setPurpleNight();
         sky.paused = true;
-        sky.setCloudCover(0.34);
-        renderer.toneMappingExposure = 1.18;
+        sky.setCloudCover(0.24);
+        sky.setRange(25, 240);
+        renderer.toneMappingExposure = 1.25;
       }
 
       world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);
 
       if (bedwars) {
         buildBedwarsLobby(world);
-        void loadJerrysWorkshop(scene).then(() => {
+        void loadBedwarsLobby(scene).then(({ model, mixer }) => {
+          bedwarsLobbyMixer = mixer;
           if (renderer) renderer.shadowMap.needsUpdate = true;
         }).catch((err) => {
-          console.error("Failed to load Jerry's Workshop model:", err);
+          console.error("Failed to load Bedwars lobby model:", err);
         });
       } else if (blockFall) {
         buildBlockFallArena(world);
@@ -1522,9 +1525,9 @@ export function SandboxGame({
       applyGraphicsV2(isGraphicsV2());
       const onGraphicsV2 = (e: Event) => applyGraphicsV2((e as CustomEvent<boolean>).detail);
       window.addEventListener(GRAPHICS_V2_EVENT, onGraphicsV2);
-      const cosmicSky = skyblock ? new CosmicSky(scene, qualityPref === "low") : null;
+      const cosmicSky = skyblock || bedwars ? new CosmicSky(scene, qualityPref === "low") : null;
       cosmicSkyRef.current = cosmicSky;
-      cosmicSky?.setNight(celestialNightRef.current || initialAtm === "night");
+      cosmicSky?.setNight(bedwars || celestialNightRef.current || initialAtm === "night");
 
       if (skyblock) {
         // Chest completely removed per user request
@@ -2905,9 +2908,15 @@ export function SandboxGame({
 
       const onAtmosphereEvt = (e: Event) => {
         const mode = (e as CustomEvent<string>).detail;
-        if (mode === "golden") sky.setGoldenHour();
-        else if (mode === "night") sky.setNight();
-        else sky.setNormalDay();
+        if (bedwars) {
+          sky.setPurpleNight();
+        } else if (mode === "golden") {
+          sky.setGoldenHour();
+        } else if (mode === "night") {
+          sky.setNight();
+        } else {
+          sky.setNormalDay();
+        }
       };
       window.addEventListener("bm-atmosphere", onAtmosphereEvt);
 
@@ -3393,6 +3402,10 @@ export function SandboxGame({
           if (candyCruiserMixer) {
             candyCruiserMixer.update(dt);
           }
+
+          if (bedwarsLobbyMixer) {
+            bedwarsLobbyMixer.update(dt);
+          }
         }
 
         // target highlight
@@ -3677,6 +3690,10 @@ export function SandboxGame({
           materials.forEach((material) => material.dispose());
         }),
       );
+      if (bedwarsLobbyMixer) {
+        bedwarsLobbyMixer.stopAllAction();
+        bedwarsLobbyMixer = null;
+      }
       if (candyCruiser) {
         candyCruiserMixer?.stopAllAction();
         candyCruiserMixer = null;

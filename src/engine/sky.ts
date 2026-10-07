@@ -219,6 +219,16 @@ const C = {
   cloudShadeMystic: new THREE.Color("#36114a"),
   hemiSkyMystic: new THREE.Color("#783a8f"),
   hemiGroundMystic: new THREE.Color("#2a1236"),
+
+  // Bedwars Nocturnal Twilight with deep celestial violet & purple moonlight
+  topPurpleNight: new THREE.Color("#0c041f"),
+  midPurpleNight: new THREE.Color("#1c0938"),
+  horizonPurpleNight: new THREE.Color("#351152"),
+  moonPurple: new THREE.Color("#c799ff"),
+  cloudLitPurpleNight: new THREE.Color("#632a85"),
+  cloudShadePurpleNight: new THREE.Color("#180629"),
+  hemiSkyPurpleNight: new THREE.Color("#823dc0"),
+  hemiGroundPurpleNight: new THREE.Color("#2b0f40"),
 };
 
 export type SkyOptions = {
@@ -235,6 +245,7 @@ export class Sky {
 
   public isGoldenHour = false;
   public isMystic = false;
+  public isPurpleNight = false;
   public paused = false;
 
   private mat: THREE.ShaderMaterial;
@@ -362,24 +373,35 @@ export class Sky {
   setNormalDay() {
     this.isGoldenHour = false;
     this.isMystic = false;
+    this.isPurpleNight = false;
     this.setTimeOfDay(0.3);
   }
 
   setGoldenHour() {
     this.isGoldenHour = true;
     this.isMystic = false;
+    this.isPurpleNight = false;
     this.setTimeOfDay(0.72); // Low golden sun angle
   }
 
   setNight() {
     this.isGoldenHour = false;
     this.isMystic = false;
+    this.isPurpleNight = false;
+    this.setTimeOfDay(0.85);
+  }
+
+  setPurpleNight() {
+    this.isGoldenHour = false;
+    this.isMystic = false;
+    this.isPurpleNight = true;
     this.setTimeOfDay(0.85);
   }
 
   setMysticTwilight() {
     this.isGoldenHour = false;
     this.isMystic = true;
+    this.isPurpleNight = false;
     this.setTimeOfDay(0.76); // Mystical purple twilight
   }
 
@@ -451,6 +473,38 @@ export class Sky {
       mid.lerp(C.midMystic, 0.95);
       horizon.lerp(C.horizonMystic, 0.95);
       sun.lerp(C.sunMystic, 0.90);
+    }
+
+    if (this.isPurpleNight) {
+      top.copy(C.topPurpleNight);
+      mid.copy(C.midPurpleNight);
+      horizon.copy(C.horizonPurpleNight);
+      sun.copy(C.moonPurple);
+
+      const u = this.mat.uniforms;
+      u.uTop.value.copy(top);
+      u.uMid.value.copy(mid);
+      u.uHorizon.value.copy(horizon);
+      u.uSunDir.value.copy(sunDir);
+      u.uSunColor.value.copy(sun);
+      u.uNight.value = 1.0;
+      u.uCloudLit.value.copy(C.cloudLitPurpleNight);
+      u.uCloudShade.value.copy(C.cloudShadePurpleNight);
+
+      this.sunLight.position.copy(sunDir).multiplyScalar(-120);
+      this.sunLight.color.copy(C.moonPurple);
+      this.sunLight.intensity = 1.35;
+      if (this.sunLight.position.y < 35) this.sunLight.position.y = 35;
+
+      this.hemi.color.copy(C.hemiSkyPurpleNight);
+      this.hemi.groundColor.copy(C.hemiGroundPurpleNight);
+      this.hemi.intensity = 1.35;
+      this.ambient.color.set("#7235a8");
+      this.ambient.intensity = 0.55;
+
+      this.fog.color.copy(C.horizonPurpleNight);
+      if (this.scene.background instanceof THREE.Color) this.scene.background.copy(C.horizonPurpleNight);
+      return;
     }
 
     if (this.tintAmount > 0.001) {

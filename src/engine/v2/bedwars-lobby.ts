@@ -1,10 +1,10 @@
 import { WATER_ID, type World } from "@/engine/world";
-import jerrysWorkshopVoxels from "@/assets/bedwars-jerrys-workshop-voxels.json";
+import bedwarsLobbyVoxels from "@/assets/bedwars-lobby-voxels.json";
 
 export const BEDWARS_LOBBY_SURFACE_Y = 16;
 export const BEDWARS_LOBBY_SPAWN = { x: 0.5, y: 17.5, z: 2.5 };
-export const BEDWARS_MATCHMAKER_POS = { x: 0.5, y: 17, z: -5.5 };
-export const BEDWARS_LOBBY_BOUNDS = { minX: -26, maxX: 26, minZ: -26, maxZ: 26, minY: 0, maxY: 35 };
+export const BEDWARS_MATCHMAKER_POS = { x: 0.5, y: 16.5, z: -5.5 };
+export const BEDWARS_LOBBY_BOUNDS = { minX: -60, maxX: 60, minZ: -60, maxZ: 60, minY: 0, maxY: 60 };
 
 function hash(x: number, z: number) {
   const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
@@ -238,12 +238,12 @@ function buildOpenClouds(world: World) {
 
 /**
 /**
- * Jerry's Workshop Bedwars Arena:
- * Populates real collision voxels corresponding to the Jerry's Workshop Hypixel island.
+ * Bedwars Lobby Arena:
+ * Populates real collision voxels corresponding to the Bedwars lobby GLB island.
  */
 export function buildBedwarsLobby(world: World) {
-  // Populate Jerry's Workshop collision voxels
-  for (const [x, y, z, id] of jerrysWorkshopVoxels as Array<[number, number, number, number]>) {
+  for (const [x, y, z, id] of bedwarsLobbyVoxels as Array<[number, number, number, number]>) {
     world.set(x, y, z, id);
   }
 }
+
