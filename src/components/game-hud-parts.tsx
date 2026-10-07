@@ -10,7 +10,6 @@ import {
   LogOut,
   User,
   Sun,
-  Sunset,
   Moon,
   Compass,
   Sliders,
@@ -326,8 +325,8 @@ export function GameSettingsModal({
   onToggleInvertJoyY?: () => void;
   invertJoyX?: boolean;
   onToggleInvertJoyX?: () => void;
-  qualityPref?: "low" | "medium" | "high";
-  onQualityPref?: (q: "low" | "medium" | "high") => void;
+  qualityPref?: "low" | "medium" | "high" | "uhd";
+  onQualityPref?: (q: "low" | "medium" | "high" | "uhd") => void;
   motionBlur?: boolean;
   onToggleMotionBlur?: () => void;
 }) {
@@ -515,60 +514,44 @@ export function GameSettingsModal({
             </div>
           </div>
 
-          {/* Section 3: Atmosphere & Time of Day */}
+          {/* Section 3: Skyblock Atmosphere & Celestial Night */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-              <Sun className="w-4 h-4" />
-              <span>Atmosphere & Time of Day</span>
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+              <Sparkles className="w-4 h-4" />
+              <span>Celestial Atmosphere & Night Mode</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10">
+              <div>
+                <div className="text-[13px] font-bold text-white flex items-center gap-1.5">
+                  {nightMode ? (
+                    <Moon className="w-4 h-4 text-cyan-300" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-amber-400" />
+                  )}
+                  <span>
+                    {nightMode ? "Night Moon & Aurora Borealis" : "Golden Daylight Sunshine"}
+                  </span>
+                </div>
+                <div className="text-[10.5px] text-zinc-400 mt-0.5">
+                  {nightMode
+                    ? "Luminous moon, shimmering celestial aurora waves & cosmic emerald lighting"
+                    : "Bright golden sunlight, warm sun rays and radiant daytime sky"}
+                </div>
+              </div>
               <button
-                type="button"
-                onClick={() => {
-                  try { localStorage.setItem("qb_atmosphere", "day"); } catch {}
-                  window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: "normal" }));
-                  if (nightMode && onToggleNightMode) onToggleNightMode();
-                }}
-                className={`press p-2.5 rounded-xl border text-center text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
-                  !nightMode
-                    ? "bg-amber-400/20 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.2)] font-black"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-white/80"
-                }`}
-              >
-                <Sun className="w-5 h-5 text-amber-400" />
-                <span>Normal (Day)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  try { localStorage.setItem("qb_atmosphere", "evening"); } catch {}
-                  window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: "evening" }));
-                  if (nightMode && onToggleNightMode) onToggleNightMode();
-                }}
-                className="press p-2.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-center text-xs font-bold text-white/80 flex flex-col items-center gap-1 cursor-pointer hover:border-orange-400/50"
-              >
-                <Sunset className="w-5 h-5 text-orange-400" />
-                <span>Evening</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  try { localStorage.setItem("qb_atmosphere", "night"); } catch {}
-                  window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: "night" }));
-                  if (!nightMode && onToggleNightMode) onToggleNightMode();
-                }}
-                className={`press p-2.5 rounded-xl border text-center text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
+                onClick={onToggleNightMode}
+                className={`press px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
                   nightMode
-                    ? "bg-cyan-400/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.2)] font-black"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-white/80"
+                    ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                    : "bg-gradient-to-r from-amber-400 to-yellow-500 text-zinc-950 font-black"
                 }`}
               >
-                <Moon className="w-5 h-5 text-cyan-400" />
-                <span>Night</span>
+                {nightMode ? "🌙 Night" : "☀️ Day"}
               </button>
             </div>
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200 leading-relaxed">
-              🦅 <strong>Atmosphere:</strong> Switch between Normal golden daylight sunshine, warm evening sunset, and luminous starry night with the soaring Phoenix!
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-200 leading-relaxed">
+              🦅 <strong>Sun & Phoenix:</strong> The animated golden fire Phoenix soars near the
+              radiant sun in Skyblock with full glowing illumination!
             </div>
           </div>
 
@@ -578,44 +561,32 @@ export function GameSettingsModal({
               <Sliders className="w-4 h-4" />
               <span>Graphics Quality</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onQualityPref?.("medium");
-                  try { localStorage.setItem("bm-quality", "normal"); } catch {}
-                  window.dispatchEvent(new CustomEvent("bm-quality", { detail: "normal" }));
-                }}
-                className={`press py-2.5 px-3 rounded-xl text-xs font-black transition cursor-pointer flex flex-col items-center gap-0.5 ${
-                  qualityPref !== "high"
-                    ? "bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.35)]"
-                    : "bg-white/[0.03] border border-white/10 text-white/70 hover:bg-white/[0.07]"
-                }`}
-              >
-                <span>Normal (New)</span>
-                <span className="text-[10px] font-medium opacity-80">Smooth 60–120 FPS</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onQualityPref?.("high");
-                  try { localStorage.setItem("bm-quality", "high"); } catch {}
-                  window.dispatchEvent(new CustomEvent("bm-quality", { detail: "high" }));
-                }}
-                className={`press py-2.5 px-3 rounded-xl text-xs font-black transition cursor-pointer flex flex-col items-center gap-0.5 ${
-                  qualityPref === "high"
-                    ? "bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.35)] font-black"
-                    : "bg-white/[0.03] border border-white/10 text-white/70 hover:bg-white/[0.07]"
-                }`}
-              >
-                <span>High (Ultra)</span>
-                <span className="text-[10px] font-medium opacity-80">Old Ultra Quality</span>
-              </button>
+            <div className="grid grid-cols-4 gap-2">
+              {(["low", "medium", "high", "uhd"] as const).map((q) => {
+                const active = qualityPref === q;
+                return (
+                  <button
+                    key={q}
+                    onClick={() => onQualityPref?.(q)}
+                    className={`press py-2.5 rounded-xl text-xs font-extrabold uppercase transition cursor-pointer ${
+                      active
+                        ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.35)]"
+                        : "bg-white/[0.03] border border-white/10 text-white/70 hover:bg-white/[0.07]"
+                    }`}
+                  >
+                    {q === "uhd" ? "UHD 4K" : q}
+                  </button>
+                );
+              })}
             </div>
             <div className="text-[11px] text-zinc-400">
-              {qualityPref === "high"
-                ? "Restores the old ultra-high quality: native Retina DPR, full bloom resolution & dynamic shadows."
-                : "New high-efficiency profile: smooth 60–120 FPS, soft ambient bloom & zero lag."}
+              {qualityPref === "uhd"
+                ? "Old UHD 4K: Crystal-clear native 4K resolution, 0% pixelation, 4096 dynamic soft shadows & maximum visual fidelity."
+                : qualityPref === "high"
+                ? "Full dynamic resolution, high-precision shaders & ultra-smooth 60fps."
+                : qualityPref === "medium"
+                  ? "Balanced resolution and optimized shadow maps."
+                  : "Battery saver mode for low-power mobile devices."}
             </div>
 
             {/* Motion Blur & Ultra Smoothness */}

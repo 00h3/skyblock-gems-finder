@@ -305,18 +305,18 @@ export class Sky {
     dome.renderOrder = -1000;
     this.group.add(dome);
 
-    const shadowSize = opts.shadowMapSize ?? 2048;
+    const shadowSize = opts.shadowMapSize ?? 4096;
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.set(shadowSize, shadowSize);
     this.sunLight.shadow.camera.near = 1;
-    this.sunLight.shadow.camera.far = 220;
-    this.sunLight.shadow.camera.left = -45;
-    this.sunLight.shadow.camera.right = 45;
-    this.sunLight.shadow.camera.top = 45;
-    this.sunLight.shadow.camera.bottom = -45;
+    this.sunLight.shadow.camera.far = 320;
+    this.sunLight.shadow.camera.left = -90;
+    this.sunLight.shadow.camera.right = 90;
+    this.sunLight.shadow.camera.top = 90;
+    this.sunLight.shadow.camera.bottom = -90;
     this.sunLight.shadow.bias = -0.0003;
     this.sunLight.shadow.normalBias = 0.025;
-    this.sunLight.shadow.radius = 2.5;
+    this.sunLight.shadow.radius = 2.0;
 
     this.group.add(this.sunLight);
     this.group.add(this.sunLight.target);
@@ -491,16 +491,16 @@ export class Sky {
       u.uCloudLit.value.copy(C.cloudLitPurpleNight);
       u.uCloudShade.value.copy(C.cloudShadePurpleNight);
 
-      this.sunLight.position.copy(sunDir).multiplyScalar(-120);
+      // Angled elevated moonlight casting dynamic soft shadows on structures
+      this.sunLight.position.set(-60, 95, 70);
       this.sunLight.color.copy(C.moonPurple);
-      this.sunLight.intensity = 1.35;
-      if (this.sunLight.position.y < 35) this.sunLight.position.y = 35;
+      this.sunLight.intensity = 2.4;
 
       this.hemi.color.copy(C.hemiSkyPurpleNight);
       this.hemi.groundColor.copy(C.hemiGroundPurpleNight);
-      this.hemi.intensity = 1.35;
-      this.ambient.color.set("#7235a8");
-      this.ambient.intensity = 0.55;
+      this.hemi.intensity = 1.6;
+      this.ambient.color.set("#7e3fc2");
+      this.ambient.intensity = 0.78;
 
       this.fog.color.copy(C.horizonPurpleNight);
       if (this.scene.background instanceof THREE.Color) this.scene.background.copy(C.horizonPurpleNight);

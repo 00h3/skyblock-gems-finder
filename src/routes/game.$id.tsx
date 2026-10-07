@@ -1776,9 +1776,9 @@ function EngineGame({
     } catch {}
   }, [invertJoyX]);
 
-  const [qualityPrefState, setQualityPrefState] = useState<"low" | "medium" | "high">(() => {
-    if (typeof window === "undefined") return "high";
-    return (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high";
+  const [qualityPrefState, setQualityPrefState] = useState<"low" | "medium" | "high" | "uhd">(() => {
+    if (typeof window === "undefined") return "uhd";
+    return (localStorage.getItem("bm-quality") || "uhd") as "low" | "medium" | "high" | "uhd";
   });
   const [motionBlurState, setMotionBlurState] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -2249,7 +2249,7 @@ function EngineGame({
     const conservative3D = isSafariBrowser;
 
     // Read persistent graphics quality and FPS cap (set via in-game settings)
-    const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high";
+    const qualityPref = (localStorage.getItem("bm-quality") || "uhd") as "low" | "medium" | "high" | "uhd";
     const fpsPrefInit = localStorage.getItem("bm-fpscap") || "60";
 
     let renderer: THREE.WebGLRenderer;

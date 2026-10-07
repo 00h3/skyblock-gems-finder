@@ -1379,7 +1379,7 @@ export function SandboxGame({
       renderer.toneMappingExposure = 1.25;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.autoUpdate = true;
       renderer.shadowMap.needsUpdate = true;
 
       // Full anisotropic filtering keeps grazing-angle (distant floor) texels
@@ -2926,6 +2926,17 @@ export function SandboxGame({
       };
       window.addEventListener("bm-fog-mode", onFogModeEvt);
 
+      const onQualityEvt = (e: Event) => {
+        const q = (e as CustomEvent<RenderQuality>).detail;
+        const targetDpr = getTargetDpr(q);
+        renderer.setPixelRatio(targetDpr);
+        const w = Math.max(1, mount.clientWidth || window.innerWidth);
+        const h = Math.max(1, mount.clientHeight || window.innerHeight);
+        renderer.setSize(w, h, false);
+        cinematicPost?.setSize(w, h, targetDpr);
+      };
+      window.addEventListener("bm-quality", onQualityEvt);
+
       const onRespawn = () => {
         player.respawn();
         avatar?.resetDeath();
@@ -3579,6 +3590,7 @@ export function SandboxGame({
         window.removeEventListener("bm-fov", onFovEvt);
         window.removeEventListener("bm-atmosphere", onAtmosphereEvt);
         window.removeEventListener("bm-fog-mode", onFogModeEvt);
+        window.removeEventListener("bm-quality", onQualityEvt);
         if (stopWaterAudio) stopWaterAudio();
         features.dispose();
         featuresRef.current = null;
