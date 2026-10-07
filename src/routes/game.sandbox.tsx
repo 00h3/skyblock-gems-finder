@@ -1470,7 +1470,7 @@ export function SandboxGame({
         sky.paused = true;
         sky.setCloudCover(0.24);
         sky.setRange(25, 240);
-        renderer.toneMappingExposure = 1.25;
+        renderer.toneMappingExposure = 1.15;
       }
 
       world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);

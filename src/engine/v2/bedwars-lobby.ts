@@ -3,7 +3,7 @@ import bedwarsLobbyVoxels from "@/assets/bedwars-lobby-voxels.json";
 
 export const BEDWARS_LOBBY_SURFACE_Y = 16;
 export const BEDWARS_LOBBY_SPAWN = { x: 0.5, y: 17.5, z: 2.5 };
-export const BEDWARS_MATCHMAKER_POS = { x: 0.5, y: 16.5, z: -5.5 };
+export const BEDWARS_MATCHMAKER_POS = { x: 0.5, y: 17.0, z: -5.5 };
 export const BEDWARS_LOBBY_BOUNDS = { minX: -60, maxX: 60, minZ: -60, maxZ: 60, minY: 0, maxY: 60 };
 
 function hash(x: number, z: number) {

@@ -491,16 +491,16 @@ export class Sky {
       u.uCloudLit.value.copy(C.cloudLitPurpleNight);
       u.uCloudShade.value.copy(C.cloudShadePurpleNight);
 
-      // Angled elevated moonlight casting dynamic soft shadows on structures
+      // Angled elevated moonlight casting gentle dynamic soft shadows on structures
       this.sunLight.position.set(-60, 95, 70);
       this.sunLight.color.copy(C.moonPurple);
-      this.sunLight.intensity = 2.4;
+      this.sunLight.intensity = 1.65;
 
       this.hemi.color.copy(C.hemiSkyPurpleNight);
       this.hemi.groundColor.copy(C.hemiGroundPurpleNight);
-      this.hemi.intensity = 1.6;
-      this.ambient.color.set("#7e3fc2");
-      this.ambient.intensity = 0.78;
+      this.hemi.intensity = 1.2;
+      this.ambient.color.set("#7238b0");
+      this.ambient.intensity = 0.52;
 
       this.fog.color.copy(C.horizonPurpleNight);
       if (this.scene.background instanceof THREE.Color) this.scene.background.copy(C.horizonPurpleNight);

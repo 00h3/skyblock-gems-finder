@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export const BEDWARS_LOBBY_SCALE = 1 / 0.012048779853979896; // ~82.996 (maps 0.01205 unit blocks to exact 1-block units)
-export const BEDWARS_LOBBY_POSITION = new THREE.Vector3(0, 8, 0);
+export const BEDWARS_LOBBY_POSITION = new THREE.Vector3(0, 13, 0);
 
 const MODEL_LOCAL_PATH = "/models/lobbybw.glb";
 const MODEL_FALLBACK_URL_1 = "https://file.garden/alGOOylwpAfCa6qP/lobbybw%20(1).glb";
@@ -228,46 +228,46 @@ export async function loadBedwarsLobby(scene: THREE.Scene): Promise<LoadedBedwar
       const isWaterOrIce = textureKey === "water" || textureKey === "ice";
       const isGlow = textureKey === "glowstone" || matName === "Torch" || matName === "Sea_Lantern";
 
-      // Emissive violet moonlight illumination so all block details and textures remain crisp and readable at night
-      const ambientNightColor = new THREE.Color(0x221035);
+      // Subtle ambient violet moonlight illumination so all block details and textures remain crisp and readable at night
+      const ambientNightColor = new THREE.Color(0x1a0c28);
 
       mesh.material = new THREE.MeshStandardMaterial({
         map: ourTex,
-        roughness: isWaterOrIce ? 0.35 : 0.80,
+        roughness: isWaterOrIce ? 0.35 : 0.82,
         metalness: isWaterOrIce ? 0.2 : 0.04,
         transparent: isLeaves || isGlass,
         opacity: isGlass ? 0.65 : 1.0,
         alphaTest: isLeaves ? 0.35 : 0.0,
-        emissive: isGlow ? new THREE.Color(0xffe082) : ambientNightColor,
-        emissiveIntensity: isGlow ? 2.4 : 0.22,
+        emissive: isGlow ? new THREE.Color(0xffd54f) : ambientNightColor,
+        emissiveIntensity: isGlow ? 1.6 : 0.08,
       });
     }
   });
 
   // ── Dynamic Structure Lighting for Bedwars ──
-  // Vibrant warm amber & celestial violet point lights illuminating key structures (Courtyard, Pavilions, Tents, Bridges)
+  // Gentle atmospheric warm amber & celestial violet point lights illuminating key structures
   const structureLights = new THREE.Group();
   structureLights.name = "bedwars_structure_lights";
 
   const lightsConfig = [
     // Central courtyard / plaza fountain & walkways
-    { x: 0, y: 19.5, z: 0, color: 0xffd97d, intensity: 3.2, distance: 48 },
+    { x: 0, y: 5.5, z: 0, color: 0xffd97d, intensity: 1.8, distance: 36 },
     // Matchmaker & front portal pavilion
-    { x: 0, y: 19.0, z: -8, color: 0xffbe69, intensity: 3.0, distance: 42 },
+    { x: 0, y: 5.2, z: -8, color: 0xffbe69, intensity: 1.6, distance: 32 },
     // South plaza & walkway
-    { x: 0, y: 18.5, z: 12, color: 0xc4a6ff, intensity: 2.8, distance: 44 },
+    { x: 0, y: 5.2, z: 12, color: 0xc4a6ff, intensity: 1.5, distance: 32 },
     // East wing structure
-    { x: 22, y: 19.0, z: 0, color: 0x8ce8ff, intensity: 2.6, distance: 40 },
+    { x: 22, y: 5.2, z: 0, color: 0x8ce8ff, intensity: 1.4, distance: 30 },
     // West wing structure
-    { x: -22, y: 19.0, z: 0, color: 0xffa8ef, intensity: 2.6, distance: 40 },
+    { x: -22, y: 5.2, z: 0, color: 0xffa8ef, intensity: 1.4, distance: 30 },
     // Camp / Big Tent area
-    { x: -25, y: 19.0, z: 35, color: 0xffb066, intensity: 3.2, distance: 46 },
+    { x: -25, y: 5.2, z: 35, color: 0xffb066, intensity: 1.7, distance: 35 },
     // Secondary tent / campsite
-    { x: 25, y: 19.0, z: -35, color: 0xd2b3ff, intensity: 2.8, distance: 44 },
+    { x: 25, y: 5.2, z: -35, color: 0xd2b3ff, intensity: 1.5, distance: 32 },
   ];
 
   for (const cfg of lightsConfig) {
-    const pl = new THREE.PointLight(cfg.color, cfg.intensity, cfg.distance, 1.3);
+    const pl = new THREE.PointLight(cfg.color, cfg.intensity, cfg.distance, 1.4);
     pl.position.set(cfg.x, cfg.y, cfg.z);
     structureLights.add(pl);
   }
