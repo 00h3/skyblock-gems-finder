@@ -5,7 +5,6 @@ import { ClapIcon, HeartAngleIcon } from "@/components/QbIcons";
 import { PlayersIcon } from "@/components/icons/PlayersIcon";
 
 import { useAuth } from "@/lib/auth-context";
-import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { CurrencyPills } from "@/components/CurrencyPills";
 import { MobileShell } from "@/components/MobileShell";
 import { ProfileSheet } from "@/components/ProfileSheet";
@@ -32,6 +31,12 @@ export function RedesignedHomePage({
 
   const visibleGames = GAMES.filter((g) => g.id !== "sandbox" && g.id !== "bedwars-golden-days");
 
+  const recentIds = getRecentlyPlayedGameIds();
+  const recentGames = recentIds
+    .map((id) => GAMES.find((g) => g.id === id))
+    .filter(Boolean);
+  const recentList = recentGames.length > 0 ? recentGames.slice(0, 3) : visibleGames.slice(0, 3);
+
   const grid =
     visibleGames.length > 1
       ? visibleGames
@@ -42,53 +47,27 @@ export function RedesignedHomePage({
       <div className="min-h-[100dvh] bg-[#f1f2f4] pb-24">
         {/* Header */}
         <header className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)] pb-2.5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setShowSelfProfile(true)}
-              className="qb-squircle press grid h-10 w-10 shrink-0 place-items-center active:scale-95 transition-transform"
-              aria-label="Open profile"
-            >
-              <div className="h-8 w-8 overflow-hidden rounded-[10px] relative flex items-center justify-center">
-                <GlossyAvatar
-                  height={32}
-                  className="h-full w-full object-cover"
-                  autoRotate={false}
-                  focusZone="head"
-                  photoUrl={qbUser?.profilePhoto || undefined}
-                  snapshot={qbUser?.avatarSnapshot ?? null}
-                  frame={qbUser?.avatarSnapshot?.frameId}
-                  portrait={!qbUser?.profilePhoto}
-                />
-              </div>
-            </button>
-            <div className="min-w-0 ml-1">
-              <p className="truncate text-[15px] font-extrabold leading-tight tracking-tight text-[#141414]">
-                {qbUser?.displayName || qbUser?.username || "Player"}
-              </p>
-            </div>
-          </div>
-
           <div className="flex items-center gap-1.5">
             <CurrencyPills
               compact
               maxItems={2}
               onSelect={(c) => setBuyModal(c === "gems" ? "gem" : "gold")}
             />
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/notifications" as never })}
-              className="qb-squircle press relative grid h-9 w-9 shrink-0 place-items-center active:scale-95 transition-transform"
-              aria-label="Notifications"
-            >
-              <img
-                src="/icons/bell-svgrepo-com.svg"
-                alt="Notifications"
-                className="h-[18px] w-[18px] object-contain dark:invert"
-              />
-              <span className="absolute right-2 top-2 h-[6px] w-[6px] rounded-full bg-[#ff3b30] ring-2 ring-white" />
-            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/notifications" as never })}
+            className="qb-squircle press relative grid h-9 w-9 shrink-0 place-items-center active:scale-95 transition-transform"
+            aria-label="Notifications"
+          >
+            <img
+              src="/icons/bell-svgrepo-com.svg"
+              alt="Notifications"
+              className="h-[18px] w-[18px] object-contain dark:invert"
+            />
+            <span className="absolute right-2 top-2 h-[6px] w-[6px] rounded-full bg-[#ff3b30] ring-2 ring-white" />
+          </button>
         </header>
 
         {/* Search */}
@@ -187,6 +166,41 @@ export function RedesignedHomePage({
           </button>
         </div>
 
+        {/* Recently played */}
+        <section className="mt-5 px-4">
+          <SectionHeader
+            title="Recently played"
+            action="See all"
+            onAction={() => navigate({ to: "/discover" as never })}
+          />
+          <div className="mt-2.5 grid grid-cols-3 gap-x-2.5 gap-y-3">
+            {recentList.map((g, i) => (
+              <button
+                key={`recent-${g.id}-${i}`}
+                onClick={() => setSheetGame(g)}
+                className="press text-left active:scale-[0.97] transition-transform"
+              >
+                <span className="qb-squircle relative block aspect-square overflow-hidden">
+                  {g.icon ? (
+                    <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
+                  ) : null}
+                </span>
+                <span className="mt-1.5 block truncate text-[11.5px] font-extrabold tracking-tight text-[#141414]">
+                  {g.t}
+                </span>
+                <span className="mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold text-[#8b929d]">
+                  <span className="flex items-center gap-0.5">
+                    <PlayersIcon className="h-3 w-3" /> 1
+                  </span>
+                  <span className="flex items-center gap-0.5">
+                    <ClapIcon className="h-3 w-3 text-[#fa4616]" /> 1
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Popular grid */}
         <section className="mt-5 px-4">
           <SectionHeader
@@ -221,6 +235,27 @@ export function RedesignedHomePage({
             ))}
           </div>
         </section>
+      </div>
+
+      {/* Floating Fragments Orange Heart Puzzle Button in Bottom Right */}
+      <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] right-3 sm:right-[max(12px,calc(50vw-208px))] z-30 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              openFragments();
+            }
+          }}
+          className="press group relative flex h-[70px] w-[70px] items-center justify-center bg-transparent border-0 outline-none p-0 cursor-pointer active:scale-90 hover:scale-105 transition-transform duration-150"
+          aria-label="Open Fragments"
+        >
+          <img
+            src="https://maxwell.z3ki.dev/bot/_files/orange-heart-puzzle/file_000000001ef881f4aefca7e5b6db02db.png"
+            alt="Fragments"
+            className="h-full w-full object-contain filter drop-shadow select-none pointer-events-none"
+            draggable={false}
+          />
+        </button>
       </div>
 
       {showSelfProfile && qbUser && (
