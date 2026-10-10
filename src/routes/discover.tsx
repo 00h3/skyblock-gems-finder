@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
-import { ClapIcon } from "@/components/QbIcons";
+import { OrangeHeartIcon } from "@/components/QbIcons";
 import {
   ArrowRight,
   ChevronRight,
@@ -165,14 +165,14 @@ function UploadedDiscoverPage() {
                           return next;
                         });
                       }}
-                      className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer"
+                      className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer active:scale-90 transition-transform"
                       aria-label="Like game"
                     >
-                      <ClapIcon
+                      <OrangeHeartIcon
                         className={
                           isLiked
-                            ? "h-[15px] w-[15px] text-[#fa4616]"
-                            : "h-[15px] w-[15px] text-black/35 dark:text-white/40"
+                            ? "h-[15px] w-[15px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
+                            : "h-[15px] w-[15px] opacity-35 grayscale"
                         }
                       />
                     </button>
@@ -405,7 +405,7 @@ function ArchiveDiscoverPage() {
                       className={`press grid h-7 w-7 shrink-0 place-items-center rounded-full ${isLiked ? "bg-rose-50 text-rose-500" : "bg-surface-2 text-text-muted"}`}
                       aria-label={isLiked ? `Unlike ${game.title}` : `Like ${game.title}`}
                     >
-                      <ClapIcon
+                      <OrangeHeartIcon
                         className={
                           isLiked
                             ? "h-3.5 w-3.5 text-[#fa4616]"
@@ -811,7 +811,7 @@ function PopularCard({
         aria-label={favorite ? `Remove ${game.title} from favorites` : `Favorite ${game.title}`}
         className="press android-control absolute bottom-2 right-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-[#d97706] shadow-sm backdrop-blur-sm"
       >
-        <ClapIcon
+        <OrangeHeartIcon
           className={favorite ? "h-4 w-4 text-[#fa4616]" : "h-4 w-4 text-black/40"}
         />
       </button>
@@ -941,7 +941,7 @@ function WorldRow({
           aria-label={favorite ? `Remove ${game.title} from favorites` : `Favorite ${game.title}`}
           className="press grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#d97706]"
         >
-          <ClapIcon
+          <OrangeHeartIcon
             className={favorite ? "h-4 w-4 text-[#fa4616]" : "h-4 w-4 text-black/40"}
           />
         </button>

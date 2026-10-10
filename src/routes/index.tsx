@@ -2,6 +2,7 @@ import { RedesignedHomePage } from "../components/RedesignedHomePage";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
 import { getRecentlyPlayedGameIds, schedulePlayedGame } from "@/lib/games-cache";
 import baseplateIcon from "@/assets/game-baseplate.jpg";
+import { OrangeHeartIcon } from "@/components/QbIcons";
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/MobileShell";
@@ -406,7 +407,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
                     <div className="truncate text-[12px] font-lilita tracking-wide leading-tight">{game.t}</div>
                     <div className="mt-1 flex items-center gap-2.5 text-[10px] text-text-muted">
                       <span className="flex items-center gap-1">
-                        <PlayersIcon className="h-3 w-3" />
+                        <OrangeHeartIcon className="h-3 w-3" />
                         {game.likes}
                       </span>
                     </div>

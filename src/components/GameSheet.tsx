@@ -209,7 +209,7 @@ export function GameSheet({
             type="button"
             onClick={handleClap}
             className="qb-squircle press shrink-0 h-12 px-3.5 rounded-[16px] bg-slate-100 dark:bg-white/[0.08] hover:bg-orange-50 dark:hover:bg-orange-500/10 border border-black/[0.08] dark:border-white/10 flex items-center justify-center gap-1.5 text-[#17191d] dark:text-white transition-all shadow-xs active:scale-95"
-            title="Clap"
+            title="Like"
           >
             <ClapIcon className="h-5 w-5 text-[#fa4616]" />
             <span className="text-[12.5px] font-black">{claps}</span>

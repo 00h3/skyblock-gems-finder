@@ -448,7 +448,7 @@ export function ProfileSheet({
                   }
                 }}
                 className="qb-squircle press shrink-0 flex flex-col items-center justify-center bg-slate-100/90 dark:bg-white/[0.08] border border-black/[0.08] dark:border-white/10 rounded-[16px] h-[52px] min-w-[52px] px-3 hover:bg-orange-500/10 hover:border-[#fa4616]/40 hover:text-[#fa4616] text-[#141414] dark:text-white transition-all shadow-xs"
-                title="Clap"
+                title="Like"
               >
                 <ClapIcon className="h-5 w-5 mb-0.5 text-[#fa4616]" />
                 <span className="text-[11.5px] font-black">{user.claps || 0}</span>

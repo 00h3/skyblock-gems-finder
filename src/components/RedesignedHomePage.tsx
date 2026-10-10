@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Search, ChevronRight, Play } from "lucide-react";
-import { ClapIcon, HeartAngleIcon } from "@/components/QbIcons";
+import { OrangeHeartIcon } from "@/components/QbIcons";
 import { PlayersIcon } from "@/components/icons/PlayersIcon";
 
 import { useAuth } from "@/lib/auth-context";
@@ -193,7 +193,7 @@ export function RedesignedHomePage({
                     <PlayersIcon className="h-3 w-3" /> 1
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <ClapIcon className="h-3 w-3 text-[#fa4616]" /> 1
+                    <OrangeHeartIcon className="h-3.5 w-3.5 filter drop-shadow-[0_1px_2px_rgba(250,70,22,0.35)]" /> 100%
                   </span>
                 </span>
               </button>
@@ -228,7 +228,7 @@ export function RedesignedHomePage({
                     <PlayersIcon className="h-3 w-3" /> 1
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <ClapIcon className="h-3 w-3 text-[#fa4616]" /> 1
+                    <OrangeHeartIcon className="h-3.5 w-3.5 filter drop-shadow-[0_1px_2px_rgba(250,70,22,0.35)]" /> 100%
                   </span>
                 </span>
               </button>
@@ -238,7 +238,7 @@ export function RedesignedHomePage({
       </div>
 
       {/* Floating Fragments Orange Heart Puzzle Button in Bottom Right */}
-      <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] right-3 sm:right-[max(12px,calc(50vw-208px))] z-30 pointer-events-auto">
+      <div className="fixed bottom-[calc(70px+env(safe-area-inset-bottom))] right-3 sm:right-[max(12px,calc(50vw-208px))] z-40 pointer-events-auto">
         <button
           type="button"
           onClick={() => {
@@ -246,13 +246,13 @@ export function RedesignedHomePage({
               openFragments();
             }
           }}
-          className="press group relative flex h-[70px] w-[70px] items-center justify-center bg-transparent border-0 outline-none p-0 cursor-pointer active:scale-90 hover:scale-105 transition-transform duration-150"
+          className="press group relative flex h-[74px] w-[74px] items-center justify-center bg-transparent border-0 outline-none p-0 cursor-pointer active:scale-95 transition-transform"
           aria-label="Open Fragments"
         >
           <img
             src="https://maxwell.z3ki.dev/bot/_files/orange-heart-puzzle/file_000000001ef881f4aefca7e5b6db02db.png"
             alt="Fragments"
-            className="h-full w-full object-contain filter drop-shadow select-none pointer-events-none"
+            className="h-full w-full object-contain filter drop-shadow-[0_10px_20px_rgba(250,70,22,0.65)] select-none pointer-events-none"
             draggable={false}
           />
         </button>

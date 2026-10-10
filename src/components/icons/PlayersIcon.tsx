@@ -1,16 +1,22 @@
 import React from "react";
 
-export function PlayersIcon({ className = "h-4 w-4" }: { className?: string }) {
+export function PlayersIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+  const iconUrl = "/icons/player-icon-custom.png";
   return (
-    <img
-      src="/icons/ghost-smile-svgrepo-com.svg"
-      onError={(e) => {
-        (e.target as HTMLImageElement).src =
-          "https://file.garden/alGOOylwpAfCa6qP/ghost-smile-svgrepo-com.svg";
+    <span
+      className={`inline-block shrink-0 ${className}`}
+      style={{
+        maskImage: `url(${iconUrl})`,
+        WebkitMaskImage: `url(${iconUrl})`,
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+        maskPosition: "center",
+        WebkitMaskPosition: "center",
+        background: "linear-gradient(135deg, #ff7a52 0%, #fa4616 50%, #d93800 100%)",
+        verticalAlign: "middle",
       }}
-      alt="Players"
-      className={`object-contain inline-block shrink-0 ${className}`}
-      draggable={false}
       aria-hidden="true"
     />
   );
