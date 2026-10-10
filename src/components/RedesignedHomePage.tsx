@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Search, ChevronRight, Play } from "lucide-react";
-import { OrangeHeartIcon } from "@/components/QbIcons";
+import { PinkHeartIcon } from "@/components/QbIcons";
 import { PlayersIcon } from "@/components/icons/PlayersIcon";
 
 import { useAuth } from "@/lib/auth-context";
@@ -35,7 +35,7 @@ export function RedesignedHomePage({
   const recentGames = recentIds
     .map((id) => GAMES.find((g) => g.id === id))
     .filter(Boolean);
-  const recentList = recentGames.length > 0 ? recentGames.slice(0, 3) : visibleGames.slice(0, 3);
+  const recentList = recentGames.length > 0 ? recentGames.slice(0, 8) : visibleGames.slice(0, 6);
 
   const grid =
     visibleGames.length > 1
@@ -95,22 +95,7 @@ export function RedesignedHomePage({
           </form>
         </div>
 
-        {/* Categories */}
-        <div className="mt-3 flex gap-1.5 overflow-x-auto hide-scrollbar px-4">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`press shrink-0 rounded-[10px] px-3 py-1.5 text-[11.5px] font-bold transition-colors ${
-                category === c ? "bg-[#141414] text-white" : "qb-squircle text-[#5f646d]"
-              }`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-
-        {/* Quick Entries: Fragments, Events */}
+        {/* Quick Entries: Fragments, Events (placed above categories) */}
         <div className="mt-3.5 px-4 grid grid-cols-2 gap-2.5">
           <button
             type="button"
@@ -166,36 +151,40 @@ export function RedesignedHomePage({
           </button>
         </div>
 
-        {/* Recently played */}
-        <section className="mt-5 px-4">
+        {/* Categories (now down below Fragments and Events) */}
+        <div className="mt-3 flex gap-1.5 overflow-x-auto hide-scrollbar px-4">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`press shrink-0 rounded-[10px] px-3 py-1.5 text-[11.5px] font-bold transition-colors ${
+                category === c ? "bg-[#141414] text-white" : "qb-squircle text-[#5f646d]"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        {/* Recently played (compact UI without player count or likes, game text hidden, no shadow) */}
+        <section className="mt-4 px-4">
           <SectionHeader
             title="Recently played"
             action="See all"
             onAction={() => navigate({ to: "/discover" as never })}
           />
-          <div className="mt-2.5 grid grid-cols-3 gap-x-2.5 gap-y-3">
+          <div className="mt-2.5 flex items-center gap-2.5 overflow-x-auto hide-scrollbar py-0.5">
             {recentList.map((g, i) => (
               <button
                 key={`recent-${g.id}-${i}`}
                 onClick={() => setSheetGame(g)}
-                className="press text-left active:scale-[0.97] transition-transform"
+                className="press relative h-[72px] w-[72px] shrink-0 rounded-[16px] overflow-hidden border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
+                title={g.t}
+                aria-label={g.t}
               >
-                <span className="qb-squircle relative block aspect-square overflow-hidden">
-                  {g.icon ? (
-                    <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
-                  ) : null}
-                </span>
-                <span className="mt-1.5 block truncate text-[11.5px] font-extrabold tracking-tight text-[#141414]">
-                  {g.t}
-                </span>
-                <span className="mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold text-[#8b929d]">
-                  <span className="flex items-center gap-0.5">
-                    <PlayersIcon className="h-3 w-3" /> 1
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <OrangeHeartIcon className="h-3.5 w-3.5 filter drop-shadow-[0_1px_2px_rgba(250,70,22,0.35)]" /> 100%
-                  </span>
-                </span>
+                {g.icon ? (
+                  <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
+                ) : null}
               </button>
             ))}
           </div>
@@ -223,12 +212,15 @@ export function RedesignedHomePage({
                 <span className="mt-1.5 block truncate text-[11.5px] font-extrabold tracking-tight text-[#141414]">
                   {g.t}
                 </span>
-                <span className="mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold text-[#8b929d]">
+                {/* Inverted: Heart first (99%), then player icon (1), bold grey */}
+                <span className="mt-0.5 flex items-center gap-2 text-[10.5px] font-extrabold text-[#7e8590]">
                   <span className="flex items-center gap-0.5">
-                    <PlayersIcon className="h-3 w-3" /> 1
+                    <PinkHeartIcon className="h-3.5 w-3.5 filter drop-shadow-[0_1px_2px_rgba(244,63,94,0.35)]" />
+                    <span className="font-extrabold text-[#7e8590]">99%</span>
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <OrangeHeartIcon className="h-3.5 w-3.5 filter drop-shadow-[0_1px_2px_rgba(250,70,22,0.35)]" /> 100%
+                    <PlayersIcon className="h-3 w-3" />
+                    <span className="font-extrabold text-[#7e8590]">1</span>
                   </span>
                 </span>
               </button>

@@ -5,9 +5,9 @@
  * crisp, and tintable with standard Tailwind text colors.
  */
 
-/** Heart reaction using heart-svgrepo-com.svg path with vibrant orange gradient */
-export function OrangeHeartIcon({ className = "h-4 w-4" }: { className?: string }) {
-  const gradientId = "qb-heart-orange-grad";
+/** Heart reaction using heart-svgrepo-com.svg path with vibrant pink gradient */
+export function PinkHeartIcon({ className = "h-4 w-4" }: { className?: string }) {
+  const gradientId = "qb-heart-pink-grad";
   return (
     <svg
       viewBox="0 0 24 24"
@@ -18,9 +18,9 @@ export function OrangeHeartIcon({ className = "h-4 w-4" }: { className?: string 
     >
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff7a52" />
-          <stop offset="50%" stopColor="#fa4616" />
-          <stop offset="100%" stopColor="#d93800" />
+          <stop offset="0%" stopColor="#ff6584" />
+          <stop offset="50%" stopColor="#f43f5e" />
+          <stop offset="100%" stopColor="#db2777" />
         </linearGradient>
       </defs>
       <path
@@ -31,9 +31,12 @@ export function OrangeHeartIcon({ className = "h-4 w-4" }: { className?: string 
   );
 }
 
-/** Replaced Clap reaction with the requested Orange Heart icon */
+/** Backward compatible export for OrangeHeartIcon pointing to the updated PinkHeartIcon */
+export const OrangeHeartIcon = PinkHeartIcon;
+
+/** Replaced Clap reaction with the requested Pink Heart icon */
 export function ClapIcon({ className }: { className?: string | undefined }) {
-  return <OrangeHeartIcon className={className ?? "h-4 w-4"} />;
+  return <PinkHeartIcon className={className ?? "h-4 w-4"} />;
 }
 
 /** Heart / "love" reaction. */

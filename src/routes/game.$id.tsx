@@ -48,8 +48,8 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { createHpBar, type HpBar } from "@/engine/hpbar";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import qblockGameLoaderUrl from "../assets/imported/IMG_6930_1786893754942.png?url";
-const goldTokenIcon = "https://file.garden/alGOOylwpAfCa6qP/IMG_7215.png";
-const newGenIcon = "https://file.garden/alGOOylwpAfCa6qP/70907A5A-2AD0-4E56-A5A3-6F1E0548E44A.png";
+const goldTokenIcon = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
+const newGenIcon = "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png";
 import magicCubeUrl from "../assets/skyblock/treasure-coins-chest.glb?url";
 const phoenixUrl = "https://file.garden/alGOOylwpAfCa6qP/phoenix_on_fire_update.glb";
 const himmelStatueUrl = "/himmel_statue.glb";
@@ -13852,7 +13852,7 @@ function SkyblockPastedHud({
             <div className="flex items-center gap-1">
               <div className="w-3.5 h-3.5 flex items-center justify-center overflow-hidden">
                 <img
-                  src="https://file.garden/alGOOylwpAfCa6qP/IMG_7215.png"
+                  src="https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png"
                   alt="Coins"
                   className="w-full h-full object-contain pointer-events-none"
                 />

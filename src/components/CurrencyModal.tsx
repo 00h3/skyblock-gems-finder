@@ -2,9 +2,9 @@ import { useState } from "react";
 import { X, Check } from "lucide-react";
 import { addCurrency } from "@/lib/currency";
 
-export const GOLDEN_COINS_ICON = "https://file.garden/alGOOylwpAfCa6qP/IMG_7215.png";
+export const GOLDEN_COINS_ICON = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
 export const PINK_GEM_ICON =
-  "https://file.garden/alGOOylwpAfCa6qP/70907A5A-2AD0-4E56-A5A3-6F1E0548E44A.png";
+  "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png";
 
 export function GoldCoin({ size = 22 }: { size?: number }) {
   return (

@@ -91,14 +91,14 @@ export const MILESTONE_TIERS: MilestoneTier[] = [
     title: "Silver Cache",
     coinReward: 250,
     gemReward: 20,
-    iconUrl: "https://file.garden/alGOOylwpAfCa6qP/IMG_7215.png",
+    iconUrl: "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png",
   },
   {
     pts: 100,
     title: "Gold Cache",
     coinReward: 600,
     gemReward: 50,
-    iconUrl: "https://file.garden/alGOOylwpAfCa6qP/70907A5A-2AD0-4E56-A5A3-6F1E0548E44A.png",
+    iconUrl: "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png",
   },
   {
     pts: 200,
