@@ -43,6 +43,7 @@ import {
 } from "@/lib/skyblock-multiplayer";
 import { getPermanentPlayerId } from "@/lib/skyblock-profile";
 import { GameUiChrome } from "@/components/GameUiChrome";
+import { RobloxInGameServerBar } from "@/components/RobloxInGameServerBar";
 import { getTargetDpr } from "@/lib/rendering";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { createHpBar, type HpBar } from "@/engine/hpbar";
@@ -1578,6 +1579,22 @@ function getProceduralAssets(renderer: THREE.WebGLRenderer) {
 
 function GamePage() {
   const { id } = Route.useParams();
+  const [currentServerId, setCurrentServerId] = useState<string>(() => {
+    if (typeof window === "undefined") return `${id}-server-1`;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("server") || `${id}-server-1`;
+  });
+
+  const handleServerChange = (newServerId: string) => {
+    setCurrentServerId(newServerId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("server", newServerId);
+      window.history.replaceState({}, "", url.toString());
+      // Trigger smooth reload or state sync if needed
+    }
+  };
+
   const [privateServer] = useState(() => {
     if (typeof window === "undefined") return null;
     const params = new URLSearchParams(window.location.search);
@@ -1588,6 +1605,13 @@ function GamePage() {
   });
   return (
     <>
+      {/* Roblox-style Server & Matchmaking Bar with 16 Player presence */}
+      <RobloxInGameServerBar
+        gameId={id}
+        currentServerId={currentServerId}
+        onServerChange={handleServerChange}
+      />
+
       {id === "bedwars-golden-days" ? (
         <BedwarsGoldenDays />
       ) : id === "bedwars" ? (
@@ -1601,7 +1625,7 @@ function GamePage() {
       ) : (
         <>
           <EngineGame
-            key={id}
+            key={`${id}-${currentServerId}`}
             isSpleef={id === "spleef"}
             isBedwars={false}
             isEggwars={id === "egg-wars" || id === "eggwars"}

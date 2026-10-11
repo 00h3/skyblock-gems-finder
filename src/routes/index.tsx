@@ -425,11 +425,17 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
         <GameSheet
           g={open}
           onClose={closeGameSheet}
-          onPlay={() => {
+          onPlay={(serverId?: string) => {
             const id = open.id;
             dwellCancelRef.current = null; // keep the dwell timer running into the game
             setOpen(null);
-            if (id) navigate({ to: "/game/$id" as never, params: { id } as never });
+            if (id) {
+              navigate({
+                to: "/game/$id" as never,
+                params: { id } as never,
+                search: (serverId ? { server: serverId } : undefined) as never,
+              });
+            }
           }}
         />
       )}
@@ -1551,7 +1557,7 @@ function TrendingCard({ g, onPlay }: { g: Game; onPlay: () => void }) {
           {g.t}
         </div>
         <div className="flex items-center gap-1 mt-0.5">
-          <PlayersIcon className="h-3 w-3" />
+          <PlayersIcon className="h-3.5 w-3.5" />
           <span className="text-[10px] font-semibold" style={{ color: "#9ca3af" }}>
             {g.players}
           </span>

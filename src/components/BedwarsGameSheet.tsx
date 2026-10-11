@@ -5,6 +5,7 @@ import type { GameMeta } from "@/components/GameSheet";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot, setDoc, increment } from "firebase/firestore";
 import { ClapIcon } from "@/components/QbIcons";
+import { RobloxServerBrowser } from "@/components/RobloxServerBrowser";
 
 export function BedwarsGameSheet({
   g,
@@ -13,7 +14,7 @@ export function BedwarsGameSheet({
 }: {
   g: GameMeta;
   onClose: () => void;
-  onPlay?: () => void;
+  onPlay?: (serverId?: string) => void;
 }) {
   const [tab, setTab] = useState<"info" | "lobbies">("info");
   const [scrolled, setScrolled] = useState(false);
@@ -41,7 +42,7 @@ export function BedwarsGameSheet({
   const gameTitle = g?.t || "Bedwars";
 
   return (
-    <div className="fixed inset-0 z-[120] flex justify-center bg-black/40 backdrop-blur-xs">
+    <div className="fixed inset-0 z-[170] flex justify-center bg-black/40 backdrop-blur-xs">
       <motion.section
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
@@ -141,19 +142,15 @@ export function BedwarsGameSheet({
               </div>
             )}
 
-            {/* Tab: Lobbies */}
+            {/* Tab: Lobbies - 16 Player Roblox Style Servers with PFP grid */}
             {tab === "lobbies" && (
-              <div className="py-12 flex flex-col items-center justify-center text-center select-none">
-                <div className="h-12 w-12 rounded-full bg-black/[0.04] dark:bg-white/[0.06] grid place-items-center mb-3 text-[#7d8590] dark:text-[#8e95a0]">
-                  <Globe2 className="h-6 w-6" />
-                </div>
-                <h3 className="text-[15.5px] font-black text-[#17191d] dark:text-white">
-                  No Lobby found
-                </h3>
-                <p className="text-[12.5px] text-[#7d8590] dark:text-[#8e95a0] font-medium mt-1 max-w-[240px] leading-relaxed">
-                  There are currently no active public or private lobbies for this game.
-                </p>
-              </div>
+              <RobloxServerBrowser
+                gameId={g.id || "bedwars"}
+                gameTitle={gameTitle}
+                onJoinServer={(serverId) => {
+                  if (onPlay) onPlay(serverId);
+                }}
+              />
             )}
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, Search, ChevronRight, Play } from "lucide-react";
+import { Search } from "lucide-react";
 import { PinkHeartIcon } from "@/components/QbIcons";
 import { PlayersIcon } from "@/components/icons/PlayersIcon";
 
@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { CurrencyPills } from "@/components/CurrencyPills";
 import { MobileShell } from "@/components/MobileShell";
 import { ProfileSheet } from "@/components/ProfileSheet";
+import { DiscoveryPopup } from "@/components/DiscoveryPopup";
 import { getRecentlyPlayedGameIds } from "@/lib/games-cache";
 import { openFragments } from "@/lib/fragments-ui";
 import { openEvents } from "@/lib/events-ui";
@@ -26,6 +27,7 @@ export function RedesignedHomePage({
   const navigate = useNavigate();
   const { qbUser } = useAuth();
   const [category, setCategory] = useState("For you");
+  const [discoverPopupOpen, setDiscoverPopupOpen] = useState(false);
 
   const [showSelfProfile, setShowSelfProfile] = useState(false);
 
@@ -149,8 +151,8 @@ export function RedesignedHomePage({
         <section className="mt-4 px-4">
           <SectionHeader
             title="Recently played"
-            action="See all"
-            onAction={() => navigate({ to: "/discover" as never })}
+            action=">"
+            onAction={() => setDiscoverPopupOpen(true)}
           />
           <div className="mt-2.5 flex items-center gap-2.5 overflow-x-auto hide-scrollbar py-0.5">
             {recentList.map((g, i) => (
@@ -173,8 +175,8 @@ export function RedesignedHomePage({
         <section className="mt-5 px-4">
           <SectionHeader
             title="Popular right now"
-            action="See all"
-            onAction={() => navigate({ to: "/discover" as never })}
+            action=">"
+            onAction={() => setDiscoverPopupOpen(true)}
           />
           <div className="mt-2.5 grid grid-cols-3 gap-x-2.5 gap-y-3">
             {grid.slice(0, 9).map((g, i) => (
@@ -198,7 +200,7 @@ export function RedesignedHomePage({
                     <span className="font-extrabold text-[#7e8590]">99%</span>
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <PlayersIcon className="h-3 w-3" />
+                    <PlayersIcon className="h-3.5 w-3.5" />
                     <span className="font-extrabold text-[#7e8590]">1</span>
                   </span>
                 </span>
@@ -207,6 +209,12 @@ export function RedesignedHomePage({
           </div>
         </section>
       </div>
+
+      <DiscoveryPopup
+        open={discoverPopupOpen}
+        onClose={() => setDiscoverPopupOpen(false)}
+        onSelectGame={(g) => setSheetGame(g)}
+      />
 
       {showSelfProfile && qbUser && (
         <ProfileSheet
@@ -246,11 +254,12 @@ function SectionHeader({
       <h2 className="text-[15px] font-extrabold tracking-tight text-[#141414]">{title}</h2>
       {action ? (
         <button
+          type="button"
           onClick={onAction}
-          className="press flex items-center gap-0.5 text-[11.5px] font-bold text-[#8b929d]"
+          className="press flex items-center justify-center p-1 -mr-1 text-[17px] font-black leading-none text-[#8b929d] hover:text-[#141414] active:scale-90 transition-transform cursor-pointer select-none"
+          aria-label={title}
         >
           {action}
-          <ChevronRight className="h-3.5 w-3.5" />
         </button>
       ) : null}
     </div>

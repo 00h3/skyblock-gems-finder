@@ -219,7 +219,7 @@ function UploadedDiscoverPage() {
         <GameSheet
           g={{
             t: open.title,
-            p: open.players,
+            p: "",
             hue: open.hue,
             bio: open.bio,
             id: open.id,

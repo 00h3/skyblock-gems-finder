@@ -502,6 +502,16 @@ function AuthGuard({ children }: { children: ReactNode }) {
     if (firebaseUser && !qbUser) return;
     if (!qbUser && !isPublic) {
       nav({ to: "/login" as never, replace: true });
+      return;
+    }
+    // If authenticated user hasn't completed onboarding yet, enforce /onboarding unless on a public/auth route
+    if (
+      qbUser &&
+      qbUser.onboardingCompleted === false &&
+      pathname !== "/onboarding" &&
+      !pathname.startsWith("/preview-settings")
+    ) {
+      nav({ to: "/onboarding" as never, replace: true });
     }
   }, [loading, qbUser, firebaseUser, pathname, nav, isPublic]);
 

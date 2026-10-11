@@ -155,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           bio: data.bio ?? "",
           profilePhoto: data.profilePhoto ?? "",
           createdAt: data.createdAt ?? "",
-          onboardingCompleted: data.onboardingCompleted ?? true,
+          onboardingCompleted: Boolean(data.onboardingCompleted === true),
           onboardingAnswers: data.onboardingAnswers ?? {},
           sessionId: data.sessionId,
           xp: xpRaw,

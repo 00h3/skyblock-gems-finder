@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Check, Dices, RefreshCw } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/lib/auth-context";
 import { saveOnboardingAnswers } from "@/lib/auth-utils";
+import { auth } from "@/lib/firebase";
 import { BlurReveal } from "@/components/ui/blur-reveal";
 import AnimatedGradientBackground from "@/components/ui/animated-gradient-background";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
@@ -209,6 +210,12 @@ function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (qbUser?.onboardingCompleted === true) {
+      nav({ to: "/" as never });
+    }
+  }, [qbUser, nav]);
+
   // Form State
   const [source, setSource] = useState<string>("friends");
   const [playFirst, setPlayFirst] = useState<string>("bedwars_pvp");
@@ -239,13 +246,14 @@ function OnboardingPage() {
         // Storage might be unavailable
       }
 
-      if (qbUser?.uid) {
-        await saveOnboardingAnswers(qbUser.uid, {
+      const targetUid = qbUser?.uid || auth.currentUser?.uid;
+      if (targetUid) {
+        await saveOnboardingAnswers(targetUid, {
           source: source || "skipped",
           playFirst,
           character,
           gender: isFemale ? "female" : "male",
-          displayName: nickname.trim() || qbUser.username || "Player",
+          displayName: nickname.trim() || qbUser?.username || "Player",
           starterGiftClaimed: true,
         });
       }
@@ -316,7 +324,7 @@ function OnboardingPage() {
           ))}
         </div>
 
-        {/* Top Right Action: Skip or Sign In Button */}
+        {/* Top Right Action: Skip */}
         <div className="flex items-center gap-2">
           {step < 3 ? (
             <button
@@ -327,9 +335,7 @@ function OnboardingPage() {
               Skip
             </button>
           ) : (
-            <OrangeSignInButton onClick={() => nav({ to: "/login" as never })}>
-              Sign In
-            </OrangeSignInButton>
+            <div className="w-9" />
           )}
         </div>
       </div>

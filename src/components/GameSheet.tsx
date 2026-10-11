@@ -6,6 +6,7 @@ import { BedwarsGameSheet } from "@/components/BedwarsGameSheet";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot, setDoc, increment } from "firebase/firestore";
 import { ClapIcon } from "@/components/QbIcons";
+import { RobloxServerBrowser } from "@/components/RobloxServerBrowser";
 
 export type GameMeta = {
   t: string;
@@ -27,7 +28,7 @@ export function GameSheet({
 }: {
   g: GameMeta;
   onClose: () => void;
-  onPlay?: () => void;
+  onPlay?: (serverId?: string) => void;
 }) {
   const [launching, setLaunching] = useState(false);
   const [tab, setTab] = useState<"info" | "lobbies">("info");
@@ -53,10 +54,10 @@ export function GameSheet({
     }
   };
 
-  const handlePlay = () => {
+  const handlePlay = (serverId?: string) => {
     setLaunching(true);
     setNavHidden(true);
-    if (onPlay) onPlay();
+    if (onPlay) onPlay(serverId);
   };
 
   if (g.id?.startsWith("bedwars") || g.id === "skyblock") {
@@ -68,7 +69,7 @@ export function GameSheet({
   const playLabel = launching ? "Loading..." : "Play";
 
   return (
-    <div className="fixed inset-0 z-[120] flex justify-center bg-black/40 backdrop-blur-xs">
+    <div className="fixed inset-0 z-[170] flex justify-center bg-black/40 backdrop-blur-xs">
       <motion.section
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
@@ -170,19 +171,13 @@ export function GameSheet({
               </div>
             )}
 
-            {/* Tab: Lobbies - Private server style "No Lobby found" */}
+            {/* Tab: Lobbies - 16-Player Roblox-style Servers with PFP grid */}
             {tab === "lobbies" && (
-              <div className="py-12 flex flex-col items-center justify-center text-center select-none">
-                <div className="h-12 w-12 rounded-full bg-black/[0.04] dark:bg-white/[0.06] grid place-items-center mb-3 text-[#7d8590] dark:text-[#8e95a0]">
-                  <Globe2 className="h-6 w-6" />
-                </div>
-                <h3 className="text-[15.5px] font-black text-[#17191d] dark:text-white">
-                  No Lobby found
-                </h3>
-                <p className="text-[12.5px] text-[#7d8590] dark:text-[#8e95a0] font-medium mt-1 max-w-[240px] leading-relaxed">
-                  There are currently no active public or private lobbies for this game.
-                </p>
-              </div>
+              <RobloxServerBrowser
+                gameId={g.id || "sandbox"}
+                gameTitle={g.t}
+                onJoinServer={(serverId) => handlePlay(serverId)}
+              />
             )}
           </div>
         </div>

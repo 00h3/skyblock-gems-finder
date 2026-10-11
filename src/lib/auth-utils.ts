@@ -92,7 +92,7 @@ export async function qbSignIn(identifier: string, password: string) {
         bio: "",
         profilePhoto: "",
         createdAt: new Date().toISOString(),
-        onboardingCompleted: true,
+        onboardingCompleted: false,
         onboardingAnswers: {},
         avatarSnapshot: {
           color: "#facc15",

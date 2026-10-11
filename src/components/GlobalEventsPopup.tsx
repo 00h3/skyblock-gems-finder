@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useEventsUi } from "@/lib/events-ui";
@@ -70,14 +69,6 @@ export function GlobalEventsPopup() {
                   Events
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={closeEvents}
-                className="qb-squircle press grid h-9 w-9 place-items-center cursor-pointer text-slate-700 active:scale-95 transition-transform"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
 
             {/* Under construction */}

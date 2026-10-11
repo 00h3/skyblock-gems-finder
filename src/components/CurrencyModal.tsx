@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { X } from "lucide-react";
 import { motion } from "motion/react";
 
 export const GOLDEN_COINS_ICON = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
@@ -117,14 +116,6 @@ export function BuyModal({ type, onClose }: { type: "gold" | "gem"; onClose: () 
                 Store · Purchases currently disabled
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="qb-squircle press h-9 w-9 grid place-items-center cursor-pointer text-slate-700 active:scale-95 transition-transform"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
 
           <div className="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[12px] font-bold text-center">

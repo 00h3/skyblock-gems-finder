@@ -27,13 +27,16 @@ export const Route = createFileRoute("/login")({
 
 type Screen = "welcome" | "login" | "signup" | "forgot";
 
-// Aura gradients transitioning from warm amber/orange across screens on a pure white background
-const SCREEN_AURA_COLORS: Record<Screen, string[]> = {
-  welcome: ["#ffffff", "#ff6b35", "#fa4616", "#ff7a00", "#ff9500", "#ff521a", "#df390d"],
-  login: ["#ffffff", "#f94a1b", "#ea380d", "#d82b04", "#fa4616", "#df2600", "#b91c0a"],
-  signup: ["#ffffff", "#e11d48", "#dc2626", "#b91c1c", "#991b1b", "#f43f5e", "#7f1d1d"],
-  forgot: ["#ffffff", "#c2410c", "#ea580c", "#dc2626", "#b91c1c", "#9a3412", "#7c2d12"],
-};
+// Aura gradient matching the onboarding screen
+const ONBOARDING_AURA_COLORS = [
+  "#FFFFFF",
+  "#2979FF",
+  "#FF80AB",
+  "#FF6D00",
+  "#FFD600",
+  "#00E676",
+  "#3D5AFE",
+];
 
 function LoginPage() {
   const [screen, setScreen] = useState<Screen>("welcome");
@@ -61,21 +64,21 @@ function LoginPage() {
   return (
     <MobileShell hideNav scroll={false}>
       <div className="min-h-dvh flex flex-col relative overflow-hidden bg-white text-slate-900">
-        {/* Dynamic Aura Gradient Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-80 transition-opacity duration-700">
+        {/* Dynamic Aura Gradient Background - identical to onboarding */}
+        <div className="absolute inset-0 pointer-events-none opacity-80">
           <AnimatedGradientBackground
             Breathing={true}
-            startingGap={115}
-            breathingRange={7}
-            animationSpeed={0.025}
-            gradientColors={SCREEN_AURA_COLORS[screen]}
-            gradientStops={[30, 48, 60, 72, 82, 92, 100]}
+            startingGap={120}
+            breathingRange={6}
+            animationSpeed={0.02}
+            gradientColors={ONBOARDING_AURA_COLORS}
+            gradientStops={[35, 50, 60, 70, 80, 90, 100]}
             topOffset={-10}
           />
         </div>
 
         {/* Subtle light vignette overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/90 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-transparent to-white/90 pointer-events-none" />
 
         <div className="flex flex-col flex-1 relative z-10">
           <AnimatePresence mode="wait">
@@ -444,7 +447,7 @@ function SignupScreen({ onBack, onLogin }: { onBack: () => void; onLogin: () => 
     setError("");
     try {
       await qbSignUp(email.trim(), password, username.trim());
-      nav({ to: "/chat" as never });
+      nav({ to: "/onboarding" as never });
     } catch (err: unknown) {
       const message = humanize(err, "Signup failed.");
       setError(message);
