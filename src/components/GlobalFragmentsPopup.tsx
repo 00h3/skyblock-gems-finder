@@ -37,23 +37,25 @@ export function GlobalFragmentsPopup() {
 
           {/* Panel */}
           <motion.div
-            initial={{ y: "100%", opacity: 0.8, scale: 0.96 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: "100%", opacity: 0, scale: 0.96 }}
-            transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.8 }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 26, stiffness: 380, mass: 0.5 }}
             drag="y"
             dragConstraints={{ top: 0 }}
-            dragElastic={{ top: 0.05, bottom: 0.75 }}
+            dragElastic={{ top: 0, bottom: 0.9 }}
+            dragMomentum={false}
             onDragEnd={(_e, info) => {
-              if (info.offset.y > 75 || info.velocity.y > 300) {
+              if (info.offset.y > 60 || info.velocity.y > 220) {
                 closeFragments();
               }
             }}
-            className="relative w-full max-w-[440px] h-[85dvh] flex flex-col overflow-hidden rounded-t-[28px] border-t border-x border-black/[0.08] shadow-[0_16px_40px_rgba(15,23,42,0.14),inset_0_1px_0_rgba(255,255,255,0.98)] z-10"
+            className="relative w-full max-w-[440px] h-[85dvh] flex flex-col overflow-hidden rounded-t-[28px] border-t border-x border-black/[0.08] shadow-[0_16px_40px_rgba(15,23,42,0.14),inset_0_1px_0_rgba(255,255,255,0.98)] z-10 will-change-transform"
             style={{
               background: "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 243, 247, 0.95))",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
+              transform: "translateZ(0)",
             }}
           >
             {/* iOS Drag Handle */}

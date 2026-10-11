@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Play, Globe2, Shield, Users, Trophy, Sparkles } from "lucide-react";
+import { Play, Globe2, Shield, Users, Trophy, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import type { GameMeta } from "@/components/GameSheet";
 import { db } from "@/lib/firebase";
@@ -43,46 +43,33 @@ export function BedwarsGameSheet({
   return (
     <div className="fixed inset-0 z-[120] flex justify-center bg-black/40 backdrop-blur-xs">
       <motion.section
-        initial={{ y: "100%", opacity: 0.8, scale: 0.96 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: "100%", opacity: 0, scale: 0.96 }}
-        transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.8 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 26, stiffness: 380, mass: 0.5 }}
         drag="y"
         dragConstraints={{ top: 0 }}
-        dragElastic={{ top: 0.05, bottom: 0.75 }}
+        dragElastic={{ top: 0, bottom: 0.9 }}
+        dragMomentum={false}
         onDragEnd={(_e, info) => {
-          if (info.offset.y > 80 || info.velocity.y > 350) {
+          if (info.offset.y > 60 || info.velocity.y > 220) {
             onClose();
           }
         }}
-        className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f2f3f5] dark:bg-[#0b0c10]"
+        className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f2f3f5] dark:bg-[#0b0c10] will-change-transform"
+        style={{ transform: "translateZ(0)" }}
       >
         {/* iOS-Style Top Navigation Bar (transitions when scrolled) */}
-        <div
-          className={`absolute top-0 inset-x-0 z-40 h-14 px-4 flex items-center justify-between transition-all duration-200 ${
-            scrolled
-              ? "bg-white/85 dark:bg-[#15171c]/85 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.08] shadow-sm"
-              : "bg-transparent pointer-events-none"
-          }`}
-          style={{ paddingTop: "max(env(safe-area-inset-top), 6px)" }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="pointer-events-auto h-9 w-9 rounded-full bg-white/80 dark:bg-[#1a1c24]/80 backdrop-blur-md flex items-center justify-center text-[#17191d] dark:text-white transition-all active:scale-95 shadow-sm border-0 cursor-pointer"
-            aria-label="Back"
+        {scrolled && (
+          <div
+            className="absolute top-0 inset-x-0 z-40 h-14 px-4 flex items-center justify-center bg-white/85 dark:bg-[#15171c]/85 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.08] shadow-sm transition-all duration-200 pointer-events-none"
+            style={{ paddingTop: "max(env(safe-area-inset-top), 6px)" }}
           >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-
-          {scrolled && (
-            <span className="text-[15px] font-black text-[#17191d] dark:text-white truncate max-w-[220px] animate-fade-in">
+            <span className="text-[15px] font-black text-[#17191d] dark:text-white truncate max-w-[260px] animate-fade-in text-center">
               {gameTitle}
             </span>
-          )}
-
-          <div className="w-9" />
-        </div>
+          </div>
+        )}
 
         {/* Vertically Scrollable Experience */}
         <div
