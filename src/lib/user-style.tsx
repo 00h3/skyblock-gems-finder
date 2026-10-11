@@ -34,7 +34,38 @@ export type UserBadgeItem = {
 export function isIraUser(user: UserProfileLike | null | undefined): boolean {
   if (!user) return false;
   const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
-  return email === "mammaettahiri@gmail.com";
+  const username = typeof user.username === "string" ? user.username.toLowerCase() : "";
+  const displayName = typeof user.displayName === "string" ? user.displayName.toLowerCase() : "";
+  const name = typeof user.name === "string" ? user.name.toLowerCase() : "";
+  const n = typeof user.n === "string" ? user.n.toLowerCase() : "";
+  return (
+    email === "mammaettahiri@gmail.com" ||
+    email.includes("ira") ||
+    username === "ira" ||
+    displayName === "ira" ||
+    name === "ira" ||
+    n === "ira"
+  );
+}
+
+export function isDieUser(user: UserProfileLike | null | undefined): boolean {
+  if (!user) return false;
+  const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
+  const username = typeof user.username === "string" ? user.username.toLowerCase() : "";
+  const displayName = typeof user.displayName === "string" ? user.displayName.toLowerCase() : "";
+  const name = typeof user.name === "string" ? user.name.toLowerCase() : "";
+  const n = typeof user.n === "string" ? user.n.toLowerCase() : "";
+  return (
+    email.includes("die") ||
+    username === "die" ||
+    displayName === "die" ||
+    name === "die" ||
+    n === "die"
+  );
+}
+
+export function isStaffUser(user: UserProfileLike | null | undefined): boolean {
+  return isIraUser(user) || isDieUser(user) || user?.staff === true;
 }
 
 export function isStrUser(user: UserProfileLike | null | undefined): boolean {
@@ -51,19 +82,19 @@ export function isWoofyUser(user: UserProfileLike | null | undefined): boolean {
 
 /** Check if user has an available gradient name style */
 export function userHasGradient(user: UserProfileLike | null | undefined): boolean {
-  return isIraUser(user);
+  return isIraUser(user) || isDieUser(user);
 }
 
 /**
  * Returns class string for user's name.
- * Only mammaettahiri@gmail.com gets a gradient name.
+ * Verified staff members (Ira & Die) get a distinctive gradient name.
  */
 export function getUserNameClass(
   user: UserProfileLike | null | undefined,
   defaultClass: string = "text-foreground font-extrabold",
 ): string {
   if (!user) return defaultClass;
-  if (!isIraUser(user)) return defaultClass;
+  if (!isIraUser(user) && !isDieUser(user)) return defaultClass;
 
   const outlineClass =
     "[filter:drop-shadow(1px_0_0_#000)_drop-shadow(-1px_0_0_#000)_drop-shadow(0_1px_0_#000)_drop-shadow(0_-1px_0_#000)]";
@@ -73,7 +104,8 @@ export function getUserNameClass(
 /** Resolves all badges for a user into structured items (icon, name, id) */
 export function getUserBadges(user: UserProfileLike | null | undefined): UserBadgeItem[] {
   if (!user) return [];
-  if (!isIraUser(user)) return [];
+  const isStaff = isStaffUser(user);
+  if (!isStaff) return [];
 
   const badgesMap = new Map<string, UserBadgeItem>();
   const add = (id: string, name: string, iconUrl: string) => {
@@ -82,8 +114,8 @@ export function getUserBadges(user: UserProfileLike | null | undefined): UserBad
     }
   };
 
-  // Only Verified for mammaettahiri@gmail.com - no group badge or tag
-  add("verified", "Verified", VERIFIED_BADGE_URL);
+  // Verified staff badge for Ira, Die, and users with staff role
+  add("verified", "Verified Staff", VERIFIED_BADGE_URL);
 
   return Array.from(badgesMap.values());
 }

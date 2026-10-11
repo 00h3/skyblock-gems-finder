@@ -60,10 +60,17 @@ export function getCleanName(
   if (!user) return "Player";
   if (
     user.email === "mammaettahiri@gmail.com" ||
-    (typeof user.username === "string" && user.username.toLowerCase() === "mammaettahiri") ||
-    (typeof user.displayName === "string" && user.displayName.toLowerCase() === "mammaettahiri")
+    (typeof user.username === "string" &&
+      (user.username.toLowerCase() === "mammaettahiri" || user.username.toLowerCase() === "ira")) ||
+    (typeof user.displayName === "string" &&
+      (user.displayName.toLowerCase() === "mammaettahiri" || user.displayName.toLowerCase() === "ira"))
   )
     return "IRA";
+  if (
+    (typeof user.username === "string" && user.username.toLowerCase() === "die") ||
+    (typeof user.displayName === "string" && user.displayName.toLowerCase() === "die")
+  )
+    return "Die";
   const raw = user.username || user.displayName || user.n || user.name;
   if (!raw) {
     return typeof user.email === "string" ? user.email.split("@")[0] : "Player";
@@ -212,7 +219,13 @@ export function ProfileSheet({
                 typeof data.friendCount === "number" ? data.friendCount : prev?.friendCount,
               createdAt: data.createdAt ?? prev?.createdAt,
               islandId: data.islandId ?? prev?.islandId,
-              staff: data.staff ?? prev?.staff,
+              staff:
+                data.staff === true ||
+                data.username?.toLowerCase() === "ira" ||
+                data.username?.toLowerCase() === "die" ||
+                prev?.username?.toLowerCase() === "ira" ||
+                prev?.username?.toLowerCase() === "die" ||
+                prev?.staff === true,
               badgeEquipped: data.badgeEquipped ?? prev?.badgeEquipped,
               badges: data.badges ?? data.badgesList ?? data.ownedBadges ?? prev?.badges,
               gradientName: data.gradientName ?? data.nameGradient ?? prev?.gradientName,

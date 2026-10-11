@@ -14,7 +14,16 @@ export function isIraAccount(
   user: { email?: string | null; username?: string; customId?: string } | null | undefined,
 ) {
   const email = typeof user?.email === "string" ? user.email.toLowerCase() : "";
-  return email === "mammaettahiri@gmail.com";
+  const username = typeof user?.username === "string" ? user.username.toLowerCase() : "";
+  return email === "mammaettahiri@gmail.com" || username === "ira";
+}
+
+export function isDieAccount(
+  user: { email?: string | null; username?: string; customId?: string } | null | undefined,
+) {
+  const email = typeof user?.email === "string" ? user.email.toLowerCase() : "";
+  const username = typeof user?.username === "string" ? user.username.toLowerCase() : "";
+  return email.includes("die") || username === "die";
 }
 
 function frameAssetFor(frame: AvatarFrameId): string | null {
@@ -105,9 +114,15 @@ export function GlossyAvatar({
   const isFirebaseImage =
     photoUrl?.includes("firebasestorage.googleapis.com") || photoUrl?.includes("qblock-app");
   const hasSnapshot = snapshot != null && Object.keys(snapshot).length > 0;
+  const isGif =
+    typeof photoUrl === "string" &&
+    (photoUrl.toLowerCase().includes(".gif") ||
+      photoUrl.startsWith("data:image/gif") ||
+      photoUrl.includes("format=gif"));
   const isThumbnail = typeof height === "number" && height <= 64;
-  // Always prefer 3D unless explicitly requested not to, or thumbnail size, or non-firebase custom image.
-  const prefer3D = !imageFallbackOnly && !portrait && !isThumbnail && (!photoUrl || isFirebaseImage);
+  // Always prefer 3D unless explicitly requested not to, or thumbnail size, or animated GIF, or non-firebase custom image.
+  const prefer3D =
+    !isGif && !imageFallbackOnly && !portrait && !isThumbnail && (!photoUrl || isFirebaseImage);
 
   return (
     <div

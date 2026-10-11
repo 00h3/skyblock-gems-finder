@@ -111,14 +111,26 @@ function PeopleProfilePage() {
           friendCount,
           createdAt: data?.createdAt,
           avatarSnapshot: normalizeAvatarSnapshot(data) as ProfileUser["avatarSnapshot"],
-          staff: String(data?.username ?? username).toLowerCase() === "ira" || data?.staff === true,
+          staff:
+            String(data?.username ?? username).toLowerCase() === "ira" ||
+            String(data?.username ?? username).toLowerCase() === "die" ||
+            data?.staff === true,
         });
         setLoading(false);
       }
     })().catch(() => {
       if (!cancelled) {
         setLoading(false);
-        setProfile({ id: username, n: username, username, color: "#f4c430", online: false });
+        const lower = username.toLowerCase();
+        const isStaff = lower === "ira" || lower === "die";
+        setProfile({
+          id: username,
+          n: lower === "ira" ? "IRA" : lower === "die" ? "Die" : username,
+          username,
+          color: "#f4c430",
+          online: false,
+          staff: isStaff,
+        });
       }
     });
     return () => {

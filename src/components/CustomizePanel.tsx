@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { Check, LockKeyhole, Palette, Sparkles } from "lucide-react";
-import { GlossyAvatar, isIraAccount, type AvatarFrame } from "@/components/GlossyAvatar";
+import { GlossyAvatar, isIraAccount, isDieAccount, type AvatarFrame } from "@/components/GlossyAvatar";
 import { useAuth } from "@/lib/auth-context";
 import {
   setEquippedFrame,
@@ -48,6 +48,8 @@ const FRAME_ITEMS: Array<{
 export function CustomizePanel() {
   const { qbUser } = useAuth();
   const isIra = isIraAccount(qbUser);
+  const isDie = isDieAccount(qbUser);
+  const isStaff = isIra || isDie || Boolean(qbUser?.staff);
   const equippedFrame = useEquippedFrame();
   const avatarColor = useAvatarColor();
   const hairColor = useHairColor();
@@ -69,7 +71,7 @@ export function CustomizePanel() {
   }, [qbUser, equippedFrame]);
 
   function equipFrame(frame: AvatarFrame) {
-    if (frame === "staff" && !isIra && !qbUser?.staff) return;
+    if (frame === "staff" && !isStaff) return;
     setEquippedFrame(equippedFrame === frame && frame !== "none" ? "none" : frame);
   }
 
@@ -84,7 +86,7 @@ export function CustomizePanel() {
         <div className="mt-3 grid grid-cols-2 gap-2.5">
           {FRAME_ITEMS.map((item) => {
             const active = equippedFrame === item.id;
-            const locked = Boolean(item.restrictedFor && item.restrictedFor(qbUser) && !isIra);
+            const locked = Boolean(item.restrictedFor && item.restrictedFor(qbUser) && !isStaff);
             return (
               <button
                 key={item.id}

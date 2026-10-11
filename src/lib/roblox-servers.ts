@@ -41,155 +41,42 @@ export interface GameServer {
 const SERVER_CAP = 16;
 const SERVERS_COL = "game_servers";
 
-// Realistic avatars for lobby slots & simulated community players
-export const COMMUNITY_BOT_PLAYERS: ServerPlayer[] = [
-  {
-    uid: "bot_ira",
-    name: "IRA",
-    username: "ira_official",
-    photo: "https://file.garden/alGOOylwpAfCa6qP/IMG_6551_1786910421451.jpeg",
-    frame: "staff",
-    joinedAt: Date.now() - 1000 * 120,
-    lastSeen: Date.now(),
-    isHost: true,
-  },
-  {
-    uid: "bot_ned",
-    name: "Ned",
-    username: "ned_the_builder",
-    photo: "https://file.garden/alGOOylwpAfCa6qP/C24029F2-83D1-4C8B-B67C-71A7E0186ED4.png",
-    frame: "early-beta",
-    joinedAt: Date.now() - 1000 * 95,
-    lastSeen: Date.now(),
-  },
-  {
-    uid: "bot_nelly",
-    name: "Nelly",
-    username: "nelly_sky",
-    photo: "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png",
-    frame: "witch-rose",
-    joinedAt: Date.now() - 1000 * 70,
-    lastSeen: Date.now(),
-  },
-  {
-    uid: "bot_pixel",
-    name: "PixelKnight",
-    username: "pixel_king99",
-    photo: "https://api.dicebear.com/7.x/bottts/svg?seed=pixelking",
-    frame: "emerald",
-    joinedAt: Date.now() - 1000 * 50,
-    lastSeen: Date.now(),
-  },
-  {
-    uid: "bot_shadow",
-    name: "ShadowNinja",
-    username: "shadow_qblock",
-    photo: "https://api.dicebear.com/7.x/bottts/svg?seed=shadowninja",
-    frame: "neon-cyber",
-    joinedAt: Date.now() - 1000 * 40,
-    lastSeen: Date.now(),
-  },
-  {
-    uid: "bot_luna",
-    name: "LunaVoxel",
-    username: "luna_builder",
-    photo: "https://api.dicebear.com/7.x/bottts/svg?seed=lunavoxel",
-    frame: "gold-treasure",
-    joinedAt: Date.now() - 1000 * 30,
-    lastSeen: Date.now(),
-  },
-  {
-    uid: "bot_vortex",
-    name: "VortexPulse",
-    username: "vortex_pvp",
-    photo: "https://api.dicebear.com/7.x/bottts/svg?seed=vortexpulse",
-    frame: "ice",
-    joinedAt: Date.now() - 1000 * 20,
-    lastSeen: Date.now(),
-  },
-  {
-    uid: "bot_ember",
-    name: "EmberFlame",
-    username: "ember_craft",
-    photo: "https://api.dicebear.com/7.x/bottts/svg?seed=emberflame",
-    joinedAt: Date.now() - 1000 * 10,
-    lastSeen: Date.now(),
-  },
-];
-
-// Fallback initial servers for offline or initial Firestore boots
-function getDefaultInitialServers(gameId: string): GameServer[] {
-  const normGame = gameId.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-  const now = Date.now();
-  return [
-    {
-      id: `${normGame}-server-1`,
-      gameId,
-      name: "Server #1 • Public",
-      region: "US-East",
-      ping: 28,
-      maxPlayers: 16,
-      players: COMMUNITY_BOT_PLAYERS.slice(0, 6),
-      playerCount: 6,
-      createdAt: now - 3600_000,
-      lastActive: now,
-    },
-    {
-      id: `${normGame}-server-2`,
-      gameId,
-      name: "Server #2 • Fast Ping",
-      region: "EU-West",
-      ping: 34,
-      maxPlayers: 16,
-      players: COMMUNITY_BOT_PLAYERS.slice(2, 5),
-      playerCount: 3,
-      createdAt: now - 1800_000,
-      lastActive: now,
-    },
-    {
-      id: `${normGame}-server-3`,
-      gameId,
-      name: "Server #3 • Casual Hub",
-      region: "US-West",
-      ping: 42,
-      maxPlayers: 16,
-      players: [],
-      playerCount: 0,
-      createdAt: now - 900_000,
-      lastActive: now,
-    },
-  ];
-}
-
 /**
- * Ensures at least a baseline set of servers exist in Firestore for this game.
+ * Fetch real existing servers from Firestore for this game.
+ * Never generates fake or simulated lobbies.
  */
 export async function seedInitialServersIfEmpty(gameId: string): Promise<GameServer[]> {
   try {
     const q = query(
       collection(db, SERVERS_COL),
       where("gameId", "==", gameId),
-      limit(10),
+      limit(20),
     );
     const snap = await getDocs(q);
     if (!snap.empty) {
-      return snap.docs.map((d) => d.data() as GameServer);
+      return snap.docs.map((d) => {
+        const data = d.data() as GameServer;
+        const players = (data.players || [])
+          .filter((p) => p && !p.uid.startsWith("bot_"))
+          .slice(0, SERVER_CAP);
+        return {
+          ...data,
+          maxPlayers: 16,
+          players,
+          playerCount: players.length,
+        };
+      });
     }
-
-    // Otherwise create the default servers
-    const defaults = getDefaultInitialServers(gameId);
-    for (const srv of defaults) {
-      await setDoc(doc(db, SERVERS_COL, srv.id), srv, { merge: true });
-    }
-    return defaults;
+    return [];
   } catch (err) {
-    console.warn("Could not query/seed Firestore servers, using local default:", err);
-    return getDefaultInitialServers(gameId);
+    console.warn("Could not query Firestore servers:", err);
+    return [];
   }
 }
 
 /**
- * Subscribe in real-time to active servers for this game.
+ * Subscribe in real-time to real active servers for this game.
+ * Strictly presents actual application data.
  */
 export function subscribeGameServers(
   gameId: string,
@@ -197,25 +84,20 @@ export function subscribeGameServers(
 ): () => void {
   let unsubscribed = false;
 
-  // Make sure defaults exist first
-  seedInitialServersIfEmpty(gameId).then((initialList) => {
-    if (!unsubscribed) {
-      onUpdate(initialList);
-    }
-  });
-
   try {
     const q = query(collection(db, SERVERS_COL), where("gameId", "==", gameId));
     const unsubscribe = onSnapshot(
       q,
       (snap) => {
         if (snap.empty) {
-          onUpdate(getDefaultInitialServers(gameId));
+          onUpdate([]);
           return;
         }
         const servers: GameServer[] = snap.docs.map((d) => {
           const data = d.data() as GameServer;
-          const players = (data.players || []).slice(0, SERVER_CAP);
+          const players = (data.players || [])
+            .filter((p) => p && !p.uid.startsWith("bot_"))
+            .slice(0, SERVER_CAP);
           return {
             ...data,
             maxPlayers: 16,
@@ -224,19 +106,22 @@ export function subscribeGameServers(
           };
         });
 
-        // Sort: active servers with players first, then lowest ping
-        servers.sort((a, b) => {
+        // Filter out leftover fake test servers if any had bot players only
+        const realServers = servers.filter((s) => !s.id.includes("server-1") || s.playerCount > 0);
+
+        // Sort: active servers with players first, then newest
+        realServers.sort((a, b) => {
           if (b.playerCount !== a.playerCount) {
             return b.playerCount - a.playerCount;
           }
-          return a.ping - b.ping;
+          return (b.lastActive || 0) - (a.lastActive || 0);
         });
 
-        onUpdate(servers);
+        onUpdate(realServers);
       },
       (err) => {
-        console.warn("Server subscription error, using local defaults:", err);
-        onUpdate(getDefaultInitialServers(gameId));
+        console.warn("Server subscription error:", err);
+        onUpdate([]);
       },
     );
 
@@ -246,7 +131,7 @@ export function subscribeGameServers(
     };
   } catch (err) {
     console.warn("Failed to listen to servers:", err);
-    onUpdate(getDefaultInitialServers(gameId));
+    onUpdate([]);
     return () => {
       unsubscribed = true;
     };
@@ -261,20 +146,24 @@ export async function getGameServers(gameId: string): Promise<GameServer[]> {
     const q = query(collection(db, SERVERS_COL), where("gameId", "==", gameId));
     const snap = await getDocs(q);
     if (snap.empty) {
-      return await seedInitialServersIfEmpty(gameId);
+      return [];
     }
-    return snap.docs.map((d) => {
-      const data = d.data() as GameServer;
-      const players = (data.players || []).slice(0, SERVER_CAP);
-      return {
-        ...data,
-        maxPlayers: 16,
-        players,
-        playerCount: players.length,
-      };
-    });
+    return snap.docs
+      .map((d) => {
+        const data = d.data() as GameServer;
+        const players = (data.players || [])
+          .filter((p) => p && !p.uid.startsWith("bot_"))
+          .slice(0, SERVER_CAP);
+        return {
+          ...data,
+          maxPlayers: 16 as const,
+          players,
+          playerCount: players.length,
+        };
+      })
+      .filter((s) => !s.id.includes("server-1") || s.playerCount > 0);
   } catch {
-    return getDefaultInitialServers(gameId);
+    return [];
   }
 }
 
