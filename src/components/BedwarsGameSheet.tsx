@@ -47,6 +47,14 @@ export function BedwarsGameSheet({
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: "100%", opacity: 0, scale: 0.96 }}
         transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.8 }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0.75 }}
+        onDragEnd={(_e, info) => {
+          if (info.offset.y > 80 || info.velocity.y > 350) {
+            onClose();
+          }
+        }}
         className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f2f3f5] dark:bg-[#0b0c10]"
       >
         {/* iOS-Style Top Navigation Bar (transitions when scrolled) */}
@@ -76,29 +84,35 @@ export function BedwarsGameSheet({
           <div className="w-9" />
         </div>
 
-        {/* Vertically Scrollable Experience: Full-size PFP naturally scrolls out of view */}
+        {/* Vertically Scrollable Experience */}
         <div
           onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 100)}
           className="relative flex-1 overflow-y-auto overscroll-contain ios-scroll hide-scrollbar"
         >
-          {/* Wide Landscape Rectangle Game Banner and Title Hero (Only on popup) */}
-          <div className="flex flex-col items-center justify-center pt-14 pb-5 px-4 shrink-0 select-none">
-            <div className="w-full max-w-[390px] aspect-[16/9] rounded-[22px] overflow-hidden shadow-md bg-white dark:bg-[#16181f] transition-transform duration-300 border border-black/[0.06] dark:border-white/[0.08]">
-              <img
-                src={g.icon || "/bedwars-own-icon.png"}
-                alt={gameTitle}
-                className="h-full w-full object-cover"
-              />
+          {/* Full-bleed Full Screen Banner Image */}
+          <div className="relative w-full h-[270px] sm:h-[300px] shrink-0 select-none overflow-hidden">
+            <img
+              src={g.icon || "/bedwars-own-icon.png"}
+              alt={gameTitle}
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/35 pointer-events-none" />
+            <div className="absolute bottom-4 inset-x-5 z-10">
+              <h1 className="text-[24px] font-black tracking-tight text-white drop-shadow-md leading-tight">
+                {gameTitle}
+              </h1>
+              {g.p && (
+                <p className="mt-0.5 text-[12px] font-semibold text-white/80 drop-shadow">
+                  {g.p} playing
+                </p>
+              )}
             </div>
-            <h1 className="mt-4 text-[22px] font-black tracking-tight text-[#17191d] dark:text-white text-center px-4 truncate max-w-full leading-tight">
-              {gameTitle}
-            </h1>
           </div>
 
           {/* Modal Content Card */}
-          <div className="rounded-t-[32px] bg-white dark:bg-[#15171c] px-5 pt-4 pb-32 shadow-[0_-8px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_25px_rgba(0,0,0,0.4)] min-h-[500px]">
+          <div className="rounded-t-[28px] bg-white dark:bg-[#15171c] px-5 pt-4 pb-32 -mt-4 relative z-10 shadow-[0_-8px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_25px_rgba(0,0,0,0.4)] min-h-[500px]">
             {/* iOS Sheet Handle Indicator */}
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15 cursor-grab touch-none" />
 
             {/* Apple iOS Segmented Control: Info & Lobbies */}
             <div className="flex rounded-[14px] p-1 bg-black/[0.05] dark:bg-white/[0.08] mb-5">
@@ -166,7 +180,7 @@ export function BedwarsGameSheet({
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               <Play className="h-4 w-4 fill-white" />
-              Play Bedwars
+              Play
             </span>
           </button>
 

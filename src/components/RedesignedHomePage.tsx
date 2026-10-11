@@ -95,8 +95,17 @@ export function RedesignedHomePage({
           </form>
         </div>
 
-        {/* Quick Entries: Fragments, Events (placed above categories) */}
-        <div className="mt-3.5 px-4 grid grid-cols-2 gap-2.5">
+        {/* Quick Entries: 3 glossy boxes layout (Gems, Fragments, Events) */}
+        <div className="mt-3.5 px-4 flex items-center gap-2.5">
+          {/* First box: Opens Gems */}
+          <button
+            type="button"
+            onClick={() => setBuyModal("gem")}
+            className="qb-squircle press relative h-[52px] w-[52px] shrink-0 cursor-pointer active:scale-95 transition-transform"
+            aria-label="Gems"
+          />
+
+          {/* Second box: Opens Fragments */}
           <button
             type="button"
             onClick={() => {
@@ -104,25 +113,11 @@ export function RedesignedHomePage({
                 openFragments();
               }
             }}
-            className="press qb-squircle flex items-center gap-2.5 p-2 bg-white border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.03)] cursor-pointer active:scale-95 transition-transform"
-          >
-            <div className="w-[42px] h-[42px] rounded-[10px] overflow-hidden shrink-0 shadow-inner bg-[#fff3ec] flex items-center justify-center p-1">
-              <img
-                src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ded48210a85ba665493b1474.png"
-                alt="Fragments"
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            </div>
-            <div className="flex flex-col items-start min-w-0 flex-1">
-              <span className="text-[13px] font-extrabold tracking-tight text-[#141414] truncate w-full text-left">
-                Fragments
-              </span>
-              <span className="text-[11px] font-semibold text-[#8b929d] truncate w-full text-left">
-                Earn rewards
-              </span>
-            </div>
-          </button>
+            className="qb-squircle press relative h-[52px] w-[52px] shrink-0 cursor-pointer active:scale-95 transition-transform"
+            aria-label="Fragments"
+          />
+
+          {/* Third box: Opens Events */}
           <button
             type="button"
             onClick={() => {
@@ -130,25 +125,9 @@ export function RedesignedHomePage({
                 openEvents();
               }
             }}
-            className="press qb-squircle flex items-center gap-2.5 p-2 bg-white border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.03)] cursor-pointer active:scale-95 transition-transform"
-          >
-            <div className="w-[42px] h-[42px] rounded-[10px] overflow-hidden shrink-0 shadow-inner bg-[#f1f2f4] flex items-center justify-center p-1">
-              <img
-                src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ab448210ace3ea08875f15f6.png"
-                alt="Events"
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            </div>
-            <div className="flex flex-col items-start min-w-0 flex-1">
-              <span className="text-[13px] font-extrabold tracking-tight text-[#141414] truncate w-full text-left">
-                Events
-              </span>
-              <span className="text-[11px] font-semibold text-[#8b929d] truncate w-full text-left">
-                Calendar
-              </span>
-            </div>
-          </button>
+            className="qb-squircle press relative h-[52px] flex-1 cursor-pointer active:scale-95 transition-transform"
+            aria-label="Events"
+          />
         </div>
 
         {/* Categories (now down below Fragments and Events) */}
@@ -178,7 +157,7 @@ export function RedesignedHomePage({
               <button
                 key={`recent-${g.id}-${i}`}
                 onClick={() => setSheetGame(g)}
-                className="press relative h-[72px] w-[72px] shrink-0 rounded-[16px] overflow-hidden border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
+                className="press relative h-[72px] w-[72px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
                 title={g.t}
                 aria-label={g.t}
               >
@@ -202,20 +181,20 @@ export function RedesignedHomePage({
               <button
                 key={`${g.id}-${i}`}
                 onClick={() => setSheetGame(g)}
-                className="press text-left active:scale-[0.97] transition-transform"
+                className="press flex flex-col items-start w-full text-left active:scale-[0.97] transition-transform"
               >
-                <span className="qb-squircle relative block aspect-square overflow-hidden">
+                <span className="relative block aspect-square w-full overflow-hidden rounded-[10px] border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none]">
                   {g.icon ? (
                     <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
                   ) : null}
                 </span>
-                <span className="mt-1.5 block truncate text-[11.5px] font-extrabold tracking-tight text-[#141414]">
+                <span className="mt-1.5 block w-full truncate text-left text-[11.5px] font-extrabold tracking-tight text-[#141414]">
                   {g.t}
                 </span>
                 {/* Inverted: Heart first (99%), then player icon (1), bold grey */}
-                <span className="mt-0.5 flex items-center gap-2 text-[10.5px] font-extrabold text-[#7e8590]">
+                <span className="mt-0.5 flex w-full items-center gap-2 text-left text-[10.5px] font-extrabold text-[#7e8590]">
                   <span className="flex items-center gap-0.5">
-                    <PinkHeartIcon className="h-3.5 w-3.5 filter drop-shadow-[0_1px_2px_rgba(244,63,94,0.35)]" />
+                    <PinkHeartIcon className="h-3.5 w-3.5" />
                     <span className="font-extrabold text-[#7e8590]">99%</span>
                   </span>
                   <span className="flex items-center gap-0.5">
@@ -227,27 +206,6 @@ export function RedesignedHomePage({
             ))}
           </div>
         </section>
-      </div>
-
-      {/* Floating Fragments Orange Heart Puzzle Button in Bottom Right */}
-      <div className="fixed bottom-[calc(70px+env(safe-area-inset-bottom))] right-3 sm:right-[max(12px,calc(50vw-208px))] z-40 pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              openFragments();
-            }
-          }}
-          className="press group relative flex h-[74px] w-[74px] items-center justify-center bg-transparent border-0 outline-none p-0 cursor-pointer active:scale-95 transition-transform"
-          aria-label="Open Fragments"
-        >
-          <img
-            src="https://maxwell.z3ki.dev/bot/_files/orange-heart-puzzle/file_000000001ef881f4aefca7e5b6db02db.png"
-            alt="Fragments"
-            className="h-full w-full object-contain filter drop-shadow-[0_10px_20px_rgba(250,70,22,0.65)] select-none pointer-events-none"
-            draggable={false}
-          />
-        </button>
       </div>
 
       {showSelfProfile && qbUser && (

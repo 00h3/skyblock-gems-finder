@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { X, Check } from "lucide-react";
-import { addCurrency } from "@/lib/currency";
+import { X } from "lucide-react";
+import { motion } from "motion/react";
 
 export const GOLDEN_COINS_ICON = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
 export const PINK_GEM_ICON =
@@ -63,59 +63,72 @@ export const gemPackages = [
 export function BuyModal({ type, onClose }: { type: "gold" | "gem"; onClose: () => void }) {
   const [tab, setTab] = useState<"gold" | "gem">(type);
   const [selected, setSelected] = useState<number | null>(null);
-  const [boughtNotice, setBoughtNotice] = useState<string | null>(null);
   const pkgs = tab === "gold" ? goldPackages : gemPackages;
   const isGold = tab === "gold";
 
-  const executePurchase = (pkgId: number) => {
-    const pkg = pkgs.find((p) => p.id === pkgId);
-    if (!pkg) return;
-    const baseAmt = parseInt(pkg.amount.replace(/,/g, ""), 10) || 0;
-    const bonusAmt = pkg.bonus ? parseInt(pkg.bonus.replace(/[^0-9]/g, ""), 10) || 0 : 0;
-    const total = baseAmt + bonusAmt;
-    addCurrency(isGold ? "gold" : "gems", total);
-    setBoughtNotice(`+${total.toLocaleString()} ${isGold ? "Gold" : "Gems"} added!`);
-    setTimeout(() => {
-      onClose();
-    }, 450);
-  };
-
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={onClose} />
-      <div
-        className="relative w-full max-w-[440px] bg-background rounded-t-[34px] shadow-level3 animate-sheet-up overflow-hidden"
-        style={{ maxHeight: "88dvh" }}
+    <div className="fixed inset-0 z-[120] flex items-end justify-center pointer-events-auto">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/60 cursor-pointer"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ y: "100%", opacity: 0.8, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: "100%", opacity: 0, scale: 0.96 }}
+        transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.8 }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0.75 }}
+        onDragEnd={(_e, info) => {
+          if (info.offset.y > 75 || info.velocity.y > 300) {
+            onClose();
+          }
+        }}
+        className="relative w-full max-w-[440px] rounded-t-[28px] border-t border-x border-black/[0.08] shadow-[0_16px_40px_rgba(15,23,42,0.14),inset_0_1px_0_rgba(255,255,255,0.98)] overflow-hidden z-10"
+        style={{
+          maxHeight: "88dvh",
+          background: "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 243, 247, 0.95))",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
       >
-        <div className="pt-2.5 flex justify-center">
-          <div className="h-1.5 w-10 rounded-full bg-border" />
+        {/* iOS Drag Handle */}
+        <div className="pt-3 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none">
+          <div className="h-1.5 w-12 rounded-full bg-slate-300/80" />
         </div>
-        <div className="px-5 pt-4 pb-5">
-          <div className="flex items-center justify-between mb-4">
+
+        <div className="px-5 pt-3 pb-6">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <h2
-                className="text-[20px] font-extrabold"
+                className="text-[20px] font-extrabold text-[#141414]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 Get Currency
               </h2>
-              <p className="text-[11px] font-medium text-text-muted">
-                Instant delivery · Fast & Secure
+              <p className="text-[11px] font-medium text-[#8b929d]">
+                Store · Purchases currently disabled
               </p>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="press close-button h-10 w-10 bg-surface-2 grid place-items-center"
+              className="qb-squircle press h-9 w-9 grid place-items-center cursor-pointer text-slate-700 active:scale-95 transition-transform"
+              aria-label="Close"
             >
-              <X className="h-[18px] w-[18px]" />
+              <X className="h-4 w-4" />
             </button>
           </div>
-          {boughtNotice && (
-            <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[13px] font-extrabold text-center flex items-center justify-center gap-2 animate-scale-in">
-              <Check className="h-4 w-4 text-emerald-500" strokeWidth={3} />
-              {boughtNotice}
-            </div>
-          )}
+
+          <div className="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[12px] font-bold text-center">
+            {isGold ? "Coins purchases are currently disabled." : "Gems purchases are currently disabled."}
+          </div>
+
           <div className="flex gap-2 p-1 bg-surface-2 rounded-2xl mb-4">
             {(["gold", "gem"] as const).map((t) => (
               <button
@@ -140,11 +153,8 @@ export function BuyModal({ type, onClose }: { type: "gold" | "gem"; onClose: () 
             {pkgs.map((p) => (
               <button
                 key={p.id}
-                onClick={() => {
-                  setSelected(p.id);
-                  executePurchase(p.id);
-                }}
-                className={`press w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200 ${selected === p.id ? "border-primary bg-primary/8 shadow-[0_0_0_2px_var(--primary)]" : "border-border bg-surface-2 hover:border-primary/40"}`}
+                disabled={true}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-black/[0.06] bg-black/[0.02] opacity-60 cursor-not-allowed transition-all duration-200"
               >
                 <div
                   className={`h-11 w-11 rounded-xl grid place-items-center shadow-level1 shrink-0 ${isGold ? "bg-gradient-to-br from-amber-400 to-yellow-600" : "bg-gradient-to-br from-pink-400 to-rose-600"}`}
@@ -166,25 +176,17 @@ export function BuyModal({ type, onClose }: { type: "gold" | "gem"; onClose: () 
                   </span>
                 )}
                 <div className="text-[14px] font-extrabold">{p.price}</div>
-                {selected === p.id && (
-                  <div className="h-5 w-5 rounded-full bg-primary grid place-items-center animate-micro-pop">
-                    <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
-                  </div>
-                )}
               </button>
             ))}
           </div>
           <button
-            onClick={() => (selected ? executePurchase(selected) : null)}
-            disabled={!selected && !pkgs[0]}
-            className={`press w-full h-14 mt-4 rounded-full font-extrabold text-[15px] flex items-center justify-center gap-2 transition-all duration-200 ${selected || pkgs[0] ? "bg-primary text-primary-foreground shadow-level2" : "bg-surface-2 text-text-muted"}`}
+            disabled={true}
+            className="w-full h-14 mt-4 rounded-full font-extrabold text-[15px] flex items-center justify-center gap-2 bg-slate-200 text-slate-400 cursor-not-allowed border border-black/[0.06]"
           >
-            {selected
-              ? `Instant Buy — ${pkgs.find((p) => p.id === selected)?.price}`
-              : "Tap any package for instant purchase"}
+            Purchases are currently disabled
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
