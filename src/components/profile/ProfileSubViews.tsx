@@ -652,7 +652,10 @@ export function EditAvatarView({
         <div className="flex flex-col items-center pt-2">
           <div className="relative h-[132px] w-[132px] flex items-center justify-center">
             {/* Inner Avatar PFP */}
-            <div className="h-[114px] w-[114px] rounded-[22px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10 shadow-sm">
+            <div
+              className="h-[114px] w-[114px] rounded-[22px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10 shadow-sm cursor-pointer"
+              onClick={onBack}
+            >
               {currentPhoto ? (
                 <img src={currentPhoto} alt="Avatar" className="h-full w-full object-cover" />
               ) : (

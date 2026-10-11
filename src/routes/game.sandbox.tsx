@@ -3275,7 +3275,7 @@ export function SandboxGame({
         presenceAcc += dt;
         if (presenceAcc >= 0.25) {
           presenceAcc = 0;
-          if (!blockFall && meRef.current.uid && !meRef.current.uid.startsWith("guest")) {
+          if (!blockFall && meRef.current.uid) {
             void updateSandboxPresence({
               uid: meRef.current.uid,
               name: meRef.current.name,
@@ -3286,10 +3286,11 @@ export function SandboxGame({
               photo: meRef.current.photo,
               frame: meRef.current.frame,
               badges: meRef.current.badges,
-            }).catch(() => {
-              // Silently ignore transient network drops for presence
+            }).catch((err) => {
+              // Handle error using handleFirestoreError if needed
+              console.error("Sandbox presence update failed", err);
             });
-          } else if (blockFall && meRef.current.uid && !meRef.current.uid.startsWith("guest")) {
+          } else if (blockFall && meRef.current.uid) {
             void updateBlockFallPresence({
               uid: meRef.current.uid,
               name: meRef.current.name,
@@ -3300,8 +3301,9 @@ export function SandboxGame({
               photo: meRef.current.photo,
               frame: meRef.current.frame,
               badges: meRef.current.badges,
-            }).catch(() => {
-              // Silently ignore transient network drops for presence
+            }).catch((err) => {
+              // Handle error using handleFirestoreError if needed
+              console.error("BlockFall presence update failed", err);
             });
           }
         }

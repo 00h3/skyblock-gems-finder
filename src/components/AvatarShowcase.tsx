@@ -307,7 +307,7 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
               className="text-[13px] font-black tracking-tight text-[#17191d] tabular-nums"
               suppressHydrationWarning
             >
-              {gold > 0 ? gold.toLocaleString("de-DE") : "1.532.669"}
+              {gold.toLocaleString("de-DE")}
             </span>
           </button>
         </header>

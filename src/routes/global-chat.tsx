@@ -118,23 +118,53 @@ function GlobalChat() {
     };
   }, []);
 
+  const [chatError, setChatError] = useState("");
+  const [sending, setSending] = useState(false);
+
   async function send() {
     const text = val.trim();
-    if (!text || !myUid || !qbUser) return;
+    if (!text) return;
     setVal("");
+    setSending(true);
+    setChatError("");
+
+    let uid = qbUser?.uid;
+    let name = qbUser ? userDisplayName(qbUser, qbUser.uid) : "Guest";
+
+    if (!uid) {
+      try {
+        let guestId = localStorage.getItem("qb_guest_id");
+        if (!guestId) {
+          guestId = "guest_" + Math.random().toString(36).substring(2, 9);
+          localStorage.setItem("qb_guest_id", guestId);
+        }
+        uid = guestId;
+      } catch {
+        uid = "guest_player";
+      }
+    }
+
     try {
       await addDoc(collection(db, "global_chat"), {
-        senderId: qbUser.uid,
-        senderName: userDisplayName(qbUser, qbUser.uid),
-        username: qbUser.username,
-        profilePhoto: qbUser.profilePhoto || null,
-        avatarSnapshot: qbUser.avatarSnapshot ?? null,
+        senderId: uid,
+        senderName: name,
+        username: qbUser?.username || null,
+        profilePhoto: qbUser?.profilePhoto || null,
+        avatarSnapshot: qbUser?.avatarSnapshot ?? null,
         frameId: avatarFrameFrom(qbUser) ?? null,
         text,
         timestamp: serverTimestamp(),
       });
-    } catch (e) {
+    } catch (e: any) {
+      setVal(text);
+      if (e.code === 'permission-denied') {
+        setChatError("Missing permission to chat.");
+      } else {
+        setChatError("Message could not be sent. Please try again.");
+      }
       console.error(e);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -244,6 +274,14 @@ function GlobalChat() {
           })}
         </div>
 
+        {chatError && (
+          <p
+            role="alert"
+            className="border-t border-rose-100 bg-rose-50 px-4 py-2 text-[11px] font-bold text-rose-600"
+          >
+            {chatError}
+          </p>
+        )}
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-[#121418]/95 backdrop-blur-md border-t border-black/[0.06] dark:border-white/[0.08] px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2.5">
           <div className="max-w-2xl mx-auto w-full">
             <div className="flex h-11 items-center rounded-[16px] bg-[#f0f2f5] dark:bg-[#1a1d24] border border-black/[0.06] dark:border-white/[0.08] overflow-hidden pl-3 pr-0 focus-within:border-black/20 dark:focus-within:border-white/20 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
@@ -259,11 +297,11 @@ function GlobalChat() {
               <button
                 type="button"
                 onClick={send}
-                disabled={!val.trim()}
+                disabled={!val.trim() || sending}
                 className="relative h-full px-4 shrink-0 bg-gradient-to-b from-[#ff6030] via-[#fa4616] to-[#dd380a] text-white flex items-center justify-center overflow-hidden transition-all duration-140 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.96] select-none disabled:opacity-40 disabled:pointer-events-none cursor-pointer border-l border-[#e03a0c] shadow-[inset_1px_0_0_rgba(255,255,255,0.2)] before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:bg-gradient-to-b before:from-white/35 before:to-transparent before:pointer-events-none"
                 aria-label="Send"
               >
-                <Send className="relative z-10 h-3.5 w-3.5 fill-white text-white ml-0.5" />
+                {sending ? "…" : <Send className="relative z-10 h-3.5 w-3.5 fill-white text-white ml-0.5" />}
               </button>
             </div>
           </div>

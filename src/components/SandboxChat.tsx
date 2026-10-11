@@ -145,28 +145,45 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
   const send = async () => {
     const text = val.trim();
     if (!text) return;
-    if (!qbUser) {
-      setChatError("Sign in to chat with other players.");
-      return;
-    }
     if (sending) return;
     setVal("");
     setSending(true);
     setChatError("");
+
+    let uid = qbUser?.uid;
+    let name = qbUser?.displayName || qbUser?.username || "Guest";
+
+    if (!uid) {
+      try {
+        let guestId = localStorage.getItem("qb_guest_id");
+        if (!guestId) {
+          guestId = "guest_" + Math.random().toString(36).substring(2, 9);
+          localStorage.setItem("qb_guest_id", guestId);
+        }
+        uid = guestId;
+      } catch {
+        uid = "guest_player";
+      }
+    }
+
     try {
       await addDoc(collection(db, "sandboxChat"), {
         text: text.slice(0, 240),
-        from: qbUser.displayName || qbUser.username,
-        uid: qbUser.uid,
-        photo: qbUser.profilePhoto,
-        frame: qbUser.avatarSnapshot?.frameId ?? "none",
-        badges: badgeUrlsFor(qbUser),
+        from: name,
+        uid: uid,
+        photo: qbUser?.profilePhoto || null,
+        frame: qbUser?.avatarSnapshot?.frameId ?? "none",
+        badges: qbUser ? badgeUrlsFor(qbUser) : [],
         at: serverTimestamp(),
       });
       window.dispatchEvent(new CustomEvent("qb-self-say", { detail: text.slice(0, 240) }));
-    } catch (err) {
+    } catch (err: any) {
       setVal(text);
-      setChatError("Message could not be sent. Please try again.");
+      if (err.code === 'permission-denied') {
+        setChatError("Missing permission to chat.");
+      } else {
+        setChatError("Message could not be sent. Please try again.");
+      }
       console.error("Could not send sandbox chat message:", err);
     } finally {
       setSending(false);

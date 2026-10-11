@@ -80,7 +80,8 @@ function SearchPage() {
             const data = d.data() as DocumentData;
             const username = typeof data.username === "string" ? data.username.trim() : "";
             const displayName = userDisplayName(data, d.id);
-            const isIra = username.toLowerCase() === "ira";
+            const lower = username.toLowerCase();
+            const isStaff = lower === "ira" || lower === "die";
             const snapshot = normalizeAvatarSnapshot(data);
             const modelUrl =
               snapshot?.modelUrl ||
@@ -90,11 +91,11 @@ function SearchPage() {
               id: d.id,
               username,
               displayName,
-              customId: data.email === "mammaettahiri@gmail.com" ? "id4" : (data.customId || d.id.slice(0, 8).toUpperCase()),
+              customId: data.email === "mammaettahiri@gmail.com" || lower === "ira" || lower === "die" ? "id4" : (data.customId || d.id.slice(0, 8).toUpperCase()),
               bio: typeof data.bio === "string" ? data.bio : undefined,
               avatarSnapshot: snapshot,
               modelUrl,
-              staff: isIra,
+              staff: isStaff,
               online: data.online ?? true,
               friendCount: typeof data.friendCount === "number" ? data.friendCount : undefined,
             };
@@ -171,7 +172,12 @@ function SearchPage() {
       setFriendStatuses((prev) => ({ ...prev, [targetUid]: "sent" }));
       toast.success(`Friend request sent to ${targetName}!`);
     } catch (err: any) {
-      toast.error(err?.message || "Could not send friend request.");
+      console.error("Friend request error:", err);
+      if (err.message?.includes("permission")) {
+        toast.error("Missing permission to add friend.");
+      } else {
+        toast.error(err?.message || "Could not send friend request.");
+      }
     } finally {
       setActionLoading((prev) => ({ ...prev, [targetUid]: false }));
     }
