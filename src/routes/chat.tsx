@@ -135,6 +135,20 @@ function timestampMillis(ts: unknown): number {
   return Number.isFinite(millis) ? millis : 0;
 }
 
+/**
+ * Chat Parser: Replaces [emoji:...] tags before rendering preview text.
+ */
+export function formatChatPreview(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/\[emoji:([^\]]+)\]/g, (_match, token) => {
+      const parts = token.split(":");
+      const label = parts[parts.length - 1] || "Emoji";
+      return `[${label}]`;
+    })
+    .trim();
+}
+
 function Avatar({
   name,
   size = 48,
@@ -709,15 +723,15 @@ function ChatList() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-[13.5px] text-[#141414] truncate">
+                    <span className="font-bold text-[13.5px] text-[#1A1D20] dark:text-white truncate">
                       {t.displayName}
                     </span>
-                    <span className="text-[10.5px] text-text-muted shrink-0 font-medium">
+                    <span className="text-[10.5px] text-[#6B7280] dark:text-slate-400 shrink-0 font-medium">
                       {t.lastTime}
                     </span>
                   </div>
-                  <div className="text-[11.5px] text-text-secondary truncate mt-0.5">
-                    {t.lastMessage}
+                  <div className="text-[11.5px] text-[#6B7280] dark:text-slate-400 truncate mt-0.5">
+                    {formatChatPreview(t.lastMessage)}
                   </div>
                 </div>
                 {t.unread > 0 ? (

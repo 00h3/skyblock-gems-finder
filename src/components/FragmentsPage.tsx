@@ -29,7 +29,12 @@ export function FragmentsPage() {
 
         {/* Under construction */}
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-          <p className="text-[17px] font-black text-[#17191d] dark:text-white font-lilita tracking-wide">
+          <img
+            src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+            alt="Fragments Mascot"
+            className="w-28 h-28 object-contain mb-4 drop-shadow-md"
+          />
+          <p className="text-[17px] font-bold text-[#17191d] dark:text-white font-sans tracking-tight">
             Under construction
           </p>
         </div>

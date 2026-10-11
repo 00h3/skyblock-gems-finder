@@ -66,23 +66,31 @@ export function QBlockProfileSettingsIcon({ className, filled = false }: IconPro
 
 export function QBlockMailIcon({ className, filled = false }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <rect x="2.5" y="4.5" width="19" height="15" rx="3" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="m4 7 6.25 5.05a2.75 2.75 0 0 0 3.5 0L20 7"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {filled && (
+    <div className={`relative inline-flex items-center justify-center ${className} overflow-hidden rounded-[4px]`}>
+      <svg viewBox="0 0 24 24" fill="none" className="w-full h-full" aria-hidden>
+        <rect x="2.5" y="4.5" width="19" height="15" rx="3" stroke="currentColor" strokeWidth="1.8" />
         <path
-          d="M4.5 17.5h15v-2.8l-5.1-3.9a3.75 3.75 0 0 1-4.8 0l-5.1 3.9v2.8Z"
-          fill="currentColor"
-          opacity=".16"
+          d="m4 7 6.25 5.05a2.75 2.75 0 0 0 3.5 0L20 7"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-      )}
-    </svg>
+        {filled && (
+          <path
+            d="M4.5 17.5h15v-2.8l-5.1-3.9a3.75 3.75 0 0 1-4.8 0l-5.1 3.9v2.8Z"
+            fill="currentColor"
+            opacity=".16"
+          />
+        )}
+      </svg>
+      <span
+        className="pointer-events-none absolute inset-0 -translate-x-[160%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/50 to-transparent"
+        style={{
+          animation: "glossyShineSweep 26s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+        }}
+      />
+    </div>
   );
 }
 

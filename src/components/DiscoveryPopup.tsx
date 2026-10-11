@@ -114,21 +114,23 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
             </div>
 
             {/* Category tabs */}
-            <div className="px-4 py-2 shrink-0 flex items-center gap-1.5 overflow-x-auto hide-scrollbar border-b border-black/[0.04]">
-              {UPLOADED_DISCOVER_TABS.map((label, index) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => setTab(index)}
-                  className={`press h-7 shrink-0 rounded-full px-3 text-[11px] font-semibold transition-all cursor-pointer ${
-                    index === tab
-                      ? "bg-[#141414] text-white shadow-xs"
-                      : "qb-squircle text-[#5f646d] hover:text-[#141414]"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="px-4 py-2 shrink-0 overflow-x-auto scroll-smooth hide-scrollbar border-b border-black/[0.04] touch-pan-x overscroll-x-contain">
+              <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max">
+                {UPLOADED_DISCOVER_TABS.map((label, index) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setTab(index)}
+                    className={`press h-7 shrink-0 rounded-full px-3 text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap select-none ${
+                      index === tab
+                        ? "bg-[#141414] text-white shadow-xs"
+                        : "qb-squircle text-[#5f646d] hover:text-[#141414]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Discovery Games Grid */}

@@ -46,12 +46,20 @@ import {
   X,
 } from "lucide-react";
 import { APP_VERSION } from "@/components/LegalDocs";
+import { BetaFeatures } from "@/components/BetaFeatures";
 import { WowDownloadModal } from "@/components/wow-studio/WowDownloadModal";
 import { VerifiedTick } from "@/components/VerifiedTick";
 import { GlossyAvatar, AvatarFrameOverlay } from "@/components/GlossyAvatar";
 import { TextureButton } from "@/components/ui/texture-button";
 import { ShinyButton } from "@/components/ui/shiny-button";
-import { getUserNameClass } from "@/lib/user-style";
+import {
+  GlossyUserProfileIcon,
+  GlossyKeyAccessIcon,
+  GlossyBellDotIcon,
+  GlossyCloudMoonIcon,
+  GlossyDoorLockIcon,
+  GlossyPhoneKeyIcon,
+} from "@/components/profile/GlossyHostedIcon";
 import { toast } from "sonner";
 import type { QBUser } from "@/lib/auth-context";
 import {
@@ -206,7 +214,7 @@ export function NicknameStyleView({
             <button
               type="button"
               onClick={() => handleChooseStyle("default")}
-              className={`press w-full p-4 rounded-[18px] border text-left transition-all flex items-center justify-between cursor-pointer ${
+              className={`press w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                 activePreview === "default"
                   ? "bg-white dark:bg-[#15171c] border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-sm"
                   : "bg-[#f8fafc] dark:bg-[#121418] border-black/[0.08] dark:border-white/[0.08] hover:bg-neutral-100 dark:hover:bg-white/[0.04]"
@@ -237,7 +245,7 @@ export function NicknameStyleView({
             <button
               type="button"
               onClick={() => handleChooseStyle("orange")}
-              className={`press w-full p-4 rounded-[18px] border text-left transition-all flex items-center justify-between cursor-pointer ${
+              className={`press w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                 activePreview === "orange"
                   ? "bg-white dark:bg-[#15171c] border-[#fa4616] ring-2 ring-[#fa4616]/20 shadow-sm"
                   : "bg-[#f8fafc] dark:bg-[#121418] border-black/[0.08] dark:border-white/[0.08] hover:bg-neutral-100 dark:hover:bg-white/[0.04]"
@@ -264,7 +272,7 @@ export function NicknameStyleView({
             <button
               type="button"
               onClick={() => handleChooseStyle("rainbow")}
-              className={`press w-full p-4 rounded-[18px] border text-left transition-all flex items-center justify-between cursor-pointer ${
+              className={`press w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                 activePreview === "rainbow"
                   ? "bg-white dark:bg-[#15171c] border-purple-500 ring-2 ring-purple-500/20 shadow-sm"
                   : "bg-[#f8fafc] dark:bg-[#121418] border-black/[0.08] dark:border-white/[0.08] hover:bg-neutral-100 dark:hover:bg-white/[0.04]"
@@ -785,7 +793,7 @@ export const FRAME_LIST: Array<{
 }> = [
   {
     id: "none",
-    name: "Default / None",
+    name: "Default",
     tag: "Standard",
     description: "Clean profile avatar with no border overlay",
     color: "#9ca3af",
@@ -951,7 +959,7 @@ export function FramesView({ user, onBack }: { user: QBUser | null; onBack: () =
                     setSelectedFrame(f.id);
                     handleEquip(f.id);
                   }}
-                  className={`press relative rounded-[18px] p-2.5 aspect-square flex flex-col items-center justify-between border-2 transition-all bg-white dark:bg-[#15171c] ${
+                  className={`press relative rounded-2xl p-2.5 aspect-square flex flex-col items-center justify-between border-2 transition-all bg-white dark:bg-[#15171c] ${
                     isSelected
                       ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm bg-orange-500/[0.03]"
                       : "border-black/[0.06] dark:border-white/[0.08] hover:border-black/20 dark:hover:border-white/20"
@@ -1021,7 +1029,7 @@ export function AboutAppView({ onBack }: { onBack: () => void }) {
           <span className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] block px-1 mb-2">
             Application Details
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <div className="flex items-center justify-between p-3.5 px-4 text-[13.5px]">
               <span className="font-semibold text-[#7d8590] dark:text-[#8e95a0]">Version</span>
               <span className="font-bold text-[#17191d] dark:text-white font-mono text-[13px]">
@@ -1042,7 +1050,7 @@ export function AboutAppView({ onBack }: { onBack: () => void }) {
           <span className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] block px-1 mb-2">
             Legal & Privacy
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <button
               type="button"
               onClick={() => toast.info("Terms of Service is up to date.")}
@@ -1611,7 +1619,7 @@ export function ActivityLogView({ onBack }: { onBack: () => void }) {
         </div>
 
         {/* List of items */}
-        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+        <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
           {filtered.map((item) => {
             const Icon = item.icon;
             return (
@@ -1664,7 +1672,7 @@ export function NotificationsView({ onBack }: { onBack: () => void }) {
 
       <div className="p-4 space-y-5 max-w-lg mx-auto">
         {/* Main Notifications Card */}
-        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+        <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
           <div className="flex items-center justify-between p-3.5 px-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
@@ -1739,7 +1747,7 @@ export function NotificationsView({ onBack }: { onBack: () => void }) {
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 uppercase tracking-wider block px-1 mb-2">
             Sound & Vibration
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <div className="flex items-center justify-between p-3.5 px-4">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-9 w-9 rounded-[12px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300 shrink-0">
@@ -1787,7 +1795,7 @@ export function PrivacyView({ onBack }: { onBack: () => void }) {
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Who can see your profile
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             {(["Everyone", "Friends only", "Only me"] as const).map((opt) => {
               const selected = visibility === opt;
               return (
@@ -1821,7 +1829,7 @@ export function PrivacyView({ onBack }: { onBack: () => void }) {
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Activity & Presence
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <div className="flex items-center justify-between p-3.5 px-4">
               <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                 Show online status
@@ -1842,7 +1850,7 @@ export function PrivacyView({ onBack }: { onBack: () => void }) {
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Messages
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
             <div className="flex items-center justify-between p-3.5 px-4">
               <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                 Allow direct messages
@@ -1891,7 +1899,7 @@ export function HelpSupportView({ onBack }: { onBack: () => void }) {
       <SubScreenHeader title="Help & Support" onBack={onBack} />
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
-        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+        <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
           {HELP_ITEMS.map((item, i) => {
             const Icon = item.icon;
             return (
@@ -1955,18 +1963,14 @@ export function SettingsView({
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Account
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <div
               onClick={() => onNavigate("edit_profile")}
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <img
-                    src="/icons/user-id-svgrepo-com.svg"
-                    className="h-[18px] w-[18px] dark:invert"
-                    alt=""
-                  />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyUserProfileIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   Profile information
@@ -1995,8 +1999,8 @@ export function SettingsView({
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <Globe className="h-4 w-4" />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyPhoneKeyIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   Connected accounts
@@ -2012,14 +2016,14 @@ export function SettingsView({
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Preferences
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <div
               onClick={() => onNavigate("appearance")}
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <Palette className="h-4 w-4" />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyCloudMoonIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   Appearance
@@ -2033,12 +2037,8 @@ export function SettingsView({
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <img
-                    src="/icons/bell-svgrepo-com.svg"
-                    className="h-[18px] w-[18px] dark:invert"
-                    alt=""
-                  />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyBellDotIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   Notifications
@@ -2052,8 +2052,8 @@ export function SettingsView({
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <Shield className="h-4 w-4" />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyDoorLockIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   Privacy
@@ -2067,12 +2067,8 @@ export function SettingsView({
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <img
-                    src="/icons/key-square-svgrepo-com.svg"
-                    className="h-[18px] w-[18px] dark:invert"
-                    alt=""
-                  />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyKeyAccessIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   Security
@@ -2088,7 +2084,7 @@ export function SettingsView({
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Integrations
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
             <div
               onClick={() => toast.info("Connections & Webhooks")}
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
@@ -2111,14 +2107,14 @@ export function SettingsView({
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             About
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
             <div
-              onClick={() => toast.info("QBLOCK Version 1.0.4")}
+              onClick={() => onNavigate("about")}
               className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             >
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <Info className="h-4 w-4" />
+                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
+                  <GlossyBookLearnIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                   About the app
@@ -2175,7 +2171,7 @@ export function AppearanceView({
             <button
               type="button"
               onClick={() => handleSelectScheme("Light")}
-              className={`press flex flex-col items-center p-3 rounded-[18px] bg-white dark:bg-[#15171c] border transition-all ${
+              className={`press flex flex-col items-center p-3 rounded-2xl bg-white dark:bg-[#15171c] border transition-all ${
                 colorScheme === "Light"
                   ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-md"
                   : "border-black/[0.06] dark:border-white/[0.08]"
@@ -2193,7 +2189,7 @@ export function AppearanceView({
             <button
               type="button"
               onClick={() => handleSelectScheme("Dark")}
-              className={`press flex flex-col items-center p-3 rounded-[18px] bg-white dark:bg-[#15171c] border transition-all ${
+              className={`press flex flex-col items-center p-3 rounded-2xl bg-white dark:bg-[#15171c] border transition-all ${
                 colorScheme === "Dark"
                   ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-md"
                   : "border-black/[0.06] dark:border-white/[0.08]"
@@ -2211,7 +2207,7 @@ export function AppearanceView({
             <button
               type="button"
               onClick={() => handleSelectScheme("System")}
-              className={`press flex flex-col items-center p-3 rounded-[18px] bg-white dark:bg-[#15171c] border transition-all ${
+              className={`press flex flex-col items-center p-3 rounded-2xl bg-white dark:bg-[#15171c] border transition-all ${
                 colorScheme === "System"
                   ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-md"
                   : "border-black/[0.06] dark:border-white/[0.08]"
@@ -2232,7 +2228,7 @@ export function AppearanceView({
           <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
             Interface
           </span>
-          <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
             <div className="flex items-center justify-between p-3.5 px-4">
               <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
                 Reduced motion
@@ -2256,38 +2252,16 @@ export function AppearanceView({
 // ── SCREEN 10: Beta Features ────────────────────────────────────────────────
 export function BetaFeaturesView({
   onBack,
-  onLaunchWow,
 }: {
   onBack: () => void;
-  onLaunchWow: () => void;
+  onLaunchWow?: () => void;
 }) {
   return (
     <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
       <SubScreenHeader title="Beta Features" onBack={onBack} />
 
-      <div className="p-4 space-y-5 max-w-lg mx-auto">
-        <div className="rounded-[18px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between p-3.5 px-4 opacity-60 pointer-events-none">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  WoW 1.0
-                </span>
-                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-500">
-                  3D ENGINE
-                </span>
-              </div>
-              <span className="text-[11.5px] font-medium text-[#7d8590] dark:text-[#8e95a0] mt-0.5">
-                Voxel Studio &amp; Q_Script Visual Code Engine
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-500 px-2.5 py-1 rounded-full">
-                Unavailable
-              </span>
-            </div>
-          </div>
-        </div>
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
+        <BetaFeatures />
       </div>
     </div>
   );

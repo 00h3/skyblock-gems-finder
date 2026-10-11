@@ -38,7 +38,7 @@ export function MobileShell({
       <div className="mobile-shell relative w-full max-w-[440px] bg-background text-foreground h-[100dvh] min-h-0 flex flex-col shadow-[0_0_60px_rgb(0_0_0_/_0.04)] dark:shadow-none overflow-hidden transition-colors duration-200">
         <main
           className={`min-h-0 h-0 flex-1 ${scroll ? "overflow-y-auto ios-scroll" : "overflow-hidden"} ${
-            hidden ? "pb-2" : "pb-[calc(78px+env(safe-area-inset-bottom))]"
+            hidden ? "pb-2" : "pb-[calc(60px+env(safe-area-inset-bottom))]"
           } hide-scrollbar relative z-[6]`}
           onScrollCapture={handleScroll}
         >

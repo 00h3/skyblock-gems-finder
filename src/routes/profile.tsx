@@ -3,7 +3,20 @@ import { MobileShell } from "@/components/MobileShell";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Moon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  GlossyUserProfileIcon,
+  GlossyKeyAccessIcon,
+  GlossyBellDotIcon,
+  GlossyCloudMoonIcon,
+  GlossyCalendarHeartIcon,
+  GlossyBookLearnIcon,
+  GlossyDoorLockIcon,
+  GlossyPhoneKeyIcon,
+} from "@/components/profile/GlossyHostedIcon";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { setDark, useDark } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
@@ -389,14 +402,14 @@ function ProfilePage() {
               <button
                 type="button"
                 onClick={() => nav({ to: "/" as never })}
-                className="press flex items-center gap-1.5 px-3 py-2 rounded-[14px] bg-gradient-to-b from-[rgba(243,245,248,0.96)] to-[rgba(228,232,238,0.94)] dark:from-[rgba(33,35,41,0.96)] dark:to-[rgba(24,26,31,0.94)] border border-black/[0.12] dark:border-white/[0.12] text-[#17191d] dark:text-white shadow-[0_4px_12px_rgba(23,24,27,0.08),inset_1px_1px_0_rgba(255,255,255,0.98)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3),inset_1px_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px] transition-all font-bold text-[13px] cursor-pointer"
+                className="press flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-b from-[rgba(243,245,248,0.96)] to-[rgba(228,232,238,0.94)] dark:from-[rgba(33,35,41,0.96)] dark:to-[rgba(24,26,31,0.94)] border border-black/[0.12] dark:border-white/[0.12] text-[#1A1D20] dark:text-white shadow-[0_4px_12px_rgba(23,24,27,0.08),inset_1px_1px_0_rgba(255,255,255,0.98)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3),inset_1px_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px] transition-all font-bold text-[13px] cursor-pointer"
                 aria-label="Go Back"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Go Back</span>
               </button>
 
-              <h1 className="text-[17.5px] font-black text-[#17191d] dark:text-white tracking-tight">
+              <h1 className="text-[17.5px] font-black text-[#1A1D20] dark:text-white tracking-tight">
                 Settings
               </h1>
 
@@ -408,7 +421,7 @@ function ProfilePage() {
             <div className="mt-1">
               <div
                 onClick={() => setActiveScreen("edit_profile")}
-                className="press flex w-full items-center gap-3.5 p-4 text-left cursor-pointer rounded-[20px] bg-white dark:bg-[#1a1c22] border border-black/[0.04] dark:border-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none transition-all"
+                className="press flex w-full items-center gap-3 p-3 text-left cursor-pointer rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all"
               >
                 {/* Square PFP with rounded corners; tapping directly goes to Edit Avatar & Frames */}
                 <div
@@ -417,7 +430,7 @@ function ProfilePage() {
                     setPreviousScreen(null);
                     setActiveScreen("edit_avatar");
                   }}
-                  className="relative h-12 w-12 shrink-0 rounded-[14px] overflow-hidden bg-slate-200 dark:bg-slate-700 cursor-pointer press"
+                  className="relative h-11 w-11 shrink-0 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 cursor-pointer press"
                   title="Edit Avatar"
                 >
                   {qbUser?.profilePhoto ? (
@@ -431,7 +444,7 @@ function ProfilePage() {
                       snapshot={qbUser?.avatarSnapshot}
                       photoUrl={qbUser?.profilePhoto}
                       imageFallbackOnly={true}
-                      height={48}
+                      height={44}
                       className="h-full w-full object-cover pointer-events-none"
                       autoRotate={false}
                     />
@@ -440,97 +453,77 @@ function ProfilePage() {
 
                 {/* Name & Subtitle / Role */}
                 <div className="min-w-0 flex-1">
-                  <div className="text-[15.5px] font-extrabold text-[#17191d] dark:text-white tracking-tight truncate">
+                  <div className="text-[14.5px] font-extrabold text-[#1A1D20] dark:text-white tracking-tight truncate">
                     {qbUser?.displayName || qbUser?.username || "Alfred Daniel"}
                   </div>
-                  <div className="mt-0.5 text-[12.5px] font-medium text-[#7d8590] dark:text-[#8e95a0] truncate">
-                    {qbUser?.bio?.trim() || "Wow Put description!"}
+                  <div className="mt-0.5 text-[11.5px] font-medium text-[#6B7280] dark:text-[#8e95a0] truncate">
+                    {qbUser?.bio?.trim() || "No bio yet"}
                   </div>
                 </div>
 
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-4 w-4 text-[#6B7280] shrink-0" />
               </div>
             </div>
 
             {/* Other settings Section Title */}
-            <div className="mt-6 mb-2.5 px-1">
-              <span className="text-[13px] font-bold text-[#7d8590] dark:text-[#888e98] tracking-tight">
+            <div className="mt-5 mb-2 px-1">
+              <span className="text-[12px] font-bold text-[#6B7280] dark:text-[#888e98] tracking-tight uppercase">
                 Other settings
               </span>
             </div>
 
-            {/* Group 1 Card: Discovery Genre Button Glossy Styling */}
-            <div className="rounded-[22px] qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
-              {/* 1. Profile details (exact user ID SVG, enlarged) */}
+            {/* Group 1 Card: Liquid Glass Capsule with sleek rows & glossy gradient icons */}
+            <div className="rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
+              {/* 1. Profile details (User Avatar Silhouette) */}
               <button
                 type="button"
                 onClick={() => setActiveScreen("edit_profile")}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <img
-                      src="/icons/user-id-svgrepo-com.svg"
-                      alt="Profile"
-                      className="h-[25px] w-[25px] object-contain dark:invert shrink-0"
-                    />
-                  </div>
-                  <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white">
+                <div className="flex items-center gap-2.5">
+                  <GlossyUserProfileIcon className="h-4.5 w-4.5 shrink-0" />
+                  <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white">
                     Profile details
                   </span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
               </button>
 
-              {/* 2. Password (exact key square SVG) */}
+              {/* 2. Password (Key - Yellow Gold gradient) */}
               <button
                 type="button"
                 onClick={() => setActiveScreen("change_password")}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <img
-                      src="/icons/key-square-svgrepo-com.svg"
-                      alt="Password"
-                      className="h-[22px] w-[22px] object-contain dark:invert shrink-0"
-                    />
-                  </div>
-                  <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white">
+                <div className="flex items-center gap-2.5">
+                  <GlossyKeyAccessIcon className="h-4.5 w-4.5 shrink-0" />
+                  <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white">
                     Password
                   </span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
               </button>
 
-              {/* 3. Notifications (exact bell SVG) */}
+              {/* 3. Notifications (Bell with Dot - Rose/Red gradient) */}
               <button
                 type="button"
                 onClick={() => setActiveScreen("notifications")}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <img
-                      src="/icons/bell-svgrepo-com.svg"
-                      alt="Notifications"
-                      className="h-[22px] w-[22px] object-contain dark:invert shrink-0"
-                    />
-                  </div>
-                  <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white">
+                <div className="flex items-center gap-2.5">
+                  <GlossyBellDotIcon className="h-4.5 w-4.5 shrink-0" />
+                  <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white">
                     Notifications
                   </span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
               </button>
 
-              {/* 4. Dark mode with exact pill toggle switch */}
-              <div className="flex items-center justify-between p-3.5 px-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <Moon className="h-[20px] w-[20px] fill-current text-[#17191d] dark:text-white shrink-0" />
-                  </div>
-                  <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white">
+              {/* 4. Dark mode (Cloud with Moon - Purple/Violet gradient) */}
+              <div className="flex items-center justify-between py-2.5 px-3.5">
+                <div className="flex items-center gap-2.5">
+                  <GlossyCloudMoonIcon className="h-4.5 w-4.5 shrink-0" />
+                  <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white">
                     Dark mode
                   </span>
                 </div>
@@ -541,7 +534,7 @@ function ProfilePage() {
                   role="switch"
                   aria-checked={dark}
                   onClick={() => setDark(!dark)}
-                  className={`press relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none ${
+                  className={`press relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none ${
                     dark
                       ? "border-2 border-[#fa4616] bg-[#fa4616]/30"
                       : "border-2 border-black/30 bg-black/10"
@@ -549,8 +542,8 @@ function ProfilePage() {
                   aria-label="Toggle dark mode"
                 >
                   <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full shadow-sm transition duration-200 ease-in-out ${
-                      dark ? "translate-x-5 bg-[#fa4616]" : "translate-x-0 bg-[#17191d]"
+                    className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full shadow-sm transition duration-200 ease-in-out ${
+                      dark ? "translate-x-5 bg-[#fa4616]" : "translate-x-0 bg-[#1A1D20]"
                     }`}
                   />
                 </button>
@@ -558,115 +551,96 @@ function ProfilePage() {
             </div>
 
             {/* Beta Features Section */}
-            <div className="mt-6 mb-2.5 px-1 flex items-center justify-between">
-              <span className="text-[13px] font-bold text-[#7d8590] dark:text-[#888e98] tracking-tight">
+            <div className="mt-5 mb-2 px-1 flex items-center justify-between">
+              <span className="text-[12px] font-bold text-[#6B7280] dark:text-[#888e98] tracking-tight uppercase">
                 Beta Features
               </span>
             </div>
 
-            {/* Beta Features Group Card */}
-            <div className="rounded-[20px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
-              {/* Beta Features Entry */}
+            {/* Beta Features Group Card: Liquid Glass (Calendar with Heart - Emerald gradient) */}
+            <div className="rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
               <button
                 type="button"
                 onClick={() => setActiveScreen("beta_features")}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <img
-                      src="/icons/arrow-right-1-svgrepo-com.svg"
-                      alt="Beta Features"
-                      className="h-[24px] w-[24px] object-contain dark:invert shrink-0"
-                    />
-                  </div>
-                  <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white">
+                <div className="flex items-center gap-2.5">
+                  <GlossyCalendarHeartIcon className="h-4.5 w-4.5 shrink-0" />
+                  <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white">
                     Beta Features
                   </span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
               </button>
             </div>
 
             {/* Application Section Title */}
-            <div className="mt-6 mb-2.5 px-1">
-              <span className="text-[13px] font-bold text-[#7d8590] dark:text-[#888e98] tracking-tight">
+            <div className="mt-5 mb-2 px-1">
+              <span className="text-[12px] font-bold text-[#6B7280] dark:text-[#888e98] tracking-tight uppercase">
                 Application & account
               </span>
             </div>
 
-            {/* Group 2 Card: Flat Android style for About application & Deactivate my account */}
-            <div className="rounded-[20px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
-              {/* 1. About application - bookmark square SVG */}
+            {/* Group 2 Card: Liquid Glass */}
+            <div className="rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
+              {/* 6. About application (Book - Indigo/Blue gradient) */}
               <button
                 type="button"
                 onClick={() => setActiveScreen("about")}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <img
-                      src="/icons/bookmark-square-svgrepo-com.svg"
-                      alt="About"
-                      className="h-[24px] w-[24px] object-contain dark:invert"
-                    />
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  <GlossyBookLearnIcon className="h-4.5 w-4.5 shrink-0" />
                   <div>
-                    <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white block">
+                    <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white block">
                       About application
                     </span>
-                    <span className="text-[11.5px] font-medium text-[#7d8590] dark:text-[#8e95a0]">
+                    <span className="text-[11px] font-medium text-[#6B7280] dark:text-[#8e95a0]">
                       Version {APP_VERSION}
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
               </button>
 
-              {/* 2. Sign out - login-3 SVG */}
+              {/* 7. Sign out (Door with Padlock - Warm Orange gradient) */}
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="h-[28px] w-[28px] shrink-0 grid place-items-center">
-                    <img
-                      src="/icons/login-3-svgrepo-com.svg"
-                      alt="Sign out"
-                      className="h-[22px] w-[22px] object-contain dark:invert"
-                    />
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  <GlossyDoorLockIcon className="h-4.5 w-4.5 shrink-0" />
                   <div>
-                    <span className="text-[14.5px] font-semibold text-[#17191d] dark:text-white block">
+                    <span className="text-[13.5px] font-semibold text-[#1A1D20] dark:text-white block">
                       Sign out
                     </span>
-                    <span className="text-[11.5px] font-medium text-[#7d8590] dark:text-[#8e95a0]">
+                    <span className="text-[11px] font-medium text-[#6B7280] dark:text-[#8e95a0]">
                       End your active session
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#a0a5af] shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
               </button>
 
-              {/* 3. Deactivate my account */}
+              {/* 8. Deactivate my account (Phone with Key - Ruby Red gradient) */}
               <button
                 type="button"
                 onClick={() => setActiveScreen("deactivate")}
-                className="press w-full flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-red-500/[0.04] dark:hover:bg-red-500/[0.08] transition-colors text-left"
+                className="press w-full flex items-center justify-between py-2.5 px-3.5 cursor-pointer hover:bg-red-500/[0.04] dark:hover:bg-red-500/[0.08] transition-colors text-left"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-[28px]" />
+                <div className="flex items-center gap-2.5">
+                  <GlossyPhoneKeyIcon className="h-4.5 w-4.5 shrink-0" />
                   <div>
-                    <span className="text-[14.5px] font-semibold text-[#e03131] dark:text-[#ff6b6b] block">
+                    <span className="text-[13.5px] font-semibold text-[#e03131] dark:text-[#ff6b6b] block">
                       Deactivate my account
                     </span>
-                    <span className="text-[11.5px] font-medium text-red-500/70 dark:text-red-400/70">
+                    <span className="text-[11px] font-medium text-red-500/70 dark:text-red-400/70">
                       Temporary account suspension
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#e03131]/60 dark:text-[#ff6b6b]/60 shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#e03131]/60 dark:text-[#ff6b6b]/60 shrink-0" />
               </button>
             </div>
           </motion.div>

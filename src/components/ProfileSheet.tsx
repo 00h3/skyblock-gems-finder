@@ -44,7 +44,7 @@ import baseplateIcon from "@/assets/game-baseplate.jpg";
 import { useNavigate } from "@tanstack/react-router";
 import { ClapIcon } from "@/components/QbIcons";
 
-import { QBlockProfileSettingsIcon } from "@/components/icons";
+import { ProfileIcon } from "@/components/icons";
 export function getCleanName(
   user:
     | {
@@ -352,23 +352,27 @@ export function ProfileSheet({
         className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f4f5f8] dark:bg-[#0c0d11]"
       >
         <div className="flex-1 w-full overflow-y-auto ios-scroll hide-scrollbar flex flex-col relative">
-          {/* ── 3D AVATAR STAGE BACKGROUND (FULL CONTAINER PREVIEW) ── */}
+          {/* ── PROFILE HEADER (PFP + NAME) ── */}
           <div className="relative h-[220px] shrink-0 w-full overflow-hidden bg-[#e9ebf2] dark:bg-[#12141a] flex flex-col justify-between p-4 border-b border-black/[0.04] dark:border-white/5">
-            {/* Live 3D character on the stage covering full space */}
-            <iframe
-              src={getAvatarViewerUrl({
-                username: user.username || user.n,
-                email: user.email,
-                customId: user.customId,
-                gender: user.avatarSnapshot?.gender,
-                characterId: user.avatarSnapshot?.selectedCharacter,
-              })}
-              title="3D Avatar"
-              className="w-full h-full border-0 absolute inset-0 bg-transparent z-0"
-              style={{ pointerEvents: "auto", border: "none", width: "100%", height: "100%" }}
-              allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
-              sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
-            />
+            {/* PFP stage */}
+            <div className="w-full h-full absolute inset-0 bg-transparent z-0 flex items-center justify-center">
+              {user.profilePhoto ? (
+                  <img
+                    src={user.profilePhoto}
+                    alt={name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <GlossyAvatar
+                    snapshot={user.avatarSnapshot}
+                    photoUrl={user.profilePhoto}
+                    imageFallbackOnly={true}
+                    height={220}
+                    className="w-full h-full object-cover"
+                    autoRotate={false}
+                  />
+                )}
+            </div>
 
             <AvatarFrameOverlay
               frame={user.frame ?? user.avatarSnapshot?.frameId}
@@ -403,236 +407,78 @@ export function ProfileSheet({
 
           {/* ── 50% FLATTER WHITE & GREY PROFILE SHEET CONTAINER ── */}
           <div className="relative z-20 flex-1 flex flex-col bg-white dark:bg-[#14151b] overflow-hidden border-t border-black/[0.06] dark:border-white/10">
-            {/* Profile Header Row (PFP, Name, ID - NO LIKES) */}
-            <div className="p-4 pb-3 flex items-center gap-3 border-b border-black/[0.04] dark:border-white/5">
-              {/* PFP container with 3D avatar iframe */}
-              <div className="relative shrink-0 h-[52px] w-[52px] rounded-[14px] overflow-hidden border border-black/10 dark:border-white/10 bg-[#e9ebf2] dark:bg-[#12141a]">
-                <iframe
-                  src={getAvatarViewerUrl({
-                    username: user.username || user.n,
-                    email: user.email,
-                    customId: user.customId,
-                    gender: user.avatarSnapshot?.gender,
-                    characterId: user.avatarSnapshot?.selectedCharacter,
-                  })}
-                  title="PFP Avatar"
-                  className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
-                  style={{ border: "none" }}
-                />
-              </div>
-
-              {/* Name and ID */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
+            {/* Profile Header Row (PFP, Name, ID) */}
+            <div className="p-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* User Info */}
+                <div className="flex flex-col gap-1">
                   <UserNameWithBadges
                     user={user}
                     name={name}
-                    badgeSize={18}
-                    className="truncate text-[17px] font-extrabold tracking-tight"
-                    defaultColorClass="text-[#1c1e24] dark:text-white"
+                    badgeSize={20}
+                    className="text-[22px] font-extrabold tracking-tight"
+                    defaultColorClass="text-[#1A1D20] dark:text-white"
                   />
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-[6px] bg-slate-100 dark:bg-white/5 text-[#73788c] dark:text-slate-400 select-text cursor-text">
-                    ID: {displayId}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        user.online ? "bg-emerald-500" : "bg-slate-400"
-                      }`}
-                    />
-                    {user.online ? "Online" : "Offline"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-mono font-semibold px-2 py-0.5 rounded-[8px] bg-black/5 dark:bg-white/10 text-[#6B7280] dark:text-slate-400">
+                      ID: {displayId}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#6B7280] dark:text-slate-400">
+                      <span className={`h-2 w-2 rounded-full ${user.online ? "bg-emerald-500" : "bg-slate-400"}`} />
+                      {user.online ? "Online" : "Offline"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Clap Button (Squircle Shaped) */}
+              {/* ●●● Options Button */}
               <button
                 type="button"
-                onClick={async () => {
-                  if (!user || !user.id) return;
-                  try {
-                    await updateDoc(doc(db, "users", user.id), {
-                      claps: increment(1),
-                    });
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }}
-                className="qb-squircle press shrink-0 flex flex-col items-center justify-center bg-slate-100/90 dark:bg-white/[0.08] border border-black/[0.08] dark:border-white/10 rounded-[16px] h-[52px] min-w-[52px] px-3 hover:bg-orange-500/10 hover:border-[#fa4616]/40 hover:text-[#fa4616] text-[#141414] dark:text-white transition-all shadow-xs"
-                title="Like"
+                onClick={() => { /* Open settings */ }}
+                className="press h-10 w-10 grid place-items-center rounded-2xl bg-white/10 dark:bg-black/20 border border-black/5 dark:border-white/10"
               >
-                <ClapIcon className="h-5 w-5 mb-0.5 text-[#fa4616]" />
-                <span className="text-[11.5px] font-black">{user.claps || 0}</span>
+                <MoreHorizontal className="h-5 w-5 text-[#1A1D20] dark:text-white" />
               </button>
             </div>
 
-            {/* Navigation Tabs (Personal Information | Game Data) with Orange Accents */}
-            <div className="flex items-center border-b border-black/[0.05] dark:border-white/5 bg-slate-50/50 dark:bg-[#111218] px-3">
+            {/* Navigation Tabs (Info | Friends/Game) */}
+            <div className="flex px-4 gap-2 border-b border-black/5 dark:border-white/5">
               <button
                 type="button"
                 onClick={() => setActiveTab("personal")}
-                className={`flex-1 py-2.5 text-center text-[13.5px] font-bold transition-all relative ${
-                  activeTab === "personal"
-                    ? "text-[#fa4616] font-extrabold"
-                    : "text-[#73788c] dark:text-slate-400 hover:text-slate-800"
-                }`}
+                className={`pb-3 text-[14px] font-bold ${activeTab === "personal" ? "text-[#fa4616] border-b-2 border-[#fa4616]" : "text-[#6B7280]"}`}
               >
-                Personal Information
-                {activeTab === "personal" && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] w-10 rounded-full bg-[#fa4616]" />
-                )}
+                Info
               </button>
-
               <button
                 type="button"
                 onClick={() => setActiveTab("game")}
-                className={`flex-1 py-2.5 text-center text-[13.5px] font-bold transition-all relative ${
-                  activeTab === "game"
-                    ? "text-[#fa4616] font-extrabold"
-                    : "text-[#73788c] dark:text-slate-400 hover:text-slate-800"
-                }`}
+                className={`pb-3 text-[14px] font-bold ${activeTab === "game" ? "text-[#fa4616] border-b-2 border-[#fa4616]" : "text-[#6B7280]"}`}
               >
-                Game Data
-                {activeTab === "game" && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] w-10 rounded-full bg-[#fa4616]" />
-                )}
+                {isOwnProfile ? "Friends" : "Game Data"}
               </button>
             </div>
 
-            {/* Scrollable Content Area */}
-            <div className="flex-1 p-3.5 space-y-3 bg-[#f8f9fa] dark:bg-[#0c0d12]">
+            {/* Content Area */}
+            <div className="flex-1 p-4 space-y-4">
               {activeTab === "personal" && (
-                <div className="space-y-2.5 animate-fade-in">
-                  {/* Titles */}
-                  <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none flex items-center justify-between">
-                    <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                      Titles:
-                    </span>
-                    <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                      None
-                    </span>
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-white dark:bg-black/20 p-4 border border-black/5 dark:border-white/5">
+                    <h3 className="text-[13px] font-bold text-[#6B7280] mb-2">Bio</h3>
+                    <p className="text-[14px]">{user.bio || "No bio yet"}</p>
                   </div>
-
-                  {/* Bio Card */}
-                  <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none">
-                    <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                      <span>Bio</span>
-                    </div>
-                    <p className="text-[12.5px] font-medium text-[#73788c] dark:text-slate-400 leading-relaxed">
-                      {user.bio && user.bio.trim().length > 0 ? user.bio.trim() : "None"}
-                    </p>
-                  </div>
-
-                  {/* Account Details */}
-                  <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none space-y-2">
-                    <div className="flex items-center justify-between text-[12px]">
-                      <span className="font-semibold text-slate-500 dark:text-slate-400">
-                        Username
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        @{user.username || name.toLowerCase().replace(/\s+/g, "")}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[12px] pt-2 border-t border-black/5 dark:border-white/5">
-                      <span className="font-semibold text-slate-500 dark:text-slate-400">
-                        Status
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            user.online ? "bg-emerald-500" : "bg-slate-400"
-                          }`}
-                        />
-                        {user.online ? "Online in Game" : "Offline"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {userBadges.length > 0 && (
-                    <div className="rounded-[14px] bg-white dark:bg-[#16171e] p-3.5 border border-black/5 dark:border-white/5 shadow-none">
-                      <div className="flex flex-wrap gap-1.5">
-                        {userBadges.map((badge) => (
-                          <span
-                            key={badge.id}
-                            className="inline-flex items-center gap-1.5 rounded-[8px] bg-slate-100 dark:bg-white/5 px-2 py-1 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-black/5 dark:border-white/5"
-                          >
-                            <img
-                              src={badge.iconUrl}
-                              alt={badge.name}
-                              className="h-3.5 w-3.5 object-contain"
-                              referrerPolicy="no-referrer"
-                            />
-                            {badge.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
-
+              
               {activeTab === "game" && (
-                <div className="space-y-2.5 animate-fade-in">
-                  <div className="text-[10.5px] font-extrabold uppercase tracking-wider text-[#73788c] dark:text-slate-400 px-1">
-                    Player Game Data
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                      {
-                        id: "skyblock",
-                        title: "Skyblock",
-                        mode: "Island Survival",
-                        time: "0.0h",
-                        icon: baseplateIcon,
-                      },
-                      {
-                        id: "blockfall",
-                        title: "Block Fall",
-                        mode: "Hexagon Tumble",
-                        time: "0.0h",
-                        icon: baseplateIcon,
-                      },
-                      {
-                        id: "bedwars",
-                        title: "BedWars",
-                        mode: "Floating Arena",
-                        time: "0.0h",
-                        icon: baseplateIcon,
-                      },
-                    ].map((g) => (
-                      <div
-                        key={g.id}
-                        className="rounded-[14px] bg-white dark:bg-[#16171e] p-3 border border-black/5 dark:border-white/5 shadow-none flex items-center justify-between gap-3"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-10 w-10 rounded-[10px] overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 grid place-items-center border border-black/5 dark:border-white/5">
-                            <img
-                              src={g.icon}
-                              alt={g.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLElement).style.display = "none";
-                              }}
-                            />
-                            <Gamepad2 className="h-5 w-5 text-[#fa4616] hidden" />
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="text-[14px] font-lilita text-[#1c1e24] dark:text-white truncate tracking-wide">
-                              {g.title}
-                            </h4>
-                            <p className="text-[11px] font-semibold text-[#73788c] dark:text-slate-400 truncate mt-0.5">
-                              {g.mode}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-[8px] bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-mono font-bold shrink-0">
-                          {g.time}
-                        </span>
-                      </div>
-                    ))}
+                <div className="space-y-3">
+                  {/* Friend rectangle cards */}
+                  <div className="rounded-2xl p-3 border border-black/5 dark:border-white/5 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-200" />
+                    <div>
+                      <div className="font-bold text-[14px]">Friend Name</div>
+                      <div className="text-[12px] text-slate-500">Online</div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -704,7 +550,7 @@ export function ProfileSheet({
                     }}
                     className="press w-full py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-extrabold text-[13px] flex items-center justify-center gap-2 shadow-none active:scale-[0.98] cursor-pointer"
                   >
-                    <QBlockProfileSettingsIcon className="h-4 w-4" filled />
+                    <ProfileIcon className="h-4 w-4" filled />
                     Edit Profile
                   </button>
                   <button

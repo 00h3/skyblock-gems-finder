@@ -85,14 +85,14 @@ export function RedesignedHomePage({
                 navigate({ to: "/search" as never });
               }
             }}
-            className="qb-squircle flex h-[40px] w-full items-center gap-2.5 px-3.5 bg-white border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.03)] focus-within:border-[#fa4616] focus-within:ring-1 focus-within:ring-[#fa4616] transition-all"
+            className="flex h-[42px] w-full items-center gap-2.5 px-3.5 bg-white rounded-2xl border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.03)] focus-within:border-[#fa4616] focus-within:ring-1 focus-within:ring-[#fa4616] transition-all"
           >
-            <Search className="h-4 w-4 text-[#8b929d] shrink-0" />
+            <Search className="h-4 w-4 text-[#6B7280] shrink-0" />
             <input
               type="search"
               name="q"
               placeholder="Search experiences or players"
-              className="flex-1 bg-transparent text-[13px] font-semibold text-[#141414] outline-none placeholder:text-[#8b929d]"
+              className="flex-1 bg-transparent text-[13px] font-semibold text-[#1A1D20] outline-none placeholder:text-[#6B7280]"
             />
           </form>
         </div>
@@ -159,7 +159,7 @@ export function RedesignedHomePage({
               <button
                 key={`recent-${g.id}-${i}`}
                 onClick={() => setSheetGame(g)}
-                className="press relative h-[72px] w-[72px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
+                className="press relative h-[72px] w-[72px] shrink-0 rounded-2xl overflow-hidden border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
                 title={g.t}
                 aria-label={g.t}
               >
@@ -185,23 +185,23 @@ export function RedesignedHomePage({
                 onClick={() => setSheetGame(g)}
                 className="press flex flex-col items-start w-full text-left active:scale-[0.97] transition-transform"
               >
-                <span className="relative block aspect-square w-full overflow-hidden rounded-[10px] border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none]">
+                <span className="relative block aspect-square w-full overflow-hidden rounded-2xl border border-black/[0.08] bg-slate-100 shadow-none [box-shadow:none]">
                   {g.icon ? (
                     <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
                   ) : null}
                 </span>
-                <span className="mt-1.5 block w-full truncate text-left text-[11.5px] font-extrabold tracking-tight text-[#141414]">
+                <span className="mt-1.5 block w-full truncate text-left text-[11.5px] font-extrabold tracking-tight text-[#1A1D20]">
                   {g.t}
                 </span>
                 {/* Inverted: Heart first (99%), then player icon (1), bold grey */}
-                <span className="mt-0.5 flex w-full items-center gap-2 text-left text-[10.5px] font-extrabold text-[#7e8590]">
+                <span className="mt-0.5 flex w-full items-center gap-2 text-left text-[10.5px] font-extrabold text-[#6B7280]">
                   <span className="flex items-center gap-0.5">
                     <PinkHeartIcon className="h-3.5 w-3.5" />
-                    <span className="font-extrabold text-[#7e8590]">99%</span>
+                    <span className="font-extrabold text-[#6B7280]">99%</span>
                   </span>
                   <span className="flex items-center gap-0.5">
                     <PlayersIcon className="h-3.5 w-3.5" />
-                    <span className="font-extrabold text-[#7e8590]">1</span>
+                    <span className="font-extrabold text-[#6B7280]">1</span>
                   </span>
                 </span>
               </button>
@@ -251,12 +251,12 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-[15px] font-extrabold tracking-tight text-[#141414]">{title}</h2>
+      <h2 className="text-[15px] font-extrabold tracking-tight text-[#1A1D20]">{title}</h2>
       {action ? (
         <button
           type="button"
           onClick={onAction}
-          className="press flex items-center justify-center p-1 -mr-1 text-[17px] font-black leading-none text-[#8b929d] hover:text-[#141414] active:scale-90 transition-transform cursor-pointer select-none"
+          className="press flex items-center justify-center p-1 -mr-1 text-[17px] font-black leading-none text-[#6B7280] hover:text-[#1A1D20] active:scale-90 transition-transform cursor-pointer select-none"
           aria-label={title}
         >
           {action}

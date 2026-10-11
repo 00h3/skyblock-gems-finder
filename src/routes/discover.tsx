@@ -196,22 +196,24 @@ function UploadedDiscoverPage() {
           )}
         </div>
 
-        <div className="fixed bottom-[calc(56px+max(env(safe-area-inset-bottom),8px))] left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
-          <div className="qb-glossy-menu pointer-events-auto flex max-w-full gap-1 overflow-x-auto rounded-full px-2 py-1 shadow-md hide-scrollbar">
-            {UPLOADED_DISCOVER_TABS.map((label, index) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setTab(index)}
-                className={`press relative z-10 h-7 shrink-0 rounded-full px-3 text-[11px] font-normal transition-colors cursor-pointer ${
-                  index === tab
-                    ? "bg-foreground text-background shadow-xs"
-                    : "qb-glossy-chip text-foreground"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        <div className="fixed bottom-[calc(64px+max(env(safe-area-inset-bottom),10px))] left-0 right-0 z-30 flex justify-center px-3 pointer-events-none">
+          <div className="qb-glossy-menu pointer-events-auto max-w-[calc(100vw-24px)] overflow-x-auto scroll-smooth hide-scrollbar rounded-full p-1 shadow-md touch-pan-x overscroll-x-contain">
+            <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max px-1">
+              {UPLOADED_DISCOVER_TABS.map((label, index) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setTab(index)}
+                  className={`press relative z-10 h-7 shrink-0 rounded-full px-3.5 text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap select-none ${
+                    index === tab
+                      ? "bg-foreground text-background shadow-xs font-semibold"
+                      : "qb-glossy-chip text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
