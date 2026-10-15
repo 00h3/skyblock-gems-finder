@@ -4,8 +4,6 @@ const { execSync } = require('child_process');
 
 const targetDirs = [
   path.join(__dirname, '../public/assets/hud/pitch_black'),
-  path.join(__dirname, '../public/assets/pitch_black_theme'),
-  path.join(__dirname, '../public/pitch_black_theme')
 ];
 
 for (const dir of targetDirs) {
