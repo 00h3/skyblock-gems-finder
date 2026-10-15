@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Backpack, Hammer, Heart, Minus, Plus, Shield, Sword, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BLOCKS } from "@/engine/world";
-import { UTILITY_INFO } from "@/engine/features";
+import { BLOCKS } from "@/engine-sandbox/shared/world";
+import { UTILITY_INFO } from "@/engine-sandbox/shared/features";
 import { GlbAvatar } from "@/components/GlbAvatar";
 
 type ItemId = number | string;

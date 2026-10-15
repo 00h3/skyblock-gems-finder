@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { WIND, type World } from "@/engine/world";
+import { WIND, type World } from "./world";
 
 const GRASS_ID = 1;
 const MAX_TUFTS = 1400;

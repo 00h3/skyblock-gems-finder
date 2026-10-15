@@ -1,7 +1,7 @@
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { EconomySave } from "@/engine/v2/economy";
-import type { ProgressionSave } from "@/engine/v2/progression";
+import type { EconomySave } from "@/engine-sandbox/skyblock/economy";
+import type { ProgressionSave } from "@/engine-sandbox/skyblock/progression";
 
 /**
  * Returns a persistent, device-sticky or auth-linked player ID that lasts forever.

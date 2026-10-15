@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { World } from "../world";
-import { raycastVoxel } from "../interact";
+import type { World } from "./world";
+import { raycastVoxel } from "./interact";
 
 /**
  * Mobile-tuned FOV: base 66°-70° for comfortable over-the-shoulder framing,

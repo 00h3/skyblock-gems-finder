@@ -3,7 +3,10 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { SKINS, AVATAR_COLORS, getAvatarViewerUrl } from "@/lib/avatar";
-import { SANDBOX_AVATAR_FALLBACK_MODEL, SANDBOX_AVATAR_MODEL } from "@/engine/avatar-model";
+import {
+  SANDBOX_AVATAR_FALLBACK_MODEL,
+  SANDBOX_AVATAR_MODEL,
+} from "@/engine-sandbox/shared/avatar-model";
 
 export const LOCAL_AVATAR_GLB = SANDBOX_AVATAR_MODEL;
 export const CDN_AVATAR_GLB = SANDBOX_AVATAR_FALLBACK_MODEL;

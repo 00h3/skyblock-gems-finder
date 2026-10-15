@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import WetPaintButton from "@/components/ui/wet-paint-button";
-import type { MatchController } from "@/engine/v2/match";
-import { useStore } from "@/engine/v2/store";
+import type { MatchController } from "@/engine-sandbox/blockfall/match";
+import { useStore } from "@/engine-sandbox/shared/store";
 import { V2Button, formatClock, useNow } from "./primitives";
 
 const ordinal = (n: number) => {

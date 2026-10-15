@@ -46,7 +46,7 @@ import { GameUiChrome } from "@/components/GameUiChrome";
 import { RobloxInGameServerBar } from "@/components/RobloxInGameServerBar";
 import { getTargetDpr } from "@/lib/rendering";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { createHpBar, type HpBar } from "@/engine/hpbar";
+import { createHpBar, type HpBar } from "@/engine-sandbox/shared/hpbar";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import qblockGameLoaderUrl from "../assets/imported/IMG_6930_1786893754942.png?url";
 const goldTokenIcon = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";

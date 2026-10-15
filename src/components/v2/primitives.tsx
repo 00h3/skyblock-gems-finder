@@ -1,7 +1,7 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { announcer } from "@/engine/v2/announcer";
-import { useStore } from "@/engine/v2/store";
+import { announcer } from "@/engine-sandbox/shared/announcer";
+import { useStore } from "@/engine-sandbox/shared/store";
 
 type Variant = "plum" | "sun" | "ghost";
 

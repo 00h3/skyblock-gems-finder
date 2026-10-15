@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { Box, Settings, MessageSquare, LogOut, RefreshCw } from "lucide-react";
-import { BLOCKS } from "@/engine/world";
+import { BLOCKS } from "@/engine-sandbox/shared/world";
 import { FlatSquareGameControls } from "@/components/FlatSquareGameControls";
 
 export const HUD_ASSETS = {

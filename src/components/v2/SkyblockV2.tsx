@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import type { Progression } from "@/engine/v2/progression";
-import type { WorldEvents } from "@/engine/v2/world-events";
-import { useStore } from "@/engine/v2/store";
+import type { Progression } from "@/engine-sandbox/skyblock/progression";
+import type { WorldEvents } from "@/engine-sandbox/skyblock/world-events";
+import { useStore } from "@/engine-sandbox/shared/store";
 import { formatClock, useNow } from "./primitives";
 
 export function SkyblockStatus({ progression, events }: { progression: Progression; events: WorldEvents }) {

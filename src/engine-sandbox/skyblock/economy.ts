@@ -1,4 +1,4 @@
-import { Store } from "./store";
+import { Store } from "../shared/store";
 import type { Progression } from "./progression";
 
 /**

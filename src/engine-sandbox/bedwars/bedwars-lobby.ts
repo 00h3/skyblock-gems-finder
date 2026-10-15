@@ -1,4 +1,4 @@
-import { WATER_ID, type World } from "@/engine/world";
+import { WATER_ID, type World } from "../shared/world";
 import bedwarsLobbyVoxels from "@/assets/bedwars-lobby-voxels.json";
 
 export const BEDWARS_LOBBY_SURFACE_Y = 16;

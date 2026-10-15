@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { BLOCKS } from "@/engine/world";
-import { useStore } from "@/engine/v2/store";
-import type { Progression } from "@/engine/v2/progression";
-import { ISLAND_TIERS, MILESTONES } from "@/engine/v2/progression";
+import { BLOCKS } from "@/engine-sandbox/shared/world";
+import { useStore } from "@/engine-sandbox/shared/store";
+import type { Progression } from "@/engine-sandbox/skyblock/progression";
+import { ISLAND_TIERS, MILESTONES } from "@/engine-sandbox/skyblock/progression";
 import {
   GENERATORS,
   MAX_GENERATOR_LEVEL,
@@ -15,7 +15,7 @@ import {
   sellPrice,
   type Economy,
   type Rarity,
-} from "@/engine/v2/economy";
+} from "@/engine-sandbox/skyblock/economy";
 import { formatClock, useNow } from "./primitives";
 
 const RARITY_TEXT: Record<Rarity, string> = {

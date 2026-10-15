@@ -3,16 +3,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinnedModel } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { buildAtlas, type Atlas } from "@/engine/textures";
-import { World, BLOCKS, WATER_ID, WIND } from "@/engine/world";
-import { Features, UTILITY_ITEMS, NEW_BACKPACK_ITEMS } from "@/engine/features";
-import { utilityIconUrl } from "@/engine/item-icons";
+import { buildAtlas, type Atlas } from "@/engine-sandbox/shared/textures";
+import { World, BLOCKS, WATER_ID, WIND } from "@/engine-sandbox/shared/world";
+import { Features, UTILITY_ITEMS, NEW_BACKPACK_ITEMS } from "@/engine-sandbox/shared/features";
+import { utilityIconUrl } from "@/engine-sandbox/shared/item-icons";
 import { FeatureDock, RadialWheel, QuickBuyPanel } from "@/components/v2/FeatureDock";
-import { createVoxelLantern, createCrystalCluster, type VoxelPropHandle } from "@/engine/v2/voxel-props";
-import { GrassField } from "@/engine/v2/grass-field";
-import { CinematicPost } from "@/engine/v2/cinematic-post";
-import { CombatFx } from "@/engine/v2/combat-fx";
-import { Nature, type SeedCounts, type Species } from "@/engine/v2/nature";
+import {
+  createVoxelLantern,
+  createCrystalCluster,
+  type VoxelPropHandle,
+} from "@/engine-sandbox/shared/voxel-props";
+import { GrassField } from "@/engine-sandbox/shared/grass-field";
+import { CinematicPost } from "@/engine-sandbox/shared/cinematic-post";
+import { CombatFx } from "@/engine-sandbox/shared/combat-fx";
+import { Nature, type SeedCounts, type Species } from "@/engine-sandbox/skyblock/nature";
 import { SeedPouch } from "@/components/v2/SeedPouch";
 import { GRAPHICS_V2_EVENT, isGraphicsV2 } from "@/lib/graphics-v2";
 import {
@@ -20,14 +24,14 @@ import {
   BEDWARS_LOBBY_SPAWN,
   BEDWARS_MATCHMAKER_POS,
   buildBedwarsLobby,
-} from "@/engine/v2/bedwars-lobby";
-import { loadBedwarsLobby } from "@/engine/v2/bedwars-lobby-model";
-import { Player } from "@/engine/player";
-import { Controls } from "@/engine/controls";
-import { BlockFx, createHighlight, raycastVoxel } from "@/engine/interact";
-import { Sky } from "@/engine/sky";
-import { Avatar } from "@/engine/avatar";
-import { CRACK_STAGES } from "@/engine/textures";
+} from "@/engine-sandbox/bedwars/bedwars-lobby";
+import { loadBedwarsLobby } from "@/engine-sandbox/bedwars/bedwars-lobby-model";
+import { Player } from "@/engine-sandbox/shared/player";
+import { Controls } from "@/engine-sandbox/shared/controls";
+import { BlockFx, createHighlight, raycastVoxel } from "@/engine-sandbox/shared/interact";
+import { Sky } from "@/engine-sandbox/shared/sky";
+import { Avatar } from "@/engine-sandbox/shared/avatar";
+import { CRACK_STAGES } from "@/engine-sandbox/shared/textures";
 import { Link } from "@tanstack/react-router";
 import { SandboxChat } from "@/components/SandboxChat";
 import { openFragments } from "@/lib/fragments-ui";
@@ -42,10 +46,10 @@ import { ChestModal, type ChestItem } from "@/components/ChestModal";
 import { Backpack, Loader2, Users, Clock, Volume2, VolumeX, Home, LogIn, UserPlus, MessageSquare, Settings } from "lucide-react";
 import { playFootstep, playSound } from "@/lib/sfx";
 import { BmgoAudio } from "@/lib/bmgo-audio";
-import { RemotePlayers } from "@/engine/remote-players";
-import { createHpBar } from "@/engine/hpbar";
-import { NameTag } from "@/engine/nametag";
-import { RuneTimerTag } from "@/engine/rune-timer";
+import { RemotePlayers } from "@/engine-sandbox/shared/remote-players";
+import { createHpBar } from "@/engine-sandbox/shared/hpbar";
+import { NameTag } from "@/engine-sandbox/shared/nametag";
+import { RuneTimerTag } from "@/engine-sandbox/shared/rune-timer";
 import {
   clearSandboxPresence,
   subscribeToSandboxPlayers,
@@ -71,17 +75,17 @@ import { db } from "@/lib/firebase";
 import { subscribeSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
 import { subscribeBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
 import { getShadowMapSize, readQualityPref } from "@/lib/rendering";
-import { COMPETITIVE_PHYSICS } from "@/engine/player";
-import { MovementFacing, ThirdPersonRig, fovForAspect } from "@/engine/v2/camera-rig";
-import { MatchController, now as matchNow } from "@/engine/v2/match";
-import { Progression } from "@/engine/v2/progression";
-import { WorldEvents } from "@/engine/v2/world-events";
-import { AmbientParticles } from "@/engine/v2/ambient-particles";
-import { SkyblockEnvironment } from "@/engine/v2/skyblock-environment";
-import { CosmicSky } from "@/engine/v2/cosmic-sky";
+import { COMPETITIVE_PHYSICS } from "@/engine-sandbox/shared/player";
+import { MovementFacing, ThirdPersonRig, fovForAspect } from "@/engine-sandbox/shared/camera-rig";
+import { MatchController, now as matchNow } from "@/engine-sandbox/blockfall/match";
+import { Progression } from "@/engine-sandbox/skyblock/progression";
+import { WorldEvents } from "@/engine-sandbox/skyblock/world-events";
+import { AmbientParticles } from "@/engine-sandbox/shared/ambient-particles";
+import { SkyblockEnvironment } from "@/engine-sandbox/skyblock/skyblock-environment";
+import { CosmicSky } from "@/engine-sandbox/shared/cosmic-sky";
 import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
-import { announce } from "@/engine/v2/announcer";
-import { useStore } from "@/engine/v2/store";
+import { announce } from "@/engine-sandbox/shared/announcer";
+import { useStore } from "@/engine-sandbox/shared/store";
 import { V2GameHud, UI as HUD_UI, type HudAction } from "@/components/v2/V2GameHud";
 import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2";
 import { CinematicVignette, Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";

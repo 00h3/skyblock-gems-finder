@@ -1,4 +1,4 @@
-import { SPECIES, type SeedCounts, type Species } from "@/engine/v2/nature";
+import { SPECIES, type SeedCounts, type Species } from "@/engine-sandbox/skyblock/nature";
 import { cn } from "@/lib/utils";
 
 /** Compact seed pouch: shows each species you carry; tap one to pick what "Plant" sows. */

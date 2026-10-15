@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { createHpBar, type HpBar } from "@/engine/hpbar";
-import type { Player } from "@/engine/player";
-import type { World } from "@/engine/world";
-import { announce } from "./announcer";
+import { createHpBar, type HpBar } from "../shared/hpbar";
+import type { Player } from "../shared/player";
+import type { World } from "../shared/world";
+import { announce } from "../shared/announcer";
 import {
   ARENA,
   MINE_TIERS,

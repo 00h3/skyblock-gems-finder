@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { BLOCKS, type World } from "@/engine/world";
-import type { BlockFx } from "@/engine/interact";
+import { BLOCKS, type World } from "../shared/world";
+import type { BlockFx } from "../shared/interact";
 
 /**
  * Living nature: grass and leaves drop seeds, seeds grow into saplings and

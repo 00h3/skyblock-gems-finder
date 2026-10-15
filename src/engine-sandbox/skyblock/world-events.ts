@@ -1,4 +1,4 @@
-import { Store } from "./store";
+import { Store } from "../shared/store";
 
 /**
  * Occasional, non-blocking island events. Each definition describes its

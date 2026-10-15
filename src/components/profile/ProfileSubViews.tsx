@@ -47,7 +47,6 @@ import {
 } from "lucide-react";
 import { APP_VERSION } from "@/components/LegalDocs";
 import { BetaFeatures } from "@/components/BetaFeatures";
-import { WowDownloadModal } from "@/components/wow-studio/WowDownloadModal";
 import { VerifiedTick } from "@/components/VerifiedTick";
 import { GlossyAvatar, AvatarFrameOverlay } from "@/components/GlossyAvatar";
 import { TextureButton } from "@/components/ui/texture-button";
@@ -2254,7 +2253,6 @@ export function BetaFeaturesView({
   onBack,
 }: {
   onBack: () => void;
-  onLaunchWow?: () => void;
 }) {
   return (
     <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">

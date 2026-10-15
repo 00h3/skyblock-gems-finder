@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { Sky } from "@/engine/sky";
+import type { Sky } from "../shared/sky";
 
 /**
  * Cinematic backdrop for Skyblock: a sun-lit ocean far below, a drifting

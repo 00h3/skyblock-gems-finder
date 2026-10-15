@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Crosshair, Heart, Hand, LayoutGrid, ShoppingBag, ArrowLeftRight, X, Pickaxe, Hammer } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QUICK_BUY_PRESETS, type ItemId } from "@/engine/features";
+import { QUICK_BUY_PRESETS, type ItemId } from "@/engine-sandbox/shared/features";
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 

@@ -5,7 +5,7 @@ import {
   SANDBOX_AVATAR_MODEL,
   WITCH_AVATAR_MODEL,
   WITCH_AVATAR_REMOTE_URL,
-} from "@/engine/avatar-model";
+} from "./avatar-model";
 
 /**
  * Sparkling Purple Aura effect with glowing runic rings and swirling particles.

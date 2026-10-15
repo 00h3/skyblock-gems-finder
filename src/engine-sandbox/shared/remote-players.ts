@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Avatar } from "@/engine/avatar";
-import { NameTag } from "@/engine/nametag";
+import { Avatar } from "./avatar";
+import { NameTag } from "./nametag";
 import type { LiveSandboxPlayer } from "@/lib/sandbox-presence";
 
 type Entity = {

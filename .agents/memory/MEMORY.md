@@ -1,0 +1,1 @@
+- [Sandbox engine scope](sandbox-engine-scope.md) — `/game/sandbox` is the preserved shared engine for BedWars, Skyblock, and BlockFall.

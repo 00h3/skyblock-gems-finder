@@ -1,4 +1,4 @@
-import { Store } from "./store";
+import { Store } from "../shared/store";
 
 /**
  * Skyblock island progression. XP comes from building, mining, selling and

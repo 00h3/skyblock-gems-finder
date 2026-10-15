@@ -88,8 +88,6 @@ function ProfilePage() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(null);
   const [previousScreen, setPreviousScreen] = useState<ActiveScreen>(null);
   const [showSelfProfileSheet, setShowSelfProfileSheet] = useState(false);
-  const [showWowDownload, setShowWowDownload] = useState(false);
-
   const [nameDraft, setNameDraft] = useState("");
   const [bioDraft, setBioDraft] = useState("");
   const [photoDraft, setPhotoDraft] = useState("");
@@ -381,7 +379,6 @@ function ProfilePage() {
         {activeScreen === "beta_features" && (
           <motion.div key="beta_features" {...subviewMotion} className="min-h-full">
             <BetaFeaturesView
-              onLaunchWow={() => setShowWowDownload(true)}
               onBack={() => setActiveScreen(null)}
             />
           </motion.div>

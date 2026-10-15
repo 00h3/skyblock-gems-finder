@@ -1,6 +1,6 @@
 import React from "react";
 import { Avatar3D } from "./Avatar3D";
-import { SANDBOX_AVATAR_MODEL } from "@/engine/avatar-model";
+import { SANDBOX_AVATAR_MODEL } from "@/engine-sandbox/shared/avatar-model";
 import type { FocusZone } from "./Avatar3D";
 import { useEquippedShop, resolveTextures } from "@/lib/shop";
 import {

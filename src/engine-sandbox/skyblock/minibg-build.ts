@@ -1,4 +1,4 @@
-import { WATER_ID, type World } from "@/engine/world";
+import { WATER_ID, type World } from "../shared/world";
 
 /**
  * Minibg Realm: a detached royal landmass 2048 blocks east of the Skyblock
