@@ -215,11 +215,16 @@ export class SandboxSocket {
 
     const now = performance.now();
     const movedEnough =
-      Math.abs(position.x - this.lastSentPos.x) > 0.25 ||
-      Math.abs(position.y - this.lastSentPos.y) > 0.25 ||
-      Math.abs(position.z - this.lastSentPos.z) > 0.25 ||
-      Math.abs(position.rotY - this.lastSentPos.rotY) > 0.25;
-    if (now - this.lastSentTime < POSITION_SEND_INTERVAL_MS && !movedEnough) return;
+      Math.abs(position.x - this.lastSentPos.x) > 0.03 ||
+      Math.abs(position.y - this.lastSentPos.y) > 0.03 ||
+      Math.abs(position.z - this.lastSentPos.z) > 0.03 ||
+      Math.abs(position.rotY - this.lastSentPos.rotY) > 0.04;
+    const largeMove =
+      Math.abs(position.x - this.lastSentPos.x) > 0.75 ||
+      Math.abs(position.y - this.lastSentPos.y) > 0.75 ||
+      Math.abs(position.z - this.lastSentPos.z) > 0.75;
+    if (!movedEnough && now - this.lastSentTime < 2000) return;
+    if (now - this.lastSentTime < POSITION_SEND_INTERVAL_MS && !largeMove) return;
     if (!this.isJoined) return;
 
     this.lastSentTime = now;
@@ -240,8 +245,6 @@ export class SandboxSocket {
 
   sendBlockUpdate(change: Omit<BlockUpdate, "updatedBy">) {
     const block: BlockUpdate = { ...change, updatedBy: this.myUid };
-    this.notifyBlock(block);
-
     if (!this.isJoined || !this.send({ type: "block_update", block })) {
       this.pendingBlocks.set(`${block.x},${block.y},${block.z}`, block);
       while (this.pendingBlocks.size > MAX_PENDING_BLOCKS) {

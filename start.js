@@ -104,12 +104,13 @@ const proxy = createServer((req, res) => {
   req.pipe(proxyReq);
 });
 
-attachSandboxWebSocketServer(proxy);
+const closeSandboxWebSockets = attachSandboxWebSocketServer(proxy);
 
 let shuttingDown = false;
 const shutdown = (signal = "SIGTERM") => {
   if (shuttingDown) return;
   shuttingDown = true;
+  closeSandboxWebSockets();
   proxy.close();
   child.kill(signal);
   const forceExit = setTimeout(() => {
@@ -126,6 +127,7 @@ child.once("error", (error) => {
   shutdown("SIGTERM");
 });
 child.once("exit", (code) => {
+  closeSandboxWebSockets();
   proxy.close();
   if (shuttingDown) {
     process.exit(code || 0);

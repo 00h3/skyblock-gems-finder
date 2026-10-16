@@ -215,7 +215,10 @@ export function attachSandboxWebSocketServer(httpServer) {
     socket.on("error", () => removePlayer(socket, connections, rooms));
   });
 
+  let cleanedUp = false;
   const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
     clearInterval(heartbeat);
     httpServer.off("upgrade", onUpgrade);
     for (const socket of wss.clients) socket.close(1001, "Server shutting down");

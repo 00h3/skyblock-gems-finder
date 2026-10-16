@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Avatar } from "./avatar";
 import { NameTag } from "./nametag";
-import type { LiveSandboxPlayer } from "@/lib/sandbox-presence";
+import type { PlayerUpdate } from "@/lib/websocket-sync";
 
 type Entity = {
   avatar: Avatar;
@@ -23,7 +23,7 @@ export class RemotePlayers {
   constructor(private scene: THREE.Scene) {}
 
   /** Reconcile the live roster from presence. */
-  sync(players: LiveSandboxPlayer[]) {
+  sync(players: PlayerUpdate[]) {
     const seen = new Set<string>();
     for (const p of players) {
       seen.add(p.uid);
@@ -65,8 +65,8 @@ export class RemotePlayers {
   }
 
   /** Every live entity, for hit-testing and floating HP bars. */
-  list(): [string, Entity][] {
-    return [...this.entities];
+  list(): IterableIterator<[string, Entity]> {
+    return this.entities.entries();
   }
 
   /** Show a chat bubble above a player (no-op when they aren't nearby). */
@@ -83,9 +83,13 @@ export class RemotePlayers {
 
   update(dt: number, cameraPosition: THREE.Vector3) {
     for (const e of this.entities.values()) {
-      const prev = e.current.clone();
+      const prevX = e.current.x;
+      const prevY = e.current.y;
+      const prevZ = e.current.z;
       e.current.lerp(e.target, 1 - Math.exp(-12 * dt));
-      e.speed = prev.distanceTo(e.current) / Math.max(dt, 0.0001);
+      e.speed =
+        Math.hypot(e.current.x - prevX, e.current.y - prevY, e.current.z - prevZ) /
+        Math.max(dt, 0.0001);
       if (e.avatar.loaded) {
         e.avatar.update(dt, e.current, e.targetYaw, e.speed, true, false, 0);
       }

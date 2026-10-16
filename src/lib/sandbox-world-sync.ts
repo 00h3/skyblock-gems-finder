@@ -1,10 +1,9 @@
 import {
   collection,
   doc,
-  onSnapshot,
+  getDocs,
   serverTimestamp,
   setDoc,
-  type Unsubscribe,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
@@ -21,58 +20,25 @@ function blockKey(x: number, y: number, z: number) {
   return `${x}:${y}:${z}`;
 }
 
-export function subscribeSandboxBlocks(
+export async function loadSandboxBlocks(
   onChange: (change: SandboxBlockChange) => void,
   onError: (error: Error) => void,
   onReady?: () => void,
-): Unsubscribe {
-  let stopped = false;
-  let unsubscribe: Unsubscribe = () => {};
-  let retryTimer: ReturnType<typeof setTimeout> | null = null;
-  let retryDelay = 1000;
-
-  const connect = () => {
-    if (stopped) return;
-    unsubscribe = onSnapshot(
-      collection(db, COLLECTION),
-      (snapshot) => {
-        retryDelay = 1000;
-        onReady?.();
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "removed") {
-            const [x, y, z] = change.doc.id.split(":").map(Number);
-            onChange({ x, y, z, id: 0 });
-            return;
-          }
-          const data = change.doc.data();
-          const x = Number(data.x);
-          const y = Number(data.y);
-          const z = Number(data.z);
-          const id = Number(data.id);
-          if ([x, y, z, id].every(Number.isFinite)) onChange({ x, y, z, id });
-        });
-      },
-      (error) => {
-        onError(error);
-        const code = (error as { code?: string }).code;
-        if (code === "permission-denied" || code === "unauthenticated") return;
-        if (stopped) return;
-        retryTimer = setTimeout(() => {
-          retryTimer = null;
-          unsubscribe();
-          connect();
-        }, retryDelay);
-        retryDelay = Math.min(15000, retryDelay * 2);
-      },
-    );
-  };
-
-  connect();
-  return () => {
-    stopped = true;
-    if (retryTimer) clearTimeout(retryTimer);
-    unsubscribe();
-  };
+): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(db, COLLECTION));
+    for (const document of snapshot.docs) {
+      const data = document.data();
+      const x = Number(data.x);
+      const y = Number(data.y);
+      const z = Number(data.z);
+      const id = Number(data.id);
+      if ([x, y, z, id].every(Number.isFinite)) onChange({ x, y, z, id });
+    }
+    onReady?.();
+  } catch (error) {
+    onError(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 export function writeSandboxBlock(change: SandboxBlockChange): Promise<void> {
