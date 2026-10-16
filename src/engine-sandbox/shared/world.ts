@@ -1328,18 +1328,46 @@ export class World {
     for (const sc of this.dirtySubChunks) {
       this.dirtySubChunkArray.push(sc);
     }
-    if (playerPos && this.dirtySubChunkArray.length > 1) {
+    const count = Math.min(budget, this.dirtySubChunkArray.length);
+
+    // Only select the nearest chunks that fit this frame's budget. Sorting the
+    // entire dirty set every frame made a small edit expensive when many
+    // sub-chunks were queued; selection keeps the same nearest-first behavior
+    // with work proportional to the small per-frame budget.
+    if (playerPos && count > 0 && this.dirtySubChunkArray.length > count) {
       const px = playerPos.x;
       const py = playerPos.y;
       const pz = playerPos.z;
-      this.dirtySubChunkArray.sort((a, b) => {
-        const da = (a.center.x - px) ** 2 + (a.center.y - py) ** 2 + (a.center.z - pz) ** 2;
-        const db = (b.center.x - px) ** 2 + (b.center.y - py) ** 2 + (b.center.z - pz) ** 2;
-        return da - db;
-      });
+      for (let i = 0; i < count; i++) {
+        let nearestIndex = i;
+        const first = this.dirtySubChunkArray[i];
+        let nearestDistance =
+          (first.center.x - px) ** 2 +
+          (first.center.y - py) ** 2 +
+          (first.center.z - pz) ** 2;
+
+        for (let j = i + 1; j < this.dirtySubChunkArray.length; j++) {
+          const candidate = this.dirtySubChunkArray[j];
+          const dx = candidate.center.x - px;
+          const dy = candidate.center.y - py;
+          const dz = candidate.center.z - pz;
+          const distance = dx * dx + dy * dy + dz * dz;
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = j;
+          }
+        }
+
+        if (nearestIndex !== i) {
+          const nearest = this.dirtySubChunkArray[nearestIndex];
+          for (let j = nearestIndex; j > i; j--) {
+            this.dirtySubChunkArray[j] = this.dirtySubChunkArray[j - 1];
+          }
+          this.dirtySubChunkArray[i] = nearest;
+        }
+      }
     }
 
-    const count = Math.min(budget, this.dirtySubChunkArray.length);
     for (let i = 0; i < count; i++) {
       const sc = this.dirtySubChunkArray[i];
       this.dirtySubChunks.delete(sc);

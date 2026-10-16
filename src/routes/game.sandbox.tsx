@@ -1383,7 +1383,9 @@ export function SandboxGame({
       renderer.toneMappingExposure = 1.25;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.shadowMap.autoUpdate = true;
+      // Keep the full-resolution shadow map, but honor the explicit update
+      // scheduling below instead of regenerating it unconditionally per frame.
+      renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
 
       // Full anisotropic filtering keeps grazing-angle (distant floor) texels
@@ -3312,9 +3314,11 @@ export function SandboxGame({
           }
         }
 
-        // Periodic light/shadow update (throttled to keep rendering silky-smooth)
+        // Keep shadow detail at full resolution. Refresh at full frame rate
+        // while the player moves; when still, the slowly moving sun only needs
+        // periodic updates. This matches the renderer's manual shadow schedule.
         shadowAcc += dt;
-        if (shadowAcc >= 0.35 || player.velocity.lengthSq() > 16) {
+        if (shadowAcc >= 0.35 || player.velocity.lengthSq() > 0.04) {
           shadowAcc = 0;
           if (renderer) renderer.shadowMap.needsUpdate = true;
         }

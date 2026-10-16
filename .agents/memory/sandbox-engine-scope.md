@@ -22,4 +22,5 @@ a performance fix.
 to reduce lag in BedWars, Skyblock, and BlockFall.
 
 **How to apply:** profile first, then optimize rendering and simulation work
-without lowering visual fidelity; ask before considering any visible tradeoff.
+without lowering visual fidelity; keep the device-pixel ratio on portrait and
+landscape resizes, and ask before considering any visible tradeoff.
