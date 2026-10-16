@@ -1,9 +1,4 @@
-/**
- * WebSockets real-time sync for QBlock Sandbox Engine.
- * Handles player presence (positions, movement, chat) and world block updates.
- */
-
-import type { AvatarSnapshot } from "@/lib/avatar";
+export type MultiplayerRoom = "sandbox" | "bedwars" | "skyblock" | "blockfall" | "golden-days";
 
 export type PlayerUpdate = {
   uid: string;
@@ -16,9 +11,6 @@ export type PlayerUpdate = {
   z: number;
   rotY: number;
   anim?: string;
-  avatarSnapshot?: Partial<AvatarSnapshot>;
-  gender?: "male" | "female";
-  modelUrl?: string;
 };
 
 export type BlockUpdate = {
@@ -36,298 +28,292 @@ export type ChatMessage = {
   at: number;
 };
 
+type ConnectionStatus = "connecting" | "connected" | "disconnected";
 type ServerMessage =
+  | { type: "joined"; room: string; uid: string }
+  | { type: "error"; message: string }
   | { type: "players"; players: PlayerUpdate[] }
-  | { type: "player_joined"; player: PlayerUpdate }
-  | { type: "join"; player: PlayerUpdate }
-  | { type: "position"; player: PlayerUpdate }
-  | { type: "avatar_update" | "player_update"; player: PlayerUpdate }
+  | { type: "player_joined" | "join"; player: PlayerUpdate }
+  | { type: "position" | "player_update" | "avatar_update"; player: PlayerUpdate }
   | { type: "player_left"; uid: string }
   | { type: "block_update" | "block"; block: BlockUpdate }
   | { type: "chat"; message: ChatMessage }
   | { type: "init_world"; blocks: BlockUpdate[] };
 
-class SandboxSocket {
+const POSITION_SEND_INTERVAL_MS = 50;
+const MAX_PENDING_BLOCKS = 2000;
+
+export class SandboxSocket {
   private ws: WebSocket | null = null;
-  private reconnectTimer: number | null = null;
-  private myUid: string = "";
+  private roomId: MultiplayerRoom | null = null;
+  private myUid = "";
   private myData: PlayerUpdate | null = null;
-  private playerCallbacks: Set<(players: PlayerUpdate[]) => void> = new Set();
-  private blockCallbacks: Set<(block: BlockUpdate) => void> = new Set();
-  private chatCallbacks: Set<(msg: ChatMessage) => void> = new Set();
-  private errorCallbacks: Set<(err: Error) => void> = new Set();
-  private localPlayers: Map<string, PlayerUpdate> = new Map();
-  private isConnected: boolean = false;
-  private lastSentTime: number = 0;
-  private pendingThrottleTimer: number | null = null;
-  private lastSentPos = { x: 0, y: 0, z: 0, rotY: 0, anim: "" };
+  private shouldReconnect = false;
+  private isJoined = false;
+  private reconnectTimer: number | null = null;
+  private reconnectDelay = 500;
+  private lastSentTime = 0;
+  private lastSentPos = { x: 0, y: 0, z: 0, rotY: 0 };
+  private pendingBlocks = new Map<string, BlockUpdate>();
+  private localPlayers = new Map<string, PlayerUpdate>();
+  private playerCallbacks = new Set<(players: PlayerUpdate[]) => void>();
+  private blockCallbacks = new Set<(block: BlockUpdate) => void>();
+  private chatCallbacks = new Set<(message: ChatMessage) => void>();
+  private statusCallbacks = new Set<(status: ConnectionStatus) => void>();
+  private errorCallbacks = new Set<(error: Error) => void>();
 
-  constructor() {
-    // Initialized lazily when join is called
-  }
-
-  public connect(uid: string, initialData: Omit<PlayerUpdate, "x" | "y" | "z" | "rotY">) {
-    this.myUid = uid;
-    this.myData = {
-      ...initialData,
-      x: 0,
-      y: 9,
-      z: 0,
-      rotY: 0,
-    };
+  connect(roomId: MultiplayerRoom, player: PlayerUpdate) {
+    this.stopConnection();
+    this.roomId = roomId;
+    this.myUid = player.uid;
+    this.myData = { ...player };
+    this.localPlayers.clear();
+    this.pendingBlocks.clear();
+    this.reconnectDelay = 500;
+    this.shouldReconnect = true;
+    this.notifyPlayers();
     this.initSocket();
   }
 
   private initSocket() {
-    if (typeof window === "undefined") return;
-    if (
-      this.ws &&
-      (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)
-    ) {
+    if (typeof window === "undefined" || !this.shouldReconnect || !this.roomId || !this.myUid) {
       return;
     }
 
+    this.notifyStatus("connecting");
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws?uid=${encodeURIComponent(this.myUid)}`;
+    const wsUrl = `${protocol}//${window.location.host}/ws?room=${encodeURIComponent(this.roomId)}`;
 
     try {
-      this.ws = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl);
+      this.ws = socket;
 
-      this.ws.onopen = () => {
-        this.isConnected = true;
-        if (this.reconnectTimer) {
-          window.clearTimeout(this.reconnectTimer);
-          this.reconnectTimer = null;
+      socket.onopen = () => {
+        if (this.ws !== socket || !this.shouldReconnect || !this.myData) {
+          socket.close();
+          return;
         }
-        if (this.myData) {
-          this.send({ type: "join", player: this.myData });
-        }
+        socket.send(JSON.stringify({ type: "join", room: this.roomId, player: this.myData }));
       };
 
-      this.ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
         try {
-          const msg = JSON.parse(event.data) as ServerMessage;
-          this.handleMessage(msg);
-        } catch (e) {
-          console.error("Failed to parse WS message:", e);
+          this.handleMessage(JSON.parse(event.data) as ServerMessage);
+        } catch {
+          this.notifyError(new Error("The multiplayer server sent an invalid message."));
         }
       };
 
-      this.ws.onclose = () => {
-        this.isConnected = false;
+      socket.onclose = () => {
+        if (this.ws !== socket) return;
+        this.ws = null;
+        this.isJoined = false;
+        this.notifyStatus("disconnected");
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = (err) => {
-        console.warn("WebSocket connection notice:", err);
+      socket.onerror = () => {
+        this.notifyError(new Error("Could not reach the multiplayer WebSocket server."));
       };
     } catch {
+      this.notifyError(new Error("Could not open the multiplayer WebSocket connection."));
       this.scheduleReconnect();
     }
   }
 
   private scheduleReconnect() {
-    if (this.reconnectTimer || !this.myUid) return;
+    if (this.reconnectTimer !== null || !this.shouldReconnect || typeof window === "undefined") return;
+    const delay = this.reconnectDelay;
+    this.reconnectDelay = Math.min(15_000, this.reconnectDelay * 2);
     this.reconnectTimer = window.setTimeout(() => {
       this.reconnectTimer = null;
       this.initSocket();
-    }, 3000);
+    }, delay);
   }
 
-  private handleMessage(msg: ServerMessage) {
-    switch (msg.type) {
+  private handleMessage(message: ServerMessage) {
+    switch (message.type) {
+      case "joined":
+        this.isJoined = true;
+        this.reconnectDelay = 500;
+        this.notifyStatus("connected");
+        for (const block of this.pendingBlocks.values()) {
+          this.send({ type: "block_update", block });
+        }
+        this.pendingBlocks.clear();
+        break;
+      case "error":
+        this.notifyError(new Error(message.message));
+        break;
       case "players":
         this.localPlayers.clear();
-        for (const p of msg.players) {
-          if (p.uid && p.uid !== this.myUid) {
-            this.localPlayers.set(p.uid, p);
-          }
+        for (const player of message.players) {
+          if (player.uid && player.uid !== this.myUid) this.localPlayers.set(player.uid, player);
         }
         this.notifyPlayers();
         break;
-
       case "player_joined":
       case "join":
-        if (msg.player?.uid && msg.player.uid !== this.myUid) {
-          const existing = this.localPlayers.get(msg.player.uid);
-          this.localPlayers.set(msg.player.uid, { ...existing, ...msg.player });
+        if (message.player?.uid && message.player.uid !== this.myUid) {
+          this.localPlayers.set(message.player.uid, {
+            ...this.localPlayers.get(message.player.uid),
+            ...message.player,
+          });
           this.notifyPlayers();
         }
         break;
-
       case "position":
-        if (msg.player?.uid && msg.player.uid !== this.myUid) {
-          const existing = this.localPlayers.get(msg.player.uid);
-          if (existing) {
-            existing.x = msg.player.x;
-            existing.y = msg.player.y;
-            existing.z = msg.player.z;
-            existing.rotY = msg.player.rotY;
-            if (msg.player.anim) existing.anim = msg.player.anim;
-            this.notifyPlayers();
-          } else {
-            this.localPlayers.set(msg.player.uid, msg.player);
-            this.notifyPlayers();
-          }
-        }
-        break;
-
-      case "avatar_update":
       case "player_update":
-        if (msg.player?.uid && msg.player.uid !== this.myUid) {
-          const existing = this.localPlayers.get(msg.player.uid);
-          this.localPlayers.set(msg.player.uid, { ...existing, ...msg.player });
+      case "avatar_update":
+        if (message.player?.uid && message.player.uid !== this.myUid) {
+          this.localPlayers.set(message.player.uid, {
+            ...this.localPlayers.get(message.player.uid),
+            ...message.player,
+          });
           this.notifyPlayers();
         }
         break;
-
       case "player_left":
-        this.localPlayers.delete(msg.uid);
+        this.localPlayers.delete(message.uid);
         this.notifyPlayers();
         break;
-
       case "init_world":
-        if (Array.isArray(msg.blocks)) {
-          msg.blocks.forEach((b) => this.blockCallbacks.forEach((cb) => cb(b)));
+        if (Array.isArray(message.blocks)) {
+          for (const block of message.blocks) this.notifyBlock(block);
         }
         break;
-
       case "block_update":
       case "block":
-        if (msg.block) {
-          this.blockCallbacks.forEach((cb) => cb(msg.block));
-        }
+        this.notifyBlock(message.block);
         break;
-
       case "chat":
-        this.chatCallbacks.forEach((cb) => cb(msg.message));
+        this.chatCallbacks.forEach((callback) => callback(message.message));
         break;
     }
   }
 
   private notifyPlayers() {
-    const list = Array.from(this.localPlayers.values());
-    this.playerCallbacks.forEach((cb) => cb(list));
+    const players = Array.from(this.localPlayers.values());
+    this.playerCallbacks.forEach((callback) => callback(players));
   }
 
-  public updatePresence(pos: { x: number; y: number; z: number; rotY: number; anim?: string }) {
+  private notifyBlock(block: BlockUpdate) {
+    this.blockCallbacks.forEach((callback) => callback(block));
+  }
+
+  private notifyStatus(status: ConnectionStatus) {
+    this.statusCallbacks.forEach((callback) => callback(status));
+  }
+
+  private notifyError(error: Error) {
+    this.errorCallbacks.forEach((callback) => callback(error));
+  }
+
+  updatePresence(position: { x: number; y: number; z: number; rotY: number; anim?: string }) {
     if (!this.myData) return;
-    this.myData.x = pos.x;
-    this.myData.y = pos.y;
-    this.myData.z = pos.z;
-    this.myData.rotY = pos.rotY;
-    if (pos.anim) this.myData.anim = pos.anim;
+    this.myData = { ...this.myData, ...position };
 
     const now = performance.now();
-    const dx = Math.abs(pos.x - this.lastSentPos.x);
-    const dy = Math.abs(pos.y - this.lastSentPos.y);
-    const dz = Math.abs(pos.z - this.lastSentPos.z);
-    const dRot = Math.abs(pos.rotY - this.lastSentPos.rotY);
-    const animChanged = pos.anim !== this.lastSentPos.anim;
+    const movedEnough =
+      Math.abs(position.x - this.lastSentPos.x) > 0.25 ||
+      Math.abs(position.y - this.lastSentPos.y) > 0.25 ||
+      Math.abs(position.z - this.lastSentPos.z) > 0.25 ||
+      Math.abs(position.rotY - this.lastSentPos.rotY) > 0.25;
+    if (now - this.lastSentTime < POSITION_SEND_INTERVAL_MS && !movedEnough) return;
+    if (!this.isJoined) return;
 
-    // Send immediately if large delta, animation changed, or throttle window elapsed
-    const elapsed = now - this.lastSentTime;
-    const isSignificant = dx > 0.6 || dy > 0.6 || dz > 0.6 || dRot > 0.3 || animChanged;
-
-    if (elapsed >= 45 || isSignificant) {
-      if (this.pendingThrottleTimer) {
-        window.clearTimeout(this.pendingThrottleTimer);
-        this.pendingThrottleTimer = null;
-      }
-      this.flushPresence();
-    } else if (!this.pendingThrottleTimer) {
-      this.pendingThrottleTimer = window.setTimeout(() => {
-        this.pendingThrottleTimer = null;
-        this.flushPresence();
-      }, 45 - elapsed);
-    }
-  }
-
-  private flushPresence() {
-    if (!this.myData) return;
-    this.lastSentTime = performance.now();
+    this.lastSentTime = now;
     this.lastSentPos = {
-      x: this.myData.x,
-      y: this.myData.y,
-      z: this.myData.z,
-      rotY: this.myData.rotY,
-      anim: this.myData.anim || "",
+      x: position.x,
+      y: position.y,
+      z: position.z,
+      rotY: position.rotY,
     };
-
-    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: "position", player: this.myData });
-    }
+    this.send({ type: "position", player: this.myData });
   }
 
-  public updateAvatar(avatar: {
-    avatarSnapshot?: Partial<AvatarSnapshot>;
-    gender?: "male" | "female";
-  }) {
+  updateAvatar(avatar: { photo?: string; frame?: string; badges?: string[] }) {
     if (!this.myData) return;
-    if (avatar.avatarSnapshot) this.myData.avatarSnapshot = avatar.avatarSnapshot;
-    if (avatar.gender) this.myData.gender = avatar.gender;
+    this.myData = { ...this.myData, ...avatar };
+    this.send({ type: "avatar_update", player: this.myData });
+  }
 
-    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: "avatar_update", player: this.myData });
+  sendBlockUpdate(change: Omit<BlockUpdate, "updatedBy">) {
+    const block: BlockUpdate = { ...change, updatedBy: this.myUid };
+    this.notifyBlock(block);
+
+    if (!this.isJoined || !this.send({ type: "block_update", block })) {
+      this.pendingBlocks.set(`${block.x},${block.y},${block.z}`, block);
+      while (this.pendingBlocks.size > MAX_PENDING_BLOCKS) {
+        this.pendingBlocks.delete(this.pendingBlocks.keys().next().value!);
+      }
     }
   }
 
-  public sendBlockUpdate(block: Omit<BlockUpdate, "updatedBy">) {
-    const payload: BlockUpdate = { ...block, updatedBy: this.myUid };
-    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: "block_update", block: payload });
-    }
-    this.blockCallbacks.forEach((cb) => cb(payload));
-  }
-
-  public sendChatMessage(text: string) {
+  sendChatMessage(text: string) {
     if (!this.myData) return;
-    const msg: ChatMessage = {
+    const message: ChatMessage = {
       uid: this.myUid,
       name: this.myData.name,
-      text,
+      text: text.slice(0, 300),
       at: Date.now(),
     };
-    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: "chat", message: msg });
+    this.send({ type: "chat", message });
+    this.chatCallbacks.forEach((callback) => callback(message));
+  }
+
+  private send(message: unknown) {
+    if (!this.isJoined || !this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(JSON.stringify(message));
+    return true;
+  }
+
+  onPlayers(callback: (players: PlayerUpdate[]) => void) {
+    this.playerCallbacks.add(callback);
+    callback(Array.from(this.localPlayers.values()));
+    return () => this.playerCallbacks.delete(callback);
+  }
+
+  onBlock(callback: (block: BlockUpdate) => void) {
+    this.blockCallbacks.add(callback);
+    return () => this.blockCallbacks.delete(callback);
+  }
+
+  onChat(callback: (message: ChatMessage) => void) {
+    this.chatCallbacks.add(callback);
+    return () => this.chatCallbacks.delete(callback);
+  }
+
+  onStatus(callback: (status: ConnectionStatus) => void) {
+    this.statusCallbacks.add(callback);
+    return () => this.statusCallbacks.delete(callback);
+  }
+
+  onError(callback: (error: Error) => void) {
+    this.errorCallbacks.add(callback);
+    return () => this.errorCallbacks.delete(callback);
+  }
+
+  disconnect() {
+    this.shouldReconnect = false;
+    this.stopConnection();
+    this.roomId = null;
+    this.myUid = "";
+    this.myData = null;
+    this.pendingBlocks.clear();
+    this.localPlayers.clear();
+    this.notifyPlayers();
+    this.notifyStatus("disconnected");
+  }
+
+  private stopConnection() {
+    if (this.reconnectTimer !== null && typeof window !== "undefined") {
+      window.clearTimeout(this.reconnectTimer);
     }
-    this.chatCallbacks.forEach((cb) => cb(msg));
-  }
-
-  private send(data: unknown) {
-    try {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify(data));
-      }
-    } catch (e) {
-      console.error("Error sending WS message:", e);
-    }
-  }
-
-  public onPlayers(cb: (players: PlayerUpdate[]) => void): () => void {
-    this.playerCallbacks.add(cb);
-    return () => this.playerCallbacks.delete(cb);
-  }
-
-  public onBlock(cb: (block: BlockUpdate) => void): () => void {
-    this.blockCallbacks.add(cb);
-    return () => this.blockCallbacks.delete(cb);
-  }
-
-  public onChat(cb: (msg: ChatMessage) => void): () => void {
-    this.chatCallbacks.add(cb);
-    return () => this.chatCallbacks.delete(cb);
-  }
-
-  public disconnect() {
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {}
-      this.ws = null;
-    }
-    this.isConnected = false;
+    this.reconnectTimer = null;
+    const socket = this.ws;
+    this.ws = null;
+    this.isJoined = false;
+    if (socket) socket.close(1000, "Leaving multiplayer room");
   }
 }
-
-export const sandboxSocket = new SandboxSocket();
