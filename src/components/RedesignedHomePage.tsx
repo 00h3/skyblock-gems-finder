@@ -31,7 +31,14 @@ export function RedesignedHomePage({
 
   const [showSelfProfile, setShowSelfProfile] = useState(false);
 
-  const visibleGames = GAMES.filter((g) => g.id !== "sandbox" && g.id !== "bedwars-golden-days");
+  const visibleGames = GAMES.filter(
+    (g) =>
+      g.id !== "sandbox" &&
+      g.id !== "bedwars-golden-days" &&
+      g.id !== "block-fall" &&
+      g.id !== "blockfall" &&
+      g.id !== "bedwars",
+  );
 
   const recentIds = getRecentlyPlayedGameIds();
   const recentGames = recentIds

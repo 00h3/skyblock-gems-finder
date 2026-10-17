@@ -82,6 +82,8 @@ import { BlockFallOverlays, BlockFallStatus } from "@/components/v2/BlockFallV2"
 import { CinematicVignette, Crosshair, MilestoneTracker, SkyblockStatus, V2Hotbar } from "@/components/v2/SkyblockV2";
 import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/components/v2/V2Screens";
 import { getPermanentPlayerId, loadSkyblockProfile, saveSkyblockProfile } from "@/lib/skyblock-profile";
+import { TntRunStatus, TntRunCountdownOverlay } from "@/components/v2/TntRunHud";
+import { TntRunLeaderboardModal } from "@/components/v2/TntRunLeaderboardModal";
 
 
 
@@ -623,6 +625,130 @@ export function rebuildBlockFallPlatforms(world: World) {
       const swirl5 = (x + z) % 5;
       const l5 = swirl5 === 0 ? 23 : swirl5 === 1 ? 19 : swirl5 === 2 ? 18 : swirl5 === 3 ? 43 : 11;
       world.set(x, 8, z, l5);
+    }
+  }
+}
+
+export const TNT_RUN_HALF = 16;
+export const TNT_RUN_LEVELS = [46, 39, 32, 25, 18, 11, 4];
+
+export function buildTntRunArena(world: World) {
+  const minX = -TNT_RUN_HALF;
+  const maxX = TNT_RUN_HALF;
+  const minZ = -TNT_RUN_HALF;
+  const maxZ = TNT_RUN_HALF;
+  const minY = 2;
+  const maxY = 51;
+
+  // 1. Rainbow wool & glowstone perimeter void floor at minY (2)
+  for (let x = minX; x <= maxX; x++) {
+    for (let z = minZ; z <= maxZ; z++) {
+      if (Math.abs(x) === maxX || Math.abs(z) === maxZ) {
+        world.set(x, minY, z, 23); // Amethyst glowing perimeter
+      } else {
+        const pattern = (Math.abs(x) + Math.abs(z)) % 3;
+        const woolId = pattern === 0 ? 32 : pattern === 1 ? 43 : 29; // Green, Pink, White wool
+        world.set(x, minY, z, woolId);
+      }
+    }
+  }
+
+  // 2. Sugar glass catch floor at Y = 3
+  for (let x = minX; x <= maxX; x++) {
+    for (let z = minZ; z <= maxZ; z++) {
+      world.set(x, 3, z, 10); // Glass
+    }
+  }
+
+  // 3. Walls along X and Z with striped wool corner pillars and panoramic glass windows
+  const getWallBlock = (x: number, y: number, z: number, isCorner: boolean, isPillar: boolean) => {
+    if (isCorner) {
+      // Corner columns: Green, Pink, White spiral
+      const step = Math.floor((y + (x + z)) / 2) % 3;
+      return step === 0 ? 32 : step === 1 ? 43 : 29;
+    }
+    if (isPillar) {
+      if (y === 12 || y === 19 || y === 26 || y === 33 || y === 40 || y === 47) return 18; // Glowstone
+      const step = Math.floor(y / 2) % 2;
+      return step === 0 ? 32 : 29; // Green & White wool
+    }
+    if (y >= 49) {
+      return (x + z) % 2 === 0 ? 43 : 29; // Pink and White trim
+    }
+    if (y <= 5) {
+      return y === 4 ? 32 : 43; // Green & Pink base
+    }
+    return 10; // Observation glass
+  };
+
+  for (let y = 3; y <= maxY; y++) {
+    for (let z = minZ; z <= maxZ; z++) {
+      const isCorner = z === minZ || z === maxZ;
+      const isPillar = z % 5 === 0;
+      world.set(minX, y, z, getWallBlock(minX, y, z, isCorner, isPillar));
+      world.set(maxX, y, z, getWallBlock(maxX, y, z, isCorner, isPillar));
+    }
+    for (let x = minX + 1; x < maxX; x++) {
+      const isPillar = x % 5 === 0;
+      world.set(x, y, minZ, getWallBlock(x, y, minZ, false, isPillar));
+      world.set(x, y, maxZ, getWallBlock(x, y, maxZ, false, isPillar));
+    }
+  }
+
+  // 4. Canopy ceiling at maxY (51) with chandeliers
+  for (let x = minX; x <= maxX; x++) {
+    for (let z = minZ; z <= maxZ; z++) {
+      if (Math.abs(x) < 3 && Math.abs(z) < 3) {
+        world.set(x, maxY, z, 19); // Gold
+        world.set(x, maxY - 1, z, 18); // Glowstone
+      } else if (Math.abs(x) % 8 === 0 && Math.abs(z) % 8 === 0) {
+        world.set(x, maxY, z, 23); // Amethyst
+        world.set(x, maxY - 1, z, 18); // Glowstone
+      } else {
+        const stripe = (Math.abs(x) + Math.abs(z)) % 2 === 0 ? 32 : 29; // Green & White wool
+        world.set(x, maxY, z, stripe);
+      }
+    }
+  }
+
+  // 5. Build 7 platform levels inside
+  rebuildTntRunPlatforms(world);
+}
+
+export function rebuildTntRunPlatforms(world: World) {
+  const pMin = -(TNT_RUN_HALF - 2);
+  const pMax = TNT_RUN_HALF - 2;
+
+  for (let x = pMin; x <= pMax; x++) {
+    for (let z = pMin; z <= pMax; z++) {
+      // Level 7: Green & White wool stripes (Y = 46)
+      const l7 = Math.floor((x + 16) / 2) % 2 === 0 ? 32 : 29; // Green wool (32), White wool (29)
+      world.set(x, 46, z, l7);
+
+      // Level 6: Pink & White wool stripes (Y = 39)
+      const l6 = Math.floor((z + 16) / 2) % 2 === 0 ? 43 : 29; // Pink wool (43), White wool (29)
+      world.set(x, 39, z, l6);
+
+      // Level 5: Red & White wool diagonal stripes (Y = 32)
+      const l5 = Math.floor((x + z + 32) / 2) % 2 === 0 ? 30 : 29; // Red wool (30), White wool (29)
+      world.set(x, 32, z, l5);
+
+      // Level 4: Blue & White wool stripes (Y = 25)
+      const l4 = Math.floor((x + 16) / 2) % 2 === 0 ? 31 : 29; // Blue wool (31), White wool (29)
+      world.set(x, 25, z, l4);
+
+      // Level 3: Yellow & Pink wool stripes (Y = 18)
+      const l3 = Math.floor((z + 16) / 2) % 2 === 0 ? 33 : 43; // Yellow wool (33), Pink wool (43)
+      world.set(x, 18, z, l3);
+
+      // Level 2: Green, Pink & White wool rainbow stripes (Y = 11)
+      const rem = Math.floor((x + 16) / 2) % 3;
+      const l2 = rem === 0 ? 32 : rem === 1 ? 43 : 29;
+      world.set(x, 11, z, l2);
+
+      // Level 1: Red & Yellow wool hazard stripes (Y = 4)
+      const l1 = Math.floor((x + z + 32) / 2) % 2 === 0 ? 30 : 33; // Red wool (30), Yellow wool (33)
+      world.set(x, 4, z, l1);
     }
   }
 }

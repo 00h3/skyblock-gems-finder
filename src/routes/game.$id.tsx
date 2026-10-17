@@ -1620,6 +1620,8 @@ function GamePage() {
         <SandboxGame skyblock />
       ) : id === "block-fall" || id.startsWith("block-fall") ? (
         <SandboxGame blockFall />
+      ) : id === "tnt-run" || id.startsWith("tnt-run") ? (
+        <SandboxGame tntRun />
       ) : id === "sandbox" ? (
         <SandboxGame />
       ) : (
@@ -2361,7 +2363,7 @@ function EngineGame({
       // extra render targets and is a common source of mobile WebGL loss during
       // match entry, while it adds little to this small arena.
       const bloomEnabled = qualityPref !== "low" && !isEggwars && !conservative3D;
-      const ssaoEnabled = (qualityPref === "high" || qualityPref === "uhd") && !isMobileUA && !isEggwars && !conservative3D;
+      const ssaoEnabled = qualityPref === "high" && !isMobileUA && !isEggwars && !conservative3D;
       const motionBlurStored = localStorage.getItem("bm-motion-blur");
       const motionBlurEnabled =
         (motionBlurStored === null || motionBlurStored === "true") && !isEggwars && !conservative3D;
@@ -2369,18 +2371,7 @@ function EngineGame({
       let ssaoPass: SSAOPass | null = null;
       let motionBlurPass: ShaderPass | null = null;
       if (bloomEnabled || ssaoEnabled || motionBlurEnabled) {
-        const composerDpr = renderer.getPixelRatio() || 1;
-        const targetW = Math.max(64, Math.round(width * composerDpr));
-        const targetH = Math.max(64, Math.round(height * composerDpr));
-        const composerTarget = new THREE.WebGLRenderTarget(targetW, targetH, {
-          type: THREE.HalfFloatType,
-          samples: isMobileUA ? 0 : 2,
-          minFilter: THREE.LinearFilter,
-          magFilter: THREE.LinearFilter,
-        });
-        composer = new EffectComposer(renderer, composerTarget);
-        composer.setPixelRatio(composerDpr);
-        composer.setSize(width, height);
+        composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
         // SSAO — high+desktop only
         if (ssaoEnabled) {
@@ -10023,7 +10014,7 @@ function EngineGame({
           // "why does it suddenly look pixelated" reports. Low/medium still
           // scale down to protect frame rate on weaker hardware.
           const DRS_FLOOR = isMobileUA ? 0.8 : 0.85;
-          if (qualityPref !== "high" && qualityPref !== "uhd") {
+          if (qualityPref !== "high") {
             if (fps < 52 && curScale > DRS_FLOOR) {
               // Drop faster (0.12 step) when behind; recover slower (0.05) so it
               // doesn't immediately overshoot back up and cause visible oscillation.
@@ -10527,6 +10518,7 @@ function EngineGame({
       <div
         ref={mountRef}
         className="absolute inset-0"
+        style={isSkyblock ? { filter: "saturate(1.14) contrast(1.14)" } : undefined}
       />
 
       {/* Cheap color-grade pass: warm center, darkened edges — makes the flat

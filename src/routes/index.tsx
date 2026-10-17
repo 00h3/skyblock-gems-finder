@@ -117,6 +117,20 @@ export const GAMES: Game[] = [
     progress: 0,
   },
   {
+    id: "tnt-run",
+    t: "TNT Run",
+    hue: "from-red-500 via-pink-400 to-amber-300",
+    bio: "7 levels of rainbow wool platforms! Keep running before the floor crumbles beneath you.",
+    mode: "Arcade",
+    modeColor: "text-red-600",
+    icon: baseplateIcon,
+    players: "1.8K",
+    playable: true,
+    likes: "6.5K",
+    updated: true,
+    progress: 0,
+  },
+  {
     id: "block-fall",
     t: "Block Fall",
     hue: "from-red-400 via-orange-400 to-amber-300",
@@ -129,7 +143,8 @@ export const GAMES: Game[] = [
     likes: "1.2K",
     updated: true,
     progress: 0,
-  },  {
+  },
+  {
     id: "bedwars",
     t: "Bedwars",
     hue: "from-amber-300 via-orange-300 to-rose-300",
@@ -166,7 +181,10 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
   const recentIds = getRecentlyPlayedGameIds();
   const recentGames = GAMES.filter((g) => recentIds.includes(g.id));
   const visible = GAMES.filter(
-    (game) => !q || `${game.t} ${game.bio} ${game.mode}`.toLowerCase().includes(q),
+    (game) =>
+      game.id !== "block-fall" &&
+      game.id !== "bedwars" &&
+      (!q || `${game.t} ${game.bio} ${game.mode}`.toLowerCase().includes(q)),
   );
   const sections = [
     ...(recentGames.length > 0 ? [{ title: "Recent Game", games: recentGames }] : []),
