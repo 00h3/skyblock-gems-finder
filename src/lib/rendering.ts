@@ -43,8 +43,8 @@ export const getTargetDpr = (quality?: RenderQuality): number => {
   if (quality === "uhd") {
     return Math.min(Math.max(rawDpr, 1.5), 2.0);
   }
-  // High quality: native pixel-accurate resolution up to 2.0
-  return Math.min(rawDpr, 2.0);
+  // High quality: Force at least 2.0 for 2K-like retina clarity on desktop
+  return Math.max(rawDpr, 2.0);
 };
 
 /**
