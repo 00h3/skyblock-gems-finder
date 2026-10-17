@@ -305,7 +305,11 @@ export class Sky {
     dome.renderOrder = -1000;
     this.group.add(dome);
 
-    const shadowSize = opts.shadowMapSize ?? 4096;
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && /macintosh/i.test(navigator.userAgent)));
+    const shadowSize = opts.shadowMapSize ?? (isMobile ? 1024 : 2048);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.set(shadowSize, shadowSize);
     this.sunLight.shadow.camera.near = 1;

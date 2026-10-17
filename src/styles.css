@@ -68,6 +68,8 @@ html, body {
 
 canvas {
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  touch-action: none;
   backface-visibility: hidden;
 }
 

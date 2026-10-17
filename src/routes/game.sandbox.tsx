@@ -1396,6 +1396,9 @@ export function SandboxGame({
       renderer.domElement.style.display = "block";
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
+      renderer.domElement.style.touchAction = "none";
+      renderer.domElement.style.transform = "translateZ(0)";
+      (renderer.domElement.style as any).webkitTransform = "translateZ(0)";
       renderer.domElement.style.imageRendering = "auto";
       renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 

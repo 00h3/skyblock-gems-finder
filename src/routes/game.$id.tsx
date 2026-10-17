@@ -2306,8 +2306,12 @@ function EngineGame({
       let skyMatRef: THREE.ShaderMaterial | null = null;
       // Quality tier sets the base render scale and DPR cap. Dynamic resolution
       // scaling inside tick() will further adjust curScale based on live FPS.
+      const MAX_DPR = isMobileUA ? 2.0 : 2.0;
+      const RENDER_SCALE = 1.0;
+      let curScale = RENDER_SCALE;
+      const baseDpr = getTargetDpr(qualityPref);
 
-      renderer.setPixelRatio(getTargetDpr(qualityPref));
+      renderer.setPixelRatio(baseDpr * curScale);
       renderer.setSize(width, height);
       // ACESFilmic tone mapping — compresses highlights and lifts shadows slightly,
       // giving the scene a cinematic, realistic look instead of a raw linear output.
@@ -2322,7 +2326,7 @@ function EngineGame({
       renderer.domElement.style.background = skyBg;
       renderer.setClearColor(new THREE.Color(skyBg), 1);
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.autoUpdate = true;
+      renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2335,6 +2339,8 @@ function EngineGame({
       renderer.domElement.style.userSelect = "none";
       renderer.domElement.style.webkitUserSelect = "none";
       renderer.domElement.style.outline = "none";
+      renderer.domElement.style.transform = "translateZ(0)";
+      (renderer.domElement.style as any).webkitTransform = "translateZ(0)";
       mount.appendChild(renderer.domElement);
       // Clean native WebGL presentation without compositor filter overhead
       renderer.domElement.style.filter = "none";
@@ -2355,7 +2361,7 @@ function EngineGame({
       // extra render targets and is a common source of mobile WebGL loss during
       // match entry, while it adds little to this small arena.
       const bloomEnabled = qualityPref !== "low" && !isEggwars && !conservative3D;
-      const ssaoEnabled = qualityPref === "high" && !isMobileUA && !isEggwars && !conservative3D;
+      const ssaoEnabled = (qualityPref === "high" || qualityPref === "uhd") && !isMobileUA && !isEggwars && !conservative3D;
       const motionBlurStored = localStorage.getItem("bm-motion-blur");
       const motionBlurEnabled =
         (motionBlurStored === null || motionBlurStored === "true") && !isEggwars && !conservative3D;
@@ -2363,7 +2369,18 @@ function EngineGame({
       let ssaoPass: SSAOPass | null = null;
       let motionBlurPass: ShaderPass | null = null;
       if (bloomEnabled || ssaoEnabled || motionBlurEnabled) {
-        composer = new EffectComposer(renderer);
+        const composerDpr = renderer.getPixelRatio() || 1;
+        const targetW = Math.max(64, Math.round(width * composerDpr));
+        const targetH = Math.max(64, Math.round(height * composerDpr));
+        const composerTarget = new THREE.WebGLRenderTarget(targetW, targetH, {
+          type: THREE.HalfFloatType,
+          samples: isMobileUA ? 0 : 2,
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+        });
+        composer = new EffectComposer(renderer, composerTarget);
+        composer.setPixelRatio(composerDpr);
+        composer.setSize(width, height);
         composer.addPass(new RenderPass(scene, camera));
         // SSAO — high+desktop only
         if (ssaoEnabled) {
@@ -2405,9 +2422,12 @@ function EngineGame({
         e.preventDefault();
       };
       const onContextRestored = () => {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR) * RENDER_SCALE);
+        renderer.setPixelRatio(Math.min(baseDpr, MAX_DPR) * curScale);
         renderer.setSize(mount.clientWidth, mount.clientHeight);
         composer?.setSize(mount.clientWidth, mount.clientHeight);
+        if (renderer.shadowMap.enabled) {
+          renderer.shadowMap.needsUpdate = true;
+        }
       };
       renderer.domElement.addEventListener("webglcontextlost", onContextLost, false);
       renderer.domElement.addEventListener("webglcontextrestored", onContextRestored, false);
@@ -2585,8 +2605,10 @@ function EngineGame({
       const mobileLow = isMobileUA && qualityPref === "low";
       sun.castShadow = !mobileLow;
       renderer.shadowMap.enabled = !mobileLow;
-      // Shadow map: 512 on low, 1024 on medium, 2048 on high.
-      const shadowMapSize = qualityPref === "low" ? 512 : qualityPref === "medium" ? 1024 : 2048;
+      // Shadow map: 2048 on desktop and 1024 on mobile devices (512 on mobile low).
+      const shadowMapSize = isMobileUA
+        ? (qualityPref === "low" ? 512 : 1024)
+        : (qualityPref === "low" ? 1024 : 2048);
       sun.shadow.mapSize.set(shadowMapSize, shadowMapSize);
       sun.shadow.camera.near = 1;
       sun.shadow.camera.far = isSkyblock ? 180 : isSpleef ? 70 : 90;
@@ -2709,8 +2731,10 @@ function EngineGame({
         const q = (e as CustomEvent<string>).detail as "low" | "medium" | "high";
         const dpr = getTargetDpr(q);
         curScale = q === "low" ? 0.85 : 1.0;
-        renderer.setPixelRatio(dpr);
-        const shadowMapSz = q === "low" ? 512 : q === "medium" ? 1024 : 2048;
+        renderer.setPixelRatio(dpr * curScale);
+        const shadowMapSz = isMobileUA
+          ? (q === "low" ? 512 : 1024)
+          : (q === "low" ? 1024 : 2048);
         sun.shadow.mapSize.set(shadowMapSz, shadowMapSz);
         renderer.shadowMap.needsUpdate = true;
       };
@@ -8580,7 +8604,7 @@ function EngineGame({
 
       let raf = 0;
       let lastT = performance.now();
-      let curScale = RENDER_SCALE;
+      curScale = RENDER_SCALE;
       let frameAccum = 0,
         frameCount = 0;
       let firstFrame = true;
@@ -9999,15 +10023,15 @@ function EngineGame({
           // "why does it suddenly look pixelated" reports. Low/medium still
           // scale down to protect frame rate on weaker hardware.
           const DRS_FLOOR = isMobileUA ? 0.8 : 0.85;
-          if (qualityPref !== "high") {
+          if (qualityPref !== "high" && qualityPref !== "uhd") {
             if (fps < 52 && curScale > DRS_FLOOR) {
               // Drop faster (0.12 step) when behind; recover slower (0.05) so it
               // doesn't immediately overshoot back up and cause visible oscillation.
               curScale = Math.max(DRS_FLOOR, curScale - 0.12);
-              renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR) * curScale);
+              renderer.setPixelRatio(Math.min(baseDpr, MAX_DPR) * curScale);
             } else if (fps > 58 && curScale < RENDER_SCALE) {
               curScale = Math.min(RENDER_SCALE, curScale + 0.05);
-              renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR) * curScale);
+              renderer.setPixelRatio(Math.min(baseDpr, MAX_DPR) * curScale);
             }
           }
           frameAccum = 0;
@@ -10503,7 +10527,6 @@ function EngineGame({
       <div
         ref={mountRef}
         className="absolute inset-0"
-        style={isSkyblock ? { filter: "saturate(1.14) contrast(1.14)" } : undefined}
       />
 
       {/* Cheap color-grade pass: warm center, darkened edges — makes the flat

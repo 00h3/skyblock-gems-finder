@@ -81,9 +81,18 @@ export class CinematicPost {
     const targetW = Math.max(64, Math.round(w * dpr));
     const targetH = Math.max(64, Math.round(h * dpr));
 
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && /macintosh/i.test(navigator.userAgent)));
+
+    // 2x MSAA on desktop provides clean, anti-aliased voxel silhouettes (Vectaria.io quality)
+    // without the 4x memory bandwidth stall. Mobile uses 0 samples for thermal efficiency.
+    const samples = isMobile ? 0 : 2;
+
     const target = new THREE.WebGLRenderTarget(targetW, targetH, {
       type: THREE.HalfFloatType,
-      samples: 4,
+      samples: samples,
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
     });
@@ -92,9 +101,10 @@ export class CinematicPost {
     this.composer.setSize(w, h);
     this.composer.addPass(new RenderPass(scene, camera));
 
-    // High-efficiency soft bloom for lanterns, fire, and sun
-    const bloomW = Math.max(32, Math.round(targetW * 0.5));
-    const bloomH = Math.max(32, Math.round(targetH * 0.5));
+    // Downscaled bloom pass buffer for mobile devices to prevent fill-rate lag
+    const bloomScale = isMobile ? 0.25 : 0.5;
+    const bloomW = Math.max(32, Math.round(targetW * bloomScale));
+    const bloomH = Math.max(32, Math.round(targetH * bloomScale));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.38, 0.65, 0.85);
     this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
@@ -115,9 +125,14 @@ export class CinematicPost {
     const dpr = pixelRatio || (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1;
     const targetW = Math.max(64, Math.round(w * dpr));
     const targetH = Math.max(64, Math.round(h * dpr));
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && /macintosh/i.test(navigator.userAgent)));
+    const bloomScale = isMobile ? 0.25 : 0.5;
     this.composer.setPixelRatio(dpr);
     this.composer.setSize(w, h);
-    this.bloom.setSize(Math.max(32, Math.round(targetW * 0.5)), Math.max(32, Math.round(targetH * 0.5)));
+    this.bloom.setSize(Math.max(32, Math.round(targetW * bloomScale)), Math.max(32, Math.round(targetH * bloomScale)));
   }
 
   render(dt: number) {

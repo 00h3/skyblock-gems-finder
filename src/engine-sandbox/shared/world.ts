@@ -1314,8 +1314,8 @@ export class World {
           if (visible && playerPos) {
             const distSq = (sc.center.x - px) ** 2 + (sc.center.z - pz) ** 2;
             const isNear = distSq < (36 * 36);
-            if (sc.mesh) sc.mesh.castShadow = isNear;
-            if (sc.transparentMesh) sc.transparentMesh.castShadow = isNear;
+            if (sc.mesh && sc.mesh.castShadow !== isNear) sc.mesh.castShadow = isNear;
+            if (sc.transparentMesh && sc.transparentMesh.castShadow !== isNear) sc.transparentMesh.castShadow = isNear;
           }
         }
       }
@@ -2191,7 +2191,7 @@ export class World {
           sc.mesh.geometry,
         );
       }
-      sc.mesh.castShadow = isNearCamera;
+      if (sc.mesh.castShadow !== isNearCamera) sc.mesh.castShadow = isNearCamera;
       sc.mesh.visible = true;
     } else if (sc.mesh) {
       sc.mesh.visible = false;
@@ -2218,7 +2218,7 @@ export class World {
           new THREE.BufferAttribute(tsBuf.slice(0, tsIdx), 1),
         );
       }
-      sc.transparentMesh.castShadow = isNearCamera;
+      if (sc.transparentMesh.castShadow !== isNearCamera) sc.transparentMesh.castShadow = isNearCamera;
       sc.transparentMesh.visible = true;
     } else if (sc.transparentMesh) {
       sc.transparentMesh.visible = false;
