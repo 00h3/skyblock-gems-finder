@@ -105,20 +105,20 @@ export class CinematicPost {
     const bloomScale = isMobile ? 0.25 : 0.5;
     const bloomW = Math.max(32, Math.round(targetW * bloomScale));
     const bloomH = Math.max(32, Math.round(targetH * bloomScale));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.38, 0.65, 0.85);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.12, 0.40, 0.92);
     this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
     this.composer.addPass(this.motion);
     this.composer.addPass(new OutputPass());
   }
 
-  /** Graphics V2: richer bloom on bright sun/emissives plus a filmic grade. */
+  /** Graphics V2: gentle filmic tone without blinding bloom. */
   setGraphicsV2(on: boolean) {
-    this.bloom.strength = on ? 0.44 : 0.35;
-    this.bloom.radius = on ? 0.70 : 0.60;
-    this.bloom.threshold = on ? 0.82 : 0.88;
-    this.motion.uniforms.uGrade.value = on ? 1.10 : 0.95;
-    this.motion.uniforms.uVignette.value = on ? 0.09 : 0.06;
+    this.bloom.strength = on ? 0.14 : 0.08;
+    this.bloom.radius = on ? 0.45 : 0.35;
+    this.bloom.threshold = on ? 0.90 : 0.94;
+    this.motion.uniforms.uGrade.value = on ? 1.02 : 0.92;
+    this.motion.uniforms.uVignette.value = on ? 0.05 : 0.03;
   }
 
   setSize(w: number, h: number, pixelRatio: number) {

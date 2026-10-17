@@ -96,12 +96,12 @@ void main() {
   // thin horizon haze band for depth.
   if (uV2 > 0.0) {
     float disc = smoothstep(0.9993, 0.99965, sunDot);
-    float corona = pow(sunDot, 220.0) * 1.1 + pow(sunDot, 48.0) * 0.28;
-    col += mix(uSunColor, vec3(1.0), 0.35) * (disc * 2.6 + corona) * sunVisible * uV2;
+    float corona = pow(sunDot, 220.0) * 0.45 + pow(sunDot, 48.0) * 0.12;
+    col += mix(uSunColor, vec3(1.0), 0.25) * (disc * 1.1 + corona) * sunVisible * uV2;
     float mie = pow(sunDot, 4.0) * lowSun;
-    col += vec3(1.0, 0.52, 0.26) * mie * 0.34 * uV2;
+    col += vec3(1.0, 0.52, 0.26) * mie * 0.20 * uV2;
     float haze = exp(-abs(h) * 14.0);
-    col = mix(col, mix(uHorizon, uSunColor, 0.25 * lowSun) * 1.04, haze * 0.22 * uV2 * (1.0 - uNight * 0.6));
+    col = mix(col, mix(uHorizon, uSunColor, 0.25 * lowSun) * 1.02, haze * 0.15 * uV2 * (1.0 - uNight * 0.6));
   }
 
   // Moon: opposite the sun, soft cratered disc with a wide cold glow.
@@ -532,12 +532,12 @@ export class Sky {
     if (sunDir.y >= -0.05) {
       this.sunLight.position.copy(sunDir).multiplyScalar(120);
       this.sunLight.color.copy(sun);
-      this.sunLight.intensity = (this.isGoldenHour ? 2.6 : this.isMystic ? 2.1 : 0.85 + day * 1.65) * this.cloudLight * (this.v2 ? 1.12 : 1);
+      this.sunLight.intensity = (this.isGoldenHour ? 1.7 : this.isMystic ? 1.5 : 0.75 + day * 0.95) * this.cloudLight;
     } else {
       this.sunLight.position.copy(sunDir).multiplyScalar(-120);
       this.sunLight.color.copy(this.isMystic ? C.sunMystic : C.moon);
       // Cool, directional moonlight so night keeps shape and soft shadows.
-      this.sunLight.intensity = 0.68 + this.aurora * 0.15;
+      this.sunLight.intensity = 0.55 + this.aurora * 0.12;
     }
     if (this.sunLight.position.y < 20) this.sunLight.position.y = 20;
 
@@ -554,8 +554,8 @@ export class Sky {
 
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(hemiGround);
-    this.hemi.intensity = this.isGoldenHour ? 1.5 : this.isMystic ? 1.35 : 0.95 + day * 0.65;
-    this.ambient.intensity = this.isGoldenHour ? 0.48 : this.isMystic ? 0.44 : 0.42 + day * 0.22;
+    this.hemi.intensity = this.isGoldenHour ? 1.1 : this.isMystic ? 1.0 : 0.72 + day * 0.38;
+    this.ambient.intensity = this.isGoldenHour ? 0.35 : this.isMystic ? 0.32 : 0.28 + day * 0.14;
 
     this.fog.color.copy(horizon);
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);

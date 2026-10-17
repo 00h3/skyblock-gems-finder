@@ -37,11 +37,11 @@ export function fovForAspect(aspect: number, _horizontalDeg = 90, baseTargetFov 
  * - Snappy rotation with spring-damped position translation
  */
 export class ThirdPersonRig {
-  /** Target distance behind the player (Blockman GO signature: 2.3m - 2.5m) */
-  distance = 2.4;
-  minDistance = 0.55;
-  /** Lateral right-shoulder offset (units) */
-  lateralOffset = 0.38;
+  /** Target distance behind the player (Blockman GO signature: 3.3m) */
+  distance = 3.3;
+  minDistance = 0.65;
+  /** Lateral offset: centered directly behind player like Blockman GO */
+  lateralOffset = 0.0;
 
   /** Player model opacity fade factor: 1.0 (fully opaque) to 0.0 (transparent) */
   playerAlpha = 1.0;

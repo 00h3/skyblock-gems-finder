@@ -474,6 +474,74 @@ function buildSkyblockIsland(world: World) {
   world.set(4, 16, -2, 4);  // Cobblestone border
 }
 
+function buildBaseplateWorld(world: World) {
+  const surfaceY = 16;
+  const bottomY = 12;
+  const radius = 32;
+
+  // Expansive lush green grass baseplate with bedrock foundation & dirt sublayer
+  for (let x = -radius; x <= radius; x++) {
+    for (let z = -radius; z <= radius; z++) {
+      for (let y = bottomY; y <= surfaceY; y++) {
+        let blockId = 2; // Dirt
+        if (y === surfaceY) {
+          blockId = 1; // Grass
+        } else if (y === bottomY) {
+          blockId = 12; // Bedrock
+        } else {
+          blockId = 2; // Dirt
+        }
+        world.set(x, y, z, blockId);
+      }
+    }
+  }
+
+  // Starter Tree for wood resources
+  const treeX = -6;
+  const treeZ = -6;
+  for (let ty = 17; ty <= 21; ty++) {
+    world.set(treeX, ty, treeZ, 5); // Oak Log
+  }
+  for (let lx = -2; lx <= 2; lx++) {
+    for (let lz = -2; lz <= 2; lz++) {
+      for (let ly = 20; ly <= 22; ly++) {
+        if (Math.abs(lx) + Math.abs(lz) <= 3 && !(lx === 0 && lz === 0 && ly < 22)) {
+          world.set(treeX + lx, ly, treeZ + lz, 9); // Oak Leaves
+        }
+      }
+    }
+  }
+
+  // Center spawn cobblestone cross
+  world.set(0, 16, 0, 4);
+  world.set(1, 16, 0, 4);
+  world.set(-1, 16, 0, 4);
+  world.set(0, 16, 1, 4);
+  world.set(0, 16, -1, 4);
+
+  // Water spring pond
+  world.set(6, 16, 6, 0);
+  world.set(7, 16, 6, 0);
+  world.set(6, 16, 7, 0);
+  world.set(7, 16, 7, 0);
+  world.set(6, 15, 6, 6);
+  world.set(7, 15, 6, 6);
+  world.set(6, 15, 7, 6);
+  world.set(7, 15, 7, 6);
+
+  // Lava pool with cobblestone containment
+  world.set(6, 16, -6, 0);
+  world.set(7, 16, -6, 0);
+  world.set(6, 15, -6, 62);
+  world.set(7, 15, -6, 62);
+  world.set(5, 16, -6, 4);
+  world.set(8, 16, -6, 4);
+  world.set(6, 16, -7, 4);
+  world.set(7, 16, -7, 4);
+  world.set(6, 16, -5, 4);
+  world.set(7, 16, -5, 4);
+}
+
 const SKYBLOCK_POND = { x: 2.5, z: 2.5, radius: 1.8 };
 /** Water plane: fits cleanly inside pond basin */
 const SKYBLOCK_POND_SURFACE = { x: SKYBLOCK_POND.x, y: 15.88, z: SKYBLOCK_POND.z, size: 3.5 };
@@ -1112,12 +1180,15 @@ export function SandboxGame({
   skyblock = false,
   blockFall = false,
   bedwars = false,
+  baseplate = false,
 }: {
   goldenDays?: boolean;
   skyblock?: boolean;
   blockFall?: boolean;
   bedwars?: boolean;
+  baseplate?: boolean;
 } = {}) {
+  const isSkyblockLike = skyblock || baseplate;
   const mountRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<Controls | null>(null);
   const slotRef = useRef(0);
@@ -1130,7 +1201,7 @@ export function SandboxGame({
   const [hotbar, setHotbar] = useState<(number | string)[]>(
     goldenDays
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
-      : skyblock
+      : isSkyblockLike
         ? ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3]
         : blockFall
           ? []
@@ -1273,7 +1344,7 @@ export function SandboxGame({
   const cosmicSkyRef = useRef<CosmicSky | null>(null);
 
   useEffect(() => {
-    if (!skyblock || !skyRef.current) return;
+    if (!isSkyblockLike || !skyRef.current) return;
     cosmicSkyRef.current?.setNight(celestialNight);
     if (celestialNight) {
       skyRef.current.setNight();
@@ -1297,7 +1368,7 @@ export function SandboxGame({
       if (auroraGroupRef.current) auroraGroupRef.current.visible = false;
       if (phoenixModelRef.current) phoenixModelRef.current.visible = true;
     }
-  }, [celestialNight, skyblock]);
+  }, [celestialNight, isSkyblockLike]);
 
   // Local identity used for multiplayer presence + name tags.
   const { qbUser } = useAuth();
@@ -1336,7 +1407,7 @@ export function SandboxGame({
 
   // ── Persistent Island Progression (Saved By Person Forever in Firestore & LocalStorage) ──
   useEffect(() => {
-    if (!skyblock) return;
+    if (!isSkyblockLike) return;
     const playerUid = getPermanentPlayerId(qbUser);
     let isMounted = true;
 
@@ -1398,7 +1469,7 @@ export function SandboxGame({
         hotbar: hotbarRef.current,
       });
     };
-  }, [skyblock, qbUser?.uid, progression]);
+  }, [isSkyblockLike, qbUser?.uid, progression]);
 
   const [isTouch, setIsTouch] = useState(false);
   useEffect(() => {
@@ -1501,7 +1572,7 @@ export function SandboxGame({
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.25;
+      renderer.toneMappingExposure = 1.0; // Clean, natural contrast matching Blockman GO
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       // Keep the full-resolution shadow map, but honor the explicit update
@@ -1550,7 +1621,7 @@ export function SandboxGame({
       let baseFov = camera.fov;
 
       sky = new Sky(scene, {
-        dayLength: skyblock ? 720 : 600,
+        dayLength: isSkyblockLike ? 720 : 600,
         shadowMapSize: getShadowMapSize(qualityPref),
         cloudOctaves: qualityPref === "low" ? 3 : 5,
       });
@@ -1591,7 +1662,7 @@ export function SandboxGame({
       if (blockFall) {
         sky.paused = true;
         sky.setCloudCover(0.35);
-        renderer.toneMappingExposure = 1.2;
+        renderer.toneMappingExposure = 1.0;
       }
 
       // Chunk render distance: tuned per mode for rock-solid performance
@@ -1600,10 +1671,10 @@ export function SandboxGame({
         sky.paused = true;
         sky.setCloudCover(0.24);
         sky.setRange(25, 240);
-        renderer.toneMappingExposure = 1.15;
+        renderer.toneMappingExposure = 1.05;
       }
 
-      world = new World(atlas, goldenDays ? 16 : skyblock || bedwars ? 10 : blockFall ? 6 : 8);
+      world = new World(atlas, goldenDays ? 16 : isSkyblockLike || bedwars ? 10 : blockFall ? 6 : 8);
 
       if (bedwars) {
         buildBedwarsLobby(world);
@@ -1617,6 +1688,8 @@ export function SandboxGame({
         buildBlockFallArena(world);
       } else if (goldenDays) {
         buildForestArena(world);
+      } else if (baseplate) {
+        buildBaseplateWorld(world);
       } else if (skyblock) {
         buildSkyblockIsland(world);
       } else {
@@ -1627,12 +1700,12 @@ export function SandboxGame({
         scene.add(world.group);
       }
 
-      const skyEnv = skyblock
+      const skyEnv = isSkyblockLike
         ? new SkyblockEnvironment(scene, { pond: SKYBLOCK_POND_SURFACE, lowQuality: qualityPref === "low" })
         : null;
-      if (skyblock) {
-        renderer.toneMappingExposure = 1.18;
-        sky.setCloudCover(0.42);
+      if (isSkyblockLike) {
+        renderer.toneMappingExposure = 1.0;
+        sky.setCloudCover(0.35);
       }
 
       const grassField =
@@ -1643,9 +1716,11 @@ export function SandboxGame({
             )
           : null;
       if (grassField) scene.add(grassField.mesh);
+      // High-performance rendering: use direct GPU rendering by default for 60fps responsiveness;
+      // post-processing only if high quality is explicitly requested
       const cinematicPost =
-        (skyblock || blockFall || bedwars) && qualityPref !== "low"
-          ? new CinematicPost(renderer, scene, camera, 0.18)
+        (isSkyblockLike || blockFall || bedwars) && qualityPref === "high"
+          ? new CinematicPost(renderer, scene, camera, 0.12)
           : null;
       const applyGraphicsV2 = (on: boolean) => {
         sky?.setGraphicsV2(on);
@@ -1655,7 +1730,7 @@ export function SandboxGame({
       applyGraphicsV2(isGraphicsV2());
       const onGraphicsV2 = (e: Event) => applyGraphicsV2((e as CustomEvent<boolean>).detail);
       window.addEventListener(GRAPHICS_V2_EVENT, onGraphicsV2);
-      const cosmicSky = skyblock || bedwars ? new CosmicSky(scene, qualityPref === "low") : null;
+      const cosmicSky = isSkyblockLike || bedwars ? new CosmicSky(scene, qualityPref === "low") : null;
       cosmicSkyRef.current = cosmicSky;
       cosmicSky?.setNight(bedwars || celestialNightRef.current || initialAtm === "night");
 
@@ -2049,7 +2124,7 @@ export function SandboxGame({
       } else if (goldenDays) {
         player.setSpawnPoint(0.5, 15, -219.5);
         player.respawn();
-      } else if (skyblock) {
+      } else if (skyblock || baseplate) {
         player.setSpawnPoint(0.5, 17.5, 0.5);
         player.respawn();
       } else if (bedwars) {
@@ -2534,7 +2609,7 @@ export function SandboxGame({
           ? "blockfall"
           : bedwars
             ? "bedwars"
-            : skyblock
+            : isSkyblockLike
               ? "skyblock"
               : "sandbox";
       socket = new SandboxSocket();
@@ -2629,14 +2704,14 @@ export function SandboxGame({
 
       controls = new Controls(renderer.domElement);
       controlsRef.current = controls;
-      if (skyblock) {
+      if (isSkyblockLike) {
         BmgoAudio.startSkyblockBgm();
       }
       controls.onLockChange = (isLocked) => {
         setLocked(isLocked);
         if (isLocked) {
           BmgoAudio.unlock();
-          if (skyblock) BmgoAudio.startSkyblockBgm();
+          if (isSkyblockLike) BmgoAudio.startSkyblockBgm();
           if (blockFall) BmgoAudio.startBlockFallBgm();
         }
       };
@@ -3150,8 +3225,8 @@ export function SandboxGame({
       setReady(true);
       setVeilToken((v) => v + 1);
       announce(
-        skyblock ? "Welcome to Skyblock" : blockFall ? "Welcome to Block Fall" : bedwars ? "Welcome to Bedwars" : "Welcome to QBlock",
-        skyblock ? "Build your island, reach new levels" : blockFall ? "Last one standing wins the round" : undefined,
+        baseplate ? "Welcome to Baseplate" : skyblock ? "Welcome to Skyblock" : blockFall ? "Welcome to Block Fall" : bedwars ? "Welcome to Bedwars" : "Welcome to QBlock",
+        baseplate ? "Creative voxel canvas ready" : skyblock ? "Build your island, reach new levels" : blockFall ? "Last one standing wins the round" : undefined,
       );
 
       const clock = new THREE.Clock();
@@ -3167,7 +3242,6 @@ export function SandboxGame({
       const _eye = new THREE.Vector3();
       const _pivot = new THREE.Vector3();
       const _avatarPos = new THREE.Vector3();
-      const _upOffset = new THREE.Vector3(0, 0.22, 0);
       const _scratchBreakVec = new THREE.Vector3();
 
       const loop = () => {
@@ -3198,7 +3272,7 @@ export function SandboxGame({
           }
           match.tick(tNow, { total, alive: alive + (match.state.eliminated ? 0 : 1) });
           player.frozen = !match.canMove;
-        } else if (skyblock) {
+        } else if (isSkyblockLike) {
           worldEvents.tick(tNow);
           const notice = progression.state.notice;
           if (notice && notice.id !== lastNotice) {
@@ -3233,7 +3307,7 @@ export function SandboxGame({
             const surfaceId = world!.get(footX, footY, footZ);
             const surface = BLOCKS.find((block) => block.id === surfaceId)?.name ?? "Stone";
             const distToPond = Math.hypot(player.position.x - SKYBLOCK_POND_SURFACE.x, player.position.z - SKYBLOCK_POND_SURFACE.z);
-            if (skyblock && distToPond < SKYBLOCK_POND.radius + 0.8 && Math.abs(player.position.y - SKYBLOCK_POND_SURFACE.y) < 1.1) {
+            if (isSkyblockLike && distToPond < SKYBLOCK_POND.radius + 0.8 && Math.abs(player.position.y - SKYBLOCK_POND_SURFACE.y) < 1.1) {
               BmgoAudio.playWaterSplash(0.32);
             } else {
               playFootstep(surface);
@@ -3245,7 +3319,7 @@ export function SandboxGame({
         }
         if (wasOnGround && !player.onGround && player.velocity.y > 0) {
           const distToPond = Math.hypot(player.position.x - SKYBLOCK_POND_SURFACE.x, player.position.z - SKYBLOCK_POND_SURFACE.z);
-          if (skyblock && distToPond < SKYBLOCK_POND.radius + 0.8) {
+          if (isSkyblockLike && distToPond < SKYBLOCK_POND.radius + 0.8) {
             BmgoAudio.playWaterSplash(0.52);
           } else {
             playSound("jump");
@@ -3259,9 +3333,9 @@ export function SandboxGame({
         _eye.set(player.position.x + bobX * 0.3, player.eyeY + bobY, player.position.z);
         camera.position.copy(_eye);
 
-        // Third-person: smoothed orbit rig with collision.
+        // Third-person: Blockman GO framing centered on character torso at 3.3m
         if (thirdRef.current) {
-          _pivot.set(player.position.x, player.eyeY, player.position.z).add(_upOffset);
+          _pivot.set(player.position.x, player.position.y + 1.45, player.position.z);
           rig.update(dt, camera, _pivot, world!);
         }
 
@@ -3467,8 +3541,8 @@ export function SandboxGame({
         skyEnv?.update(dt, camera, sky!, scene);
         cosmicSky?.update(dt, camera);
 
-        // ── SkyBlock: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
-        if (skyblock) {
+        // ── SkyBlock / Baseplate: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
+        if (isSkyblockLike) {
           const tNow = clock.getElapsedTime();
           if (phoenixMixerRef.current) phoenixMixerRef.current.update(dt);
           if (phoenixModelRef.current && celestialSunRef.current) {
@@ -3622,8 +3696,8 @@ export function SandboxGame({
               world!.set(hit.x, hit.y, hit.z, 0);
               socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: 0 });
               features.forgetMining();
-              if (skyblock) progression.recordMine();
-              if (skyblock) nature.rollDrop(oldId);
+              if (isSkyblockLike) progression.recordMine();
+              if (isSkyblockLike) nature.rollDrop(oldId);
               if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
               if (renderer) renderer.shadowMap.needsUpdate = true;
               if (blockFall) {
@@ -3838,7 +3912,7 @@ export function SandboxGame({
         renderer.domElement.remove();
       }
     };
-  }, [qbUser?.uid, goldenDays, skyblock, blockFall]);
+  }, [qbUser?.uid, goldenDays, skyblock, baseplate, blockFall]);
 
   const api = useCallback(() => {
     const mount = mountRef.current as
@@ -4059,10 +4133,10 @@ export function SandboxGame({
     }
   };
 
-  const isV2 = skyblock || blockFall || bedwars;
+  const isV2 = isSkyblockLike || blockFall || bedwars;
   const matchState = useStore(match.store);
   const progressState = useStore(progression.store);
-  const backpack: (number | string)[] = skyblock
+  const backpack: (number | string)[] = isSkyblockLike
     ? [...STARTER_BACKPACK, ...progressState.unlockedBlocks, ...crafted, ...NEW_BACKPACK_ITEMS]
     : bedwars
       ? ["short_sword", "iron_sword", "diamond_sword", ...crafted, ...NEW_BACKPACK_ITEMS]
@@ -4115,7 +4189,7 @@ export function SandboxGame({
           kind: "tap",
           onPress: handleBuild,
         },
-        ...(skyblock && totalSeeds > 0
+        ...(isSkyblockLike && totalSeeds > 0
           ? [
               {
                 id: "plant",
@@ -4314,7 +4388,7 @@ export function SandboxGame({
           running={movementMode === "run"}
           thirdPerson={thirdPerson}
           muted={bgmMuted}
-          hasHotbar={(skyblock || bedwars) && hotbar.length > 0}
+          hasHotbar={(isSkyblockLike || bedwars) && hotbar.length > 0}
           actions={v2Actions}
           topCenter={
             blockFall ? (
@@ -4324,7 +4398,7 @@ export function SandboxGame({
             )
           }
           menuExtra={
-            skyblock ? [{ label: "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) }] : []
+            isSkyblockLike ? [{ label: baseplate ? "Respawn on baseplate" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) }] : []
           }
           onMove={setMoveVector}
           onToggleRun={() => handleMovementModeChange(movementMode === "run" ? "walk" : "run")}
@@ -4366,7 +4440,7 @@ export function SandboxGame({
             if (open) controlsRef.current?.exitLock();
           }}
         >
-          {(skyblock || bedwars) && (
+          {(isSkyblockLike || bedwars) && (
             <>
               <CinematicVignette />
               {totalSeeds > 0 && (
@@ -4404,13 +4478,15 @@ export function SandboxGame({
       {ready && isV2 && veilToken > 0 && loadingDismissed && <V2Veil token={veilToken} />}
       {showClickToPlay && loadingDismissed && (
         <V2ClickToPlay
-          title={skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
+          title={baseplate ? "Baseplate" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
           hint={
-            skyblock
-              ? "Build, mine and grow your island"
-              : bedwars
-                ? "Explore the lobby and meet the Matchmaker"
-                : "Stay on the platforms longer than everyone else"
+            baseplate
+              ? "Build, experiment and explore the endless voxel canvas"
+              : skyblock
+                ? "Build, mine and grow your island"
+                : bedwars
+                  ? "Explore the lobby and meet the Matchmaker"
+                  : "Stay on the platforms longer than everyone else"
           }
           onPlay={() => controlsRef.current?.requestLock()}
         />
@@ -4591,8 +4667,8 @@ export function SandboxGame({
       {/* Loading menu */}
       {!loadingDismissed && !graphicsError && isV2 && (
         <V2LoadingScreen
-          title={skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
-          subtitle={skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
+          title={baseplate ? "Baseplate" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
+          subtitle={baseplate ? "Loading baseplate world" : skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
           progress={progress}
           isAssetsLoaded={engineReady}
           onFinished={() => setLoadingDismissed(true)}

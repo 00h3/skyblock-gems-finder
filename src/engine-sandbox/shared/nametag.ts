@@ -183,14 +183,19 @@ function roundRect(
 }
 
 function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
-  const padX = 16;
-  const h = 46;
-  const badgeSize = 26;
+  const padX = 14;
+  const h = 48;
+  const badgeSize = 24;
   const measure = document.createElement("canvas").getContext("2d")!;
   measure.font = nameFont(NAME_PX);
   const textW = measure.measureText(name).width;
+
+  // Blockman GO VIP badge dimensions
+  const vipW = 54;
+  const vipH = 22;
+  const gap = 8;
   const badgesW = badges.length ? badges.length * (badgeSize + 6) : 0;
-  const w = Math.ceil(textW + badgesW + padX * 2);
+  const w = Math.ceil(textW + gap + vipW + badgesW + padX * 2);
 
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(80, w) * SS;
@@ -199,26 +204,39 @@ function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
   c.scale(SS, SS);
   c.textBaseline = "middle";
 
-  // no background plate
+  // Name with crisp dark outline (Blockman GO signature outline)
   c.font = nameFont(NAME_PX);
   c.textAlign = "left";
   c.fillStyle = color;
 
-  // Strong drop shadow for readability against bright skies
-  c.shadowColor = "rgba(0, 0, 0, 0.8)";
-  c.shadowBlur = 6 * SS;
-  c.shadowOffsetX = 0;
-  c.shadowOffsetY = 2 * SS;
-
+  // Dark outline for crystal clarity in all lighting
+  c.lineWidth = 4;
+  c.strokeStyle = "rgba(0, 0, 0, 0.88)";
+  c.strokeText(name, padX, h / 2 + 1);
   c.fillText(name, padX, h / 2 + 1);
 
-  // reset shadow for badges
-  c.shadowColor = "transparent";
-  c.shadowBlur = 0;
-  c.shadowOffsetX = 0;
-  c.shadowOffsetY = 0;
+  // Draw Blockman GO VIP0 badge next to player name
+  const vipX = padX + textW + gap;
+  const vipY = (h - vipH) / 2;
+  c.save();
+  const grad = c.createLinearGradient(vipX, vipY, vipX, vipY + vipH);
+  grad.addColorStop(0, "rgba(215, 228, 245, 0.95)");
+  grad.addColorStop(1, "rgba(140, 162, 188, 0.95)");
+  c.fillStyle = grad;
+  c.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  c.lineWidth = 1;
+  roundRect(c, vipX, vipY, vipW, vipH, 5);
+  c.fill();
+  c.stroke();
 
-  let bx = padX + textW + 6;
+  // VIP0 text
+  c.font = `italic 900 12px Inter, ui-sans-serif, system-ui, sans-serif`;
+  c.fillStyle = "#1e293b";
+  c.textAlign = "center";
+  c.fillText("VIP0", vipX + vipW / 2, vipY + vipH / 2 + 0.5);
+  c.restore();
+
+  let bx = vipX + vipW + 6;
   badges.forEach((img) => {
     try {
       c.drawImage(img, bx, (h - badgeSize) / 2, badgeSize, badgeSize);

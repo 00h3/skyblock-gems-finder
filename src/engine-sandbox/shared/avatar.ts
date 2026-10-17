@@ -284,12 +284,13 @@ export class Avatar {
   async load(targetHeight = 2.28) {
     const loader = new GLTFLoader();
 
-    // Priority candidates: Local QBlock_Witch_Walk.glb first, then remote CDN
+    // Priority candidates: Local avatar_boy_all_anims.glb first to match Blockman GO boy from screenshots
     const candidates = [
+      SANDBOX_AVATAR_MODEL,
+      "/avatar_boy_all_anims.glb",
+      SANDBOX_AVATAR_FALLBACK_MODEL,
       WITCH_AVATAR_MODEL,
       WITCH_AVATAR_REMOTE_URL,
-      SANDBOX_AVATAR_MODEL,
-      SANDBOX_AVATAR_FALLBACK_MODEL,
     ].filter(Boolean);
 
     let gltf: any = null;

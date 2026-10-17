@@ -1618,6 +1618,8 @@ function GamePage() {
         <SandboxGame bedwars />
       ) : id === "skyblock" || id.startsWith("skyblock") ? (
         <SandboxGame skyblock />
+      ) : id === "baseplate" || id.startsWith("baseplate") ? (
+        <SandboxGame baseplate />
       ) : id === "block-fall" || id.startsWith("block-fall") ? (
         <SandboxGame blockFall />
       ) : id === "tnt-run" || id.startsWith("tnt-run") ? (
