@@ -3454,6 +3454,13 @@ html.dark .home-currency-bubble {
     0 6px 16px rgba(23, 24, 27, 0.07),
     inset 1px 1px 0 rgba(255, 255, 255, 0.98);
 }
+.dark .qb-squircle {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(32, 34, 40, 0.98), rgba(22, 24, 28, 0.94));
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.35),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
 
 /* Last-played card: same glossy, outlined material as the profile tab
    button in the bottom navigation, but rectangular and slim. */

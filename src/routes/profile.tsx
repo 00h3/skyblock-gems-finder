@@ -20,6 +20,8 @@ import {
 import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { setDark, useDark } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
+import { useCurrency } from "@/lib/currency";
+import { PINK_GEM_ICON, GOLDEN_COINS_ICON } from "@/components/CurrencyPills";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -84,6 +86,8 @@ function ProfilePage() {
   const { qbUser, loading: authLoading } = useAuth();
   const nav = useNavigate();
   const dark = useDark();
+  const gems = useCurrency("gems");
+  const gold = useCurrency("gold");
 
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(null);
   const [previousScreen, setPreviousScreen] = useState<ActiveScreen>(null);
@@ -399,7 +403,7 @@ function ProfilePage() {
               <button
                 type="button"
                 onClick={() => nav({ to: "/" as never })}
-                className="press flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-b from-[rgba(243,245,248,0.96)] to-[rgba(228,232,238,0.94)] dark:from-[rgba(33,35,41,0.96)] dark:to-[rgba(24,26,31,0.94)] border border-black/[0.12] dark:border-white/[0.12] text-[#1A1D20] dark:text-white shadow-[0_4px_12px_rgba(23,24,27,0.08),inset_1px_1px_0_rgba(255,255,255,0.98)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3),inset_1px_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px] transition-all font-bold text-[13px] cursor-pointer"
+                className="qb-squircle press flex items-center gap-1.5 px-3 py-2 text-[#1A1D20] dark:text-white transition-all font-bold text-[13px] cursor-pointer"
                 aria-label="Go Back"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -414,51 +418,70 @@ function ProfilePage() {
               <div className="w-16" />
             </header>
 
-            {/* Identity Card: Tapping avatar opens Edit Avatar (Frames), tapping row opens Profile */}
-            <div className="mt-1">
+            {/* Profile area — NOT embedded in a card, clean squircle pfp like chat, Nickname, grey smaller Username: & ID:, and currency */}
+            <div className="flex items-center gap-3.5 px-1 py-1 mb-4 mt-1">
               <div
-                onClick={() => setActiveScreen("edit_profile")}
-                className="press flex w-full items-center gap-3 p-3 text-left cursor-pointer rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all"
+                onClick={() => {
+                  setPreviousScreen(null);
+                  setActiveScreen("edit_avatar");
+                }}
+                className="qb-squircle press relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-[18px] bg-[#e2e6ec] dark:bg-[#1a1c22] cursor-pointer"
+                title="Edit Avatar"
               >
-                {/* Square PFP with rounded corners; tapping directly goes to Edit Avatar & Frames */}
+                <GlossyAvatar
+                  snapshot={qbUser?.avatarSnapshot}
+                  photoUrl={qbUser?.profilePhoto}
+                  frame={qbUser?.avatarSnapshot?.frameId}
+                  height={62}
+                  className="h-full w-full object-cover pointer-events-none"
+                  autoRotate={false}
+                  focusZone="head"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
                 <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviousScreen(null);
-                    setActiveScreen("edit_avatar");
-                  }}
-                  className="relative h-11 w-11 shrink-0 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 cursor-pointer press"
-                  title="Edit Avatar"
+                  onClick={() => setActiveScreen("edit_profile")}
+                  className="text-[17px] font-black text-[#1A1D20] dark:text-white tracking-tight leading-tight truncate cursor-pointer hover:opacity-85"
                 >
-                  {qbUser?.profilePhoto ? (
+                  {qbUser?.displayName || qbUser?.username || "Player"}
+                </div>
+                <div className="text-[11.5px] font-semibold text-[#8b929d] dark:text-[#8e95a0] mt-0.5 truncate leading-tight">
+                  Username:{" "}
+                  <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
+                    @{qbUser?.username || "player"}
+                  </span>
+                </div>
+                <div className="text-[11px] font-semibold text-[#8b929d] dark:text-[#8e95a0] leading-tight mt-0.5">
+                  ID:{" "}
+                  <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
+                    {qbUser?.customId || "QB-001"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 mt-1.5 text-[12px] font-black text-[#17181b] dark:text-white">
+                  <div className="flex items-center gap-1">
                     <img
-                      src={qbUser.profilePhoto}
-                      alt={qbUser.displayName || "Avatar"}
-                      className="h-full w-full object-cover pointer-events-none"
+                      src={PINK_GEM_ICON}
+                      alt="Gems"
+                      className="h-4 w-4 object-contain shrink-0"
+                      draggable={false}
                     />
-                  ) : (
-                    <GlossyAvatar
-                      snapshot={qbUser?.avatarSnapshot}
-                      photoUrl={qbUser?.profilePhoto}
-                      imageFallbackOnly={true}
-                      height={44}
-                      className="h-full w-full object-cover pointer-events-none"
-                      autoRotate={false}
-                    />
-                  )}
-                </div>
-
-                {/* Name & Subtitle / Role */}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[14.5px] font-extrabold text-[#1A1D20] dark:text-white tracking-tight truncate">
-                    {qbUser?.displayName || qbUser?.username || "Alfred Daniel"}
+                    <span className="tabular-nums">{(gems ?? 0).toLocaleString()}</span>
                   </div>
-                  <div className="mt-0.5 text-[11.5px] font-medium text-[#6B7280] dark:text-[#8e95a0] truncate">
-                    {qbUser?.bio?.trim() || "No bio yet"}
+                  <span className="text-black/25 dark:text-white/20 font-normal select-none">
+                    |
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <img
+                      src={GOLDEN_COINS_ICON}
+                      alt="Coins"
+                      className="h-4 w-4 object-contain shrink-0"
+                      draggable={false}
+                    />
+                    <span className="tabular-nums">{(gold ?? 0).toLocaleString()}</span>
                   </div>
                 </div>
-
-                <ChevronRight className="h-4 w-4 text-[#6B7280] shrink-0" />
               </div>
             </div>
 
@@ -469,8 +492,8 @@ function ProfilePage() {
               </span>
             </div>
 
-            {/* Group 1 Card: Liquid Glass Capsule with sleek rows & glossy gradient icons */}
-            <div className="rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
+            {/* Group 1 Card: Mail Glossiness (qb-squircle) */}
+            <div className="rounded-2xl qb-squircle divide-y divide-black/[0.05] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
               {/* 1. Profile details (User Avatar Silhouette) */}
               <button
                 type="button"
@@ -554,8 +577,8 @@ function ProfilePage() {
               </span>
             </div>
 
-            {/* Beta Features Group Card: Liquid Glass (Calendar with Heart - Emerald gradient) */}
-            <div className="rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
+            {/* Beta Features Group Card: Mail Glossiness (qb-squircle) */}
+            <div className="rounded-2xl qb-squircle divide-y divide-black/[0.05] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
               <button
                 type="button"
                 onClick={() => setActiveScreen("beta_features")}
@@ -578,8 +601,8 @@ function ProfilePage() {
               </span>
             </div>
 
-            {/* Group 2 Card: Liquid Glass */}
-            <div className="rounded-2xl qb-glossy-menu border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
+            {/* Group 2 Card: Mail Glossiness (qb-squircle) */}
+            <div className="rounded-2xl qb-squircle divide-y divide-black/[0.05] dark:divide-white/[0.05] overflow-hidden transition-colors duration-200">
               {/* 6. About application (Book - Indigo/Blue gradient) */}
               <button
                 type="button"
