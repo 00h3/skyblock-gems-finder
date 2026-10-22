@@ -25,12 +25,13 @@ import { setDark, useDark } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { CurrencyPills } from "@/components/CurrencyPills";
+import { CurrencyPills, PINK_GEM_ICON, GOLDEN_COINS_ICON } from "@/components/CurrencyPills";
 import { MobileShell } from "@/components/MobileShell";
-import { isIraAccount } from "@/components/GlossyAvatar";
+import { GlossyAvatar, isIraAccount } from "@/components/GlossyAvatar";
 import { LegalBody, APP_VERSION } from "@/components/LegalDocs";
 import { saveAccount } from "@/lib/saved-accounts";
 import { BetaFeatures } from "@/components/BetaFeatures";
+import { useCurrency } from "@/lib/currency";
 
 import { FirstTimeSectionLoader } from "@/components/ui/FirstTimeSectionLoader";
 
@@ -45,27 +46,91 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const nav = useNavigate();
+  const { qbUser } = useAuth();
+  const gems = useCurrency("gems");
+  const gold = useCurrency("gold");
+
   return (
     <MobileShell>
-      <div className="min-h-full bg-white px-4 pb-8 pt-5 dark:bg-[#000000]">
-        <div className="rounded-[20px] mb-4 p-4 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15">
+      <div className="min-h-full bg-[#f8f9fa] dark:bg-[#121316] px-4 pb-8 pt-5">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => nav({ to: "/profile" as never })}
-              className="press grid h-9 w-9 place-items-center rounded-[12px] bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 text-black dark:text-white cursor-pointer"
+              className="qb-squircle press grid h-9 w-9 place-items-center text-[#141414] dark:text-white cursor-pointer"
               aria-label="Back to profile"
             >
               <ChevronRight className="h-4 w-4 rotate-180" />
             </button>
             <div>
-              <div className="text-[10.5px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8b929d] dark:text-[#8e95a0]">
                 Preferences
               </div>
-              <h1 className="text-[22px] font-medium tracking-tight text-black dark:text-white">Settings</h1>
+              <h1 className="text-[22px] font-black tracking-tight text-[#141414] dark:text-white">Settings</h1>
             </div>
           </div>
         </div>
+
+        {/* Profile area — NOT embedded in a card, clean squircle pfp like chat, Nickname, grey smaller Username: & ID:, and currency */}
+        {qbUser && (
+          <div className="flex items-center gap-3.5 px-1 py-1 mb-4">
+            <div className="qb-squircle relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-[18px] bg-[#e2e6ec] dark:bg-[#1a1c22]">
+              <GlossyAvatar
+                snapshot={qbUser.avatarSnapshot}
+                photoUrl={qbUser.profilePhoto}
+                frame={qbUser.avatarSnapshot?.frameId}
+                height={62}
+                className="h-full w-full object-cover"
+                autoRotate={false}
+                focusZone="head"
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[17px] font-black text-[#141414] dark:text-white tracking-tight leading-tight truncate">
+                {qbUser.displayName || "Player"}
+              </h3>
+              <div className="text-[11.5px] font-semibold text-[#8b929d] dark:text-[#8e95a0] mt-0.5 truncate leading-tight">
+                Username:{" "}
+                <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
+                  @{qbUser.username || "player"}
+                </span>
+              </div>
+              <div className="text-[11px] font-semibold text-[#8b929d] dark:text-[#8e95a0] leading-tight">
+                ID:{" "}
+                <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
+                  {qbUser.customId || "QB-001"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 mt-1.5 text-[12px] font-black text-[#17181b] dark:text-white">
+                <div className="flex items-center gap-1">
+                  <img
+                    src={PINK_GEM_ICON}
+                    alt="Gems"
+                    className="h-4 w-4 object-contain shrink-0"
+                    draggable={false}
+                  />
+                  <span className="tabular-nums">{(gems ?? 0).toLocaleString()}</span>
+                </div>
+                <span className="text-black/25 dark:text-white/20 font-normal select-none">
+                  |
+                </span>
+                <div className="flex items-center gap-1">
+                  <img
+                    src={GOLDEN_COINS_ICON}
+                    alt="Coins"
+                    className="h-4 w-4 object-contain shrink-0"
+                    draggable={false}
+                  />
+                  <span className="tabular-nums">{(gold ?? 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <SettingsBody />
       </div>
     </MobileShell>
@@ -129,7 +194,7 @@ export function SettingsBody() {
   return (
     <div className="flex flex-col gap-3">
       {/* About & policies — kept up top so they're easy to find */}
-      <section className="profile-card p-3">
+      <section className="qb-squircle p-3">
         <div className="mb-2.5 flex items-center justify-between px-0.5">
           <div className="app-eyebrow">ABOUT &amp; POLICIES</div>
           <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10.5px] font-extrabold text-text-secondary dark:border-white/10">
@@ -334,7 +399,7 @@ export function SettingsBody() {
 
       <button
         onClick={handleSignOut}
-        className="press profile-card mt-2 inline-flex h-[52px] w-full items-center justify-center gap-2 text-[14.5px] font-bold text-danger"
+        className="press qb-squircle mt-2 inline-flex h-[52px] w-full items-center justify-center gap-2 text-[14.5px] font-bold text-danger"
       >
         <img
           src="/icons/login-3-svgrepo-com.svg"
@@ -372,7 +437,7 @@ function SubscriptionCard({
   onClick?: () => void;
 }) {
   return (
-    <div className="profile-card flex flex-col p-4">
+    <div className="qb-squircle flex flex-col p-4">
       <div className="mb-4 flex cursor-pointer items-center justify-between" onClick={onClick}>
         <div className="flex items-center gap-3">
           <div
