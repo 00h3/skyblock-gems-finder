@@ -4545,3 +4545,16 @@ html.dark .home-currency-bubble {
   font-family: 'Inter', system-ui, sans-serif !important;
 }
 
+
+/* Skyblock intro cutscene */
+@keyframes qb-letterbox-in-top { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes qb-letterbox-in-bottom { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes qb-cutscene-title { 0%, 15% { opacity: 0; transform: scale(1.25); letter-spacing: 0.4em; } 35%, 85% { opacity: 1; transform: scale(1); letter-spacing: 0.05em; } 100% { opacity: 0; transform: scale(0.96); } }
+@keyframes qb-cutscene-sub { 0%, 30% { opacity: 0; } 45%, 85% { opacity: 1; } 100% { opacity: 0; } }
+.qb-letterbox-top { animation: qb-letterbox-in-top 0.6s ease-out both; }
+.qb-letterbox-bottom { animation: qb-letterbox-in-bottom 0.6s ease-out both; }
+.qb-cutscene-title { animation: qb-cutscene-title 7s ease-out both; }
+.qb-cutscene-sub { animation: qb-cutscene-sub 7s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .qb-letterbox-top, .qb-letterbox-bottom, .qb-cutscene-title, .qb-cutscene-sub { animation: none; }
+}

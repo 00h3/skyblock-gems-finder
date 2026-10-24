@@ -413,6 +413,10 @@ export class Sky {
     this.group.position.set(pos.x, pos.y, pos.z);
   }
 
+  get nightAmount(): number {
+    return this.mat.uniforms.uNight.value as number;
+  }
+
   update(dt: number) {
     this.elapsed += dt;
     this.mat.uniforms.uTime.value = this.elapsed;
@@ -532,7 +536,7 @@ export class Sky {
     if (sunDir.y >= -0.05) {
       this.sunLight.position.copy(sunDir).multiplyScalar(120);
       this.sunLight.color.copy(sun);
-      this.sunLight.intensity = (this.isGoldenHour ? 1.7 : this.isMystic ? 1.5 : 0.75 + day * 0.95) * this.cloudLight;
+      this.sunLight.intensity = (this.isGoldenHour ? 1.85 : this.isMystic ? 1.55 : 0.8 + day * 1.12) * this.cloudLight;
     } else {
       this.sunLight.position.copy(sunDir).multiplyScalar(-120);
       this.sunLight.color.copy(this.isMystic ? C.sunMystic : C.moon);
@@ -554,8 +558,8 @@ export class Sky {
 
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(hemiGround);
-    this.hemi.intensity = this.isGoldenHour ? 1.1 : this.isMystic ? 1.0 : 0.72 + day * 0.38;
-    this.ambient.intensity = this.isGoldenHour ? 0.35 : this.isMystic ? 0.32 : 0.28 + day * 0.14;
+    this.hemi.intensity = this.isGoldenHour ? 1.15 : this.isMystic ? 1.0 : 0.74 + day * 0.44;
+    this.ambient.intensity = this.isGoldenHour ? 0.32 : this.isMystic ? 0.3 : 0.26 + day * 0.12;
 
     this.fog.color.copy(horizon);
     if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);

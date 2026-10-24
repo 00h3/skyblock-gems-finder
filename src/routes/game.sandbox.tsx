@@ -75,6 +75,18 @@ import { AmbientParticles } from "@/engine-sandbox/shared/ambient-particles";
 import { SkyblockEnvironment } from "@/engine-sandbox/skyblock/skyblock-environment";
 import { CosmicSky } from "@/engine-sandbox/shared/cosmic-sky";
 import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
+import { SkyblockCutscene, SkyblockTutorial, TUTORIAL_DONE_KEY } from "@/components/SkyblockIntro";
+import { BlockGravity } from "@/engine-sandbox/shared/block-physics";
+
+const CUTSCENE_SECONDS = 7;
+const SNOW_PREF_KEY = "qb_snow_ambient";
+const readSnowPref = () => {
+  try {
+    return localStorage.getItem(SNOW_PREF_KEY) !== "0";
+  } catch {
+    return true;
+  }
+};
 import { announce } from "@/engine-sandbox/shared/announcer";
 import { useStore } from "@/engine-sandbox/shared/store";
 import { V2GameHud, UI as HUD_UI, type HudAction } from "@/components/v2/V2GameHud";
@@ -421,6 +433,11 @@ function buildSkyblockIsland(world: World) {
           blockId = edgeDist > 3 ? 12 : 3; // Bedrock core or stone tip
         } else if (y < surfaceY - 1) {
           blockId = (x + y + z) % 3 === 0 ? 4 : 3; // Cobblestone & stone underside
+          // Ore veins: deterministic hash so the island layout is stable for every player
+          const h = Math.abs((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) % 100;
+          if (h < 2 && y <= surfaceY - 4) blockId = 48; // Diamond Ore (deep, rare)
+          else if (h < 7) blockId = 47; // Iron Ore
+          else if (h < 14) blockId = 36; // Coal Ore
         }
         world.set(x, y, z, blockId);
       }
@@ -1316,6 +1333,10 @@ export function SandboxGame({
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [multiplayerError, setMultiplayerError] = useState("");
   const [multiplayerConnected, setMultiplayerConnected] = useState(false);
+  const [cutsceneOn, setCutsceneOn] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [snowOn, setSnowOn] = useState(readSnowPref);
+  const cutsceneRef = useRef({ active: false, t: 0 });
   const [graphicsError, setGraphicsError] = useState("");
   const hungerRef = useRef(20);
   const runesTimeRef = useRef(600);
@@ -2623,12 +2644,9 @@ export function SandboxGame({
       unsubSocketStatus = socket.onStatus((status) => {
         setMultiplayerConnected(status === "connected");
         if (status === "connected") setMultiplayerError("");
-        else if (status === "connecting") setMultiplayerError("Connecting to multiplayer…");
-        else setMultiplayerError("Multiplayer connection lost. Reconnecting…");
       });
       unsubSocketError = socket.onError((error) => {
-        console.error("Sandbox WebSocket error:", error);
-        setMultiplayerError(`${error.message} Retrying…`);
+        console.warn("Sandbox WebSocket unavailable, playing offline:", error);
       });
       socket.connect(roomId, {
         uid: meRef.current.uid,
@@ -2644,8 +2662,7 @@ export function SandboxGame({
 
       const onSavedWorldError = (error: Error) => {
         if (disposed) return;
-        setMultiplayerError(multiplayerErrorMessage(error, "world"));
-        console.error("Could not load saved multiplayer blocks:", error);
+        console.warn("Saved world unavailable, playing offline:", multiplayerErrorMessage(error, "world"));
       };
       if (blockFall) {
         void loadBlockFallBlocks(
@@ -2772,6 +2789,11 @@ export function SandboxGame({
         return null;
       };
 
+      const gravity = new BlockGravity(world!, (gx, gy, gz, gid) => {
+        syncBlock(gx, gy, gz, gid);
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+      });
+
       // ── Gameplay features: items, TNT, fall damage, shield, bridge assist ──
       const setBlockSynced = (x: number, y: number, z: number, id: number) => {
         if (!world) return;
@@ -2779,11 +2801,11 @@ export function SandboxGame({
         world.set(x, y, z, id);
         socket?.sendBlockUpdate({ x, y, z, id });
         if (renderer) renderer.shadowMap.needsUpdate = true;
+        gravity.notify(x, y, z);
+        // Offline play keeps the local change; the server copy simply isn't updated.
         const rollback = (error: unknown) => {
-          world?.set(x, y, z, previous);
-          socket?.sendBlockUpdate({ x, y, z, id: previous });
-          setMultiplayerError("That block could not be synchronized. Your change was reverted.");
-          console.error("Could not sync block change:", error);
+          void previous;
+          console.warn("Block saved locally only (offline):", error);
         };
         if (blockFall) void writeBlockFallBlock({ x, y, z, id }).catch(rollback);
         else void writeSandboxBlock({ x, y, z, id }).catch(rollback);
@@ -2967,6 +2989,7 @@ export function SandboxGame({
         swing = 1;
         world.set(px, py, pz, id);
         socket?.sendBlockUpdate({ x: px, y: py, z: pz, id });
+        gravity.notify(px, py, pz);
         if (blockFall) {
           void writeBlockFallBlock({ x: px, y: py, z: pz, id }).catch((error) => {
             world?.set(px, py, pz, 0);
@@ -3179,8 +3202,16 @@ export function SandboxGame({
 
       // Ambient particles — white motes removed per user request
       const particles = new AmbientParticles(qualityPref === "low" ? 80 : 160);
-      particles.setMode("off");
+      const ambientMode = () => (isSkyblockLike && readSnowPref() ? "snow" : "off");
+      particles.setMode(ambientMode());
       scene.add(particles.points);
+      const onSnowToggle = () => particles.setMode(ambientMode());
+      window.addEventListener("qb-snow-toggle", onSnowToggle);
+
+      // Dynamic lighting: warm handheld-lantern glow around the player that
+      // fades in as night falls, so caves and night islands keep readable depth.
+      const playerGlow = new THREE.PointLight(0xffb86b, 0, 13, 1.6);
+      scene.add(playerGlow);
 
       // Realistic ambient water sound when near Skyblock pond
       let stopWaterAudio: (() => void) | null = null;
@@ -3210,7 +3241,7 @@ export function SandboxGame({
           progression.xpMultiplier = 1;
           sky?.setCloudCover(0.5);
           sky?.setTint("#ffffff", 0);
-          particles.setMode("motes");
+          particles.setMode(ambientMode());
           progression.recordEvent(ev.completionXp);
           announce(`${ev.name} ended`, `+${ev.completionXp} XP for taking part`, "reward");
         };
@@ -3223,6 +3254,24 @@ export function SandboxGame({
 
       setEngineReady(true);
       setReady(true);
+      const finishCutscene = () => {
+        if (!cutsceneRef.current.active) return;
+        cutsceneRef.current.active = false;
+        player.frozen = false;
+        setCutsceneOn(false);
+        let tutorialDone = false;
+        try {
+          tutorialDone = localStorage.getItem(TUTORIAL_DONE_KEY) === "1";
+        } catch {}
+        if (!tutorialDone) setTutorialOpen(true);
+      };
+      const onSkipCutscene = () => finishCutscene();
+      window.addEventListener("qb-skip-cutscene", onSkipCutscene);
+      if (skyblock) {
+        cutsceneRef.current = { active: true, t: 0 };
+        player.frozen = true;
+        setCutsceneOn(true);
+      }
       setVeilToken((v) => v + 1);
       announce(
         baseplate ? "Welcome to Baseplate" : skyblock ? "Welcome to Skyblock" : blockFall ? "Welcome to Block Fall" : bedwars ? "Welcome to Bedwars" : "Welcome to QBlock",
@@ -3337,6 +3386,35 @@ export function SandboxGame({
         if (thirdRef.current) {
           _pivot.set(player.position.x, player.position.y + 1.45, player.position.z);
           rig.update(dt, camera, _pivot, world!);
+        }
+
+        // Skyblock intro: sweeping orbit that descends onto the island while
+        // the phoenix leads the camera.
+        if (cutsceneRef.current.active) {
+          const cs = cutsceneRef.current;
+          cs.t += dt;
+          const k = Math.min(1, cs.t / CUTSCENE_SECONDS);
+          const ease = k * k * (3 - 2 * k);
+          const ang = -0.8 + ease * Math.PI * 1.3;
+          const radius = 38 - ease * 26;
+          camera.position.set(Math.cos(ang) * radius, 34 - ease * 14, Math.sin(ang) * radius);
+          camera.lookAt(0, 16 + ease * 1.5, 0);
+          const phoenix = phoenixModelRef.current;
+          if (phoenix) {
+            const pAng = ang + 0.32;
+            const pR = radius * 0.82;
+            const pY = 30 - ease * 10 + Math.sin(cs.t * 2.2) * 1.2;
+            phoenix.position.set(Math.cos(pAng) * pR, pY, Math.sin(pAng) * pR);
+            phoenix.lookAt(Math.cos(pAng + 0.08) * pR, pY, Math.sin(pAng + 0.08) * pR);
+          }
+          if (k >= 1) finishCutscene();
+        }
+
+        if (sky) {
+          const night = sky.nightAmount;
+          playerGlow.intensity = night * 2.4;
+          playerGlow.visible = night > 0.05;
+          if (playerGlow.visible) playerGlow.position.set(player.position.x, player.position.y + 1.6, player.position.z);
         }
 
         // Subtle sprint FOV kick for speed feel with deadband to avoid matrix recalculation
@@ -3545,7 +3623,7 @@ export function SandboxGame({
         if (isSkyblockLike) {
           const tNow = clock.getElapsedTime();
           if (phoenixMixerRef.current) phoenixMixerRef.current.update(dt);
-          if (phoenixModelRef.current && celestialSunRef.current) {
+          if (phoenixModelRef.current && celestialSunRef.current && !cutsceneRef.current.active) {
             // Farther soaring flight orbit per user request
             const orbitRadius = 65.0;
             const orbitSpeed = 0.24;
@@ -3695,6 +3773,7 @@ export function SandboxGame({
               fx!.spawn("break", _scratchBreakVec.set(hit.x, hit.y, hit.z), def!.side);
               world!.set(hit.x, hit.y, hit.z, 0);
               socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: 0 });
+              gravity.notify(hit.x, hit.y, hit.z);
               features.forgetMining();
               if (isSkyblockLike) progression.recordMine();
               if (isSkyblockLike) nature.rollDrop(oldId);
@@ -3743,6 +3822,7 @@ export function SandboxGame({
         }
 
         fx!.update(dt);
+        gravity.tick(dt);
         world!.update(blockFall ? 2 : 3, player.position, camera);
         WIND.uTime.value += dt;
         grassField?.update(dt);
@@ -3780,6 +3860,10 @@ export function SandboxGame({
         window.removeEventListener("resize", onResize);
         screen.orientation?.removeEventListener?.("change", onResize);
         window.removeEventListener("qb-menu-respawn", onRespawn);
+        window.removeEventListener("qb-snow-toggle", onSnowToggle);
+        window.removeEventListener("qb-skip-cutscene", onSkipCutscene);
+        cutsceneRef.current.active = false;
+        playerGlow.dispose();
         window.removeEventListener("bm-fov", onFovEvt);
         window.removeEventListener("bm-atmosphere", onAtmosphereEvt);
         window.removeEventListener("bm-fog-mode", onFogModeEvt);
@@ -4236,22 +4320,16 @@ export function SandboxGame({
         <div
           role="status"
           aria-live="polite"
-          className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+76px)] z-[85] flex max-w-[90vw] -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-black/65 px-3.5 py-2 text-center text-[11px] font-bold text-white shadow-lg backdrop-blur-xl"
+          className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+76px)] z-[85] flex -translate-x-1/2 items-center gap-1.5 rounded-[8px] border border-[#363b46] bg-[#22252c]/90 px-2.5 py-1 text-[10px] font-black text-zinc-200 shadow-lg ${cutsceneOn ? "hidden" : ""}`}
         >
-          <span
-            className={`h-2 w-2 shrink-0 rounded-full ${
-              multiplayerConnected
-                ? "bg-emerald-400"
-                : multiplayerError
-                  ? "bg-amber-400 animate-pulse"
-                  : "bg-white/50 animate-pulse"
-            }`}
-          />
-          <span className="truncate">
-            {multiplayerError || (multiplayerConnected ? "Multiplayer online" : "Connecting to multiplayer…")}
-          </span>
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${multiplayerConnected ? "bg-emerald-400" : "bg-zinc-400"}`} />
+          <span>{multiplayerConnected ? "Online" : "Offline mode"}</span>
+          {multiplayerError && <span className="sr-only">{multiplayerError}</span>}
         </div>
       )}
+
+      {cutsceneOn && <SkyblockCutscene onSkip={() => window.dispatchEvent(new Event("qb-skip-cutscene"))} />}
+      {tutorialOpen && !cutsceneOn && <SkyblockTutorial onClose={() => setTutorialOpen(false)} />}
 
       {/* ── FLOATING TOP BAR (Filled Icons + Translucent Login / Sign Up) ── */}
       {ready && !skyblock && !blockFall && !bedwars && (
@@ -4398,7 +4476,23 @@ export function SandboxGame({
             )
           }
           menuExtra={
-            isSkyblockLike ? [{ label: baseplate ? "Respawn on baseplate" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) }] : []
+            isSkyblockLike
+              ? [
+                  { label: baseplate ? "Respawn on baseplate" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) },
+                  {
+                    label: snowOn ? "Snow ambient: On" : "Snow ambient: Off",
+                    onSelect: () => {
+                      const next = !snowOn;
+                      try {
+                        localStorage.setItem(SNOW_PREF_KEY, next ? "1" : "0");
+                      } catch {}
+                      setSnowOn(next);
+                      window.dispatchEvent(new Event("qb-snow-toggle"));
+                    },
+                  },
+                  ...(skyblock ? [{ label: "Tutorial", onSelect: () => setTutorialOpen(true) }] : []),
+                ]
+              : []
           }
           onMove={setMoveVector}
           onToggleRun={() => handleMovementModeChange(movementMode === "run" ? "walk" : "run")}
