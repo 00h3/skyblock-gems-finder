@@ -70,6 +70,42 @@ export const WIND = {
   uStrength: { value: 1 },
 };
 
+/** Snow cover on upward faces (0..1); eased by the snowfall system. */
+export const SNOW = {
+  uSnow: { value: 0 },
+};
+
+/** Liquid level byte: 0 = source, 1..7 = flow distance, FALLING = vertical column. */
+export const LIQUID_FALLING = 8;
+const WATER_TICK_MS = 200;
+const LAVA_TICK_MS = 650;
+const LIQUID_TICK_BUDGET = 160;
+const COBBLESTONE_ID = 4;
+const STONE_ID = 3;
+const OBSIDIAN_ID = 11;
+
+export type LiquidReaction = "cobblestone" | "obsidian" | "stone";
+
+const liquidKey = (x: number, y: number, z: number) =>
+  ((x + 32768) * 65536 + (z + 32768)) * 64 + y;
+
+const NEIGHBOR_DIRS: readonly (readonly [number, number, number])[] = [
+  [1, 0, 0],
+  [-1, 0, 0],
+  [0, 1, 0],
+  [0, -1, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+];
+/** Horizontal flow directions (dx, dz) and the index of each one's opposite. */
+const FLOW_DIRS: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const OPPOSITE_DIR = [1, 0, 3, 2, -1];
+
 export const BLOCKS: BlockDef[] = [
   { id: 0, name: "Air", top: "", side: "", bottom: "", hardness: 0 },
   {
@@ -614,6 +650,11 @@ const wuBuf = new Float32Array(MAX_VERTS * 2);
 const wcBuf = new Float32Array(MAX_VERTS * 3);
 const wiBuf = new Uint32Array(MAX_VERTS * 6);
 const wbBuf = new Float32Array(MAX_VERTS * 4);
+const wfBuf = new Float32Array(MAX_VERTS * 3); // aFlow (uv flow x, uv flow y, isLava)
+
+const LIQUID_SURFACE = 8 / 9;
+const liquidHeightFor = (level: number) =>
+  level === 0 || level >= LIQUID_FALLING ? LIQUID_SURFACE : (8 - level) / 9;
 
 // Reusable 2D slice buffers for high-speed greedy meshing
 const sliceMask = new Int32Array(CHUNK * CHUNK);
@@ -671,6 +712,7 @@ export class SubChunk {
 
 export class Chunk {
   readonly data = new Uint8Array(CHUNK * WORLD_H * CHUNK);
+  readonly levels = new Uint8Array(CHUNK * WORLD_H * CHUNK);
   readonly subChunks: SubChunk[];
   dirty = true;
   readonly counts = new Uint16Array(SUB_CHUNKS); // non-air blocks in subchunks 0..2
@@ -705,15 +747,13 @@ export class World {
   private material: THREE.MeshStandardMaterial;
   private transparentMaterial: THREE.MeshStandardMaterial;
   private waterMaterial: THREE.MeshStandardMaterial;
-  private pendingWaterFlows: {
-    x: number;
-    y: number;
-    z: number;
-    time: number;
-    spread: number;
-    isLava?: boolean;
-  }[] = [];
-  private queuedWaterCoords = new Set<string>();
+  private liquidTicks = new Map<number, { x: number; y: number; z: number; due: number }>();
+
+  /**
+   * Called when lava meets water. Return a block id to override the result
+   * (e.g. Skyblock's ore generator), or nothing to keep the default.
+   */
+  onLiquidReaction: ((x: number, y: number, z: number, kind: LiquidReaction) => number | void) | null = null;
 
   // Fast single-element chunk lookup cache
   private lastChunkKey = -1;
@@ -751,19 +791,22 @@ export class World {
       emissiveIntensity: 0.12,
     });
     this.material.onBeforeCompile = (shader) => {
+      shader.uniforms.uSnow = SNOW.uSnow;
       shader.vertexShader = shader.vertexShader
         .replace(
           "#include <common>",
           `#include <common>
           attribute vec4 aAtlasBounds;
           varying vec4 vAtlasBounds;
-          varying vec2 vFaceUv;`,
+          varying vec2 vFaceUv;
+          varying float vUpN;`,
         )
         .replace(
           "#include <uv_vertex>",
           `#include <uv_vertex>
           vAtlasBounds = aAtlasBounds;
-          vFaceUv = uv;`,
+          vFaceUv = uv;
+          vUpN = normal.y;`,
         );
 
       shader.fragmentShader = shader.fragmentShader
@@ -771,7 +814,9 @@ export class World {
           "#include <common>",
           `#include <common>
           varying vec4 vAtlasBounds;
-          varying vec2 vFaceUv;`,
+          varying vec2 vFaceUv;
+          varying float vUpN;
+          uniform float uSnow;`,
         )
         .replace(
           "#include <map_fragment>",
@@ -780,7 +825,8 @@ export class World {
             vec2 atlasUv = mix(vAtlasBounds.xy, vAtlasBounds.zw, localUv);
             vec4 sampledDiffuseColor = texture2D(map, atlasUv);
             diffuseColor *= sampledDiffuseColor;
-          #endif`,
+          #endif
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 1.0), uSnow * smoothstep(0.6, 0.95, vUpN) * 0.9);`,
         );
     };
     this.material.customProgramCacheKey = () => "qblock-voxel-atlas-repeat";
@@ -801,6 +847,7 @@ export class World {
     this.transparentMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uWindTime = WIND.uTime;
       shader.uniforms.uWindStrength = WIND.uStrength;
+      shader.uniforms.uSnow = SNOW.uSnow;
       shader.vertexShader = shader.vertexShader
         .replace(
           "#include <common>",
@@ -810,13 +857,15 @@ export class World {
           varying vec4 vAtlasBounds;
           varying vec2 vFaceUv;
           uniform float uWindTime;
-          uniform float uWindStrength;`,
+          uniform float uWindStrength;
+          varying float vUpN;`,
         )
         .replace(
           "#include <uv_vertex>",
           `#include <uv_vertex>
           vAtlasBounds = aAtlasBounds;
-          vFaceUv = uv;`,
+          vFaceUv = uv;
+          vUpN = normal.y;`,
         )
         .replace(
           "#include <begin_vertex>",
@@ -837,7 +886,9 @@ export class World {
           "#include <common>",
           `#include <common>
           varying vec4 vAtlasBounds;
-          varying vec2 vFaceUv;`,
+          varying vec2 vFaceUv;
+          varying float vUpN;
+          uniform float uSnow;`,
         )
         .replace(
           "#include <map_fragment>",
@@ -846,38 +897,58 @@ export class World {
             vec2 atlasUv = mix(vAtlasBounds.xy, vAtlasBounds.zw, localUv);
             vec4 sampledDiffuseColor = texture2D(map, atlasUv);
             diffuseColor *= sampledDiffuseColor;
-          #endif`,
+          #endif
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.92, 0.95, 1.0), uSnow * smoothstep(0.5, 0.95, vUpN) * 0.75);`,
         );
     };
     this.transparentMaterial.customProgramCacheKey = () => "voxel-foliage-wind-repeat";
 
     // Water & Lava material
+    // Water & lava share one material; aFlow.z switches the lava look.
     this.waterMaterial = new THREE.MeshStandardMaterial({
       map: atlas.texture,
       vertexColors: true,
-      roughness: 0.12,
-      metalness: 0.08,
+      roughness: 0.08,
+      metalness: 0.1,
       emissive: new THREE.Color(0x000000),
       emissiveIntensity: 0.0,
       transparent: true,
-      opacity: 0.76,
+      opacity: 0.72,
       depthWrite: false,
       side: THREE.DoubleSide,
     });
     this.waterMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uLiquidTime = WIND.uTime;
       shader.vertexShader = shader.vertexShader
         .replace(
           "#include <common>",
           `#include <common>
           attribute vec4 aAtlasBounds;
+          attribute vec3 aFlow;
           varying vec4 vAtlasBounds;
-          varying vec2 vFaceUv;`,
+          varying vec2 vFaceUv;
+          varying vec3 vFlow;
+          uniform float uLiquidTime;`,
         )
         .replace(
           "#include <uv_vertex>",
           `#include <uv_vertex>
           vAtlasBounds = aAtlasBounds;
-          vFaceUv = uv;`,
+          vFaceUv = uv;
+          vFlow = aFlow;`,
+        )
+        .replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+          // Surface vertices sit at fractional heights; displacement is a pure
+          // function of position so shared corners never crack apart.
+          if (fract(position.y) > 0.02) {
+            float speed = mix(1.0, 0.35, aFlow.z);
+            float amp = mix(0.03, 0.018, aFlow.z);
+            float w1 = sin(uLiquidTime * 1.7 * speed + position.x * 1.31 + position.z * 0.87);
+            float w2 = sin(uLiquidTime * 2.3 * speed - position.x * 0.71 + position.z * 1.63);
+            transformed.y += (w1 * 0.6 + w2 * 0.4) * amp - amp;
+          }`,
         );
 
       shader.fragmentShader = shader.fragmentShader
@@ -885,19 +956,42 @@ export class World {
           "#include <common>",
           `#include <common>
           varying vec4 vAtlasBounds;
-          varying vec2 vFaceUv;`,
+          varying vec2 vFaceUv;
+          varying vec3 vFlow;
+          uniform float uLiquidTime;`,
         )
         .replace(
           "#include <map_fragment>",
           `#ifdef USE_MAP
-            vec2 localUv = fract(vFaceUv);
+            float flowSpeed = mix(0.55, 0.16, vFlow.z);
+            vec2 drift = vec2(0.035, 0.022) * uLiquidTime * mix(1.0, 0.4, vFlow.z);
+            vec2 localUv = fract(vFaceUv - vFlow.xy * uLiquidTime * flowSpeed + drift * step(length(vFlow.xy), 0.01));
             vec2 atlasUv = mix(vAtlasBounds.xy, vAtlasBounds.zw, localUv);
             vec4 sampledDiffuseColor = texture2D(map, atlasUv);
             diffuseColor *= sampledDiffuseColor;
           #endif`,
+        )
+        .replace(
+          "#include <roughnessmap_fragment>",
+          `#include <roughnessmap_fragment>
+          roughnessFactor = mix(roughnessFactor, 0.85, vFlow.z);`,
+        )
+        .replace(
+          "#include <normal_fragment_maps>",
+          `#include <normal_fragment_maps>
+          float fresnel = pow(1.0 - clamp(abs(dot(normalize(vViewPosition), normal)), 0.0, 1.0), 3.0);
+          float waterAlpha = clamp(diffuseColor.a * (0.8 + fresnel * 0.55), 0.0, 0.95);
+          diffuseColor.a = mix(waterAlpha, 1.0, vFlow.z);
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.82, 0.95, 1.08) + vec3(0.02, 0.05, 0.08) * fresnel, 1.0 - vFlow.z);`,
+        )
+        .replace(
+          "#include <emissivemap_fragment>",
+          `#include <emissivemap_fragment>
+          float lavaPulse = 1.25 + 0.3 * sin(uLiquidTime * 1.4 + vFaceUv.x * 5.0 + vFaceUv.y * 3.0);
+          totalEmissiveRadiance += diffuseColor.rgb * vFlow.z * lavaPulse;`,
         );
     };
-    this.waterMaterial.customProgramCacheKey = () => "voxel-water-repeat";
+    this.waterMaterial.customProgramCacheKey = () => "voxel-liquid-flow-v2";
 
     // Allocate chunks for the requested radius
     for (let cx = -radius; cx <= radius; cx++) {
@@ -960,6 +1054,7 @@ export class World {
     const lz = ((z % CHUNK) + CHUNK) % CHUNK;
     const idx = (y * CHUNK + lz) * CHUNK + lx;
     const oldId = c.data[idx];
+    c.levels[idx] = 0;
     if (oldId === id) return;
 
     const cy = Math.floor(y / SUB_H);
@@ -983,61 +1078,67 @@ export class World {
     this.dirtySubChunks.add(sc);
   }
 
+  /**
+   * Public block write. Placing a liquid creates a source block; any change
+   * wakes neighbouring liquids so they flow into holes or dry up.
+   */
   set(x: number, y: number, z: number, id: number) {
     if (y < 0 || y >= WORLD_H) return;
+    this.writeBlock(x, y, z, id, 0);
+    if (id === LAVA_ID && this.lavaReacts(x, y, z)) return;
+    if (id === WATER_ID || id === LAVA_ID) this.scheduleLiquid(x, y, z, id);
+    this.wakeNeighbors(x, y, z);
+  }
+
+  getLiquidLevel(x: number, y: number, z: number): number {
+    if (y < 0 || y >= WORLD_H) return 0;
+    const c = this.chunkAt(x, z);
+    if (!c) return 0;
+    const lx = ((x % CHUNK) + CHUNK) % CHUNK;
+    const lz = ((z % CHUNK) + CHUNK) % CHUNK;
+    return c.levels[(y * CHUNK + lz) * CHUNK + lx];
+  }
+
+  isLiquidSource(x: number, y: number, z: number): boolean {
+    return this.isLiquid(x, y, z) && this.getLiquidLevel(x, y, z) === 0;
+  }
+
+  /** Raw voxel + level write with mesh invalidation; no liquid side effects. */
+  private writeBlock(x: number, y: number, z: number, id: number, level: number) {
     const cx = Math.floor(x / CHUNK);
     const cz = Math.floor(z / CHUNK);
     const c = this.getOrCreateChunk(cx, cz);
     const lx = ((x % CHUNK) + CHUNK) % CHUNK;
     const lz = ((z % CHUNK) + CHUNK) % CHUNK;
-
-    // Check liquid collision: Water + Lava quenches to Obsidian (11) or Cobblestone (4)
-    if (id === WATER_ID || id === LAVA_ID) {
-      const otherLiquid = id === WATER_ID ? LAVA_ID : WATER_ID;
-      const dirs = [
-        [1, 0, 0],
-        [-1, 0, 0],
-        [0, 1, 0],
-        [0, -1, 0],
-        [0, 0, 1],
-        [0, 0, -1],
-      ];
-      for (const [dx, dy, dz] of dirs) {
-        const neighbor = this.get(x + dx, y + dy, z + dz);
-        if (neighbor === otherLiquid) {
-          id = id === WATER_ID || dy === -1 ? 11 : 4;
-          break;
-        }
-      }
-    }
-
     const idx = (y * CHUNK + lz) * CHUNK + lx;
     const oldId = c.data[idx];
-    if (oldId === id) return;
+    const nextLevel = id === WATER_ID || id === LAVA_ID ? level : 0;
+    if (oldId === id && c.levels[idx] === nextLevel) return;
+    c.levels[idx] = nextLevel;
 
     const cy = Math.floor(y / SUB_H);
-    const def = BLOCK_BY_ID.get(id);
-    const oldDef = BLOCK_BY_ID.get(oldId);
+    if (oldId !== id) {
+      const def = BLOCK_BY_ID.get(id);
+      const oldDef = BLOCK_BY_ID.get(oldId);
 
-    if (oldId !== 0) c.counts[cy]--;
-    if (id !== 0) c.counts[cy]++;
+      if (oldId !== 0) c.counts[cy]--;
+      if (id !== 0) c.counts[cy]++;
 
-    if (oldDef?.transparent && !oldDef?.liquid) c.transparentCounts[cy]--;
-    if (def?.transparent && !def?.liquid) c.transparentCounts[cy]++;
+      if (oldDef?.transparent && !oldDef?.liquid) c.transparentCounts[cy]--;
+      if (def?.transparent && !def?.liquid) c.transparentCounts[cy]++;
 
-    if (oldDef?.liquid) c.liquidCounts[cy]--;
-    if (def?.liquid) c.liquidCounts[cy]++;
+      if (oldDef?.liquid) c.liquidCounts[cy]--;
+      if (def?.liquid) c.liquidCounts[cy]++;
 
-    c.data[idx] = id;
+      c.data[idx] = id;
+    }
     c.dirty = true;
 
-    // Mark current subchunk dirty
     const sc = c.subChunks[cy];
     sc.dirty = true;
     sc.empty = c.counts[cy] === 0;
     this.dirtySubChunks.add(sc);
 
-    // Border checks: mark only the affected neighbor subchunk dirty
     const ly = y % SUB_H;
     if (ly === 0 && cy > 0) {
       c.subChunks[cy - 1].dirty = true;
@@ -1047,84 +1148,195 @@ export class World {
       this.dirtySubChunks.add(c.subChunks[cy + 1]);
     }
 
-    if (lx === 0) {
-      const nc = this.chunks.get(chunkKey(cx - 1, cz));
-      if (nc) {
-        nc.subChunks[cy].dirty = true;
-        this.dirtySubChunks.add(nc.subChunks[cy]);
+    const markNeighbor = (ncx: number, ncz: number) => {
+      const nc = this.chunks.get(chunkKey(ncx, ncz));
+      if (!nc) return;
+      nc.subChunks[cy].dirty = true;
+      this.dirtySubChunks.add(nc.subChunks[cy]);
+    };
+    if (lx === 0) markNeighbor(cx - 1, cz);
+    else if (lx === CHUNK - 1) markNeighbor(cx + 1, cz);
+    if (lz === 0) markNeighbor(cx, cz - 1);
+    else if (lz === CHUNK - 1) markNeighbor(cx, cz + 1);
+  }
+
+  /* ── Liquid simulation ───────────────────────────────────────────────
+   * Minecraft-style cellular flow: sources (level 0) feed flowing cells
+   * whose level is their distance from the nearest feeder. Water spreads 7
+   * blocks, lava 3; both prefer the shortest path to a drop. Lava touching
+   * water hardens: source -> obsidian, flowing -> cobblestone, and lava
+   * falling onto water -> stone. That makes a classic cobble generator work.
+   */
+
+  private scheduleLiquid(x: number, y: number, z: number, id: number, delayMs?: number) {
+    if (y < 0 || y >= WORLD_H) return;
+    const key = liquidKey(x, y, z);
+    const due = performance.now() + (delayMs ?? (id === LAVA_ID ? LAVA_TICK_MS : WATER_TICK_MS));
+    const existing = this.liquidTicks.get(key);
+    if (existing && existing.due <= due) return;
+    this.liquidTicks.set(key, { x, y, z, due });
+  }
+
+  private wakeNeighbors(x: number, y: number, z: number) {
+    for (let i = 0; i < 6; i++) {
+      const nx = x + NEIGHBOR_DIRS[i][0];
+      const ny = y + NEIGHBOR_DIRS[i][1];
+      const nz = z + NEIGHBOR_DIRS[i][2];
+      const n = this.get(nx, ny, nz);
+      if (n === LAVA_ID) {
+        if (!this.lavaReacts(nx, ny, nz)) this.scheduleLiquid(nx, ny, nz, n);
+      } else if (n === WATER_ID) {
+        this.scheduleLiquid(nx, ny, nz, n);
       }
-    } else if (lx === CHUNK - 1) {
-      const nc = this.chunks.get(chunkKey(cx + 1, cz));
-      if (nc) {
-        nc.subChunks[cy].dirty = true;
-        this.dirtySubChunks.add(nc.subChunks[cy]);
+    }
+  }
+
+  /** Lava next to water (sides or above) hardens in place. Returns true if it did. */
+  private lavaReacts(x: number, y: number, z: number): boolean {
+    if (this.get(x, y, z) !== LAVA_ID) return false;
+    let touchesWater = false;
+    for (let i = 0; i < 6; i++) {
+      if (NEIGHBOR_DIRS[i][1] === -1) continue;
+      if (this.get(x + NEIGHBOR_DIRS[i][0], y + NEIGHBOR_DIRS[i][1], z + NEIGHBOR_DIRS[i][2]) === WATER_ID) {
+        touchesWater = true;
+        break;
+      }
+    }
+    if (!touchesWater) return false;
+    const kind: LiquidReaction = this.getLiquidLevel(x, y, z) === 0 ? "obsidian" : "cobblestone";
+    this.harden(x, y, z, kind);
+    return true;
+  }
+
+  private harden(x: number, y: number, z: number, kind: LiquidReaction) {
+    const fallback = kind === "obsidian" ? OBSIDIAN_ID : kind === "stone" ? STONE_ID : COBBLESTONE_ID;
+    const override = this.onLiquidReaction?.(x, y, z, kind);
+    this.writeBlock(x, y, z, typeof override === "number" ? override : fallback, 0);
+    this.wakeNeighbors(x, y, z);
+  }
+
+  private flowLevelOf(id: number, x: number, y: number, z: number): number {
+    if (this.get(x, y, z) !== id) return -1;
+    const l = this.getLiquidLevel(x, y, z);
+    return l >= LIQUID_FALLING ? 0 : l;
+  }
+
+  /** Air (or a thinner flow of the same liquid) that this liquid may move into. */
+  private canFlowInto(id: number, x: number, y: number, z: number, level: number): boolean {
+    if (y < 0 || y >= WORLD_H) return false;
+    const t = this.get(x, y, z);
+    if (t === 0) return true;
+    if (t !== id) return false;
+    const l = this.getLiquidLevel(x, y, z);
+    if (l === 0) return false;
+    if (level === LIQUID_FALLING) return l !== LIQUID_FALLING;
+    return l !== LIQUID_FALLING && l > level;
+  }
+
+  private holeDistance(id: number, x: number, y: number, z: number, depth: number, max: number, from: number): number {
+    let best = 1000;
+    for (let i = 0; i < 4; i++) {
+      if (i === OPPOSITE_DIR[from]) continue;
+      const nx = x + FLOW_DIRS[i][0];
+      const nz = z + FLOW_DIRS[i][1];
+      const t = this.get(nx, y, nz);
+      if (t !== 0 && !(t === id && this.getLiquidLevel(nx, y, nz) !== 0)) continue;
+      if (this.canFlowInto(id, nx, y - 1, nz, LIQUID_FALLING)) return depth;
+      if (depth < max) best = Math.min(best, this.holeDistance(id, nx, y, nz, depth + 1, max, i));
+    }
+    return best;
+  }
+
+  private tickLiquid(x: number, y: number, z: number) {
+    const id = this.get(x, y, z);
+    if (id !== WATER_ID && id !== LAVA_ID) return;
+    const lava = id === LAVA_ID;
+    if (lava && this.lavaReacts(x, y, z)) return;
+    const step = lava ? 2 : 1;
+    let level = this.getLiquidLevel(x, y, z);
+
+    if (level !== 0) {
+      let next: number;
+      if (this.get(x, y + 1, z) === id) {
+        next = LIQUID_FALLING;
+      } else {
+        let min = 99;
+        let sources = 0;
+        for (let i = 0; i < 4; i++) {
+          const nx = x + FLOW_DIRS[i][0];
+          const nz = z + FLOW_DIRS[i][1];
+          const nl = this.flowLevelOf(id, nx, y, nz);
+          if (nl < 0) continue;
+          if (this.getLiquidLevel(nx, y, nz) === 0) sources++;
+          if (nl < min) min = nl;
+        }
+        next = min + step;
+        if (!lava && sources >= 2) {
+          const below = this.get(x, y - 1, z);
+          if ((below !== 0 && below !== WATER_ID && below !== LAVA_ID) || this.isLiquidSource(x, y - 1, z)) next = 0;
+        }
+      }
+      if (next !== LIQUID_FALLING && next > 7) {
+        this.writeBlock(x, y, z, 0, 0);
+        this.wakeNeighbors(x, y, z);
+        return;
+      }
+      if (next !== level) {
+        this.writeBlock(x, y, z, id, next);
+        this.wakeNeighbors(x, y, z);
+        level = next;
       }
     }
 
-    if (lz === 0) {
-      const nc = this.chunks.get(chunkKey(cx, cz - 1));
-      if (nc) {
-        nc.subChunks[cy].dirty = true;
-        this.dirtySubChunks.add(nc.subChunks[cy]);
-      }
-    } else if (lz === CHUNK - 1) {
-      const nc = this.chunks.get(chunkKey(cx, cz + 1));
-      if (nc) {
-        nc.subChunks[cy].dirty = true;
-        this.dirtySubChunks.add(nc.subChunks[cy]);
-      }
+    if (lava && this.get(x, y - 1, z) === WATER_ID) {
+      this.harden(x, y - 1, z, "stone");
+      return;
+    }
+    if (this.canFlowInto(id, x, y - 1, z, LIQUID_FALLING)) {
+      this.spreadTo(id, x, y - 1, z, LIQUID_FALLING);
+      return;
     }
 
-    // Liquid flow propagation
-    if (id === 0) {
-      if (this.get(x, y + 1, z) === WATER_ID) this.queueWaterFlow(x, y, z, 200, 0);
-      else if (this.get(x, y + 1, z) === LAVA_ID) this.queueLavaFlow(x, y, z, 300, 0);
-      else {
-        const dirs = [
-          [1, 0],
-          [-1, 0],
-          [0, 1],
-          [0, -1],
-        ];
-        for (const [dx, dz] of dirs) {
-          const adj = this.get(x + dx, y, z + dz);
-          if (adj === WATER_ID) {
-            this.queueWaterFlow(x, y, z, 300, 1);
-            break;
-          } else if (adj === LAVA_ID) {
-            this.queueLavaFlow(x, y, z, 420, 1);
-            break;
-          }
-        }
-      }
-    } else if (id === WATER_ID) {
-      if (y > 2 && this.get(x, y - 1, z) === 0) {
-        this.queueWaterFlow(x, y - 1, z, 200, 0);
-      } else {
-        const dirs = [
-          [1, 0],
-          [-1, 0],
-          [0, 1],
-          [0, -1],
-        ];
-        for (const [dx, dz] of dirs) {
-          if (this.get(x + dx, y, z + dz) === 0) this.queueWaterFlow(x + dx, y, z + dz, 320, 1);
-        }
-      }
-    } else if (id === LAVA_ID) {
-      if (y > 2 && this.get(x, y - 1, z) === 0) {
-        this.queueLavaFlow(x, y - 1, z, 320, 0);
-      } else {
-        const dirs = [
-          [1, 0],
-          [-1, 0],
-          [0, 1],
-          [0, -1],
-        ];
-        for (const [dx, dz] of dirs) {
-          if (this.get(x + dx, y, z + dz) === 0) this.queueLavaFlow(x + dx, y, z + dz, 450, 1);
-        }
-      }
+    const distance = level >= LIQUID_FALLING ? 0 : level;
+    const next = distance + step;
+    if (next > 7) return;
+
+    let bestCost = 1000;
+    const costs = [1000, 1000, 1000, 1000];
+    const open = [false, false, false, false];
+    const searchDepth = lava ? 2 : 4;
+    for (let i = 0; i < 4; i++) {
+      const nx = x + FLOW_DIRS[i][0];
+      const nz = z + FLOW_DIRS[i][1];
+      if (!this.canFlowInto(id, nx, y, nz, next)) continue;
+      open[i] = true;
+      costs[i] = this.canFlowInto(id, nx, y - 1, nz, LIQUID_FALLING)
+        ? 0
+        : this.holeDistance(id, nx, y, nz, 1, searchDepth, i);
+      if (costs[i] < bestCost) bestCost = costs[i];
+    }
+    for (let i = 0; i < 4; i++) {
+      if (!open[i] || costs[i] !== bestCost) continue;
+      this.spreadTo(id, x + FLOW_DIRS[i][0], y, z + FLOW_DIRS[i][1], next);
+    }
+  }
+
+  private spreadTo(id: number, x: number, y: number, z: number, level: number) {
+    this.writeBlock(x, y, z, id, level);
+    if (id === LAVA_ID && this.lavaReacts(x, y, z)) return;
+    this.scheduleLiquid(x, y, z, id);
+    this.wakeNeighbors(x, y, z);
+  }
+
+  private processLiquids() {
+    if (this.liquidTicks.size === 0) return;
+    const now = performance.now();
+    let processed = 0;
+    for (const [key, tick] of this.liquidTicks) {
+      if (tick.due > now) continue;
+      this.liquidTicks.delete(key);
+      this.tickLiquid(tick.x, tick.y, tick.z);
+      if (++processed >= LIQUID_TICK_BUDGET) break;
     }
   }
 
@@ -1159,30 +1371,13 @@ export class World {
     return !BLOCK_BY_ID.get(id)?.transparent;
   }
 
-  queueWaterFlow(x: number, y: number, z: number, delayMs = 320, spread = 0) {
-    this.queueLiquidFlow(x, y, z, false, delayMs, spread);
+  /** Legacy helpers: place a source that then flows naturally. */
+  queueWaterFlow(x: number, y: number, z: number) {
+    if (this.get(x, y, z) === 0) this.set(x, y, z, WATER_ID);
   }
 
-  queueLavaFlow(x: number, y: number, z: number, delayMs = 420, spread = 0) {
-    this.queueLiquidFlow(x, y, z, true, delayMs, spread);
-  }
-
-  queueLiquidFlow(x: number, y: number, z: number, isLava = false, delayMs = 320, spread = 0) {
-    if (y < 2 || y >= WORLD_H) return;
-    if (spread > 8) return;
-    const key = `${x},${y},${z}`;
-    if (this.queuedWaterCoords.has(key)) return;
-    const existing = this.get(x, y, z);
-    if (existing !== 0 && existing !== (isLava ? WATER_ID : LAVA_ID)) return;
-    this.queuedWaterCoords.add(key);
-    this.pendingWaterFlows.push({
-      x,
-      y,
-      z,
-      time: performance.now() + delayMs,
-      spread,
-      isLava,
-    });
+  queueLavaFlow(x: number, y: number, z: number) {
+    if (this.get(x, y, z) === 0) this.set(x, y, z, LAVA_ID);
   }
 
   generate(ground = 8) {
@@ -1277,26 +1472,7 @@ export class World {
    * and remeshes dirty sub-chunks nearest to the player with zero GC allocations.
    */
   update(budget = 3, playerPos?: THREE.Vector3, camera?: THREE.Camera) {
-    if (this.pendingWaterFlows.length > 0) {
-      const now = performance.now();
-      let flowsProcessed = 0;
-      for (let i = this.pendingWaterFlows.length - 1; i >= 0 && flowsProcessed < 6; i--) {
-        const flow = this.pendingWaterFlows[i];
-        if (now >= flow.time) {
-          this.pendingWaterFlows.splice(i, 1);
-          this.queuedWaterCoords.delete(`${flow.x},${flow.y},${flow.z}`);
-          const current = this.get(flow.x, flow.y, flow.z);
-          if (current === 0) {
-            this.set(flow.x, flow.y, flow.z, flow.isLava ? LAVA_ID : WATER_ID);
-          } else if (flow.isLava && current === WATER_ID) {
-            this.set(flow.x, flow.y, flow.z, 4);
-          } else if (!flow.isLava && current === LAVA_ID) {
-            this.set(flow.x, flow.y, flow.z, 11);
-          }
-          flowsProcessed++;
-        }
-      }
-    }
+    this.processLiquids();
 
     // High-performance frustum culling on sub-chunk bounding boxes
     this.frustumCheckTick++;
@@ -1582,6 +1758,117 @@ export class World {
       }
     };
 
+    // ── Liquids: per-voxel surfaces whose corner heights follow the flow level ──
+    let wfIdx = 0;
+    if (c.liquidCounts[sc.cy] > 0) {
+      const blocksLiquidFace = (id: number) => {
+        if (id === 0) return false;
+        const d = BLOCK_BY_ID.get(id);
+        return !!d && !d.transparent && !d.liquid && !d.shape;
+      };
+      const cellHeight = (x: number, y: number, z: number, id: number) => {
+        if (this.get(x, y, z) !== id) return -1;
+        if (this.get(x, y + 1, z) === id) return 1;
+        return liquidHeightFor(this.getLiquidLevel(x, y, z));
+      };
+      // Weighted average of the four cells sharing a corner, like Minecraft:
+      // sources dominate so pools stay flat, open air pulls edges down.
+      const cornerHeight = (x: number, y: number, z: number, id: number, cx: number, cz: number) => {
+        let sum = 0;
+        let weight = 0;
+        for (let ax = x + cx - 1; ax <= x + cx; ax++) {
+          for (let az = z + cz - 1; az <= z + cz; az++) {
+            const h = cellHeight(ax, y, az, id);
+            if (h >= 1) return 1;
+            if (h >= 0) {
+              const w = h >= LIQUID_SURFACE - 0.001 ? 4 : 1;
+              sum += h * w;
+              weight += w;
+            } else if (!blocksLiquidFace(this.get(ax, y, az))) {
+              weight += 1;
+            }
+          }
+        }
+        return weight > 0 ? sum / weight : LIQUID_SURFACE;
+      };
+
+      for (let y = 0; y < SUB_H; y++) {
+        const wy = startY + y;
+        for (let z = 0; z < CHUNK; z++) {
+          for (let x = 0; x < CHUNK; x++) {
+            const id = c.data[(wy * CHUNK + z) * CHUNK + x];
+            if (id !== WATER_ID && id !== LAVA_ID) continue;
+            const def = BLOCK_BY_ID.get(id);
+            if (!def) continue;
+            const wx = ox + x;
+            const wz = oz + z;
+            const h00 = cornerHeight(wx, wy, wz, id, 0, 0);
+            const h10 = cornerHeight(wx, wy, wz, id, 1, 0);
+            const h01 = cornerHeight(wx, wy, wz, id, 0, 1);
+            const h11 = cornerHeight(wx, wy, wz, id, 1, 1);
+            // Surface gradient -> flow direction in top-face UV space (u = +x, v = -z).
+            const gx = h00 + h01 - (h10 + h11);
+            const gz = h00 + h10 - (h01 + h11);
+            const isLava = id === LAVA_ID ? 1 : 0;
+
+            for (let f = 0; f < 6; f++) {
+              const face = FACES[f];
+              const [dx, dy, dz] = face.dir;
+              const n = this.get(wx + dx, wy + dy, wz + dz);
+              if (n === id || blocksLiquidFace(n)) continue;
+
+              const tile = dy === 1 ? def.top : dy === -1 ? def.bottom : def.side;
+              const [u0, v0, u1, v1] = this.atlas.uv(tile);
+              const tint = TINTS[tile];
+              const base = wpIdx / 3;
+              const flowU = dy === 1 ? gx * 0.9 : 0;
+              const flowV = dy === 1 ? -gz * 0.9 : dy === 0 ? -1 : 0;
+
+              for (let i = 0; i < 4; i++) {
+                const cn = face.corners[i];
+                const hy = cn[1] === 1 ? (cn[0] ? (cn[2] ? h11 : h10) : cn[2] ? h01 : h00) : 0;
+                wpBuf[wpIdx++] = wx + cn[0];
+                wpBuf[wpIdx++] = wy + hy;
+                wpBuf[wpIdx++] = wz + cn[2];
+                wnBuf[wnIdx++] = dx;
+                wnBuf[wnIdx++] = dy;
+                wnBuf[wnIdx++] = dz;
+                const uv = face.uvs[i];
+                wuBuf[wuIdx++] = uv[0];
+                wuBuf[wuIdx++] = dy === 0 ? (cn[1] === 1 ? hy : 0) : uv[1];
+                wbBuf[wbIdx++] = u0;
+                wbBuf[wbIdx++] = v0;
+                wbBuf[wbIdx++] = u1;
+                wbBuf[wbIdx++] = v1;
+                wfBuf[wfIdx++] = flowU;
+                wfBuf[wfIdx++] = flowV;
+                wfBuf[wfIdx++] = isLava;
+                const light = def.glow ? Math.max(face.light, def.glow) : face.light;
+                wcBuf[wcIdx++] = tint ? light * tint[0] : light;
+                wcBuf[wcIdx++] = tint ? light * tint[1] : light;
+                wcBuf[wcIdx++] = tint ? light * tint[2] : light;
+              }
+              if (face.flip) {
+                wiBuf[wiIdx++] = base;
+                wiBuf[wiIdx++] = base + 2;
+                wiBuf[wiIdx++] = base + 1;
+                wiBuf[wiIdx++] = base;
+                wiBuf[wiIdx++] = base + 3;
+                wiBuf[wiIdx++] = base + 2;
+              } else {
+                wiBuf[wiIdx++] = base;
+                wiBuf[wiIdx++] = base + 1;
+                wiBuf[wiIdx++] = base + 2;
+                wiBuf[wiIdx++] = base;
+                wiBuf[wiIdx++] = base + 2;
+                wiBuf[wiIdx++] = base + 3;
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Special shaped blocks (stairs, slabs) handled directly
     for (let y = 0; y < SUB_H; y++) {
       const wy = startY + y;
@@ -1733,7 +2020,7 @@ export class World {
           const id = c.data[(wy * CHUNK + v) * CHUNK + u];
           if (id === 0) continue;
           const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
+          if (!def || def.shape || def.liquid) continue;
           const nid = getVoxelDirect(u, wy + 1, v);
           if (nid !== 0) {
             const ndef = BLOCK_BY_ID.get(nid);
@@ -1799,7 +2086,7 @@ export class World {
           const id = c.data[(wy * CHUNK + v) * CHUNK + u];
           if (id === 0) continue;
           const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
+          if (!def || def.shape || def.liquid) continue;
           const nid = getVoxelDirect(u, wy - 1, v);
           if (nid !== 0) {
             const ndef = BLOCK_BY_ID.get(nid);
@@ -1863,7 +2150,7 @@ export class World {
           const id = c.data[(wy * CHUNK + z) * CHUNK + u];
           if (id === 0) continue;
           const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
+          if (!def || def.shape || def.liquid) continue;
           const nid = getVoxelDirect(u, wy, z + 1);
           if (nid !== 0) {
             const ndef = BLOCK_BY_ID.get(nid);
@@ -1928,7 +2215,7 @@ export class World {
           const id = c.data[(wy * CHUNK + z) * CHUNK + u];
           if (id === 0) continue;
           const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
+          if (!def || def.shape || def.liquid) continue;
           const nid = getVoxelDirect(u, wy, z - 1);
           if (nid !== 0) {
             const ndef = BLOCK_BY_ID.get(nid);
@@ -1993,7 +2280,7 @@ export class World {
           const id = c.data[(wy * CHUNK + u) * CHUNK + x];
           if (id === 0) continue;
           const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
+          if (!def || def.shape || def.liquid) continue;
           const nid = getVoxelDirect(x + 1, wy, u);
           if (nid !== 0) {
             const ndef = BLOCK_BY_ID.get(nid);
@@ -2058,7 +2345,7 @@ export class World {
           const id = c.data[(wy * CHUNK + u) * CHUNK + x];
           if (id === 0) continue;
           const def = BLOCK_BY_ID.get(id);
-          if (!def || def.shape) continue;
+          if (!def || def.shape || def.liquid) continue;
           const nid = getVoxelDirect(x - 1, wy, u);
           if (nid !== 0) {
             const ndef = BLOCK_BY_ID.get(nid);
@@ -2241,6 +2528,7 @@ export class World {
           sc.waterMesh.geometry,
         );
       }
+      sc.waterMesh.geometry.setAttribute("aFlow", new THREE.BufferAttribute(wfBuf.slice(0, wfIdx), 3));
       sc.waterMesh.visible = true;
     } else if (sc.waterMesh) {
       sc.waterMesh.visible = false;
