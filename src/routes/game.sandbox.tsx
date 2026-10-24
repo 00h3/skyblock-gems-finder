@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinnedModel } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { buildAtlas, type Atlas } from "@/engine-sandbox/shared/textures";
-import { World, BLOCKS, WATER_ID, WIND } from "@/engine-sandbox/shared/world";
+import { World, BLOCKS, WATER_ID, WIND, SNOW } from "@/engine-sandbox/shared/world";
 import { Features, UTILITY_ITEMS, NEW_BACKPACK_ITEMS } from "@/engine-sandbox/shared/features";
 import { utilityIconUrl } from "@/engine-sandbox/shared/item-icons";
 import { FeatureDock, RadialWheel, QuickBuyPanel } from "@/components/v2/FeatureDock";
@@ -78,15 +78,12 @@ import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
 import { SkyblockCutscene, SkyblockTutorial, TUTORIAL_DONE_KEY } from "@/components/SkyblockIntro";
 import { BlockGravity } from "@/engine-sandbox/shared/block-physics";
 
-const CUTSCENE_SECONDS = 7;
-const SNOW_PREF_KEY = "qb_snow_ambient";
-const readSnowPref = () => {
-  try {
-    return localStorage.getItem(SNOW_PREF_KEY) !== "0";
-  } catch {
-    return true;
-  }
-};
+import { MineTeleportButton, useWeather } from "@/components/SkyblockExtras";
+import { buildMiningArea, type MiningArea } from "@/engine-sandbox/skyblock/mining-area";
+import { WEATHER_EVENT, WEATHER_ORDER, WEATHER_PRESETS, readWeather, setWeather, type Weather } from "@/lib/weather";
+
+const CUTSCENE_SECONDS = 9;
+const MINE_TELEPORT_EVENT = "qb-mine-teleport";
 import { announce } from "@/engine-sandbox/shared/announcer";
 import { useStore } from "@/engine-sandbox/shared/store";
 import { V2GameHud, UI as HUD_UI, type HudAction } from "@/components/v2/V2GameHud";
@@ -1335,7 +1332,8 @@ export function SandboxGame({
   const [multiplayerConnected, setMultiplayerConnected] = useState(false);
   const [cutsceneOn, setCutsceneOn] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
-  const [snowOn, setSnowOn] = useState(readSnowPref);
+  const weather = useWeather();
+  const [inMine, setInMine] = useState(false);
   const cutsceneRef = useRef({ active: false, t: 0 });
   const [graphicsError, setGraphicsError] = useState("");
   const hungerRef = useRef(20);
@@ -1720,6 +1718,9 @@ export function SandboxGame({
         world.meshAll();
         scene.add(world.group);
       }
+      // Built after meshAll so its chunks mesh lazily (nearest-first) instead of
+      // slowing the island's first frame.
+      const mineArea: MiningArea | null = skyblock ? buildMiningArea(world) : null;
 
       const skyEnv = isSkyblockLike
         ? new SkyblockEnvironment(scene, { pond: SKYBLOCK_POND_SURFACE, lowQuality: qualityPref === "low" })
@@ -3202,16 +3203,81 @@ export function SandboxGame({
 
       // Ambient particles — white motes removed per user request
       const particles = new AmbientParticles(qualityPref === "low" ? 80 : 160);
-      const ambientMode = () => (isSkyblockLike && readSnowPref() ? "snow" : "off");
-      particles.setMode(ambientMode());
+      // Weather + Deep Mines state. Mine visits override weather with cave embers.
+      let currentWeather: Weather = isSkyblockLike ? readWeather() : "clear";
+      let playerInMine = false;
+      const ambientMode = () => {
+        if (!isSkyblockLike) return "off" as const;
+        if (playerInMine) return "embers" as const;
+        return WEATHER_PRESETS[currentWeather].particles;
+      };
+      const applyWeather = () => {
+        const preset = WEATHER_PRESETS[currentWeather];
+        particles.setMode(ambientMode());
+        particles.wind = playerInMine ? 0 : preset.drift;
+        particles.fallScale = playerInMine ? 1 : preset.fall;
+        if (isSkyblockLike) sky?.setCloudCover(preset.cloud);
+      };
+      applyWeather();
       scene.add(particles.points);
-      const onSnowToggle = () => particles.setMode(ambientMode());
-      window.addEventListener("qb-snow-toggle", onSnowToggle);
+      const onWeather = (e: Event) => {
+        currentWeather = (e as CustomEvent<Weather>).detail;
+        applyWeather();
+      };
+      window.addEventListener(WEATHER_EVENT, onWeather);
 
       // Dynamic lighting: warm handheld-lantern glow around the player that
       // fades in as night falls, so caves and night islands keep readable depth.
       const playerGlow = new THREE.PointLight(0xffb86b, 0, 13, 1.6);
       scene.add(playerGlow);
+
+      const mineLights: THREE.PointLight[] = [];
+      for (const l of mineArea?.lights ?? []) {
+        const light = new THREE.PointLight(l.color, l.intensity, l.distance, 1.4);
+        light.position.set(l.x, l.y, l.z);
+        light.visible = false;
+        scene.add(light);
+        mineLights.push(light);
+      }
+      const caveFogColor = new THREE.Color("#1a120d");
+      let savedFog: { near: number; far: number } | null = null;
+      let islandSpawn: THREE.Vector3 | null = null;
+      const setMineState = (next: boolean) => {
+        if (next === playerInMine) return;
+        playerInMine = next;
+        setInMine(next);
+        for (const l of mineLights) l.visible = next;
+        const fog = scene.fog as THREE.Fog | null;
+        if (fog) {
+          if (next) {
+            savedFog = { near: fog.near, far: fog.far };
+            sky?.setRange(8, 72);
+          } else if (savedFog) {
+            sky?.setRange(savedFog.near, savedFog.far);
+            savedFog = null;
+          }
+        }
+        applyWeather();
+      };
+      const onMineTeleport = () => {
+        if (!mineArea || cutsceneRef.current.active) return;
+        if (!playerInMine) {
+          islandSpawn = player.spawnPoint.clone();
+          player.setSpawnPoint(mineArea.spawn.x, mineArea.spawn.y, mineArea.spawn.z);
+          setMineState(true);
+          announce("Deep Mines", "Rich ore lines the cavern walls", "reward");
+        } else {
+          player.setSpawnPoint(islandSpawn ?? new THREE.Vector3(0.5, 17.5, 0.5));
+          setMineState(false);
+        }
+        player.respawn();
+        avatar?.resetDeath();
+        rig.snap(new THREE.Vector3(player.position.x, player.eyeY + 0.54, player.position.z));
+        setVeilToken((v) => v + 1);
+        playSound("pop");
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+      };
+      window.addEventListener(MINE_TELEPORT_EVENT, onMineTeleport);
 
       // Realistic ambient water sound when near Skyblock pond
       let stopWaterAudio: (() => void) | null = null;
@@ -3239,9 +3305,8 @@ export function SandboxGame({
         };
         worldEvents.onEnd = (ev) => {
           progression.xpMultiplier = 1;
-          sky?.setCloudCover(0.5);
           sky?.setTint("#ffffff", 0);
-          particles.setMode(ambientMode());
+          applyWeather();
           progression.recordEvent(ev.completionXp);
           announce(`${ev.name} ended`, `+${ev.completionXp} XP for taking part`, "reward");
         };
@@ -3254,9 +3319,13 @@ export function SandboxGame({
 
       setEngineReady(true);
       setReady(true);
+      const csRigPos = new THREE.Vector3();
+      const csLook = new THREE.Vector3();
+      const csRigQuat = new THREE.Quaternion();
       const finishCutscene = () => {
         if (!cutsceneRef.current.active) return;
         cutsceneRef.current.active = false;
+        phoenixModelRef.current?.scale.setScalar(0.08);
         player.frozen = false;
         setCutsceneOn(false);
         let tutorialDone = false;
@@ -3393,27 +3462,53 @@ export function SandboxGame({
         if (cutsceneRef.current.active) {
           const cs = cutsceneRef.current;
           cs.t += dt;
+          // The rig already placed the gameplay camera this frame; keep it as the landing pose.
+          csRigPos.copy(camera.position);
+          csRigQuat.copy(camera.quaternion);
+          const smooth = (v: number) => v * v * (3 - 2 * v);
           const k = Math.min(1, cs.t / CUTSCENE_SECONDS);
-          const ease = k * k * (3 - 2 * k);
-          const ang = -0.8 + ease * Math.PI * 1.3;
-          const radius = 38 - ease * 26;
-          camera.position.set(Math.cos(ang) * radius, 34 - ease * 14, Math.sin(ang) * radius);
-          camera.lookAt(0, 16 + ease * 1.5, 0);
+          const orbit = smooth(Math.min(1, k / 0.82));
+          const ang = -0.6 + orbit * Math.PI * 1.45;
+          const radius = 50 - orbit * 30;
+          camera.position.set(Math.cos(ang) * radius, 42 - orbit * 20 + Math.sin(cs.t * 0.7) * 0.6, Math.sin(ang) * radius);
+
+          csLook.set(0, 17, 0);
           const phoenix = phoenixModelRef.current;
           if (phoenix) {
-            const pAng = ang + 0.32;
-            const pR = radius * 0.82;
-            const pY = 30 - ease * 10 + Math.sin(cs.t * 2.2) * 1.2;
+            phoenix.scale.setScalar(0.028);
+            const pAng = ang + 1.05;
+            const pR = 13 + (1 - orbit) * 7;
+            const pY = 25 - orbit * 4 + Math.sin(cs.t * 2.4) * 0.8;
             phoenix.position.set(Math.cos(pAng) * pR, pY, Math.sin(pAng) * pR);
-            phoenix.lookAt(Math.cos(pAng + 0.08) * pR, pY, Math.sin(pAng + 0.08) * pR);
+            phoenix.lookAt(Math.cos(pAng + 0.12) * pR, pY, Math.sin(pAng + 0.12) * pR);
+            csLook.lerp(phoenix.position, 0.4 * (1 - orbit * 0.6));
+          }
+          camera.lookAt(csLook);
+
+          const land = smooth(Math.max(0, (k - 0.82) / 0.18));
+          if (land > 0) {
+            camera.position.lerp(csRigPos, land);
+            camera.quaternion.slerp(csRigQuat, land);
           }
           if (k >= 1) finishCutscene();
         }
 
+        if (mineArea) {
+          const insideMine = mineArea.contains(player.position.x, player.position.z);
+          if (insideMine !== playerInMine) setMineState(insideMine);
+        }
+        if (isSkyblockLike) {
+          const preset = WEATHER_PRESETS[currentWeather];
+          const ease = 1 - Math.exp(-dt * 0.6);
+          SNOW.uSnow.value += ((playerInMine ? 0 : preset.snowCover) - SNOW.uSnow.value) * ease;
+          WIND.uStrength.value += ((playerInMine ? 0.2 : preset.wind) - WIND.uStrength.value) * (1 - Math.exp(-dt * 2));
+          if (!playerInMine) particles.wind = preset.drift * (0.7 + Math.sin(clock.elapsedTime * 0.35) * 0.3);
+        }
+
         if (sky) {
           const night = sky.nightAmount;
-          playerGlow.intensity = night * 2.4;
-          playerGlow.visible = night > 0.05;
+          playerGlow.intensity = playerInMine ? 3.4 : night * 2.4;
+          playerGlow.visible = playerInMine || night > 0.05;
           if (playerGlow.visible) playerGlow.position.set(player.position.x, player.position.y + 1.6, player.position.z);
         }
 
@@ -3616,6 +3711,12 @@ export function SandboxGame({
         sky!.follow(camera.position);
         particles.update(dt, camera.position);
         sky!.update(dt);
+        if (playerInMine) {
+          sky!.sunLight.intensity *= 0.12;
+          sky!.hemi.intensity *= 0.28;
+          sky!.ambient.intensity *= 0.5;
+          (scene.fog as THREE.Fog | null)?.color.copy(caveFogColor);
+        }
         skyEnv?.update(dt, camera, sky!, scene);
         cosmicSky?.update(dt, camera);
 
@@ -3860,7 +3961,11 @@ export function SandboxGame({
         window.removeEventListener("resize", onResize);
         screen.orientation?.removeEventListener?.("change", onResize);
         window.removeEventListener("qb-menu-respawn", onRespawn);
-        window.removeEventListener("qb-snow-toggle", onSnowToggle);
+        window.removeEventListener(WEATHER_EVENT, onWeather);
+        window.removeEventListener(MINE_TELEPORT_EVENT, onMineTeleport);
+        for (const l of mineLights) l.dispose();
+        SNOW.uSnow.value = 0;
+        WIND.uStrength.value = 1;
         window.removeEventListener("qb-skip-cutscene", onSkipCutscene);
         cutsceneRef.current.active = false;
         playerGlow.dispose();
@@ -4328,6 +4433,12 @@ export function SandboxGame({
         </div>
       )}
 
+      {ready && skyblock && !cutsceneOn && (
+        <div className="fixed right-3 top-[calc(env(safe-area-inset-top)+120px)] z-[85]">
+          <MineTeleportButton inMine={inMine} onPress={() => window.dispatchEvent(new Event(MINE_TELEPORT_EVENT))} />
+        </div>
+      )}
+
       {cutsceneOn && <SkyblockCutscene onSkip={() => window.dispatchEvent(new Event("qb-skip-cutscene"))} />}
       {tutorialOpen && !cutsceneOn && <SkyblockTutorial onClose={() => setTutorialOpen(false)} />}
 
@@ -4480,16 +4591,12 @@ export function SandboxGame({
               ? [
                   { label: baseplate ? "Respawn on baseplate" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) },
                   {
-                    label: snowOn ? "Snow ambient: On" : "Snow ambient: Off",
-                    onSelect: () => {
-                      const next = !snowOn;
-                      try {
-                        localStorage.setItem(SNOW_PREF_KEY, next ? "1" : "0");
-                      } catch {}
-                      setSnowOn(next);
-                      window.dispatchEvent(new Event("qb-snow-toggle"));
-                    },
+                    label: `Weather: ${WEATHER_PRESETS[weather].label}`,
+                    onSelect: () => setWeather(WEATHER_ORDER[(WEATHER_ORDER.indexOf(weather) + 1) % WEATHER_ORDER.length]),
                   },
+                  ...(skyblock
+                    ? [{ label: inMine ? "Return to island" : "Teleport to Deep Mines", onSelect: () => window.dispatchEvent(new Event(MINE_TELEPORT_EVENT)) }]
+                    : []),
                   ...(skyblock ? [{ label: "Tutorial", onSelect: () => setTutorialOpen(true) }] : []),
                 ]
               : []
@@ -4842,7 +4949,7 @@ export function SandboxGame({
       )}
 
       {settingsOpen && (
-        <FlatSquareSettingsModal onClose={() => setSettingsOpen(false)} />
+        <FlatSquareSettingsModal onClose={() => setSettingsOpen(false)} showWeather={isSkyblockLike} />
       )}
     </div>
   );

@@ -96,6 +96,11 @@ export class AmbientParticles {
     }
   }
 
+  /** Sideways drift in blocks/second (weather wind). */
+  wind = 0;
+  /** Multiplier on fall speed (heavier snow in blizzards). */
+  fallScale = 1;
+
   update(dt: number, center: THREE.Vector3) {
     if (this.mode === "off") return;
     this.points.position.set(center.x, center.y - 2, center.z);
@@ -108,12 +113,13 @@ export class AmbientParticles {
     const h = this.half;
     const isUpward = this.mode === "spores" || this.mode === "embers";
     const snow = this.mode === "snow";
-    const fall = this.mode === "sparks" ? 7 : snow ? 1.3 : isUpward ? -0.45 : 0.18;
+    const fall = (this.mode === "sparks" ? 7 : snow ? 1.3 : isUpward ? -0.45 : 0.18) * this.fallScale;
     const sway = snow ? 0.9 : 0.35;
+    const gust = this.wind * (0.75 + Math.sin(this.t * 0.6) * 0.25);
     for (let i = 0; i < this.count; i++) {
       const s = this.seeds[i];
       const ix = i * 3;
-      p[ix] += Math.sin(this.t * 0.45 + s) * sway * simDt + (this.mode === "sparks" ? 2.5 * simDt : snow ? 0.4 * simDt : 0);
+      p[ix] += Math.sin(this.t * 0.45 + s) * sway * simDt + (this.mode === "sparks" ? 2.5 * simDt : snow ? 0.4 * simDt : 0) + gust * simDt;
       p[ix + 1] += (Math.sin(this.t * 0.75 + s * 1.3) * 0.25 - fall) * simDt;
       p[ix + 2] += Math.cos(this.t * 0.4 + s) * 0.35 * simDt;
       if (p[ix + 1] < -4) p[ix + 1] += h + 4;
