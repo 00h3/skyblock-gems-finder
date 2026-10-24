@@ -17,11 +17,13 @@ import {
   Zap,
 } from "lucide-react";
 import { readQualityPref, RenderQuality } from "@/lib/rendering";
+import { WeatherSettingsSection } from "@/components/SkyblockExtras";
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
   controlsScale?: number;
   onControlsScaleChange?: (scale: number) => void;
+  showWeather?: boolean;
 }
 
 type AtmosphereMode = "normal" | "evening" | "night";
@@ -30,6 +32,7 @@ export function FlatSquareSettingsModal({
   onClose,
   controlsScale,
   onControlsScaleChange,
+  showWeather = false,
 }: FlatSquareSettingsModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -258,6 +261,8 @@ export function FlatSquareSettingsModal({
               </button>
             </div>
           </div>
+
+          {showWeather && <WeatherSettingsSection />}
 
           {/* SECTION 2: ATMOSPHERE & TIME OF DAY */}
           <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-3">
