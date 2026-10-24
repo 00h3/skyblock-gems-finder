@@ -2310,7 +2310,7 @@ function EngineGame({
       let skyMatRef: THREE.ShaderMaterial | null = null;
       // Quality tier sets the base render scale and DPR cap. Dynamic resolution
       // scaling inside tick() will further adjust curScale based on live FPS.
-      const MAX_DPR = isMobileUA ? 2.0 : 2.0;
+      const MAX_DPR = isMobileUA ? 2.5 : 3.0;
       const RENDER_SCALE = 1.0;
       let curScale = RENDER_SCALE;
       const baseDpr = getTargetDpr(qualityPref);
@@ -8072,17 +8072,8 @@ function EngineGame({
           return;
         }
 
-        const { hit, normal, position } = getTargetBlock();
+        const { hit, normal, position } = getTargetBlock(true);
         if (!hit || !normal || !position) return;
-        const isVisitingOther =
-          isSkyblock &&
-          !!visitingUserId &&
-          visitingUserId !== qbUser?.uid &&
-          visitingUserId !== qbUser?.islandId;
-        if (isVisitingOther) {
-          showSbToast("You cannot break, only your island you can break now", 3500);
-          return;
-        }
         const p = position;
         const nx = p.x + Math.round(normal.x);
         const ny = p.y + Math.round(normal.y);
@@ -8280,9 +8271,11 @@ function EngineGame({
         normal: THREE.Vector3 | null;
         position: THREE.Vector3 | null;
       } = { hit: null, normal: null, position: null };
-      function getTargetBlock() {
-        _raycastFrame++;
-        if (_raycastFrame % RAYCAST_SKIP !== 0) return _lastRayResult;
+      function getTargetBlock(force = false) {
+        if (!force) {
+          _raycastFrame++;
+          if (_raycastFrame % RAYCAST_SKIP !== 0) return _lastRayResult;
+        }
         ray.setFromCamera(rayCenter, camera);
         const hits = ray.intersectObjects(_raycastTargets ?? [], false);
         if (hits.length === 0) {
@@ -8359,8 +8352,9 @@ function EngineGame({
         const isVisitingOther =
           isSkyblock &&
           !!visitingUserId &&
-          visitingUserId !== qbUser?.uid &&
-          visitingUserId !== qbUser?.islandId;
+          !!qbUser &&
+          visitingUserId !== qbUser.uid &&
+          visitingUserId !== qbUser.islandId;
         if (isVisitingOther) {
           showSbToast("You cannot break, only your island you can break now", 3500);
           return;
@@ -9802,8 +9796,9 @@ function EngineGame({
           const isVisitingOther =
             isSkyblock &&
             !!visitingUserId &&
-            visitingUserId !== qbUser?.uid &&
-            visitingUserId !== qbUser?.islandId;
+            !!qbUser &&
+            visitingUserId !== qbUser.uid &&
+            visitingUserId !== qbUser.islandId;
           if (isVisitingOther) {
             holding = false;
             breakOverlay.visible = false;

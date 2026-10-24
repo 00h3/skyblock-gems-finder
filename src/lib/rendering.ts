@@ -25,26 +25,20 @@ export const getTargetDpr = (quality?: RenderQuality): number => {
   const isMobile = isMobileDevice();
 
   if (quality === "low") {
-    return 1.0;
+    return Math.min(rawDpr, 1.25);
   }
   if (quality === "medium") {
-    return Math.min(rawDpr, 1.5);
+    return Math.min(rawDpr, 1.75);
   }
 
-  // High / UHD Quality (Vectaria.io standard):
-  // Prevent fractional pixel stretching (which causes horizontal pixelation/blur)
-  // On desktop Retina displays, 2.0 provides 1:1 pixel-perfect native clarity.
-  // On standard 1080p desktop (DPR 1.0), UHD allows clean 1.5-2.0 supersampling.
+  // Restore full Retina resolution for crystal-clear fidelity:
+  // Renders at full native Retina (up to 2.5 on mobile and 3.0 on desktop)
+  // while keeping frame pacing smooth.
   if (isMobile) {
-    // Mobile capped at 2.0 to prevent thermal throttling, minimum 1.0
-    return Math.min(Math.max(rawDpr, 1.0), 2.0);
+    return Math.min(rawDpr, 2.5);
   }
 
-  if (quality === "uhd") {
-    return Math.min(Math.max(rawDpr, 1.5), 2.0);
-  }
-  // High quality: Force at least 2.0 for 2K-like retina clarity on desktop
-  return Math.max(rawDpr, 2.0);
+  return Math.min(rawDpr, 3.0);
 };
 
 /**

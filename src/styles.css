@@ -33,6 +33,15 @@ html, body {
   }
 }
 
+@keyframes orangeOutlineGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(250, 70, 22, 0.65), 0 0 8px rgba(250, 70, 22, 0.25), inset 1px 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 1.5px rgba(255, 130, 20, 0.95), 0 0 14px rgba(255, 130, 20, 0.45), inset 1px 1px 0 rgba(255, 255, 255, 0.8);
+  }
+}
+
 /* ── GAME ENGINE TEXT STYLE: INTER ONLY WITH CRISP BLACK OUTLINE ── */
 .v2-ui,
 .v2-ui *,

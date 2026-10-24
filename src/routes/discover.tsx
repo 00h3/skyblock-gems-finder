@@ -116,28 +116,113 @@ const MOODS: { id: Mood; label: string; detail: string }[] = [
   { id: "horror", label: "Horror", detail: "Keep the lights on" },
 ];
 
-const UPLOADED_DISCOVER_TABS = ["Party", "PvP", "Building", "Fantasy", "Time Pass"] as const;
+const UPLOADED_DISCOVER_TABS = [
+  "All",
+  "Party",
+  "PvP",
+  "Building",
+  "Sandbox",
+  "Survival",
+  "Arcade",
+  "Fantasy",
+  "Action",
+  "Time Pass",
+] as const;
 
 function UploadedDiscoverPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [open, setOpen] = useState<DiscoveryGame | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev === 0 ? 1 : 0));
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
 
   const games = useMemo(() => {
     const activeTab = UPLOADED_DISCOVER_TABS[tab];
-    if (activeTab === "Party") return GAMES;
-    if (activeTab === "PvP") return GAMES.filter((g) => g.id === "block-fall" || g.id === "bedwars");
-    if (activeTab === "Building") return GAMES.filter((g) => g.id === "skyblock");
-    if (activeTab === "Fantasy") return GAMES.filter((g) => g.id === "skyblock");
+    if (activeTab === "All" || activeTab === "Party" || activeTab === "Time Pass") return GAMES;
+    if (activeTab === "PvP" || activeTab === "Arcade" || activeTab === "Action")
+      return GAMES.filter((g) => g.id === "block-fall" || g.id === "bedwars");
+    if (activeTab === "Building" || activeTab === "Sandbox")
+      return GAMES.filter((g) => g.id === "skyblock" || g.id === "baseplate");
+    if (activeTab === "Fantasy" || activeTab === "Survival")
+      return GAMES.filter((g) => g.id === "skyblock");
     return GAMES;
   }, [tab]);
 
   return (
     <MobileShell>
       <div className="min-h-full bg-background pb-24">
+        {/* Switching Glossy Banner (same banner as homepage on top of the games) */}
         <div className="px-4 pt-3 pb-1">
-          {/* Header text omitted so Discover does not appear at top */}
+          <div
+            onClick={() => setActiveSlide((prev) => (prev === 0 ? 1 : 0))}
+            className="qb-squircle press relative h-[105px] w-full overflow-hidden cursor-pointer select-none rounded-[14px]"
+          >
+            {/* Top gloss curve + shimmer sweep (same glossiness as mail/notify) */}
+            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent pointer-events-none z-10" />
+            <span
+              className="pointer-events-none absolute inset-0 -translate-x-[160%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/40 to-transparent z-10"
+              style={{
+                animation: "glossyShineSweep 16s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+              }}
+            />
+
+            {/* Slider track */}
+            <div
+              className="flex h-full w-[200%] transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${activeSlide * 50}%)` }}
+            >
+              {/* Slide 1 */}
+              <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 pb-2 relative z-10">
+                <span className="text-[16px] font-black tracking-tight text-[#1A1D20] dark:text-white">
+                  Untitled Banner
+                </span>
+              </div>
+
+              {/* Slide 2 */}
+              <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 pb-2 relative z-10">
+                <span className="text-[16px] font-black tracking-tight text-[#1A1D20] dark:text-white">
+                  Untitled Banner
+                </span>
+              </div>
+            </div>
+
+            {/* Animated 2-dot indicator ● ● */}
+            <div className="absolute bottom-2.5 inset-x-0 z-20 flex items-center justify-center gap-1.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveSlide(0);
+                }}
+                aria-label="Slide 1"
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  activeSlide === 0
+                    ? "w-4 bg-[#1A1D20] dark:bg-white"
+                    : "w-1.5 bg-black/20 dark:bg-white/20 hover:bg-black/35"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveSlide(1);
+                }}
+                aria-label="Slide 2"
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  activeSlide === 1
+                    ? "w-4 bg-[#1A1D20] dark:bg-white"
+                    : "w-1.5 bg-black/20 dark:bg-white/20 hover:bg-black/35"
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="mt-1 px-4">
@@ -211,18 +296,19 @@ function UploadedDiscoverPage() {
           )}
         </div>
 
-        <div className="fixed bottom-[calc(64px+max(env(safe-area-inset-bottom),10px))] left-0 right-0 z-30 flex justify-center px-3 pointer-events-none">
-          <div className="qb-glossy-menu pointer-events-auto max-w-[calc(100vw-24px)] overflow-x-auto scroll-smooth hide-scrollbar rounded-full p-1 shadow-md touch-pan-x overscroll-x-contain">
-            <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max px-1">
+        {/* Bottom Categories Divider — fully scrollable destra sinistra */}
+        <div className="fixed bottom-[calc(64px+max(env(safe-area-inset-bottom),10px))] left-0 right-0 z-30 flex justify-center px-2 pointer-events-none">
+          <div className="qb-glossy-menu pointer-events-auto max-w-[calc(100vw-16px)] w-auto overflow-x-auto scroll-smooth hide-scrollbar rounded-full p-1 shadow-lg touch-pan-x overscroll-x-contain">
+            <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max px-2 py-0.5">
               {UPLOADED_DISCOVER_TABS.map((label, index) => (
                 <button
                   key={label}
                   type="button"
                   onClick={() => setTab(index)}
-                  className={`press relative z-10 h-7 shrink-0 rounded-full px-3.5 text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap select-none ${
+                  className={`press relative z-10 h-7.5 shrink-0 rounded-full px-3.5 text-[11.5px] font-bold transition-all cursor-pointer whitespace-nowrap select-none ${
                     index === tab
-                      ? "bg-foreground text-background shadow-xs font-semibold"
-                      : "qb-glossy-chip text-foreground"
+                      ? "bg-foreground text-background shadow-xs font-black"
+                      : "qb-glossy-chip text-foreground/85 hover:text-foreground"
                   }`}
                 >
                   {label}

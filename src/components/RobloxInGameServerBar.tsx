@@ -139,13 +139,10 @@ export function RobloxInGameServerBar({
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 rounded-[14px] bg-black/60 hover:bg-black/80 backdrop-blur-md px-3 py-1.5 text-white border border-white/15 shadow-lg active:scale-95 transition cursor-pointer"
+          className="flex items-center gap-2 rounded-[14px] bg-black/60 hover:bg-black/80 backdrop-blur-md px-2.5 py-1.5 text-white border border-white/15 shadow-lg active:scale-95 transition cursor-pointer"
           title="Click to view servers & switch"
         >
           <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[11.5px] font-black tracking-tight">
-            {currentServer.name.split("•")[0].trim()}
-          </span>
 
           <span className="rounded-full bg-white/20 px-2 py-0.2 text-[10.5px] font-black">
             {currentServer.playerCount}/16
