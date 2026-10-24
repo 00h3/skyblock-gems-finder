@@ -6,7 +6,7 @@ import * as THREE from "three";
  * costs a single draw call. Modes switch the look/motion for world events.
  */
 
-export type ParticleMode = "motes" | "sparks" | "spores" | "embers" | "off";
+export type ParticleMode = "motes" | "sparks" | "spores" | "embers" | "snow" | "off";
 
 function makeSprite() {
   const c = document.createElement("canvas");
@@ -72,6 +72,13 @@ export class AmbientParticles {
       this.mat.color.set("#e085ff");
       this.mat.size = 0.28;
       this.mat.opacity = 0.80;
+    } else if (mode === "snow") {
+      this.mat.color.set("#ffffff");
+      this.mat.size = 0.16;
+      this.mat.opacity = 0.9;
+      this.mat.blending = THREE.NormalBlending;
+      this.mat.needsUpdate = true;
+      return;
     } else if (mode === "embers") {
       // Warm glowing forge & torch embers (Hytale image 2)
       this.mat.color.set("#ff8822");
@@ -82,6 +89,10 @@ export class AmbientParticles {
       this.mat.color.set("#ffeeb0");
       this.mat.size = 0.18;
       this.mat.opacity = 0.68;
+    }
+    if (this.mat.blending !== THREE.AdditiveBlending) {
+      this.mat.blending = THREE.AdditiveBlending;
+      this.mat.needsUpdate = true;
     }
   }
 
@@ -96,11 +107,13 @@ export class AmbientParticles {
     const p = this.positions;
     const h = this.half;
     const isUpward = this.mode === "spores" || this.mode === "embers";
-    const fall = this.mode === "sparks" ? 7 : isUpward ? -0.45 : 0.18;
+    const snow = this.mode === "snow";
+    const fall = this.mode === "sparks" ? 7 : snow ? 1.3 : isUpward ? -0.45 : 0.18;
+    const sway = snow ? 0.9 : 0.35;
     for (let i = 0; i < this.count; i++) {
       const s = this.seeds[i];
       const ix = i * 3;
-      p[ix] += Math.sin(this.t * 0.45 + s) * 0.35 * simDt + (this.mode === "sparks" ? 2.5 * simDt : 0);
+      p[ix] += Math.sin(this.t * 0.45 + s) * sway * simDt + (this.mode === "sparks" ? 2.5 * simDt : snow ? 0.4 * simDt : 0);
       p[ix + 1] += (Math.sin(this.t * 0.75 + s * 1.3) * 0.25 - fall) * simDt;
       p[ix + 2] += Math.cos(this.t * 0.4 + s) * 0.35 * simDt;
       if (p[ix + 1] < -4) p[ix + 1] += h + 4;

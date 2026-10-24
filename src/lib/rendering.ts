@@ -25,20 +25,18 @@ export const getTargetDpr = (quality?: RenderQuality): number => {
   const isMobile = isMobileDevice();
 
   if (quality === "low") {
-    return Math.min(rawDpr, 1.25);
+    return Math.min(rawDpr, 1.5);
   }
   if (quality === "medium") {
-    return Math.min(rawDpr, 1.75);
+    return Math.min(rawDpr, 2.0);
   }
 
-  // Restore full Retina resolution for crystal-clear fidelity:
-  // Renders at full native Retina (up to 2.5 on mobile and 3.0 on desktop)
-  // while keeping frame pacing smooth.
+  // Slight supersampling above native Retina for sharper block edges.
   if (isMobile) {
-    return Math.min(rawDpr, 2.5);
+    return Math.min(rawDpr * 1.1, 3.0);
   }
 
-  return Math.min(rawDpr, 3.0);
+  return Math.min(rawDpr * 1.15, 3.25);
 };
 
 /**
