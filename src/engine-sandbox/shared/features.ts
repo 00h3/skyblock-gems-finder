@@ -107,6 +107,8 @@ export class Features {
   hp = MAX_HP;
   survival = true;
   bridgeAssist = true;
+  /** Skyblock keeps placed water/lava forever (generators); BedWars clears them. */
+  permanentLiquids = false;
   offhand: ItemId | null = null;
   heldId: ItemId = 0;
   chargeT = 0;
@@ -441,18 +443,18 @@ export class Features {
   private placeLiquid(x: number, y: number, z: number, liquid: number) {
     const { world } = this.ctx;
     const opposite = liquid === WATER_ID ? LAVA_ID : WATER_ID;
-    let touchesOpposite = false;
-    for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
-      if (world.get(x + dx, y + dy, z + dz) === opposite) touchesOpposite = true;
-    }
-    if (touchesOpposite || world.get(x, y, z) === opposite) {
-      this.ctx.setBlock(x, y, z, 4);
-      this.ctx.breakFx(x, y, z, 4);
-      this.ctx.sound("place");
+    if (world.get(x, y, z) === opposite) {
+      // Pouring straight onto the other liquid: a lava source quenches to
+      // obsidian, everything else to cobblestone.
+      const hardened = opposite === LAVA_ID && world.isLiquidSource(x, y, z) ? 11 : 4;
+      this.ctx.setBlock(x, y, z, hardened);
+      this.ctx.breakFx(x, y, z, hardened);
+      this.ctx.sound("fizz");
       return;
     }
+    // The world simulation handles flow and lava/water reactions from here.
     this.ctx.setBlock(x, y, z, liquid);
-    this.timed.push({ x, y, z, id: liquid, t: liquid === WATER_ID ? 14 : 30 });
+    if (!this.permanentLiquids) this.timed.push({ x, y, z, id: liquid, t: liquid === WATER_ID ? 14 : 30 });
     this.ctx.sound("place");
   }
 
