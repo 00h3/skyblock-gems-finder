@@ -78,7 +78,7 @@ import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
 import { SkyblockCutscene, SkyblockTutorial, TUTORIAL_DONE_KEY } from "@/components/SkyblockIntro";
 import { BlockGravity } from "@/engine-sandbox/shared/block-physics";
 
-const CUTSCENE_SECONDS = 7;
+const CUTSCENE_SECONDS = 9;
 const SNOW_PREF_KEY = "qb_snow_ambient";
 const readSnowPref = () => {
   try {
@@ -3254,9 +3254,13 @@ export function SandboxGame({
 
       setEngineReady(true);
       setReady(true);
+      const csRigPos = new THREE.Vector3();
+      const csLook = new THREE.Vector3();
+      const csRigQuat = new THREE.Quaternion();
       const finishCutscene = () => {
         if (!cutsceneRef.current.active) return;
         cutsceneRef.current.active = false;
+        phoenixModelRef.current?.scale.setScalar(0.08);
         player.frozen = false;
         setCutsceneOn(false);
         let tutorialDone = false;
@@ -3393,19 +3397,33 @@ export function SandboxGame({
         if (cutsceneRef.current.active) {
           const cs = cutsceneRef.current;
           cs.t += dt;
+          // The rig already placed the gameplay camera this frame; keep it as the landing pose.
+          csRigPos.copy(camera.position);
+          csRigQuat.copy(camera.quaternion);
+          const smooth = (v: number) => v * v * (3 - 2 * v);
           const k = Math.min(1, cs.t / CUTSCENE_SECONDS);
-          const ease = k * k * (3 - 2 * k);
-          const ang = -0.8 + ease * Math.PI * 1.3;
-          const radius = 38 - ease * 26;
-          camera.position.set(Math.cos(ang) * radius, 34 - ease * 14, Math.sin(ang) * radius);
-          camera.lookAt(0, 16 + ease * 1.5, 0);
+          const orbit = smooth(Math.min(1, k / 0.82));
+          const ang = -0.6 + orbit * Math.PI * 1.45;
+          const radius = 50 - orbit * 30;
+          camera.position.set(Math.cos(ang) * radius, 42 - orbit * 20 + Math.sin(cs.t * 0.7) * 0.6, Math.sin(ang) * radius);
+
+          csLook.set(0, 17, 0);
           const phoenix = phoenixModelRef.current;
           if (phoenix) {
-            const pAng = ang + 0.32;
-            const pR = radius * 0.82;
-            const pY = 30 - ease * 10 + Math.sin(cs.t * 2.2) * 1.2;
+            phoenix.scale.setScalar(0.028);
+            const pAng = ang + 1.05;
+            const pR = 13 + (1 - orbit) * 7;
+            const pY = 25 - orbit * 4 + Math.sin(cs.t * 2.4) * 0.8;
             phoenix.position.set(Math.cos(pAng) * pR, pY, Math.sin(pAng) * pR);
-            phoenix.lookAt(Math.cos(pAng + 0.08) * pR, pY, Math.sin(pAng + 0.08) * pR);
+            phoenix.lookAt(Math.cos(pAng + 0.12) * pR, pY, Math.sin(pAng + 0.12) * pR);
+            csLook.lerp(phoenix.position, 0.4 * (1 - orbit * 0.6));
+          }
+          camera.lookAt(csLook);
+
+          const land = smooth(Math.max(0, (k - 0.82) / 0.18));
+          if (land > 0) {
+            camera.position.lerp(csRigPos, land);
+            camera.quaternion.slerp(csRigQuat, land);
           }
           if (k >= 1) finishCutscene();
         }

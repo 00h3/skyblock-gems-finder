@@ -33,7 +33,7 @@ type TabType = "all" | "food" | "blocks" | "tools" | "items";
 const STARTER_UNLOCKED_BLOCK_INDICES = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 17, 22]);
 
 /** Grey, compact inventory surface. */
-const PANEL_OUTER = {
+export const PANEL_OUTER = {
   backgroundColor: "#22252c",
   border: "1px solid #363b46",
   borderRadius: "14px",
@@ -41,22 +41,22 @@ const PANEL_OUTER = {
   padding: "12px 14px 12px",
   boxSizing: "border-box" as const,
 };
-const PANEL_INNER = {
+export const PANEL_INNER = {
   backgroundColor: "#191b20",
   border: "1px solid #282d38",
   borderRadius: "10px",
 };
-const SLOT_EMPTY = {
+export const SLOT_EMPTY = {
   backgroundColor: "#1e2128",
   border: "1px solid #2e3442",
   borderRadius: "6px",
 };
-const SLOT_FILLED = {
+export const SLOT_FILLED = {
   backgroundColor: "#282c36",
   border: "1px solid #394152",
   borderRadius: "6px",
 };
-const SLOT_SEL = {
+export const SLOT_SEL = {
   backgroundColor: "#2b3952",
   border: "2px solid #38bdf8",
   borderRadius: "6px",
