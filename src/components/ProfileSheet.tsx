@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AvatarFrameOverlay, GlossyAvatar } from "./GlossyAvatar";
+import { BronzeCorniceUpper, BronzeCorniceAvatar } from "./BronzeCornice";
 import { GlbAvatar } from "./GlbAvatar";
 import {
   normalizeAvatarFrameId,
@@ -354,8 +355,13 @@ export function ProfileSheet({
         <div className="flex-1 w-full overflow-y-auto ios-scroll hide-scrollbar flex flex-col relative">
           {/* ── PROFILE HEADER (PFP + NAME) ── */}
           <div className="relative h-[220px] shrink-0 w-full overflow-hidden bg-[#e9ebf2] dark:bg-[#12141a] flex flex-col justify-between p-4 border-b border-black/[0.04] dark:border-white/5">
-            {/* PFP stage */}
-            <div className="w-full h-full absolute inset-0 bg-transparent z-0 flex items-center justify-center">
+            {/* Bronze Cornice crowning upper edge behind PFP stage */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-0 pointer-events-none">
+              <BronzeCorniceUpper size={120} />
+            </div>
+
+            {/* PFP stage in front */}
+            <div className="w-full h-full absolute inset-0 bg-transparent z-10 flex items-center justify-center">
               {user.profilePhoto ? (
                   <img
                     src={user.profilePhoto}

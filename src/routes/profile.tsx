@@ -18,6 +18,7 @@ import {
   GlossyPhoneKeyIcon,
 } from "@/components/profile/GlossyHostedIcon";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
+import { BronzeCorniceAvatar } from "@/components/BronzeCornice";
 import { setDark, useDark } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrency } from "@/lib/currency";
@@ -238,7 +239,7 @@ function ProfilePage() {
   };
 
   return (
-    <MobileShell hideNav>
+    <MobileShell hideNav={activeScreen !== null}>
       <AnimatePresence mode="wait" initial={false}>
         {/* 1. EDIT PROFILE VIEW */}
         {activeScreen === "edit_profile" && (
@@ -398,34 +399,17 @@ function ProfilePage() {
             transition={iosMorphTransition}
             className="min-h-full bg-[#f4f5f7] dark:bg-[#101216] px-4 pb-24 transition-colors duration-200"
           >
-            {/* Top Bar: Glossy Squircle Back Button & Centered "Settings" Title */}
-            <header className="relative flex items-center justify-between pt-[max(env(safe-area-inset-top),14px)] pb-4">
-              <button
-                type="button"
-                onClick={() => nav({ to: "/" as never })}
-                className="qb-squircle press flex items-center gap-1.5 px-3 py-2 text-[#1A1D20] dark:text-white transition-all font-bold text-[13px] cursor-pointer"
-                aria-label="Go Back"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span>Go Back</span>
-              </button>
+            {/* Clean top spacing with no 'Go Back' or 'Settings' text */}
+            <div className="pt-[max(env(safe-area-inset-top),20px)] pb-1" />
 
-              <h1 className="text-[17.5px] font-black text-[#1A1D20] dark:text-white tracking-tight">
-                Settings
-              </h1>
-
-              {/* Spacer for centered alignment */}
-              <div className="w-16" />
-            </header>
-
-            {/* Profile area — NOT embedded in a card, clean squircle pfp like chat, Nickname, grey smaller Username: & ID:, and currency */}
-            <div className="flex items-center gap-3.5 px-1 py-1 mb-4 mt-1">
-              <div
+            {/* Profile area with Bronze Cornice crowning PFP */}
+            <div className="flex items-center gap-4 px-1 py-1 mb-4 mt-2">
+              <BronzeCorniceAvatar
+                size={62}
                 onClick={() => {
                   setPreviousScreen(null);
                   setActiveScreen("edit_avatar");
                 }}
-                className="qb-squircle press relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-[18px] bg-[#e2e6ec] dark:bg-[#1a1c22] cursor-pointer"
                 title="Edit Avatar"
               >
                 <GlossyAvatar
@@ -437,7 +421,7 @@ function ProfilePage() {
                   autoRotate={false}
                   focusZone="head"
                 />
-              </div>
+              </BronzeCorniceAvatar>
 
               <div className="min-w-0 flex-1">
                 <div

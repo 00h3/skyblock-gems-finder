@@ -30,7 +30,7 @@ export function LiquidBottomNav({ pathname }: { pathname: string }) {
     if (path.startsWith("/discover")) return 1;
     if (path.startsWith("/chat")) return 2;
     if (path.startsWith("/avatar")) return 3;
-    if (path.startsWith("/profile")) return 4;
+    if (path.startsWith("/profile") || path.startsWith("/settings")) return 4;
     return -1;
   }, []);
 

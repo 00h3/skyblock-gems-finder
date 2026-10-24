@@ -1,6 +1,18 @@
 "use client";
 
-import { X, LogOut } from "lucide-react";
+import {
+  X,
+  Moon,
+  Volume2,
+  Smartphone,
+  Bell,
+  Star,
+  User,
+  HelpCircle,
+  Info,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useSettingsUi } from "@/lib/settings-ui";
@@ -10,8 +22,11 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useNavigate } from "@tanstack/react-router";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
+import { BronzeCorniceAvatar } from "@/components/BronzeCornice";
 import { useCurrency } from "@/lib/currency";
-import { PINK_GEM_ICON, GOLDEN_COINS_ICON } from "@/components/CurrencyPills";
+import { CurrencyPills, PINK_GEM_ICON, GOLDEN_COINS_ICON } from "@/components/CurrencyPills";
+import { APP_VERSION } from "@/components/LegalDocs";
+import { saveAccount } from "@/lib/saved-accounts";
 
 export function GlobalSettingsPopup() {
   const { open, closeSettings } = useSettingsUi();
@@ -64,8 +79,20 @@ export function GlobalSettingsPopup() {
 
   async function handleSignOut() {
     closeSettings();
+    if (qbUser) {
+      saveAccount({
+        uid: qbUser.uid,
+        username: qbUser.username,
+        displayName: qbUser.displayName,
+        email: qbUser.email,
+        customId: qbUser.customId,
+        profilePhoto: qbUser.profilePhoto,
+        avatarSnapshot: qbUser.avatarSnapshot,
+        color: qbUser.color,
+      });
+    }
     await signOut();
-    nav({ to: "/login" as never });
+    nav({ to: "/accounts" as never });
   }
 
   return (
@@ -82,7 +109,7 @@ export function GlobalSettingsPopup() {
             onClick={closeSettings}
           />
 
-          {/* Sheet Panel with mail-style restrained glossiness */}
+          {/* Sheet Panel with settings menu card styling */}
           <motion.div
             initial={{ y: "100%", opacity: 0.8, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -90,15 +117,13 @@ export function GlobalSettingsPopup() {
             transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.8 }}
             className="relative w-full max-w-[440px] max-h-[88dvh] flex flex-col overflow-hidden rounded-t-[28px] bg-[#f8f9fa] dark:bg-[#121316] border-t border-black/[0.08] dark:border-white/10 shadow-2xl z-10"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3.5 shrink-0 border-b border-black/[0.06] dark:border-white/10 bg-[#f8f9fa] dark:bg-[#121316] z-20">
-              <div>
-                <h2 className="text-[18px] font-black tracking-tight text-[#141414] dark:text-white">
-                  Settings
-                </h2>
-                <p className="text-[11px] font-semibold text-[#8b929d] dark:text-[#8e95a0]">
-                  Preferences & account controls
-                </p>
+            {/* Header: Clean with no "Settings" text on top */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0 border-b border-black/[0.06] dark:border-white/10 bg-[#f8f9fa] dark:bg-[#121316] z-20">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#fa4616]" />
+                <span className="text-[12px] font-extrabold uppercase tracking-wider text-[#8b929d] dark:text-[#8e95a0]">
+                  Preferences
+                </span>
               </div>
               <button
                 type="button"
@@ -110,13 +135,19 @@ export function GlobalSettingsPopup() {
               </button>
             </div>
 
-            {/* Settings body */}
-            <div className="flex-1 w-full overflow-y-auto px-4 py-4 space-y-4 hide-scrollbar">
-              {/* Profile area — NOT embedded, clean squircle pfp like chat, Nickname, grey smaller Username: & ID:, and currency */}
+            {/* Settings body with exact style of the Settings Menu */}
+            <div className="flex-1 w-full overflow-y-auto px-4 py-4 space-y-3 hide-scrollbar">
+              {/* Profile area with Bronze Cornice crowning PFP */}
               {qbUser && (
-                <div className="flex items-center gap-3.5 px-1 py-1">
-                  {/* Squircle PFP like chat */}
-                  <div className="qb-squircle relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-[18px] bg-[#e2e6ec] dark:bg-[#1a1c22]">
+                <div className="flex items-center gap-4 px-1 py-1 mb-2">
+                  <BronzeCorniceAvatar
+                    size={62}
+                    onClick={() => {
+                      closeSettings();
+                      nav({ to: "/avatar" as never });
+                    }}
+                    title="Edit Avatar"
+                  >
                     <GlossyAvatar
                       snapshot={qbUser.avatarSnapshot}
                       photoUrl={qbUser.profilePhoto}
@@ -126,9 +157,8 @@ export function GlobalSettingsPopup() {
                       autoRotate={false}
                       focusZone="head"
                     />
-                  </div>
+                  </BronzeCorniceAvatar>
 
-                  {/* Nickname, grey smaller Username: & ID:, and currency count */}
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[17px] font-black text-[#141414] dark:text-white tracking-tight leading-tight truncate">
                       {qbUser.displayName || "Player"}
@@ -146,7 +176,6 @@ export function GlobalSettingsPopup() {
                       </span>
                     </div>
 
-                    {/* Gem icon & count | Coin icon & count */}
                     <div className="flex items-center gap-2 mt-1.5 text-[12px] font-black text-[#17181b] dark:text-white">
                       <div className="flex items-center gap-1">
                         <img
@@ -174,157 +203,258 @@ export function GlobalSettingsPopup() {
                 </div>
               )}
 
-              {/* Preferences Group with mail-glossiness (qb-squircle) */}
-              <div className="qb-squircle overflow-hidden divide-y divide-black/[0.06] dark:divide-white/[0.06]">
-                <div className="px-4 py-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[13.5px] font-bold text-[#141414] dark:text-white">
-                      Dark Appearance
-                    </div>
-                    <div className="text-[11px] font-medium text-[#8b929d] dark:text-[#8e95a0]">
-                      High-contrast dark mode aesthetic
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDark(!dark)}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      dark ? "bg-[#141414] dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-                        dark
-                          ? "translate-x-5 bg-white dark:bg-black"
-                          : "translate-x-0 bg-white"
-                      }`}
-                    />
-                  </button>
-                </div>
+              {/* Wallet Card */}
+              <PopupSubscriptionCard
+                Icon={Star}
+                iconColor="#f59e0b"
+                title="Wallet"
+                right={<ChevronRight className="h-4 w-4 text-text-muted" />}
+                content={<CurrencyPills maxItems={2} />}
+                status="Active"
+                statusColor="#64748b"
+                onClick={() => {
+                  closeSettings();
+                  nav({ to: "/shop" as never });
+                }}
+              />
 
-                <div className="px-4 py-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[13.5px] font-bold text-[#141414] dark:text-white">
-                      Sound Effects
-                    </div>
-                    <div className="text-[11px] font-medium text-[#8b929d] dark:text-[#8e95a0]">
-                      Block breaking, placement & UI chimes
-                    </div>
+              {/* Account Info */}
+              <PopupSubscriptionCard
+                Icon={User}
+                iconColor="#64748b"
+                title="Account Info"
+                right={<ChevronRight className="h-4 w-4 text-text-muted" />}
+                content={
+                  <div className="text-[12.5px] text-text-secondary leading-relaxed">
+                    Signed in as <strong className="text-foreground">@{qbUser?.username || "player"}</strong>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSound(!sound)}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      sound ? "bg-[#141414] dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-                        sound
-                          ? "translate-x-5 bg-white dark:bg-black"
-                          : "translate-x-0 bg-white"
-                      }`}
-                    />
-                  </button>
-                </div>
+                }
+                status="Verified"
+                statusColor="#22c55e"
+                onClick={() => {
+                  closeSettings();
+                  nav({ to: "/profile" as never });
+                }}
+              />
 
-                <div className="px-4 py-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[13.5px] font-bold text-[#141414] dark:text-white">
-                      Haptic Feedback
-                    </div>
-                    <div className="text-[11px] font-medium text-[#8b929d] dark:text-[#8e95a0]">
-                      Vibrations during jumps and interactions
-                    </div>
+              {/* Dark Appearance Card */}
+              <PopupSubscriptionCard
+                Icon={Moon}
+                iconColor="#6366f1"
+                title="Dark Appearance"
+                content={
+                  <div className="text-[12.5px] text-text-secondary flex items-center gap-2">
+                    <Moon className="h-3.5 w-3.5" /> High-contrast aesthetic
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setHaptics(!haptics)}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      haptics ? "bg-[#141414] dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-                        haptics
-                          ? "translate-x-5 bg-white dark:bg-black"
-                          : "translate-x-0 bg-white"
-                      }`}
-                    />
-                  </button>
-                </div>
+                }
+                status={dark ? "On" : "Off"}
+                statusColor={dark ? "#16a34a" : "#9ca3af"}
+                right={<PopupSwitch value={dark} onChange={setDark} />}
+              />
 
-                <div className="px-4 py-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[13.5px] font-bold text-[#141414] dark:text-white">
-                      Push Notifications
-                    </div>
-                    <div className="text-[11px] font-medium text-[#8b929d] dark:text-[#8e95a0]">
-                      Friend requests & group invites
-                    </div>
+              {/* Sound Effects Card */}
+              <PopupSubscriptionCard
+                Icon={Volume2}
+                iconColor="#10b981"
+                title="Sound Effects"
+                content={
+                  <div className="text-[12.5px] text-text-secondary flex items-center gap-2">
+                    <Volume2 className="h-3.5 w-3.5" /> In-game &amp; UI sounds
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPush(!push)}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      push ? "bg-[#141414] dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-                        push
-                          ? "translate-x-5 bg-white dark:bg-black"
-                          : "translate-x-0 bg-white"
-                      }`}
-                    />
-                  </button>
-                </div>
+                }
+                status={sound ? "Active" : "Disabled"}
+                statusColor={sound ? "#16a34a" : "#9ca3af"}
+                right={<PopupSwitch value={sound} onChange={setSound} />}
+              />
 
-                {qbUser && (
-                  <div className="px-4 py-3.5 flex items-center justify-between">
-                    <div>
-                      <div className="text-[13.5px] font-bold text-[#141414] dark:text-white">
-                        Special Badge Display
-                      </div>
-                      <div className="text-[11px] font-medium text-[#8b929d] dark:text-[#8e95a0]">
-                        Display verified symbol in leaderboards & chat
-                      </div>
+              {/* Haptic Feedback Card */}
+              <PopupSubscriptionCard
+                Icon={Smartphone}
+                iconColor="#0284c7"
+                title="Haptic Feedback"
+                content={
+                  <div className="text-[12.5px] text-text-secondary flex items-center gap-2">
+                    <Smartphone className="h-3.5 w-3.5" /> Vibrations during interactions
+                  </div>
+                }
+                status={haptics ? "Active" : "Disabled"}
+                statusColor={haptics ? "#16a34a" : "#9ca3af"}
+                right={<PopupSwitch value={haptics} onChange={setHaptics} />}
+              />
+
+              {/* Push Notifications Card */}
+              <PopupSubscriptionCard
+                Icon={Bell}
+                iconColor="#3b82f6"
+                title="Push Notifications"
+                content={
+                  <div className="text-[12.5px] text-text-secondary flex items-center gap-2">
+                    <Bell className="h-3.5 w-3.5" /> Friend requests &amp; updates
+                  </div>
+                }
+                status={push ? "Active" : "Disabled"}
+                statusColor={push ? "#16a34a" : "#9ca3af"}
+                right={<PopupSwitch value={push} onChange={setPush} />}
+              />
+
+              {/* Level 10 / Special Badge */}
+              {qbUser && (
+                <PopupSubscriptionCard
+                  Icon={Star}
+                  iconColor="#f59e0b"
+                  title="Special Badge Display"
+                  content={
+                    <div className="text-[12.5px] text-text-secondary flex items-center gap-2">
+                      <User className="h-3.5 w-3.5" /> Display verified symbol in chat
                     </div>
-                    <button
-                      type="button"
+                  }
+                  status={qbUser.badgeEquipped ? "Equipped" : "Hidden"}
+                  statusColor={qbUser.badgeEquipped ? "#16a34a" : "#9ca3af"}
+                  right={
+                    <PopupSwitch
+                      value={!!qbUser.badgeEquipped}
+                      onChange={handleToggleBadge}
                       disabled={badgeSaving}
-                      onClick={() => handleToggleBadge(!qbUser.badgeEquipped)}
-                      className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                        qbUser.badgeEquipped ? "bg-[#141414] dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-                          qbUser.badgeEquipped
-                            ? "translate-x-5 bg-white dark:bg-black"
-                            : "translate-x-0 bg-white"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                )}
-              </div>
+                    />
+                  }
+                />
+              )}
 
-              {/* Actions Section */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="qb-squircle press w-full h-12 flex items-center justify-center gap-2 text-red-600 dark:text-red-400 text-[13.5px] font-bold transition cursor-pointer active:scale-98"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Log Out</span>
-                </button>
-              </div>
+              {/* Help & Support Card */}
+              <PopupSubscriptionCard
+                Icon={HelpCircle}
+                iconColor="#8b5cf6"
+                title="Help & Support"
+                right={<ChevronRight className="h-4 w-4 text-text-muted" />}
+                content={
+                  <div className="text-[12.5px] text-text-secondary">
+                    Official guides, community discord &amp; FAQ
+                  </div>
+                }
+                status="Online"
+                statusColor="#22c55e"
+                onClick={() => {
+                  closeSettings();
+                  nav({ to: "/profile" as never });
+                }}
+              />
+
+              {/* App Version Card */}
+              <PopupSubscriptionCard
+                Icon={Info}
+                iconColor="#22c55e"
+                title="App Version"
+                content={
+                  <div className="text-[12.5px] text-text-secondary">
+                    QBLOCK {APP_VERSION} — Stable build
+                  </div>
+                }
+                status={`v${APP_VERSION}`}
+                statusColor="#22c55e"
+              />
+
+              {/* Sign out button matching settings menu */}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="press qb-squircle mt-2 inline-flex h-[52px] w-full items-center justify-center gap-2 text-[14.5px] font-bold text-danger cursor-pointer"
+              >
+                <img
+                  src="/icons/login-3-svgrepo-com.svg"
+                  alt=""
+                  className="h-[18px] w-[18px] dark:invert"
+                />{" "}
+                Sign out
+              </button>
             </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ─── Subscription Card Component for Popup ───────────────────────────────────
+function PopupSubscriptionCard({
+  Icon,
+  title,
+  iconColor,
+  right,
+  content,
+  status,
+  statusColor,
+  onClick,
+}: {
+  Icon: LucideIcon;
+  title: string;
+  iconColor?: string;
+  right?: React.ReactNode;
+  content?: React.ReactNode;
+  status: string;
+  statusColor: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="qb-squircle flex flex-col p-4 transition-all">
+      <div
+        className={`flex items-center justify-between ${onClick ? "cursor-pointer" : ""}`}
+        onClick={onClick}
+      >
+        <div className="flex items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10] shadow-none">
+            <Icon
+              className="h-4.5 w-4.5"
+              style={{ color: iconColor || "#59616d" }}
+              strokeWidth={2.2}
+            />
+          </div>
+          <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+            {title}
+          </span>
+        </div>
+        {right && <div>{right}</div>}
+      </div>
+
+      {content && <div className="mt-2.5 mb-1">{content}</div>}
+
+      <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+      <div className="flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColor }} />
+        <span className="text-[12.5px] font-semibold text-foreground">{status}</span>
+      </div>
+    </div>
+  );
+}
+
+function PopupSwitch({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!value);
+      }}
+      disabled={disabled}
+      className={`relative h-[26px] w-[44px] rounded-full transition-colors duration-200 cursor-pointer disabled:opacity-50 ${
+        value ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-neutral-700"
+      }`}
+      aria-pressed={value}
+    >
+      <span
+        className={`absolute top-[2px] h-[22px] w-[22px] rounded-full shadow-sm transition-all duration-200 ${
+          value
+            ? "left-[20px] bg-white dark:bg-black"
+            : "left-[2px] bg-white dark:bg-neutral-300"
+        }`}
+      />
+    </button>
   );
 }

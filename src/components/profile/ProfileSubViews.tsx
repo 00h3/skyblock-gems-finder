@@ -49,6 +49,7 @@ import { APP_VERSION } from "@/components/LegalDocs";
 import { BetaFeatures } from "@/components/BetaFeatures";
 import { VerifiedTick } from "@/components/VerifiedTick";
 import { GlossyAvatar, AvatarFrameOverlay } from "@/components/GlossyAvatar";
+import { BronzeCorniceAvatar, BronzeCorniceUpper } from "@/components/BronzeCornice";
 import { TextureButton } from "@/components/ui/texture-button";
 import { ShinyButton } from "@/components/ui/shiny-button";
 import {
@@ -94,6 +95,95 @@ export function OrangeToggle({
       <span
         className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
           checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
+// ── Reusable SettingsCard matching Settings Menu Style ─────────────────────
+export function SettingsCard({
+  Icon,
+  title,
+  iconColor,
+  right,
+  content,
+  status,
+  statusColor = "#16a34a",
+  onClick,
+}: {
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; strokeWidth?: number }>;
+  title: string;
+  iconColor?: string;
+  right?: React.ReactNode;
+  content?: React.ReactNode;
+  status?: string;
+  statusColor?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="qb-squircle flex flex-col p-4 transition-all">
+      <div
+        className={`flex items-center justify-between ${onClick ? "cursor-pointer press" : ""}`}
+        onClick={onClick}
+      >
+        <div className="flex items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10] shadow-none">
+            <Icon
+              className="h-4.5 w-4.5"
+              style={{ color: iconColor || "#59616d" }}
+              strokeWidth={2.2}
+            />
+          </div>
+          <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+            {title}
+          </span>
+        </div>
+        {right && <div>{right}</div>}
+      </div>
+
+      {content && <div className="mt-3 mb-1">{content}</div>}
+
+      {status && (
+        <>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColor }} />
+            <span className="text-[12.5px] font-semibold text-foreground">{status}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function SettingsSwitch({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!value);
+      }}
+      disabled={disabled}
+      className={`relative h-[26px] w-[44px] rounded-full transition-colors duration-200 cursor-pointer disabled:opacity-50 ${
+        value ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-neutral-700"
+      }`}
+      aria-pressed={value}
+    >
+      <span
+        className={`absolute top-[2px] h-[22px] w-[22px] rounded-full shadow-sm transition-all duration-200 ${
+          value
+            ? "left-[20px] bg-white dark:bg-black"
+            : "left-[2px] bg-white dark:bg-neutral-300"
         }`}
       />
     </button>
@@ -158,8 +248,8 @@ export function NicknameStyleView({
           <label className="text-[12px] font-extrabold text-[#17191d] dark:text-slate-300 mb-1.5 block">
             Preview
           </label>
-          <div className="qb-play-card p-4 rounded-[20px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.06)] flex items-center gap-3.5">
-            <div className="relative h-[56px] w-[56px] shrink-0 rounded-[14px] overflow-hidden bg-slate-100 dark:bg-slate-800 border border-black/[0.08] dark:border-white/[0.1] shadow-xs">
+          <div className="qb-play-card p-4 rounded-[20px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.06)] flex items-center gap-4">
+            <BronzeCorniceAvatar size={56}>
               <GlossyAvatar
                 snapshot={user?.avatarSnapshot}
                 photoUrl={user?.profilePhoto}
@@ -168,7 +258,7 @@ export function NicknameStyleView({
                 className="h-full w-full object-cover"
                 autoRotate={false}
               />
-            </div>
+            </BronzeCorniceAvatar>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -428,21 +518,19 @@ export function EditProfileView({
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
         {/* Top Identity Card */}
-        <div className="qb-play-card p-3.5 flex items-center gap-3.5">
-          <div
-            onClick={onOpenAvatarEdit}
-            className="relative h-[52px] w-[52px] shrink-0 rounded-[12px] overflow-hidden bg-slate-100 cursor-pointer border border-black/[0.06]"
-            title="Edit Avatar"
-          >
-            <GlossyAvatar
-              snapshot={user?.avatarSnapshot}
-              photoUrl={user?.profilePhoto}
-              imageFallbackOnly={true}
-              height={52}
-              className="h-full w-full object-cover"
-              autoRotate={false}
-            />
-            <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-slate-900 border border-white grid place-items-center text-white shadow-sm">
+        <div className="qb-play-card p-3.5 flex items-center gap-4">
+          <div className="relative">
+            <BronzeCorniceAvatar size={54} onClick={onOpenAvatarEdit} title="Edit Avatar">
+              <GlossyAvatar
+                snapshot={user?.avatarSnapshot}
+                photoUrl={user?.profilePhoto}
+                imageFallbackOnly={true}
+                height={54}
+                className="h-full w-full object-cover"
+                autoRotate={false}
+              />
+            </BronzeCorniceAvatar>
+            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-slate-900 border border-white grid place-items-center text-white shadow-sm z-30 pointer-events-none">
               <Camera className="h-2.5 w-2.5" />
             </div>
           </div>
@@ -655,32 +743,29 @@ export function EditAvatarView({
       <SubScreenHeader title="Edit Avatar" onBack={onBack} />
 
       <div className="p-4 space-y-5 max-w-lg mx-auto">
-        {/* Large Avatar Centerpiece with Frame overlayed OVER it and slightly larger */}
-        <div className="flex flex-col items-center pt-2">
-          <div className="relative h-[132px] w-[132px] flex items-center justify-center">
-            {/* Inner Avatar PFP */}
-            <div
-              className="h-[114px] w-[114px] rounded-[22px] overflow-hidden bg-slate-900 border border-black/10 dark:border-white/10 shadow-sm cursor-pointer"
-              onClick={onBack}
-            >
+        {/* Large Avatar Centerpiece with Bronze Cornice crowning PFP */}
+        <div className="flex flex-col items-center pt-3">
+          <div className="relative flex items-center justify-center">
+            {/* Inner Avatar PFP with Bronze Cornice */}
+            <BronzeCorniceAvatar size={118} onClick={onBack}>
               {currentPhoto ? (
                 <img src={currentPhoto} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
                 <GlossyAvatar
                   snapshot={user?.avatarSnapshot}
                   imageFallbackOnly={true}
-                  height={114}
+                  height={118}
                   className="h-full w-full object-cover"
                   autoRotate={false}
                 />
               )}
-            </div>
+            </BronzeCorniceAvatar>
 
-            {/* Frame overlay placed OVER the PFP, a little big */}
+            {/* Frame overlay placed OVER the PFP */}
             <AvatarFrameOverlay frame={selectedFrame} className="scale-[1.18]" />
 
             {/* Camera badge */}
-            <label className="absolute bottom-0 right-0 z-10 h-8 w-8 rounded-[11px] bg-slate-900 border border-white/80 grid place-items-center text-white shadow-md cursor-pointer press">
+            <label className="absolute -bottom-1 -right-1 z-30 h-8 w-8 rounded-[11px] bg-slate-900 border border-white/80 grid place-items-center text-white shadow-md cursor-pointer press">
               <Camera className="h-4 w-4" />
               <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
             </label>
@@ -1202,57 +1287,22 @@ export function ChangePasswordView({
   onSendReset: () => Promise<void>;
   onBack: () => void;
 }) {
-  const [step, setStep] = useState<"verify" | "new_password" | "success">("verify");
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleVerifyCurrent = async (e?: React.FormEvent) => {
+  const handleUpdate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!currentPw) {
       setErrorMsg("Please enter your current password.");
       return;
     }
-    setErrorMsg("");
-    setVerifying(true);
-    try {
-      const user = auth.currentUser;
-      const email = userEmail || user?.email;
-      if (!user || !email) {
-        throw new Error("Unable to identify current account. Please sign in again.");
-      }
-      const cred = EmailAuthProvider.credential(email, currentPw);
-      await reauthenticateWithCredential(user, cred);
-      // Verified successfully! Advance to new password step
-      setStep("new_password");
-      setErrorMsg("");
-    } catch (err: unknown) {
-      console.error("[ChangePassword] Reauth error:", err);
-      const code = (err as { code?: string })?.code || "";
-      if (
-        code.includes("wrong-password") ||
-        code.includes("invalid-credential") ||
-        code.includes("invalid-password")
-      ) {
-        setErrorMsg("Incorrect password. Please try again.");
-      } else if (code.includes("too-many-requests")) {
-        setErrorMsg("Too many attempts. Please wait a moment or send a reset link.");
-      } else {
-        setErrorMsg((err as Error).message || "Verification failed. Please try again.");
-      }
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleUpdatePassword = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
     if (!newPw) {
       setErrorMsg("Please enter a new password.");
       return;
@@ -1271,267 +1321,165 @@ export function ChangePasswordView({
     }
 
     setErrorMsg("");
-    setUpdating(true);
+    setLoading(true);
     try {
       const user = auth.currentUser;
-      if (!user) {
-        throw new Error("Session expired. Please sign in again.");
+      const email = userEmail || user?.email;
+      if (!user || !email) {
+        throw new Error("Unable to identify current account. Please sign in again.");
       }
+      const cred = EmailAuthProvider.credential(email, currentPw);
+      await reauthenticateWithCredential(user, cred);
       await updatePassword(user, newPw);
       toast.success("Password updated successfully!");
-      setStep("success");
+      onBack();
     } catch (err: unknown) {
-      console.error("[ChangePassword] Update error:", err);
+      console.error("[ChangePassword] Error:", err);
       const code = (err as { code?: string })?.code || "";
-      if (code.includes("requires-recent-login")) {
-        setErrorMsg("Session timed out. Please verify your current password again.");
-        setStep("verify");
+      if (
+        code.includes("wrong-password") ||
+        code.includes("invalid-credential") ||
+        code.includes("invalid-password")
+      ) {
+        setErrorMsg("Incorrect current password. Please try again.");
       } else if (code.includes("weak-password")) {
         setErrorMsg("Password is too weak. Please use at least 6 characters.");
       } else {
         setErrorMsg((err as Error).message || "Failed to update password. Try again.");
       }
     } finally {
-      setUpdating(false);
+      setLoading(false);
+    }
+  };
+
+  const handleSendResetLink = async () => {
+    setSendingReset(true);
+    try {
+      await onSendReset();
+    } finally {
+      setSendingReset(false);
     }
   };
 
   return (
-    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
-      <SubScreenHeader title="Change Password" onBack={onBack} />
+    <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24 transition-colors duration-200">
+      <SubScreenHeader title="Change password" onBack={onBack} />
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
-        {/* Step 1: Put your password (Verification) */}
-        {step === "verify" && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Clean title */}
-            <div className="pt-1">
-              <h2 className="text-[18px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
-                Put your password
-              </h2>
-              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Enter your current password to continue.
-              </p>
-            </div>
-
-            {/* Verification Form */}
-            <form onSubmit={handleVerifyCurrent} className="space-y-3.5">
-              <div>
-                <label className="text-[12px] font-bold text-[#697383] dark:text-slate-400 mb-1.5 block">
-                  Current password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCurrent ? "text" : "password"}
-                    value={currentPw}
-                    onChange={(e) => {
-                      setCurrentPw(e.target.value);
-                      if (errorMsg) setErrorMsg("");
-                    }}
-                    placeholder="Enter your current password"
-                    autoFocus
-                    className="w-full h-11 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-foreground outline-none focus:border-[#fa4616] transition-colors shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrent(!showCurrent)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
-                  >
-                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {errorMsg && (
-                <div className="flex items-center gap-2 p-3 rounded-[12px] bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[12.5px] font-bold">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <div className="pt-2">
-                <ShinyButton
-                  type="submit"
-                  onClick={handleVerifyCurrent}
-                  disabled={verifying || !currentPw.trim()}
-                  className="w-full h-11"
-                >
-                  {verifying ? "Verifying..." : "Verify & Continue"}
-                </ShinyButton>
-              </div>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={onSendReset}
-                  className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 hover:text-[#fa4616] dark:hover:text-[#fa4616] transition-colors cursor-pointer"
-                >
-                  Forgot your password? Send a reset link
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Step 2: New password & Verify passwords */}
-        {step === "new_password" && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Clean title */}
-            <div className="pt-1">
-              <h2 className="text-[18px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
-                New password
-              </h2>
-              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Set and verify your new password below.
-              </p>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleUpdatePassword} className="space-y-3.5">
-              <div>
-                <label className="text-[12px] font-bold text-[#697383] dark:text-slate-400 mb-1.5 block">
-                  New password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNew ? "text" : "password"}
-                    value={newPw}
-                    onChange={(e) => {
-                      setNewPw(e.target.value);
-                      if (errorMsg) setErrorMsg("");
-                    }}
-                    placeholder="Enter new password (min. 6 chars)"
-                    autoFocus
-                    className="w-full h-11 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-foreground outline-none focus:border-[#fa4616] transition-colors shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNew(!showNew)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
-                  >
-                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {/* Strength indicator */}
-                {newPw.length > 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          newPw.length < 6
-                            ? "w-1/3 bg-rose-500"
-                            : newPw.length < 10
-                              ? "w-2/3 bg-amber-500"
-                              : "w-full bg-emerald-500"
-                        }`}
-                      />
-                    </div>
-                    <span
-                      className={`text-[11px] font-extrabold ${
-                        newPw.length < 6
-                          ? "text-rose-500"
-                          : newPw.length < 10
-                            ? "text-amber-500"
-                            : "text-emerald-500"
-                      }`}
-                    >
-                      {newPw.length < 6 ? "Too short" : newPw.length < 10 ? "Good" : "Strong"}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[12px] font-bold text-[#697383] dark:text-slate-400 mb-1.5 block">
-                  Verify password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirm ? "text" : "password"}
-                    value={confirmPw}
-                    onChange={(e) => {
-                      setConfirmPw(e.target.value);
-                      if (errorMsg) setErrorMsg("");
-                    }}
-                    placeholder="Verify new password"
-                    className="w-full h-11 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-foreground outline-none focus:border-[#fa4616] transition-colors shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
-                  >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {confirmPw.length > 0 && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] font-semibold">
-                    {newPw === confirmPw ? (
-                      <span className="text-emerald-500 flex items-center gap-1">
-                        <Check className="h-3.5 w-3.5" /> Passwords match
-                      </span>
-                    ) : (
-                      <span className="text-rose-500 flex items-center gap-1">
-                        <AlertCircle className="h-3.5 w-3.5" /> Passwords do not match
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {errorMsg && (
-                <div className="flex items-center gap-2 p-3 rounded-[12px] bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[12.5px] font-bold">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <div className="pt-2 space-y-2">
-                <ShinyButton
-                  type="submit"
-                  onClick={handleUpdatePassword}
-                  disabled={updating || !newPw || !confirmPw}
-                  className="w-full h-11"
-                >
-                  {updating ? "Updating..." : "Update Password"}
-                </ShinyButton>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("verify");
-                    setErrorMsg("");
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm p-4 space-y-3.5">
+            <div>
+              <label className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] mb-1.5 block">
+                Current password
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPw}
+                  onChange={(e) => {
+                    setCurrentPw(e.target.value);
+                    if (errorMsg) setErrorMsg("");
                   }}
-                  className="w-full py-2 text-[12.5px] font-bold text-slate-500 dark:text-slate-400 hover:text-[#17191d] dark:hover:text-white transition-colors cursor-pointer"
+                  placeholder="Enter current password"
+                  className="w-full h-11 rounded-[14px] bg-slate-100 dark:bg-[#121316] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-[#17191d] dark:text-white outline-none focus:border-[#fa4616] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
                 >
-                  Back to verification
+                  {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </form>
-          </div>
-        )}
+            </div>
 
-        {/* Step 3: Success */}
-        {step === "success" && (
-          <div className="flex flex-col items-center justify-center py-8 text-center space-y-4 animate-fade-in">
-            <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 grid place-items-center shadow-sm">
-              <CheckCircle2 className="h-9 w-9" strokeWidth={2.4} />
+            <div>
+              <label className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] mb-1.5 block">
+                New password
+              </label>
+              <div className="relative">
+                <input
+                  type={showNew ? "text" : "password"}
+                  value={newPw}
+                  onChange={(e) => {
+                    setNewPw(e.target.value);
+                    if (errorMsg) setErrorMsg("");
+                  }}
+                  placeholder="At least 6 characters"
+                  className="w-full h-11 rounded-[14px] bg-slate-100 dark:bg-[#121316] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-[#17191d] dark:text-white outline-none focus:border-[#fa4616] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
+                >
+                  {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <h2 className="text-[20px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
-                Password Updated!
-              </h2>
-              <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
-                Your password has been changed successfully. You can now use your new password next
-                time you sign in.
-              </p>
+
+            <div>
+              <label className="text-[12px] font-bold text-[#7d8590] dark:text-[#8e95a0] mb-1.5 block">
+                Confirm new password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPw}
+                  onChange={(e) => {
+                    setConfirmPw(e.target.value);
+                    if (errorMsg) setErrorMsg("");
+                  }}
+                  placeholder="Re-enter new password"
+                  className="w-full h-11 rounded-[14px] bg-slate-100 dark:bg-[#121316] border border-black/[0.08] dark:border-white/[0.08] px-3.5 pr-10 text-[14px] font-medium text-[#17191d] dark:text-white outline-none focus:border-[#fa4616] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-foreground cursor-pointer"
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
-            <div className="w-full max-w-xs pt-4">
-              <ShinyButton onClick={onBack} className="w-full h-11">
-                Done
-              </ShinyButton>
-            </div>
+
+            {errorMsg && (
+              <div className="flex items-center gap-2 p-3 rounded-[12px] bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[12.5px] font-bold">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
           </div>
-        )}
+
+          <ShinyButton
+            type="submit"
+            onClick={handleUpdate}
+            disabled={loading || !currentPw || !newPw || !confirmPw}
+            className="w-full h-11 text-[13.5px]"
+          >
+            {loading ? "Updating..." : "Update Password"}
+          </ShinyButton>
+        </form>
+
+        {/* Reset via email alternative */}
+        <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm p-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[13.5px] font-bold text-[#17191d] dark:text-white block">
+              Forgot current password?
+            </span>
+            <span className="text-[11.5px] font-medium text-[#7d8590] dark:text-[#8e95a0] block mt-0.5 truncate">
+              Send reset link to {userEmail || "your email"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSendResetLink}
+            disabled={sendingReset}
+            className="press shrink-0 px-3.5 py-1.5 rounded-full bg-[#fa4616] text-white text-[11.5px] font-bold disabled:opacity-50 cursor-pointer shadow-sm"
+          >
+            {sendingReset ? "Sending..." : "Send Link"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1954,173 +1902,162 @@ export function SettingsView({
 }) {
   return (
     <div className="min-h-full bg-[#f8f9fa] dark:bg-[#0c0d11] pb-24">
-      <SubScreenHeader title="Settings" onBack={onBack} />
+      <SubScreenHeader title="Preferences" onBack={onBack} />
 
-      <div className="p-4 space-y-5 max-w-lg mx-auto">
-        {/* Account */}
-        <div>
-          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
-            Account
-          </span>
-          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
-            <div
-              onClick={() => onNavigate("edit_profile")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyUserProfileIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Profile information
-                </span>
+      <div className="p-4 space-y-3 max-w-lg mx-auto">
+        {/* Account Info Card */}
+        <div
+          onClick={() => onNavigate("edit_profile")}
+          className="qb-squircle flex flex-col p-4 cursor-pointer press"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]">
+                <GlossyUserProfileIcon className="h-4.5 w-4.5" />
               </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+              <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+                Profile Information
+              </span>
             </div>
-
-            <div
-              onClick={() => toast.info("Email & Phone settings")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <Phone className="h-4 w-4" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Email & phone
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
-            </div>
-
-            <div
-              onClick={() => toast.info("Connected Accounts")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyPhoneKeyIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Connected accounts
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
-            </div>
+            <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+          </div>
+          <div className="mt-2.5 mb-1 text-[12.5px] text-text-secondary">
+            Change display name, bio and customize avatar
+          </div>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-[12.5px] font-semibold text-foreground">Configured</span>
           </div>
         </div>
 
-        {/* Preferences */}
-        <div>
-          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
-            Preferences
-          </span>
-          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
-            <div
-              onClick={() => onNavigate("appearance")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyCloudMoonIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Appearance
-                </span>
+        {/* Appearance Card */}
+        <div
+          onClick={() => onNavigate("appearance")}
+          className="qb-squircle flex flex-col p-4 cursor-pointer press"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]">
+                <GlossyCloudMoonIcon className="h-4.5 w-4.5" />
               </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+              <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+                Appearance
+              </span>
             </div>
-
-            <div
-              onClick={() => onNavigate("notifications")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyBellDotIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Notifications
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
-            </div>
-
-            <div
-              onClick={() => onNavigate("privacy")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyDoorLockIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Privacy
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
-            </div>
-
-            <div
-              onClick={() => onNavigate("change_password")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyKeyAccessIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Security
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
-            </div>
+            <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+          </div>
+          <div className="mt-2.5 mb-1 text-[12.5px] text-text-secondary">
+            Light &amp; high-contrast dark aesthetic
+          </div>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-indigo-500" />
+            <span className="text-[12.5px] font-semibold text-foreground">Customizable</span>
           </div>
         </div>
 
-        {/* Integrations */}
-        <div>
-          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
-            Integrations
-          </span>
-          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
-            <div
-              onClick={() => toast.info("Connections & Webhooks")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-700 dark:text-slate-300">
-                  <Share2 className="h-4 w-4" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  Connections
-                </span>
+        {/* Notifications Card */}
+        <div
+          onClick={() => onNavigate("notifications")}
+          className="qb-squircle flex flex-col p-4 cursor-pointer press"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]">
+                <GlossyBellDotIcon className="h-4.5 w-4.5" />
               </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+              <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+                Notifications
+              </span>
             </div>
+            <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+          </div>
+          <div className="mt-2.5 mb-1 text-[12.5px] text-text-secondary">
+            Push alerts, friends and server activity
+          </div>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-[12.5px] font-semibold text-foreground">Active</span>
           </div>
         </div>
 
-        {/* About */}
-        <div>
-          <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400 block px-1 mb-2">
-            About
-          </span>
-          <div className="rounded-2xl bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] shadow-sm overflow-hidden">
-            <div
-              onClick={() => onNavigate("about")}
-              className="press flex items-center justify-between p-3.5 px-4 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-slate-800 grid place-items-center">
-                  <GlossyBookLearnIcon className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[14px] font-bold text-[#17191d] dark:text-white">
-                  About the app
-                </span>
+        {/* Privacy Card */}
+        <div
+          onClick={() => onNavigate("privacy")}
+          className="qb-squircle flex flex-col p-4 cursor-pointer press"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]">
+                <GlossyDoorLockIcon className="h-4.5 w-4.5" />
               </div>
-              <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+              <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+                Privacy
+              </span>
             </div>
+            <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+          </div>
+          <div className="mt-2.5 mb-1 text-[12.5px] text-text-secondary">
+            Manage who can send messages and view inventory
+          </div>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-[12.5px] font-semibold text-foreground">Protected</span>
+          </div>
+        </div>
+
+        {/* Security / Password Card */}
+        <div
+          onClick={() => onNavigate("change_password")}
+          className="qb-squircle flex flex-col p-4 cursor-pointer press"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]">
+                <GlossyKeyAccessIcon className="h-4.5 w-4.5" />
+              </div>
+              <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+                Security &amp; Password
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+          </div>
+          <div className="mt-2.5 mb-1 text-[12.5px] text-text-secondary">
+            Reset password and authenticate recovery email
+          </div>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-amber-500" />
+            <span className="text-[12.5px] font-semibold text-foreground">Enhanced</span>
+          </div>
+        </div>
+
+        {/* About App Card */}
+        <div
+          onClick={() => onNavigate("about" as never)}
+          className="qb-squircle flex flex-col p-4 cursor-pointer press"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]">
+                <GlossyBookLearnIcon className="h-4.5 w-4.5" />
+              </div>
+              <span className="text-[14.5px] font-extrabold tracking-tight text-foreground">
+                About Application
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-[#a0a5af]" />
+          </div>
+          <div className="mt-2.5 mb-1 text-[12.5px] text-text-secondary">
+            Release logs, version metadata and legal notices
+          </div>
+          <div className="mt-3 mb-2.5 h-px w-full bg-black/8 dark:bg-white/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-[12.5px] font-semibold text-foreground">v{APP_VERSION}</span>
           </div>
         </div>
       </div>

@@ -28,6 +28,7 @@ import { db } from "@/lib/firebase";
 import { CurrencyPills, PINK_GEM_ICON, GOLDEN_COINS_ICON } from "@/components/CurrencyPills";
 import { MobileShell } from "@/components/MobileShell";
 import { GlossyAvatar, isIraAccount } from "@/components/GlossyAvatar";
+import { BronzeCorniceAvatar } from "@/components/BronzeCornice";
 import { LegalBody, APP_VERSION } from "@/components/LegalDocs";
 import { saveAccount } from "@/lib/saved-accounts";
 import { BetaFeatures } from "@/components/BetaFeatures";
@@ -52,30 +53,15 @@ function SettingsPage() {
 
   return (
     <MobileShell>
-      <div className="min-h-full bg-[#f8f9fa] dark:bg-[#121316] px-4 pb-8 pt-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => nav({ to: "/profile" as never })}
-              className="qb-squircle press grid h-9 w-9 place-items-center text-[#141414] dark:text-white cursor-pointer"
-              aria-label="Back to profile"
-            >
-              <ChevronRight className="h-4 w-4 rotate-180" />
-            </button>
-            <div>
-              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#8b929d] dark:text-[#8e95a0]">
-                Preferences
-              </div>
-              <h1 className="text-[22px] font-black tracking-tight text-[#141414] dark:text-white">Settings</h1>
-            </div>
-          </div>
-        </div>
-
-        {/* Profile area — NOT embedded in a card, clean squircle pfp like chat, Nickname, grey smaller Username: & ID:, and currency */}
+      <div className="min-h-full bg-[#f8f9fa] dark:bg-[#121316] px-4 pb-8 pt-6">
+        {/* Profile area with Bronze Cornice crowning PFP */}
         {qbUser && (
-          <div className="flex items-center gap-3.5 px-1 py-1 mb-4">
-            <div className="qb-squircle relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-[18px] bg-[#e2e6ec] dark:bg-[#1a1c22]">
+          <div className="flex items-center gap-4 px-1 py-1 mb-5 mt-2">
+            <BronzeCorniceAvatar
+              size={62}
+              onClick={() => nav({ to: "/avatar" as never })}
+              title="Edit Avatar"
+            >
               <GlossyAvatar
                 snapshot={qbUser.avatarSnapshot}
                 photoUrl={qbUser.profilePhoto}
@@ -85,7 +71,7 @@ function SettingsPage() {
                 autoRotate={false}
                 focusZone="head"
               />
-            </div>
+            </BronzeCorniceAvatar>
 
             <div className="min-w-0 flex-1">
               <h3 className="text-[17px] font-black text-[#141414] dark:text-white tracking-tight leading-tight truncate">

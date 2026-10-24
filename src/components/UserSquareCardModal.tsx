@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Sparkles, MapPin } from "lucide-react";
+import { BronzeCorniceUpper } from "./BronzeCornice";
 
 export interface UserSquareCardData {
   name: string;
@@ -51,9 +52,12 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
 
         {/* Center: Profile Picture + Name + Skyblock Icon */}
         <div className="flex flex-col items-center justify-center text-center my-auto">
-          {/* Avatar PFP Frame */}
-          <div className="relative mb-3">
-            <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-[#262832] border-2 border-orange-500/40 p-1 flex items-center justify-center shadow-inner overflow-hidden">
+          {/* Avatar PFP Frame with Bronze Cornice behind */}
+          <div className="relative mb-3 pt-2">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-0 pointer-events-none">
+              <BronzeCorniceUpper size={80} />
+            </div>
+            <div className="relative z-10 w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-[#262832] border-2 border-amber-600/60 p-1 flex items-center justify-center shadow-inner overflow-hidden">
               {user.photo ? (
                 <img
                   src={user.photo}

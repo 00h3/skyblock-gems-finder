@@ -214,8 +214,36 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
 
   return (
     <MobileShell>
-      <div className="min-h-full bg-background pb-7">
-        <header className="flex items-center gap-2 px-4 pt-6">
+      <div className="relative min-h-full bg-background pb-7 overflow-hidden">
+        {/* Top Aurora Borealis Glow Effect */}
+        <div
+          className="pointer-events-none absolute top-0 left-0 right-0 h-44 overflow-hidden select-none z-0"
+          aria-hidden="true"
+        >
+          <div
+            className="absolute -top-12 -left-10 w-[280px] h-[190px] rounded-full blur-[42px] opacity-40 dark:opacity-20 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at 30% 25%, rgba(255, 122, 0, 0.45) 0%, rgba(255, 165, 65, 0.28) 38%, rgba(255, 240, 225, 0.2) 65%, transparent 80%)",
+            }}
+          />
+          <div
+            className="absolute -top-16 left-12 w-[340px] h-[160px] rounded-full blur-[50px] opacity-30 dark:opacity-15 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at 35% 35%, rgba(255, 145, 36, 0.32) 0%, rgba(255, 205, 150, 0.22) 45%, rgba(255, 255, 255, 0.32) 70%, transparent 85%)",
+            }}
+          />
+          <div
+            className="absolute top-0 left-0 right-0 h-24 opacity-35 dark:opacity-10 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(255, 150, 40, 0.16) 0%, rgba(255, 255, 255, 0.22) 40%, transparent 100%)",
+            }}
+          />
+        </div>
+
+        <header className="relative z-10 flex items-center gap-2 px-4 pt-6">
           <Link
             to={"/profile" as never}
             className="press relative shrink-0"
