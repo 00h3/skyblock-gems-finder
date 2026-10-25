@@ -74,7 +74,7 @@ export const BMGO_SOUND_URLS = {
   goldDig2: "https://maxwell.z3ki.dev/bot/_files/bmgo-gold-mining2/bmgo_gold_dig2.mp3",
   woodDig: "https://maxwell.z3ki.dev/bot/_files/bmgo-wood-dig/bmgo_wood_dig1.mp3",
   bgmSkywars: "https://maxwell.z3ki.dev/bot/_files/bmgo-skywars-bgm/bmgo_skywar_bgm.mp3",
-  bgmSkyblock: "https://soundimage.org/wp-content/uploads/2014/04/Sky-Game-Menu.mp3",
+  bgmSkyblock: "https://file.garden/alGOOylwpAfCa6qP/Sounds/theme_dead.mp3",
   bgmBlockFall: "https://maxwell.z3ki.dev/bot/_files/blockman-go-bgm/blockman_go_bgm.mp3",
 };
 
@@ -199,7 +199,7 @@ export const BmgoAudio = {
   /** Start dedicated looped Skyblock BGM */
   startSkyblockBgm(volume = 0.35) {
     if (typeof window === "undefined") return;
-    if (!bgmAudio || !bgmAudio.src.includes("Sky-Game-Menu.mp3")) {
+    if (!bgmAudio || !bgmAudio.src.includes("theme_dead.mp3")) {
       if (bgmAudio) {
         bgmAudio.pause();
       }

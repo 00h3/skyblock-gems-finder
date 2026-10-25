@@ -441,28 +441,119 @@ function buildSkyblockIsland(world: World) {
     }
   }
 
-  // Starter Tree (Oak wood trunk + leaf canopy)
-  const treeX = -3;
-  const treeZ = -3;
-  for (let ty = 17; ty <= 21; ty++) {
-    world.set(treeX, ty, treeZ, 5); // Oak Log
+  // ── Majestic Fantasy World Tree ──
+  // Anchored at (-4, -3) with organic twisting trunk, sprawling root flares, and cascading canopy
+  const tx = -4;
+  const tz = -3;
+
+  // 1. Sprawling Root Buttresses flaring into the island grass
+  const roots = [
+    [-4, 16, -1], [-4, 17, -2],
+    [-4, 16, -5], [-4, 17, -4],
+    [-2, 16, -3], [-3, 17, -3],
+    [-6, 16, -3], [-5, 17, -3],
+    [-2, 16, -2], [-5, 16, -5],
+    [-6, 16, -4], [-3, 16, -5],
+  ];
+  for (const [rx, ry, rz] of roots) {
+    world.set(rx, ry, rz, 7); // Oak Log roots
   }
-  // Leaves canopy
-  for (let lx = -2; lx <= 2; lx++) {
-    for (let lz = -2; lz <= 2; lz++) {
-      for (let ly = 20; ly <= 22; ly++) {
-        if (Math.abs(lx) + Math.abs(lz) <= 3 && !(lx === 0 && lz === 0 && ly < 22)) {
-          if (world.get(treeX + lx, ly, treeZ + lz) === 0) {
-            world.set(treeX + lx, ly, treeZ + lz, 9); // Oak Leaves
+
+  // 2. Thick 2x2 Twisted Trunk (y = 16..21)
+  for (let ty = 16; ty <= 19; ty++) {
+    world.set(tx, ty, tz, 7);
+    world.set(tx - 1, ty, tz, 7);
+    world.set(tx, ty, tz - 1, 7);
+    world.set(tx - 1, ty, tz - 1, 7);
+  }
+  // Trunk twisting as it ascends
+  world.set(tx, 20, tz, 7);
+  world.set(tx, 20, tz - 1, 7);
+  world.set(tx + 1, 20, tz, 7);
+  world.set(tx, 21, tz, 7);
+  world.set(tx + 1, 21, tz, 7);
+  world.set(tx, 21, tz + 1, 7);
+
+  // 3. Multi-fork Fantasy Boughs (y = 22..25)
+  // East Bough (reaching gracefully toward spawn and pond)
+  world.set(-2, 22, -3, 7);
+  world.set(-1, 22, -3, 7);
+  world.set(0, 23, -3, 7);
+  world.set(1, 23, -3, 7);
+
+  // South Bough
+  world.set(-4, 22, -1, 7);
+  world.set(-4, 22, 0, 7);
+  world.set(-3, 23, 1, 7);
+
+  // North Bough
+  world.set(-4, 22, -5, 7);
+  world.set(-5, 23, -6, 7);
+  world.set(-5, 24, -7, 7);
+
+  // High Crown Spire
+  world.set(-3, 22, -2, 7);
+  world.set(-3, 23, -2, 7);
+  world.set(-3, 24, -2, 7);
+  world.set(-3, 25, -2, 7);
+
+  // 4. Cascading Layered Fantasy Foliage Canopy
+  const canopyNodes: [number, number, number, number][] = [
+    [-3, 25, -2, 4.2],  // Top Crown
+    [0, 23, -3, 3.4],   // East Bough
+    [-3, 23, 1, 3.2],   // South Bough
+    [-5, 24, -6, 3.3],  // North Bough
+    [-4, 21, -3, 3.6],  // Lower Main Fork
+  ];
+
+  for (const [cx, cy, cz, rad] of canopyNodes) {
+    const irad = Math.ceil(rad);
+    for (let lx = -irad; lx <= irad; lx++) {
+      for (let lz = -irad; lz <= irad; lz++) {
+        for (let ly = -irad + 1; ly <= irad; ly++) {
+          const dist = Math.hypot(lx, ly * 1.25, lz);
+          if (dist <= rad) {
+            const wx = cx + lx;
+            const wy = cy + ly;
+            const wz = cz + lz;
+            if (world.get(wx, wy, wz) === 0) {
+              world.set(wx, wy, wz, 9); // Oak Leaves
+            }
           }
         }
       }
     }
   }
 
+  // 5. Embedded Magical Fairy Fruits & Glowing Crystal Blossom inside canopy
+  world.set(-3, 25, -1, 23); // Amethyst
+  world.set(-4, 24, -3, 18); // Glowstone fruit
+  world.set(0, 23, -2, 23);  // Amethyst
+  world.set(1, 22, -3, 18);  // Glowstone
+  world.set(-3, 23, 2, 23);  // Amethyst
+  world.set(-5, 24, -5, 18); // Glowstone
+
+  // 6. Weeping Vines / Leaves hanging from under-boughs
+  world.set(1, 21, -3, 9);
+  world.set(1, 20, -3, 9);
+  world.set(-3, 21, 2, 9);
+  world.set(-3, 20, 2, 9);
+  world.set(-6, 22, -6, 9);
+  world.set(-6, 21, -6, 9);
+  world.set(-1, 21, -4, 9);
+
+  // 7. Hanging Fantasy Lanterns suspended under the world tree branches
+  world.set(-1, 21, -3, 7);  // Branch wooden strut
+  world.set(-1, 20, -3, 18); // Hanging warm Glowstone lantern
+  world.set(-4, 21, 0, 7);   // Branch wooden strut
+  world.set(-4, 20, 0, 23);  // Hanging glowing Amethyst lantern
+
   // Starter Island Accents
   world.set(0, 16, 0, 4); // Cobblestone
   world.set(0, 16, 1, 14); // Mossy Cobblestone
+  world.set(1, 16, 0, 14);
+  world.set(-1, 16, 0, 4);
+  world.set(0, 16, -1, 14);
   world.set(-1, 17, 3, 26); // Starter Pumpkin
 
   // Water spring pond (contained in grass/dirt basin)
@@ -474,6 +565,13 @@ function buildSkyblockIsland(world: World) {
   world.set(3, 15, 2, 6); // Water block
   world.set(2, 15, 3, 6); // Water block
   world.set(3, 15, 3, 6); // Water block
+  world.set(1, 16, 2, 14); // Mossy Cobble rim
+  world.set(4, 16, 2, 14);
+  world.set(1, 16, 3, 4);
+  world.set(4, 16, 3, 4);
+  world.set(2, 16, 4, 14);
+  world.set(3, 16, 4, 14);
+  world.set(4, 17, 2, 23); // Magical Amethyst cluster by the water spring
 
   // Lava pool (contained in cobblestone/stone basin so player has lava for obsidian/cobblestone)
   world.set(3, 16, -3, 0);
@@ -486,6 +584,87 @@ function buildSkyblockIsland(world: World) {
   world.set(4, 16, -4, 4);  // Cobblestone border
   world.set(3, 16, -2, 4);  // Cobblestone border
   world.set(4, 16, -2, 4);  // Cobblestone border
+
+  // ── 4 Distant Floating Fantasy Archipelago Islands (Far in the Void) ──
+  // Placed 42–46 blocks away across the open sky, framing the majestic horizon!
+
+  const buildFloatingIsland = (
+    cx: number,
+    cy: number,
+    cz: number,
+    radius: number,
+    depth: number,
+  ) => {
+    for (let x = -radius; x <= radius; x++) {
+      for (let z = -radius; z <= radius; z++) {
+        const d = Math.hypot(x, z);
+        if (d > radius + 0.3) continue;
+        const edge = radius - d;
+        const colDepth = Math.max(1, Math.round(1 + edge * (depth / radius)));
+
+        for (let y = cy - colDepth; y <= cy; y++) {
+          let id = 2; // Dirt
+          if (y === cy) id = 1; // Grass
+          else if (y === cy - colDepth) id = 3; // Stone underside tip
+          else if (y < cy - 1) id = (x + y + z) % 2 === 0 ? 3 : 4;
+          world.set(cx + x, y, cz + z, id);
+        }
+      }
+    }
+  };
+
+  // 1. North Sky (~42 blocks away) — The Celestial Amethyst Spire Island
+  buildFloatingIsland(0, 20, -42, 3, 6);
+  for (let sy = 21; sy <= 25; sy++) {
+    world.set(0, sy, -42, 23); // Amethyst
+  }
+  world.set(0, 26, -42, 18);   // Glowing Starlight Beacon (Glowstone)
+  world.set(1, 21, -42, 23);
+  world.set(-1, 21, -42, 23);
+  world.set(0, 21, -41, 23);
+  world.set(0, 21, -43, 23);
+  world.set(1, 22, -42, 18);
+
+  // 2. South Sky (~44 blocks away) — The Sacred Weeping Grove Island
+  buildFloatingIsland(2, 21, 44, 3, 6);
+  world.set(2, 22, 44, 7);
+  world.set(2, 23, 44, 7);
+  world.set(3, 23, 44, 7);
+  world.set(3, 24, 44, 7);
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dz = -2; dz <= 2; dz++) {
+      if (Math.hypot(dx, dz) <= 2.2) {
+        world.set(3 + dx, 25, 44 + dz, 9);
+        world.set(3 + dx, 24, 44 + dz, 9);
+      }
+    }
+  }
+  world.set(3, 23, 46, 9); // Weeping leaves
+  world.set(1, 23, 44, 9);
+  world.set(3, 22, 45, 18); // Hanging grove lantern
+  world.set(1, 22, 43, 55); // Traveler's Chest
+  world.set(2, 22, 43, 14); // Mossy stone
+
+  // 3. West Sky (~46 blocks away) — The Golden Vein Mineral Island
+  buildFloatingIsland(-46, 19, 0, 3, 6);
+  world.set(-46, 20, 0, 19);  // Gold Block
+  world.set(-45, 20, 0, 19);  // Gold Block
+  world.set(-46, 20, 1, 21);  // Emerald Block
+  world.set(-47, 20, -1, 48); // Diamond Ore
+  world.set(-45, 21, 0, 18);  // Glowstone
+  world.set(-46, 20, -1, 14); // Mossy Cobble
+
+  // 4. East Sky (~44 blocks away) — The Starlight Ruins Island
+  buildFloatingIsland(44, 22, 6, 3, 6);
+  world.set(43, 23, 5, 5);  // Stone Bricks pillar
+  world.set(43, 24, 5, 5);
+  world.set(43, 25, 5, 18); // Lantern
+  world.set(45, 23, 7, 5);  // Stone Bricks pillar
+  world.set(45, 24, 7, 5);
+  world.set(45, 25, 7, 18); // Lantern
+  world.set(44, 23, 6, 22); // Lapis Block altar
+  world.set(44, 24, 6, 55); // Ancient Chest
+  world.set(45, 23, 5, 14); // Mossy Cobblestone
 }
 
 function buildBaseplateWorld(world: World) {
@@ -1883,101 +2062,10 @@ export function SandboxGame({
 
         voxelPropsRef.current = [campLantern];
 
-        // ── 6. High-Fidelity 3D Stylized Tree (Upright & Grounded) ──
-        try {
-          const treeLoader = new GLTFLoader();
-          const treeAsset = await treeLoader.loadAsync("/nuovo_progetto_20.gltf").catch(() =>
-            treeLoader.loadAsync("https://file.garden/alGOOylwpAfCa6qP/Nuovo%20Progetto%2020.gltf"),
-          );
-          if (!disposed && treeAsset?.scene) {
-            // Strip any unintended lights (Faretto, Direzionale) and default blender cubes
-            const unwanted: THREE.Object3D[] = [];
-            treeAsset.scene.traverse((obj) => {
-              if (
-                (obj as THREE.Light).isLight ||
-                obj.name === "Faretto" ||
-                obj.name === "Direzionale" ||
-                obj.name.startsWith("Cubo")
-              ) {
-                unwanted.push(obj);
-              }
-            });
-            unwanted.forEach((obj) => obj.removeFromParent());
-
-            // Extract tree model (low_poly_tree node)
-            const templateTree = treeAsset.scene.getObjectByName("low_poly_tree") || treeAsset.scene;
-
-            // Placements for upright trees on the island
-            const placements = [
-              { x: -4.0, y: 16.0, z: -4.0, scale: 0.58, rotY: 0.35, seed: 1.2 },
-            ];
-
-            const createdTrees: {
-              group: THREE.Group;
-              foliage: THREE.Mesh[];
-              baseRotZ: number;
-              baseRotX: number;
-              seed: number;
-            }[] = [];
-
-            placements.forEach((p) => {
-              const treeClone = templateTree.clone(true) as THREE.Group;
-
-              // Stand tree upright (compensate for tilted Blender scene export)
-              treeClone.rotation.set(105 * Math.PI / 180, 0, -80 * Math.PI / 180);
-              treeClone.scale.setScalar(p.scale);
-
-              const pivot = new THREE.Group();
-              pivot.rotation.y = p.rotY;
-              pivot.add(treeClone);
-              pivot.updateMatrixWorld(true);
-
-              const trunkObj = treeClone.getObjectByName("Plane1065_Material002_0") || treeClone;
-              const trunkBox = new THREE.Box3().setFromObject(trunkObj);
-              const center = trunkBox.getCenter(new THREE.Vector3());
-
-              // Ground trunk base exactly at island grass (p.y = 16.0) and center at (p.x, p.z)
-              treeClone.position.x += (p.x - center.x);
-              treeClone.position.y += (p.y - trunkBox.min.y);
-              treeClone.position.z += (p.z - center.z);
-              pivot.updateMatrixWorld(true);
-
-              const foliage: THREE.Mesh[] = [];
-              treeClone.traverse((child) => {
-                if ((child as THREE.Mesh).isMesh) {
-                  const m = child as THREE.Mesh;
-                  m.castShadow = true;
-                  m.receiveShadow = true;
-                  if (m.material) {
-                    const mat = m.material as THREE.MeshStandardMaterial;
-                    if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
-                    mat.side = THREE.DoubleSide;
-                    mat.alphaTest = 0.25;
-                    mat.needsUpdate = true;
-                  }
-                  if (m.name.includes("Plane") || m.name.includes("Material")) {
-                    m.userData.baseRotY = m.rotation.y;
-                    foliage.push(m);
-                  }
-                }
-              });
-
-              scene.add(pivot);
-
-              createdTrees.push({
-                group: pivot,
-                foliage,
-                baseRotZ: 0,
-                baseRotX: 0,
-                seed: p.seed,
-              });
-            });
-
-            gltfTreesRef.current = createdTrees;
-          }
-        } catch (treeLoadErr) {
-          console.warn("Could not load stylized GLTF trees:", treeLoadErr);
-        }
+        // ── 6. Fantasy Skyblock Atmosphere: Warm campsite lanterns ──
+        const campLantern2 = createVoxelLantern(2.5, 16.0, -1.0);
+        scene.add(campLantern2.group);
+        voxelPropsRef.current = [campLantern, campLantern2];
       }
 
       if (goldenDays) {
@@ -3695,6 +3783,10 @@ export function SandboxGame({
       const playerGlow = new THREE.PointLight(0xffb86b, 0, 13, 1.6);
       scene.add(playerGlow);
 
+      // Dedicated radiant mine ambient light (Hemisphere) to banish cavern darkness
+      const mineAmbientLight = new THREE.HemisphereLight(0xfff3e0, 0x6e523e, 0);
+      scene.add(mineAmbientLight);
+
       const mineLights: THREE.PointLight[] = [];
       for (const l of mineArea?.lights ?? []) {
         const light = new THREE.PointLight(l.color, l.intensity, l.distance, 1.4);
@@ -3703,21 +3795,24 @@ export function SandboxGame({
         scene.add(light);
         mineLights.push(light);
       }
-      const caveFogColor = new THREE.Color("#1a120d");
-      let savedFog: { near: number; far: number } | null = null;
+      const caveFogColor = new THREE.Color("#382b22");
+      let savedFog: { near: number; far: number; color?: THREE.Color } | null = null;
       let islandSpawn: THREE.Vector3 | null = null;
       const setMineState = (next: boolean) => {
         if (next === playerInMine) return;
         playerInMine = next;
         setInMine(next);
         for (const l of mineLights) l.visible = next;
+        mineAmbientLight.intensity = next ? 2.6 : 0;
         const fog = scene.fog as THREE.Fog | null;
         if (fog) {
           if (next) {
-            savedFog = { near: fog.near, far: fog.far };
-            sky?.setRange(8, 72);
+            savedFog = { near: fog.near, far: fog.far, color: fog.color.clone() };
+            fog.color.copy(caveFogColor);
+            sky?.setRange(35, 180);
           } else if (savedFog) {
             sky?.setRange(savedFog.near, savedFog.far);
+            if (savedFog.color) fog.color.copy(savedFog.color);
             savedFog = null;
           }
         }
@@ -3966,7 +4061,9 @@ export function SandboxGame({
 
         if (sky) {
           const night = sky.nightAmount;
-          playerGlow.intensity = playerInMine ? 3.4 : night * 2.4;
+          playerGlow.intensity = playerInMine ? 9.5 : night * 2.4;
+          playerGlow.distance = playerInMine ? 40 : 13;
+          playerGlow.color.setHex(playerInMine ? 0xffe6b0 : 0xffb86b);
           playerGlow.visible = playerInMine || night > 0.05;
           if (playerGlow.visible) playerGlow.position.set(player.position.x, player.position.y + 1.6, player.position.z);
         }
@@ -4433,6 +4530,7 @@ export function SandboxGame({
         window.removeEventListener(WEATHER_EVENT, onWeather);
         window.removeEventListener(MINE_TELEPORT_EVENT, onMineTeleport);
         for (const l of mineLights) l.dispose();
+        mineAmbientLight.dispose();
         SNOW.uSnow.value = 0;
         WIND.uStrength.value = 1;
         window.removeEventListener("qb-skip-cutscene", onSkipCutscene);

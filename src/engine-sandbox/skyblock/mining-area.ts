@@ -178,15 +178,26 @@ export function buildMiningArea(world: World): MiningArea {
     }
   }
 
-  // Ceiling glow clusters so the cavern reads like the reference shots.
-  for (let n = 0; n < 34; n++) {
-    const cx = Math.floor((hash3(n, 5, 0, 61) - 0.5) * 70);
-    const cz = Math.floor((hash3(n, 6, 0, 62) - 0.5) * 70);
+  // Ceiling glow clusters & hanging chandeliers so the entire cavern is brightly lit.
+  for (let n = 0; n < 120; n++) {
+    const cx = Math.floor((hash3(n, 5, 0, 61) - 0.5) * 80);
+    const cz = Math.floor((hash3(n, 6, 0, 62) - 0.5) * 80);
     for (let y = Y_MAX - 1; y > MINE_FLOOR + 4; y--) {
       if (isCave(cx, y, cz) && !isCave(cx, y + 1, cz)) {
         set(cx, y + 1, cz, B.glowstone);
         set(cx + 1, y + 1, cz, B.glowstone);
         set(cx, y + 1, cz + 1, B.glowstone);
+        set(cx - 1, y + 1, cz, B.glowstone);
+        // Hanging chandelier stem
+        if (n % 4 === 0 && y > MINE_FLOOR + 10) {
+          set(cx, y, cz, B.darkOak);
+          set(cx, y - 1, cz, B.darkOak);
+          set(cx, y - 2, cz, B.glowstone);
+          set(cx + 1, y - 2, cz, B.glowstone);
+          set(cx - 1, y - 2, cz, B.glowstone);
+          set(cx, y - 2, cz + 1, B.glowstone);
+          set(cx, y - 2, cz - 1, B.glowstone);
+        }
         break;
       }
     }
@@ -220,6 +231,10 @@ export function buildMiningArea(world: World): MiningArea {
   lantern(-6, -6);
   lantern(6, 6);
   lantern(-6, 6);
+  lantern(0, 6);
+  lantern(0, -6);
+  lantern(6, 0);
+  lantern(-6, 0);
 
   // 5. Rail line: path strip with plank sleepers, across the bridge into the side tunnel.
   for (let x = -34; x <= R - 2; x++) {
@@ -229,7 +244,7 @@ export function buildMiningArea(world: World): MiningArea {
       set(x, F, z, z === 0 ? B.path : x % 2 === 0 ? B.plankOak : B.gravel);
       clear(x, F + 1, z, x, F + 4, z);
     }
-    if (x % 8 === 0 && x > 24) {
+    if (x % 5 === 0) {
       lantern(x, 3);
       lantern(x, -3);
     }
@@ -241,6 +256,11 @@ export function buildMiningArea(world: World): MiningArea {
     for (let z = -2; z <= 2; z++) set(x, F, z, Math.abs(z) === 2 ? B.darkOak : B.plankOak);
     set(x, F + 1, -2, B.oakSlab);
     set(x, F + 1, 2, B.oakSlab);
+  }
+  for (const px of [15, 17, 19, 21, 23]) {
+    for (const pz of [-2, 2]) {
+      set(px, F + 2, pz, B.glowstone);
+    }
   }
   for (const px of [15, 19, 23]) for (const pz of [-2, 2]) for (let y = 3; y < F; y++) set(px, y, pz, B.darkOak);
 
@@ -373,10 +393,40 @@ export function buildMiningArea(world: World): MiningArea {
     spawn,
     contains: (x: number, z: number) => Math.abs(x - OX) <= R + 8 && Math.abs(z - OZ) <= R + 8,
     lights: [
-      { x: OX + LX + 0.5, y: F + 3, z: OZ + LZ + 0.5, color: 0xff7a1a, intensity: 7, distance: 26 },
-      { x: OX - 10, y: F + 3, z: OZ + fz0 + 3, color: 0xff9a3c, intensity: 5, distance: 18 },
-      { x: OX - 11, y: F + 4, z: OZ + 20, color: 0xffb86b, intensity: 4.5, distance: 18 },
-      { x: OX + 19, y: 5, z: OZ, color: 0xff5a10, intensity: 6, distance: 22 },
+      // Central spawn plaza & return portal (warm bright golden light)
+      { x: OX + 0.5, y: F + 4, z: OZ + 0.5, color: 0xffe4a0, intensity: 14, distance: 44 },
+      { x: OX + 0.5, y: F + 5, z: OZ + 7.5, color: 0xda88ff, intensity: 11, distance: 34 },
+
+      // Boss encounter arena (Deep Mines cavern x: 384, z: 8..18)
+      { x: OX + 10, y: F + 5, z: OZ + 8, color: 0xffd270, intensity: 13, distance: 40 },
+      { x: OX - 10, y: F + 5, z: OZ + 8, color: 0xffd270, intensity: 13, distance: 40 },
+      { x: OX, y: F + 5, z: OZ + 16, color: 0xffb844, intensity: 13, distance: 40 },
+
+      // Industrial Forge and Smelters
+      { x: OX - 10, y: F + 4, z: OZ + fz0 + 3, color: 0xffa040, intensity: 12, distance: 36 },
+      { x: OX - 15, y: F + 5, z: OZ - 27, color: 0xff9030, intensity: 11, distance: 32 },
+
+      // Copper Workshop & Steam channels
+      { x: OX - 11, y: F + 4, z: OZ + 20, color: 0xffcc80, intensity: 11, distance: 34 },
+      { x: OX - 16, y: F + 4, z: OZ + 24, color: 0xffbe70, intensity: 10, distance: 30 },
+
+      // Lava fall cataract & magma basin
+      { x: OX + LX + 0.5, y: F + 4, z: OZ + LZ + 0.5, color: 0xff7a1a, intensity: 14, distance: 42 },
+
+      // Chasm bridge & deep abyss crossing
+      { x: OX + 19, y: F + 4, z: OZ, color: 0xffaa44, intensity: 12, distance: 36 },
+      { x: OX + 19, y: 7, z: OZ, color: 0xff6618, intensity: 10, distance: 32 },
+
+      // Railway line east & west
+      { x: OX + 28, y: F + 4, z: OZ, color: 0xffdd99, intensity: 11, distance: 34 },
+      { x: OX - 24, y: F + 4, z: OZ, color: 0xffdd99, intensity: 11, distance: 34 },
+
+      // High vaulted cavern chandeliers (broad overhead ceiling illumination)
+      { x: OX, y: F + 18, z: OZ, color: 0xfff2e2, intensity: 16, distance: 65 },
+      { x: OX - 22, y: F + 18, z: OZ - 18, color: 0xffeed8, intensity: 14, distance: 55 },
+      { x: OX + 22, y: F + 18, z: OZ + 18, color: 0xffeed8, intensity: 14, distance: 55 },
+      { x: OX - 22, y: F + 18, z: OZ + 18, color: 0xffeed8, intensity: 14, distance: 55 },
+      { x: OX + 22, y: F + 18, z: OZ - 18, color: 0xffeed8, intensity: 14, distance: 55 },
     ],
   };
 }
