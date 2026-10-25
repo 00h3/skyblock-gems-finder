@@ -1,7 +1,7 @@
 import type { World } from "./world";
 
-/** Block ids affected by gravity (Sand, Gravel). */
-export const GRAVITY_BLOCKS = new Set([6, 15]);
+/** Block ids affected by gravity. Kept empty so placed blocks stay solid and never disappear into the void. */
+export const GRAVITY_BLOCKS = new Set<number>();
 
 const STEP_SECONDS = 0.06;
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;

@@ -23,10 +23,6 @@ export const TUTORIAL_DONE_KEY = "qb_skyblock_tutorial_done";
 
 export function SkyblockCutscene({
   onSkip,
-  hotbar = [],
-  tileUrls = {},
-  slot = 0,
-  onSelectSlot,
 }: {
   onSkip: () => void;
   hotbar?: (number | string)[];
@@ -36,18 +32,18 @@ export function SkyblockCutscene({
 }) {
   return (
     <div className="pointer-events-none fixed inset-0 z-[150] flex flex-col justify-between select-none">
-      <div className="qb-cutscene-vignette absolute inset-0" aria-hidden="true" />
+      <div className="qb-cutscene-vignette absolute inset-0 pointer-events-none" aria-hidden="true" />
 
       {/* Top letterbox bar */}
-      <div className="relative h-[10vh] bg-black/90 backdrop-blur-sm flex items-center justify-center border-b border-black/40" />
+      <div className="relative h-[12vh] bg-black/95 backdrop-blur-md flex items-center justify-center border-b border-white/10" />
 
       {/* Welcome Title Panel in sleek grey outlined style */}
-      <div className="relative flex flex-col items-center px-4 text-center mt-2">
+      <div className="relative flex flex-col items-center px-4 text-center mt-2 pointer-events-none">
         <div
           className="flex flex-col items-center gap-1.5 px-6 py-3.5 max-w-[360px] animate-scale-in"
           style={{
             ...PANEL_OUTER,
-            backgroundColor: "rgba(34, 37, 44, 0.94)",
+            backgroundColor: "rgba(22, 25, 31, 0.94)",
             border: "1px solid #363b46",
             boxShadow: "0 18px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12)",
           }}
@@ -55,7 +51,7 @@ export function SkyblockCutscene({
           <p className="text-[10px] font-sans font-black uppercase tracking-widest text-slate-400 [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
             Welcome to
           </p>
-          <h1 className="text-[32px] sm:text-[42px] font-sans font-black italic leading-none tracking-tight text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000,0_2px_4px_rgba(0,0,0,0.9)]">
+          <h1 className="text-[32px] sm:text-[40px] font-sans font-black italic leading-none tracking-tight text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000,0_2px_4px_rgba(0,0,0,0.9)]">
             Skyblock
           </h1>
           <div className="mt-1 h-px w-full bg-[#363b46]" />
@@ -65,10 +61,10 @@ export function SkyblockCutscene({
         </div>
       </div>
 
-      {/* Bottom Area: Controls & Cutscene Inventory Bar in grey outlined style */}
-      <div className="relative flex flex-col items-center pb-[max(6px,calc(env(safe-area-inset-bottom)+4px))] gap-2">
+      {/* Bottom Area: Cinematic letterbox with progress + Skip button */}
+      <div className="relative flex flex-col items-center pb-[max(12px,calc(env(safe-area-inset-bottom)+8px))] pt-4 bg-gradient-to-t from-black/95 to-transparent gap-2">
         {/* Progress + Skip Button */}
-        <div className="flex w-full max-w-[540px] items-center justify-between gap-3 px-4">
+        <div className="flex w-full max-w-[500px] items-center justify-between gap-3 px-6">
           <div
             className="h-2 flex-1 overflow-hidden rounded-full p-0.5 bg-[#191b20] border border-[#2e3442] shadow-inner"
           >
@@ -82,19 +78,6 @@ export function SkyblockCutscene({
             Skip
           </button>
         </div>
-
-        {/* The Exact Inventory Bottom Menu with Grey Outlined Style and Same Font */}
-        {hotbar.length > 0 && (
-          <div className="w-full flex justify-center">
-            <V2Hotbar
-              hotbar={hotbar}
-              tileUrls={tileUrls}
-              slot={slot}
-              onSelect={onSelectSlot || (() => {})}
-              isTouch={false}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

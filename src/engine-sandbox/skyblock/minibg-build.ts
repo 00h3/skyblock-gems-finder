@@ -320,14 +320,10 @@ function buildArena(world: World) {
     }
   }
 
-  // Floor lanterns and boss-dais obelisks.
+  // Floor lanterns around the central arena circle
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
     world.set(Math.round(cx + Math.cos(a) * 23), REALM_TOP, Math.round(cz + Math.sin(a) * 23), B.glowstone);
-  }
-  for (const [dx, dz] of [[-8, -8], [8, -8], [-8, 8], [8, 8]]) {
-    fill(world, cx + dx, REALM_TOP + 1, cz + dz, cx + dx, REALM_TOP + 3, cz + dz, B.obsidian);
-    world.set(cx + dx, REALM_TOP + 4, cz + dz, B.amethyst);
   }
 
   // Towers around the rim, skipping the gate.

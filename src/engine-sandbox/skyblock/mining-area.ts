@@ -135,17 +135,17 @@ export function buildMiningArea(world: World): MiningArea {
         } else if (r < 0.035 * oreChance) {
           id = B.iron;
         }
-        if (exposed && r > 0.996 && y > MINE_FLOOR + 6) id = B.amethyst;
+        // Normal rock & exposed ore only (no random amethyst)
         set(x, y, z, id);
       }
     }
   }
 
-  // 3. Stalactites & stalagmites.
-  for (let z = -R + 2; z <= R - 2; z += 1) {
-    for (let x = -R + 2; x <= R - 2; x += 1) {
+  // 3. Natural cavern ceiling formations (clean & subtle)
+  for (let z = -R + 2; z <= R - 2; z += 2) {
+    for (let x = -R + 2; x <= R - 2; x += 2) {
       const r = hash3(x, 0, z, 41);
-      if (r > 0.035) continue;
+      if (r > 0.02) continue;
       let ceil = -1;
       for (let y = Y_MAX - 1; y > MINE_FLOOR + 2; y--) {
         if (isCave(x, y, z) && !isCave(x, y + 1, z)) {
@@ -154,50 +154,25 @@ export function buildMiningArea(world: World): MiningArea {
         }
       }
       if (ceil < 0) continue;
-      const len = 2 + Math.floor(hash3(x, 1, z, 42) * (r < 0.012 ? 11 : 5));
+      const len = 2 + Math.floor(hash3(x, 1, z, 42) * 3);
       for (let i = 0; i < len; i++) {
         const y = ceil - i;
-        if (y <= MINE_FLOOR + 3) break;
+        if (y <= MINE_FLOOR + 4) break;
         set(x, y, z, i < 2 ? B.cobble : B.stone);
-        if (r < 0.012 && i < len * 0.45) {
-          set(x + 1, y, z, B.stone);
-          set(x, y, z + 1, B.stone);
-          set(x - 1, y, z, B.cobble);
-        }
       }
-      if (hash3(x, 2, z, 43) < 0.18) set(x, ceil + 1, z, B.glowstone);
     }
   }
-  for (let z = -R + 2; z <= R - 2; z++) {
-    for (let x = -R + 2; x <= R - 2; x++) {
-      if (Math.hypot(x, z) < 30 || inChasm(x, z)) continue;
-      if (hash3(x, 3, z, 51) > 0.03) continue;
-      if (!isCave(x, MINE_FLOOR + 1, z)) continue;
-      const len = 1 + Math.floor(hash3(x, 4, z, 52) * 5);
-      for (let i = 1; i <= len; i++) set(x, MINE_FLOOR + i, z, i === len ? B.cobble : B.stone);
-    }
-  }
+  // Random floor pillars (stalagmites) removed for clean, unobstructed arena floor
 
-  // Ceiling glow clusters & hanging chandeliers so the entire cavern is brightly lit.
-  for (let n = 0; n < 120; n++) {
-    const cx = Math.floor((hash3(n, 5, 0, 61) - 0.5) * 80);
-    const cz = Math.floor((hash3(n, 6, 0, 62) - 0.5) * 80);
+  // Gentle, optimized ceiling glow clusters (lightweight, zero lag)
+  for (let n = 0; n < 16; n++) {
+    const cx = Math.floor((hash3(n, 5, 0, 61) - 0.5) * 60);
+    const cz = Math.floor((hash3(n, 6, 0, 62) - 0.5) * 60);
     for (let y = Y_MAX - 1; y > MINE_FLOOR + 4; y--) {
       if (isCave(cx, y, cz) && !isCave(cx, y + 1, cz)) {
         set(cx, y + 1, cz, B.glowstone);
         set(cx + 1, y + 1, cz, B.glowstone);
         set(cx, y + 1, cz + 1, B.glowstone);
-        set(cx - 1, y + 1, cz, B.glowstone);
-        // Hanging chandelier stem
-        if (n % 4 === 0 && y > MINE_FLOOR + 10) {
-          set(cx, y, cz, B.darkOak);
-          set(cx, y - 1, cz, B.darkOak);
-          set(cx, y - 2, cz, B.glowstone);
-          set(cx + 1, y - 2, cz, B.glowstone);
-          set(cx - 1, y - 2, cz, B.glowstone);
-          set(cx, y - 2, cz + 1, B.glowstone);
-          set(cx, y - 2, cz - 1, B.glowstone);
-        }
         break;
       }
     }
@@ -224,7 +199,7 @@ export function buildMiningArea(world: World): MiningArea {
   }
   box(-2, F + 1, 7, 2, F + 5, 7, B.obsidian);
   clear(-1, F + 2, 7, 1, F + 4, 7);
-  box(-1, F + 2, 7, 1, F + 4, 7, B.amethyst);
+  box(-1, F + 2, 7, 1, F + 4, 7, B.obsidian);
   set(5, F + 1, 5, B.chest);
   set(-5, F + 1, 5, B.chest);
   lantern(6, -6);
@@ -393,40 +368,10 @@ export function buildMiningArea(world: World): MiningArea {
     spawn,
     contains: (x: number, z: number) => Math.abs(x - OX) <= R + 8 && Math.abs(z - OZ) <= R + 8,
     lights: [
-      // Central spawn plaza & return portal (warm bright golden light)
-      { x: OX + 0.5, y: F + 4, z: OZ + 0.5, color: 0xffe4a0, intensity: 14, distance: 44 },
-      { x: OX + 0.5, y: F + 5, z: OZ + 7.5, color: 0xda88ff, intensity: 11, distance: 34 },
-
-      // Boss encounter arena (Deep Mines cavern x: 384, z: 8..18)
-      { x: OX + 10, y: F + 5, z: OZ + 8, color: 0xffd270, intensity: 13, distance: 40 },
-      { x: OX - 10, y: F + 5, z: OZ + 8, color: 0xffd270, intensity: 13, distance: 40 },
-      { x: OX, y: F + 5, z: OZ + 16, color: 0xffb844, intensity: 13, distance: 40 },
-
-      // Industrial Forge and Smelters
-      { x: OX - 10, y: F + 4, z: OZ + fz0 + 3, color: 0xffa040, intensity: 12, distance: 36 },
-      { x: OX - 15, y: F + 5, z: OZ - 27, color: 0xff9030, intensity: 11, distance: 32 },
-
-      // Copper Workshop & Steam channels
-      { x: OX - 11, y: F + 4, z: OZ + 20, color: 0xffcc80, intensity: 11, distance: 34 },
-      { x: OX - 16, y: F + 4, z: OZ + 24, color: 0xffbe70, intensity: 10, distance: 30 },
-
-      // Lava fall cataract & magma basin
-      { x: OX + LX + 0.5, y: F + 4, z: OZ + LZ + 0.5, color: 0xff7a1a, intensity: 14, distance: 42 },
-
-      // Chasm bridge & deep abyss crossing
-      { x: OX + 19, y: F + 4, z: OZ, color: 0xffaa44, intensity: 12, distance: 36 },
-      { x: OX + 19, y: 7, z: OZ, color: 0xff6618, intensity: 10, distance: 32 },
-
-      // Railway line east & west
-      { x: OX + 28, y: F + 4, z: OZ, color: 0xffdd99, intensity: 11, distance: 34 },
-      { x: OX - 24, y: F + 4, z: OZ, color: 0xffdd99, intensity: 11, distance: 34 },
-
-      // High vaulted cavern chandeliers (broad overhead ceiling illumination)
-      { x: OX, y: F + 18, z: OZ, color: 0xfff2e2, intensity: 16, distance: 65 },
-      { x: OX - 22, y: F + 18, z: OZ - 18, color: 0xffeed8, intensity: 14, distance: 55 },
-      { x: OX + 22, y: F + 18, z: OZ + 18, color: 0xffeed8, intensity: 14, distance: 55 },
-      { x: OX - 22, y: F + 18, z: OZ + 18, color: 0xffeed8, intensity: 14, distance: 55 },
-      { x: OX + 22, y: F + 18, z: OZ - 18, color: 0xffeed8, intensity: 14, distance: 55 },
+      // Central cavern warm light (lightweight, zero lag)
+      { x: OX + 0.5, y: F + 5, z: OZ + 0.5, color: 0xffe4a0, intensity: 3.5, distance: 30 },
+      // Cavern arena light
+      { x: OX, y: F + 6, z: OZ + 12, color: 0xffd270, intensity: 3.0, distance: 30 },
     ],
   };
 }

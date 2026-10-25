@@ -1605,13 +1605,6 @@ function GamePage() {
   });
   return (
     <>
-      {/* Roblox-style Server & Matchmaking Bar with 16 Player presence */}
-      <RobloxInGameServerBar
-        gameId={id}
-        currentServerId={currentServerId}
-        onServerChange={handleServerChange}
-      />
-
       {id === "bedwars-golden-days" ? (
         <BedwarsGoldenDays />
       ) : id === "bedwars" ? (
@@ -13372,11 +13365,6 @@ function ChatOverlay({
                       </span>
                     )}
                     <span>{m.from}</span>
-                    {isSystem && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/15 text-amber-700 uppercase">
-                        SERVER
-                      </span>
-                    )}
                   </button>
                 )}
                 <div

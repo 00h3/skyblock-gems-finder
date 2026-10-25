@@ -525,12 +525,9 @@ function buildSkyblockIsland(world: World) {
     }
   }
 
-  // 5. Embedded Magical Fairy Fruits & Glowing Crystal Blossom inside canopy
-  world.set(-3, 25, -1, 23); // Amethyst
+  // 5. Embedded Fairy Fruits & Glow inside canopy
   world.set(-4, 24, -3, 18); // Glowstone fruit
-  world.set(0, 23, -2, 23);  // Amethyst
   world.set(1, 22, -3, 18);  // Glowstone
-  world.set(-3, 23, 2, 23);  // Amethyst
   world.set(-5, 24, -5, 18); // Glowstone
 
   // 6. Weeping Vines / Leaves hanging from under-boughs
@@ -545,8 +542,6 @@ function buildSkyblockIsland(world: World) {
   // 7. Hanging Fantasy Lanterns suspended under the world tree branches
   world.set(-1, 21, -3, 7);  // Branch wooden strut
   world.set(-1, 20, -3, 18); // Hanging warm Glowstone lantern
-  world.set(-4, 21, 0, 7);   // Branch wooden strut
-  world.set(-4, 20, 0, 23);  // Hanging glowing Amethyst lantern
 
   // Starter Island Accents
   world.set(0, 16, 0, 4); // Cobblestone
@@ -571,7 +566,6 @@ function buildSkyblockIsland(world: World) {
   world.set(4, 16, 3, 4);
   world.set(2, 16, 4, 14);
   world.set(3, 16, 4, 14);
-  world.set(4, 17, 2, 23); // Magical Amethyst cluster by the water spring
 
   // Lava pool (contained in cobblestone/stone basin so player has lava for obsidian/cobblestone)
   world.set(3, 16, -3, 0);
@@ -2554,29 +2548,17 @@ export function SandboxGame({
         matchmaker.load(2.28).catch(() => {});
       }
 
-      // ── "Tutorial" NPC: takes knockback, flashes red, heals back ──
+      // ── Combat practice target (invisible dummy for parry physics) ──
       const hitMe = new Avatar();
       hitMe.idleStill = true;
       const hitMeHome = new THREE.Vector3(player.position.x + 2.5, player.position.y, player.position.z + 2);
       hitMe.group.position.copy(hitMeHome);
       hitMe.group.visible = false;
-      hitMe.load(2.28).catch(() => {});
       const hitMeVel = new THREE.Vector3();
-      const hitMeBar = createHpBar("Tutorial", 20);
-      scene.add(hitMeBar.sprite);
-
-      // ── Floating animated indicator arrow upper the Tutorial NPC ──
+      const hitMeBar = createHpBar("", 20);
+      hitMeBar.sprite.visible = false;
       const arrowGroup = new THREE.Group();
-      const arrowConeGeo = new THREE.ConeGeometry(0.26, 0.52, 8);
-      arrowConeGeo.rotateX(Math.PI); // Point down towards NPC
-      const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
-      const arrowCone = new THREE.Mesh(arrowConeGeo, arrowMat);
-      arrowGroup.add(arrowCone);
-      const arrowStemGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.38, 8);
-      const arrowStem = new THREE.Mesh(arrowStemGeo, arrowMat);
-      arrowStem.position.y = 0.38;
-      arrowGroup.add(arrowStem);
-      scene.add(arrowGroup);
+      arrowGroup.visible = false;
       let hitMeHp = 20;
       let hitMeRedT = 0;
       let hitMeHealT = 0;
@@ -3393,6 +3375,7 @@ export function SandboxGame({
       });
       features.survival = !blockFall;
       features.bridgeAssist = true;
+      features.permanentLiquids = true;
       features.setHeld(heldItemId);
       featuresRef.current = features;
 
@@ -3545,17 +3528,11 @@ export function SandboxGame({
         gravity.notify(px, py, pz);
         if (blockFall) {
           void writeBlockFallBlock({ x: px, y: py, z: pz, id }).catch((error) => {
-            world?.set(px, py, pz, 0);
-            socket?.sendBlockUpdate({ x: px, y: py, z: pz, id: 0 });
-            setMultiplayerError("That block could not be synchronized. Your change was reverted.");
-            console.error("Could not sync placed block:", error);
+            console.warn("BlockFall block saved locally only:", error);
           });
         } else {
           void writeSandboxBlock({ x: px, y: py, z: pz, id }).catch((error) => {
-            world?.set(px, py, pz, 0);
-            socket?.sendBlockUpdate({ x: px, y: py, z: pz, id: 0 });
-            setMultiplayerError("That block could not be synchronized. Your change was reverted.");
-            console.error("Could not sync placed block:", error);
+            console.warn("Sandbox block saved locally only:", error);
           });
         }
         playSound("place");
@@ -3790,6 +3767,7 @@ export function SandboxGame({
       const mineLights: THREE.PointLight[] = [];
       for (const l of mineArea?.lights ?? []) {
         const light = new THREE.PointLight(l.color, l.intensity, l.distance, 1.4);
+        light.castShadow = false;
         light.position.set(l.x, l.y, l.z);
         light.visible = false;
         scene.add(light);
@@ -3803,7 +3781,7 @@ export function SandboxGame({
         playerInMine = next;
         setInMine(next);
         for (const l of mineLights) l.visible = next;
-        mineAmbientLight.intensity = next ? 2.6 : 0;
+        mineAmbientLight.intensity = next ? 1.4 : 0;
         const fog = scene.fog as THREE.Fog | null;
         if (fog) {
           if (next) {
@@ -4448,21 +4426,11 @@ export function SandboxGame({
               if (renderer) renderer.shadowMap.needsUpdate = true;
               if (blockFall) {
                 void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                  world?.set(hit.x, hit.y, hit.z, oldId);
-                  socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: oldId });
-                  setMultiplayerError(
-                    "That block could not be synchronized. Your change was reverted.",
-                  );
-                  console.error("Could not sync mined block:", error);
+                  console.warn("Could not sync mined block:", error);
                 });
               } else {
                 void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                  world?.set(hit.x, hit.y, hit.z, oldId);
-                  socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: oldId });
-                  setMultiplayerError(
-                    "That block could not be synchronized. Your change was reverted.",
-                  );
-                  console.error("Could not sync mined block:", error);
+                  console.warn("Could not sync mined block:", error);
                 });
               }
               mineKey = null;
@@ -4988,14 +4956,14 @@ export function SandboxGame({
         onPointerCancel={onTouchEnd}
       />
 
-      {ready && (
+      {ready && !cutsceneOn && (
         <div
           role="status"
           aria-live="polite"
-          className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+76px)] z-[85] flex -translate-x-1/2 items-center gap-1.5 rounded-[8px] border border-[#363b46] bg-[#22252c]/90 px-2.5 py-1 text-[10px] font-black text-zinc-200 shadow-lg ${cutsceneOn ? "hidden" : ""}`}
+          className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+76px)] z-[85] flex -translate-x-1/2 items-center gap-1.5 rounded-[8px] border border-[#363b46] bg-[#22252c]/90 px-2.5 py-1 text-[10px] font-black text-zinc-200 shadow-lg"
         >
           <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${multiplayerConnected ? "bg-emerald-400" : "bg-zinc-400"}`} />
-          <span>{multiplayerConnected ? "Online" : "Offline mode"}</span>
+          <span>{multiplayerConnected ? "Online" : "Solo"}</span>
           {multiplayerError && <span className="sr-only">{multiplayerError}</span>}
         </div>
       )}
@@ -5009,10 +4977,6 @@ export function SandboxGame({
       {cutsceneOn && (
         <SkyblockCutscene
           onSkip={() => window.dispatchEvent(new Event("qb-skip-cutscene"))}
-          hotbar={hotbar}
-          tileUrls={tileUrls}
-          slot={slot}
-          onSelectSlot={selectSlot}
         />
       )}
 
@@ -5145,7 +5109,7 @@ export function SandboxGame({
       )}
 
       {/* ── V2 HUD (Skyblock + Block Fall) ── */}
-      {ready && isV2 && loadingDismissed && (
+      {ready && isV2 && loadingDismissed && !cutsceneOn && (
         <V2GameHud
           isTouch={isTouch}
           running={movementMode === "run"}
@@ -5250,7 +5214,7 @@ export function SandboxGame({
         />
       )}
       {ready && isV2 && veilToken > 0 && loadingDismissed && <V2Veil token={veilToken} />}
-      {showClickToPlay && loadingDismissed && (
+      {showClickToPlay && loadingDismissed && !cutsceneOn && (
         <V2ClickToPlay
           title={baseplate ? "Baseplate" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
           hint={
@@ -5267,7 +5231,7 @@ export function SandboxGame({
       )}
 
       {/* ── Bedwars HUD (Main HUD) ── */}
-      {ready && !isV2 && (
+      {ready && !isV2 && !cutsceneOn && (
         <BedwarsHud
           runesTimeLeft={runesTimeLeft}
           hotbar={hotbar}

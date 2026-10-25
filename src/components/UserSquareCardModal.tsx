@@ -67,7 +67,7 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
               ) : isTutorial ? (
                 <img
                   src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
-                  alt="Tutorial NPC"
+                  alt="Island Guide"
                   className="w-full h-full object-contain drop-shadow"
                 />
               ) : (
