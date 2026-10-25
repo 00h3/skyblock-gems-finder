@@ -56,7 +56,7 @@ export function SkyblockCutscene({
           </h1>
           <div className="mt-1 h-px w-full bg-[#363b46]" />
           <p className="text-[11.5px] font-sans font-black text-slate-200 [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
-            Follow the phoenix & wield your staff
+            Follow the phoenix, find golden chests, slay the dragon
           </p>
         </div>
       </div>
@@ -91,8 +91,8 @@ const STEPS = [
   },
   {
     Icon: Flame,
-    title: "Dark Magic Staff & BOSS_001",
-    body: "Select your Dark Magic Sickle Staff from the bottom inventory to fire glowing pixellated fireballs! Defeat the 3 BOSS_001 enemies.",
+    title: "Dungeon, Dragon & Staff",
+    body: "Teleport to the Deep Dungeon, defeat the Golden Forgers, then wake the Red Dragon. Beat it to win the Dark Magic Staff.",
   },
   {
     Icon: Hammer,
