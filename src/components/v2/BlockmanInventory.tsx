@@ -14,6 +14,7 @@ export const ITEM_INFO: Record<string, { name: string; damage: number; rarity: R
   gold_sword: { name: "Gold Sword", damage: 5, rarity: "rare", desc: "Fast swings, lighter knockback." },
   iron_sword: { name: "Iron Sword", damage: 6, rarity: "epic", desc: "Balanced weight and a heavy hit." },
   diamond_sword: { name: "Diamond Sword", damage: 7, rarity: "legend", desc: "The strongest blade on the islands." },
+  dark_magic_staff: { name: "Dark Magic Sickle Staff", damage: 8, rarity: "legend", desc: "Fires glowing pixellated fireballs with bursting flame." },
 };
 
 for (const [id, info] of Object.entries(UTILITY_INFO)) {
@@ -57,7 +58,7 @@ const nameOf = (id: ItemId) =>
 export function defaultItemCount(id: ItemId | undefined): number {
   if (id === undefined || id === 0) return 0;
   if (typeof id === "number") return 64; // Block stack
-  if (id.includes("sword") || id === "shield") return 1;
+  if (id.includes("sword") || id.includes("staff") || id === "shield") return 1;
   if (id === "water_bucket" || id === "lava_bucket" || id === "flint_steel") return 1;
   if (id === "ender_pearl" || id === "wind_charge" || id === "fire_charge" || id === "slime_ball") return 16;
   if (id === "speed_potion" || id === "golden_apple") return 8;

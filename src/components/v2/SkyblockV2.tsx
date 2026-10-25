@@ -158,10 +158,12 @@ export function V2Hotbar({
                   />
                   {id !== 0 && (
                     <span className="absolute bottom-0.5 right-0.5 font-lilita text-[10px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
-                      {typeof id === "number" ? 64 : String(id).includes("sword") || id === "shield" ? 1 : 16}
+                      {typeof id === "number" ? 64 : String(id).includes("sword") || String(id).includes("staff") || id === "shield" ? 1 : 16}
                     </span>
                   )}
                 </>
+              ) : id === "dark_magic_staff" ? (
+                <span className="text-[18px] leading-none drop-shadow">🔮</span>
               ) : null}
               {!isTouch && i < 9 && (
                 <span

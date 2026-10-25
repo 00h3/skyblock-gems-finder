@@ -75,7 +75,7 @@ import { AmbientParticles } from "@/engine-sandbox/shared/ambient-particles";
 import { SkyblockEnvironment } from "@/engine-sandbox/skyblock/skyblock-environment";
 import { CosmicSky } from "@/engine-sandbox/shared/cosmic-sky";
 import { BlockmanInventory } from "@/components/v2/BlockmanInventory";
-import { SkyblockCutscene, SkyblockTutorial, TUTORIAL_DONE_KEY } from "@/components/SkyblockIntro";
+import { SkyblockCutscene } from "@/components/SkyblockIntro";
 import { BlockGravity } from "@/engine-sandbox/shared/block-physics";
 
 import { MineTeleportButton, useWeather } from "@/components/SkyblockExtras";
@@ -1085,15 +1085,27 @@ function createSunDustParticles(count = 100) {
 }
 
 const CRAFTED_KEY = "qb_skyblock_crafted";
-const STARTER_BACKPACK: (number | string)[] = ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3, 5, 38, 40, 42];
+const STARTER_BACKPACK: (number | string)[] = ["dark_magic_staff", "gold_sword", 7, 9, 2, 4, 6, 13, 1, 3, 5, 38, 40, 42];
 
 type SwordStats = { damage: number; knockback: number; cooldown: number; reach: number; slash: number };
+
+const STAFF_FIRE_SFX = "https://file.garden/alGOOylwpAfCa6qP/Sounds/fire.mp3";
+const BOSS_LASER_SFX = "https://file.garden/alGOOylwpAfCa6qP/Sounds/gun_jiguangbu.mp3";
+
+function playAudioUrl(url: string, volume = 0.8) {
+  try {
+    const a = new Audio(url);
+    a.volume = volume;
+    void a.play().catch(() => {});
+  } catch {}
+}
 
 const SWORD_MODELS: Record<string, string> = {
   short_sword: "https://file.garden/alGOOylwpAfCa6qP/wooden_sword.glb",
   gold_sword: "https://file.garden/alGOOylwpAfCa6qP/sword_oro.glb",
   iron_sword: "https://file.garden/alGOOylwpAfCa6qP/sword_ferro.glb",
   diamond_sword: "https://file.garden/alGOOylwpAfCa6qP/sword_diamante.glb",
+  dark_magic_staff: "https://file.garden/alGOOylwpAfCa6qP/Qblock2/dark_magic_sickle_staff_-_wow_inspired_weapon..glb",
 };
 
 export const SWORD_STATS: Record<string, SwordStats> = {
@@ -1102,6 +1114,7 @@ export const SWORD_STATS: Record<string, SwordStats> = {
   gold_sword: { damage: 5, knockback: 5.4, cooldown: 0.36, reach: 4.3, slash: 0xffc94a },
   iron_sword: { damage: 6, knockback: 6.2, cooldown: 0.46, reach: 4.5, slash: 0xdfe8f2 },
   diamond_sword: { damage: 7, knockback: 7.2, cooldown: 0.52, reach: 4.7, slash: 0x5ff2ff },
+  dark_magic_staff: { damage: 8, knockback: 5.5, cooldown: 0.35, reach: 24, slash: 0xff5500 },
 };
 
 function normalizeShowcaseModel(model: THREE.Object3D, targetHeight: number) {
@@ -1216,7 +1229,7 @@ export function SandboxGame({
     goldenDays
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
       : isSkyblockLike
-        ? ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3]
+        ? ["dark_magic_staff", "short_sword", 1, 2, 3, 4, 44, 45, 46]
         : blockFall
           ? []
           : bedwars
@@ -1331,7 +1344,6 @@ export function SandboxGame({
   const [multiplayerError, setMultiplayerError] = useState("");
   const [multiplayerConnected, setMultiplayerConnected] = useState(false);
   const [cutsceneOn, setCutsceneOn] = useState(false);
-  const [tutorialOpen, setTutorialOpen] = useState(false);
   const weather = useWeather();
   const [inMine, setInMine] = useState(false);
   const cutsceneRef = useRef({ active: false, t: 0 });
@@ -2210,6 +2222,7 @@ export function SandboxGame({
           return "";
         }
       };
+      let staffMixer: THREE.AnimationMixer | null = null;
       const swordLoader = new GLTFLoader();
       for (const [sid, url] of Object.entries(SWORD_MODELS)) {
         swordLoader
@@ -2217,7 +2230,7 @@ export function SandboxGame({
           .then((g) => {
             if (disposed) return;
             const m = g.scene;
-            normalizeShowcaseModel(m, 0.4073); // made 27% smaller per user request (0.558 * 0.73)
+            normalizeShowcaseModel(m, 0.46); // scaled slightly bigger in hand per user request
             m.traverse((o) => {
               const mesh = o as THREE.Mesh;
               if (mesh.isMesh) mesh.castShadow = false;
@@ -2226,6 +2239,14 @@ export function SandboxGame({
             m.visible = false;
             heldRig.add(m);
             heldSwords.set(sid, m);
+
+            if (sid === "dark_magic_staff" && g.animations && g.animations.length > 0) {
+              staffMixer = new THREE.AnimationMixer(m);
+              g.animations.forEach((clip) => {
+                staffMixer!.clipAction(clip).play();
+              });
+            }
+
             const icon = renderSwordIcon(m);
             if (icon) setTileUrls((prev) => ({ ...prev, [sid]: icon }));
             if (heldItemId === sid) setHeldTile(sid);
@@ -2240,13 +2261,13 @@ export function SandboxGame({
           });
       }
 
-      // First-person block hand with fair/white-ish skin tone per user request:
+      // First-person block hand with fair/white-ish skin tone (bigger and shifted more to the right per user request):
       const heldHand = new THREE.Group();
       const handTex = new THREE.TextureLoader().load("/ui/hand-2d.png");
       handTex.colorSpace = THREE.SRGBColorSpace;
       handTex.anisotropy = 4;
       const handSprite = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.46, 0.46 * (1081 / 1372)),
+        new THREE.PlaneGeometry(0.55, 0.55 * (1081 / 1372)),
         new THREE.MeshBasicMaterial({ map: handTex, transparent: true, side: THREE.DoubleSide, toneMapped: false }),
       );
       handSprite.position.set(0, 0.02, 0);
@@ -2260,8 +2281,8 @@ export function SandboxGame({
       heldItemHolder.position.set(-0.06, 0.10, 0.04);
       // Minecraft 3D isometric item angle in first-person
       heldItemHolder.rotation.set(-0.16, 0.42, -0.22);
-      // Made big (0.48) per user request
-      heldItemHolder.scale.set(0.48, 0.48, 0.48);
+      // Made bigger (0.55) per user request
+      heldItemHolder.scale.set(0.55, 0.55, 0.55);
 
       const itemTexLoader = new THREE.TextureLoader();
       const itemFrontMat = new THREE.MeshBasicMaterial({
@@ -2301,8 +2322,8 @@ export function SandboxGame({
       heldItemHolder.visible = false;
       heldHand.add(heldItemHolder);
 
-      // Right hand shifted 10% more to the right per user request (0.32 -> 0.352)
-      heldHand.position.set(0.352, -0.28, -0.46);
+      // Right hand shifted more to the right per user request (0.45)
+      heldHand.position.set(0.45, -0.28, -0.46);
       heldHand.rotation.set(-0.1, -0.15, -0.05);
       heldHand.visible = false;
       heldRig.add(heldHand);
@@ -2310,9 +2331,9 @@ export function SandboxGame({
       camera.add(heldRig);
       scene.add(camera);
       const heldBasePose = {
-        hand: { px: 0.352, py: -0.28, pz: -0.46, rx: -0.25, ry: 0.35, rz: -0.12 },
-        block: { px: 0.33, py: -0.26, pz: -0.62, rx: -0.25, ry: 0.6, rz: 0.15 },
-        item: { px: 0.264, py: -0.38, pz: -0.44, rx: -0.12, ry: 0.2, rz: 0.08 },
+        hand: { px: 0.45, py: -0.27, pz: -0.45, rx: -0.24, ry: 0.35, rz: -0.10 },
+        block: { px: 0.39, py: -0.25, pz: -0.60, rx: -0.25, ry: 0.6, rz: 0.15 },
+        item: { px: 0.36, py: -0.36, pz: -0.42, rx: -0.12, ry: 0.2, rz: 0.08 },
       };
       let swing = 0;
       let placePulse = 0;
@@ -2371,22 +2392,22 @@ export function SandboxGame({
               });
             }
           }
-          heldRig.scale.set(1.22, 1.22, 1.22);
+          heldRig.scale.set(1.36, 1.36, 1.36);
         } else if (id === 0) {
-          // Empty / bare hand
+          // Empty / bare hand (bigger size per user request)
           meleeDamage = 1;
           held.visible = false;
           if (heldSword) heldSword.visible = false;
           heldHand.visible = true;
           heldItemHolder.visible = false;
-          heldRig.scale.set(1, 1, 1);
+          heldRig.scale.set(1.22, 1.22, 1.22);
         } else {
           meleeDamage = 1;
           held.visible = true;
           if (heldSword) heldSword.visible = false;
           heldHand.visible = false;
           heldItemHolder.visible = false;
-          heldRig.scale.set(1, 1, 1);
+          heldRig.scale.set(1.15, 1.15, 1.15);
 
           const def = BLOCKS.find((b) => b.id === id);
           if (!def) return;
@@ -2586,6 +2607,443 @@ export function SandboxGame({
       // renders crisp voxel chips, a shock ring and damage numbers instead.
       const spawnHitFx = (at: THREE.Vector3, damage: number, crit: boolean) => {
         combatFx.hit(at, camera, damage, crit);
+      };
+
+      // ── Dark Magic Staff: glowing pixellated fire projectiles ──
+      interface StaffFireball {
+        group: THREE.Group;
+        pos: THREE.Vector3;
+        vel: THREE.Vector3;
+        life: number;
+      }
+      const staffFireballs: StaffFireball[] = [];
+
+      const spawnFireExplosion = (at: THREE.Vector3) => {
+        const chipGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        const chipColors = [0xff2200, 0xff6600, 0xffaa00, 0xffff44];
+        for (let i = 0; i < 10; i++) {
+          const mat = new THREE.MeshBasicMaterial({
+            color: chipColors[i % chipColors.length],
+            toneMapped: false,
+          });
+          const chip = new THREE.Mesh(chipGeo, mat);
+          chip.position.copy(at);
+          scene.add(chip);
+          const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 7,
+            Math.random() * 5 + 1.5,
+            (Math.random() - 0.5) * 7,
+          );
+          let t = 0.45;
+          const tick = () => {
+            t -= 0.035;
+            vel.y -= 0.35;
+            chip.position.addScaledVector(vel, 0.035);
+            chip.scale.setScalar(Math.max(0.01, t / 0.45));
+            if (t > 0) {
+              requestAnimationFrame(tick);
+            } else {
+              scene.remove(chip);
+              chip.geometry.dispose();
+              mat.dispose();
+            }
+          };
+          requestAnimationFrame(tick);
+        }
+      };
+
+      const spawnStaffFireball = (from: THREE.Vector3, dir: THREE.Vector3) => {
+        playAudioUrl(STAFF_FIRE_SFX, 0.85);
+        const grp = new THREE.Group();
+
+        // Pixelated glowing fire blocks cluster
+        const cubeGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+        const fireColors = [0xff2200, 0xff5500, 0xff9900, 0xffff22, 0xff3700];
+        const pixelOffsets = [
+          [0, 0, 0],
+          [0.08, 0.06, -0.04],
+          [-0.07, -0.05, 0.04],
+          [0.04, -0.08, -0.05],
+          [-0.05, 0.07, 0.05],
+          [0, 0.1, -0.07],
+        ];
+        pixelOffsets.forEach(([ox, oy, oz], i) => {
+          const mat = new THREE.MeshBasicMaterial({
+            color: fireColors[i % fireColors.length],
+            toneMapped: false,
+          });
+          const c = new THREE.Mesh(cubeGeo, mat);
+          c.position.set(ox, oy, oz);
+          grp.add(c);
+        });
+
+        const pLight = new THREE.PointLight(0xff6600, 2.8, 6);
+        grp.add(pLight);
+
+        const start = from.clone().addScaledVector(dir, 0.7);
+        grp.position.copy(start);
+        scene.add(grp);
+
+        staffFireballs.push({
+          group: grp,
+          pos: start,
+          vel: dir.clone().multiplyScalar(32),
+          life: 3.5,
+        });
+      };
+
+      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ──
+      interface BossEnemy {
+        id: number;
+        group: THREE.Group;
+        home: THREE.Vector3;
+        pos: THREE.Vector3;
+        vel: THREE.Vector3;
+        hp: number;
+        maxHp: number;
+        bar: ReturnType<typeof createHpBar>;
+        mixer: THREE.AnimationMixer | null;
+        redT: number;
+        shootTimer: number;
+        respawnTimer: number;
+        alive: boolean;
+        tintMats: { mat: THREE.MeshStandardMaterial; color: THREE.Color; emissive: THREE.Color }[];
+      }
+
+      const bossEnemies: BossEnemy[] = [];
+      // 3 Golden Forger BOSS_001 spawn on mining area only (Deep Mines cavern at x: 384, y: 13, z: 0)
+      const BOSS_SPAWNS = [
+        new THREE.Vector3(394.5, 13, 8.5),
+        new THREE.Vector3(374.5, 13, 8.5),
+        new THREE.Vector3(384.5, 13, 16.5),
+      ];
+
+      interface BossLaser {
+        group: THREE.Group;
+        pos: THREE.Vector3;
+        vel: THREE.Vector3;
+        life: number;
+      }
+      const bossLasers: BossLaser[] = [];
+
+      const spawnBossLaser = (from: THREE.Vector3, to: THREE.Vector3) => {
+        playAudioUrl(BOSS_LASER_SFX, 0.8);
+        const grp = new THREE.Group();
+
+        // Pixellated yellow glowing projectile
+        const cubeGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+        const yellowColors = [0xffff00, 0xffea00, 0xfff066, 0xffd700];
+        const offsets = [
+          [0, 0, 0],
+          [0.08, 0, -0.05],
+          [-0.08, 0, -0.05],
+          [0, 0.08, -0.05],
+          [0, -0.08, -0.05],
+          [0, 0, -0.12],
+        ];
+        offsets.forEach(([ox, oy, oz], i) => {
+          const mat = new THREE.MeshBasicMaterial({
+            color: yellowColors[i % yellowColors.length],
+            toneMapped: false,
+          });
+          const c = new THREE.Mesh(cubeGeo, mat);
+          c.position.set(ox, oy, oz);
+          grp.add(c);
+        });
+
+        const pLight = new THREE.PointLight(0xffea00, 2.2, 5);
+        grp.add(pLight);
+
+        const dir = to.clone().sub(from).normalize();
+        grp.position.copy(from);
+        scene.add(grp);
+
+        bossLasers.push({
+          group: grp,
+          pos: from.clone(),
+          vel: dir.multiplyScalar(20),
+          life: 4.0,
+        });
+      };
+
+      const bossDamage = (boss: BossEnemy, dmg: number, hitDir: THREE.Vector3) => {
+        if (!boss.alive) return;
+        boss.hp = Math.max(0, boss.hp - dmg);
+        boss.bar.set(boss.hp);
+        boss.redT = 0.45;
+        boss.vel.addScaledVector(hitDir, 4.5);
+        boss.vel.y = 3.2;
+        const bCenter = boss.group.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+        spawnHitFx(bCenter, dmg, true);
+        playSound("hurt");
+        playSound("sword_hit");
+
+        if (boss.hp <= 0) {
+          boss.alive = false;
+          boss.group.visible = false;
+          boss.bar.sprite.visible = false;
+          boss.respawnTimer = 6.0;
+          announce("BOSS_001 Defeated!", "Respawning in 6 seconds...");
+          spawnFireExplosion(bCenter);
+        }
+      };
+
+      const damagePlayer = (dmg: number, fromPos: THREE.Vector3) => {
+        if (player.isDying) return;
+        playSound("hurt");
+        setPlayerHp((prev) => {
+          const next = Math.max(0, prev - dmg);
+          if (next <= 0) {
+            player.isDying = true;
+            player.velocity.set(0, 0.4, 0);
+            player.onDie?.();
+            setTimeout(() => {
+              player.isDying = false;
+              player.respawn();
+              setPlayerHp(20);
+            }, 1500);
+          }
+          return next;
+        });
+        const away = player.position.clone().sub(fromPos).normalize();
+        away.y = 0.35;
+        player.velocity.addScaledVector(away, 5.0);
+      };
+
+      // Load Golden Forger model for the 3 bosses
+      const bossLoader = new GLTFLoader();
+      bossLoader.load(
+        "https://file.garden/alGOOylwpAfCa6qP/Qblock2/golden_forger.glb",
+        (gltf) => {
+          if (disposed) return;
+          const templateScene = gltf.scene;
+          normalizeShowcaseModel(templateScene, 2.0);
+
+          BOSS_SPAWNS.forEach((homePos, idx) => {
+            const bossGrp = new THREE.Group();
+            const clonedModel = cloneSkinnedModel(templateScene);
+            clonedModel.position.set(0, 0, 0);
+            bossGrp.add(clonedModel);
+            bossGrp.position.copy(homePos);
+            scene.add(bossGrp);
+
+            let mixer: THREE.AnimationMixer | null = null;
+            if (gltf.animations && gltf.animations.length > 0) {
+              mixer = new THREE.AnimationMixer(clonedModel);
+              gltf.animations.forEach((clip) => {
+                const act = mixer!.clipAction(clip);
+                act.play();
+                act.time = idx * 0.7;
+              });
+            }
+
+            const bar = createHpBar("首领 BOSS_001", 30);
+            bar.sprite.position.set(homePos.x, homePos.y + 2.7, homePos.z);
+            scene.add(bar.sprite);
+
+            const tintMats: { mat: THREE.MeshStandardMaterial; color: THREE.Color; emissive: THREE.Color }[] = [];
+            clonedModel.traverse((o) => {
+              const mesh = o as THREE.Mesh;
+              if (mesh.isMesh) {
+                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                mats.forEach((m) => {
+                  const mat = m as THREE.MeshStandardMaterial;
+                  if (mat && mat.color) {
+                    tintMats.push({
+                      mat,
+                      color: mat.color.clone(),
+                      emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
+                    });
+                  }
+                });
+              }
+            });
+
+            bossEnemies.push({
+              id: idx,
+              group: bossGrp,
+              home: homePos.clone(),
+              pos: homePos.clone(),
+              vel: new THREE.Vector3(),
+              hp: 30,
+              maxHp: 30,
+              bar,
+              mixer,
+              redT: 0,
+              shootTimer: 2.0 + idx * 1.3,
+              respawnTimer: 0,
+              alive: true,
+              tintMats,
+            });
+          });
+        },
+        undefined,
+        (err) => console.warn("Failed to load golden_forger.glb:", err),
+      );
+
+      const updateBossSystem = (dt: number) => {
+        // 1. Staff Fireballs update
+        for (let i = staffFireballs.length - 1; i >= 0; i--) {
+          const fb = staffFireballs[i];
+          fb.life -= dt;
+          fb.pos.addScaledVector(fb.vel, dt);
+          fb.group.position.copy(fb.pos);
+          fb.group.rotation.x += dt * 8;
+          fb.group.rotation.y += dt * 10;
+
+          let hitTarget = false;
+          for (const boss of bossEnemies) {
+            if (!boss.alive) continue;
+            const bPos = boss.group.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+            if (fb.pos.distanceTo(bPos) < 1.4) {
+              hitTarget = true;
+              bossDamage(boss, 10, fb.vel.clone().normalize());
+              break;
+            }
+          }
+
+          const solidHit =
+            world &&
+            world.solid(
+              Math.floor(fb.pos.x),
+              Math.floor(fb.pos.y),
+              Math.floor(fb.pos.z),
+            );
+
+          if (hitTarget || solidHit || fb.life <= 0) {
+            spawnFireExplosion(fb.pos);
+            scene.remove(fb.group);
+            fb.group.traverse((o) => {
+              const m = o as THREE.Mesh;
+              if (m.isMesh) {
+                m.geometry.dispose();
+                if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
+                else m.material.dispose();
+              }
+            });
+            staffFireballs.splice(i, 1);
+          }
+        }
+
+        // 2. Boss NPCs update
+        const _bossRed = new THREE.Color(0xff1818);
+        for (const boss of bossEnemies) {
+          if (!boss.alive) {
+            boss.respawnTimer -= dt;
+            if (boss.respawnTimer <= 0) {
+              boss.alive = true;
+              boss.hp = boss.maxHp;
+              boss.bar.set(boss.maxHp);
+              boss.pos.copy(boss.home);
+              boss.group.position.copy(boss.home);
+              boss.vel.set(0, 0, 0);
+              boss.group.visible = true;
+              boss.bar.sprite.visible = true;
+              boss.shootTimer = 2.0;
+              spawnFireExplosion(boss.home);
+            }
+            continue;
+          }
+
+          // Physics & ground collision
+          const p = boss.group.position;
+          boss.vel.y -= 26 * dt;
+          p.addScaledVector(boss.vel, dt);
+          const fx0 = Math.floor(p.x);
+          const fz0 = Math.floor(p.z);
+          const below = Math.floor(p.y - 0.02);
+          if (boss.vel.y <= 0 && world && world.solid(fx0, below, fz0)) {
+            p.y = below + 1;
+            boss.vel.y = 0;
+          }
+          const friction = Math.exp(-7 * dt);
+          boss.vel.x *= friction;
+          boss.vel.z *= friction;
+          if (p.y < boss.home.y - 20) {
+            p.copy(boss.home);
+            boss.vel.set(0, 0, 0);
+          }
+
+          // Face player when in mining area
+          if (playerInMine) {
+            const faceYaw = Math.atan2(player.position.x - p.x, player.position.z - p.z);
+            boss.group.rotation.y = faceYaw;
+          }
+          boss.bar.sprite.position.set(p.x, p.y + 2.7, p.z);
+
+          // Update animation mixer
+          if (boss.mixer) {
+            boss.mixer.update(dt);
+          } else {
+            const t = clock.getElapsedTime();
+            boss.group.position.y = p.y + Math.sin(t * 3.0 + boss.id) * 0.04;
+          }
+
+          // Red hurt tint
+          if (boss.redT > 0) {
+            boss.redT = Math.max(0, boss.redT - dt);
+            const k = Math.min(1, boss.redT / 0.25);
+            for (const t of boss.tintMats) {
+              t.mat.color.copy(t.color).lerp(_bossRed, 0.85 * k);
+              if (t.mat.emissive) t.mat.emissive.copy(t.emissive).lerp(_bossRed, 0.85 * k);
+            }
+            if (boss.redT === 0) {
+              for (const t of boss.tintMats) {
+                t.mat.color.copy(t.color);
+                if (t.mat.emissive) t.mat.emissive.copy(t.emissive);
+              }
+            }
+          }
+
+          // Shooting at player (mining area only)
+          boss.shootTimer -= dt;
+          const distToPlayer = p.distanceTo(player.position);
+          if (playerInMine && boss.shootTimer <= 0 && distToPlayer < 24 && !player.isDying) {
+            boss.shootTimer = 3.2 + Math.random() * 0.8;
+            const spawnAt = p.clone().add(new THREE.Vector3(0, 1.4, 0));
+            const targetPt = player.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+            spawnBossLaser(spawnAt, targetPt);
+          }
+        }
+
+        // 3. Boss Yellow Lasers update
+        for (let i = bossLasers.length - 1; i >= 0; i--) {
+          const lz = bossLasers[i];
+          lz.life -= dt;
+          lz.pos.addScaledVector(lz.vel, dt);
+          lz.group.position.copy(lz.pos);
+          lz.group.rotation.z += dt * 10;
+
+          // Check hit against player
+          const pCenter = player.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+          let hitPlayer = false;
+          if (lz.pos.distanceTo(pCenter) < 0.95) {
+            hitPlayer = true;
+            damagePlayer(2, lz.pos);
+          }
+
+          const solidHit =
+            world &&
+            world.solid(
+              Math.floor(lz.pos.x),
+              Math.floor(lz.pos.y),
+              Math.floor(lz.pos.z),
+            );
+
+          if (hitPlayer || solidHit || lz.life <= 0) {
+            spawnFireExplosion(lz.pos);
+            scene.remove(lz.group);
+            lz.group.traverse((o) => {
+              const m = o as THREE.Mesh;
+              if (m.isMesh) {
+                m.geometry.dispose();
+                if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
+                else m.material.dispose();
+              }
+            });
+            bossLasers.splice(i, 1);
+          }
+        }
       };
       const updateSwordFx = (dt: number) => {
         for (let k = 0; k < SPARKS; k++) {
@@ -2868,29 +3326,22 @@ export function SandboxGame({
           Math.round(baseDamage * features.comboHit(stats.cooldown).mul * (1 + chargeMul * 0.6));
         const sprinting = Math.hypot(player.velocity.x, player.velocity.z) > 5;
 
-        const npcCenter = hitMe.group.position.clone().add(new THREE.Vector3(0, 1.1, 0));
-        const npcDist = features.rayHitsPlayer(eye, dir, hitMe.group.position, stats.reach + 0.4);
-        /*
-        if (npcDist >= 0) {
-          setInspectUser({
-            name: "Tutorial",
-            isNpc: true,
-            photo: "https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png",
-          });
-          const damage = landDamage();
-          const kb = features.knockback(hitDir, stats.knockback, sprinting, chargeMul);
-          hitMeVel.set(kb.x, kb.y, kb.z);
-          hitMeRedT = 0.5;
-          hitMeHp = Math.max(0, hitMeHp - damage);
-          hitMeBar.set(hitMeHp);
-          hitMeHealT = 1.5; // Regenerates after brief delay
-          spawnHitFx(npcCenter, damage, crit);
-          playSound("hurt");
-          playSound("sword_hit");
-          return true;
+        // Hit test against the 3 Golden Forger BOSS_001 NPCs
+        for (const boss of bossEnemies) {
+          if (!boss.alive) continue;
+          const bDist = features.rayHitsPlayer(eye, dir, boss.group.position, stats.reach + 0.6);
+          if (bDist >= 0) {
+            setInspectUser({
+              name: "首领 BOSS_001",
+              isNpc: true,
+              photo: "https://file.garden/alGOOylwpAfCa6qP/Qblock2/golden_forger.glb",
+            });
+            const damage = landDamage();
+            const kb = features.knockback(hitDir, stats.knockback, sprinting, chargeMul);
+            bossDamage(boss, damage, kb.normalize());
+            return true;
+          }
         }
-        */
-
 
         if (!remotes) return false;
         let best: { uid: string; center: THREE.Vector3; d: number } | null = null;
@@ -2920,7 +3371,7 @@ export function SandboxGame({
         return true;
       };
 
-      /** One sword/fist swing: animation, slash arc, whoosh and hit test. */
+      /** One sword/staff/fist swing: animation, slash arc, whoosh, fireball and hit test. */
       const attack = () => {
         if (attackCd > 0) return false;
         const stats = currentStats();
@@ -2933,8 +3384,17 @@ export function SandboxGame({
         slashMat.color.setHex(stats.slash);
         slashT = typeof heldItemId === "string" ? 0.22 : 0;
         slash.visible = slashT > 0;
+
+        // Dark magic staff shoots glowing pixellated fire projectile with fire.mp3
+        if (heldItemId === "dark_magic_staff") {
+          const eye = player.position.clone().add(new THREE.Vector3(0, player.eyeY - 0.1, 0));
+          spawnStaffFireball(eye, dir);
+        }
+
         const landed = tryMelee();
-        if (!landed) playSound(typeof heldItemId === "string" ? "air_whoosh" : "air_dig");
+        if (!landed && heldItemId !== "dark_magic_staff") {
+          playSound(typeof heldItemId === "string" ? "air_whoosh" : "air_dig");
+        }
         return landed;
       };
 
@@ -2951,6 +3411,10 @@ export function SandboxGame({
         // Any swing tries to hit an entity first — with a weapon in hand you
         // never place blocks.
         if (typeof id === "string") {
+          if (id === "dark_magic_staff") {
+            attack();
+            return;
+          }
           if ((UTILITY_ITEMS as readonly string[]).includes(id)) {
             swing = 1;
             features.useItem(id, castHit());
@@ -3328,11 +3792,6 @@ export function SandboxGame({
         phoenixModelRef.current?.scale.setScalar(0.08);
         player.frozen = false;
         setCutsceneOn(false);
-        let tutorialDone = false;
-        try {
-          tutorialDone = localStorage.getItem(TUTORIAL_DONE_KEY) === "1";
-        } catch {}
-        if (!tutorialDone) setTutorialOpen(true);
       };
       const onSkipCutscene = () => finishCutscene();
       window.addEventListener("qb-skip-cutscene", onSkipCutscene);
@@ -3681,6 +4140,16 @@ export function SandboxGame({
         attackCd = Math.max(0, attackCd - dt);
         updateHitMe(dt);
         updateSwordFx(dt);
+        if (staffMixer) staffMixer.update(dt);
+        updateBossSystem(dt);
+
+        if (heldItemId === "dark_magic_staff") {
+          const staffObj = heldSwords.get("dark_magic_staff");
+          if (staffObj) {
+            staffObj.rotation.y = -0.22 + Math.sin(clock.getElapsedTime() * 3.5) * 0.08;
+            staffObj.position.y = Math.sin(clock.getElapsedTime() * 2.8) * 0.012;
+          }
+        }
         const sw = Math.sin(swing * Math.PI);
         const bp = heldSword?.visible
           ? heldBasePose.item
@@ -4439,8 +4908,15 @@ export function SandboxGame({
         </div>
       )}
 
-      {cutsceneOn && <SkyblockCutscene onSkip={() => window.dispatchEvent(new Event("qb-skip-cutscene"))} />}
-      {tutorialOpen && !cutsceneOn && <SkyblockTutorial onClose={() => setTutorialOpen(false)} />}
+      {cutsceneOn && (
+        <SkyblockCutscene
+          onSkip={() => window.dispatchEvent(new Event("qb-skip-cutscene"))}
+          hotbar={hotbar}
+          tileUrls={tileUrls}
+          slot={slot}
+          onSelectSlot={selectSlot}
+        />
+      )}
 
       {/* ── FLOATING TOP BAR (Filled Icons + Translucent Login / Sign Up) ── */}
       {ready && !skyblock && !blockFall && !bedwars && (
@@ -4597,7 +5073,6 @@ export function SandboxGame({
                   ...(skyblock
                     ? [{ label: inMine ? "Return to island" : "Teleport to Deep Mines", onSelect: () => window.dispatchEvent(new Event(MINE_TELEPORT_EVENT)) }]
                     : []),
-                  ...(skyblock ? [{ label: "Tutorial", onSelect: () => setTutorialOpen(true) }] : []),
                 ]
               : []
           }
