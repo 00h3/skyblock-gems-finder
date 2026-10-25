@@ -4560,3 +4560,23 @@ html.dark .home-currency-bubble {
 @media (prefers-reduced-motion: reduce) {
   .qb-letterbox-top, .qb-letterbox-bottom, .qb-cutscene-title, .qb-cutscene-vignette { animation: none; }
 }
+
+/* Skyblock: hurt vignette, comic reward pop, teleport cinematic */
+@keyframes qb-hurt-flash { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+.qb-hurt-flash { animation: qb-hurt-flash 0.75s ease-out both; box-shadow: inset 0 0 90px 26px rgba(220, 20, 20, 0.62), inset 0 0 0 3px rgba(255, 70, 70, 0.55); }
+.qb-hurt-low { box-shadow: inset 0 0 70px 10px rgba(200, 20, 20, 0.38); }
+@keyframes qb-comic-pop { 0% { transform: scale(0.2) rotate(-14deg); opacity: 0; } 55% { transform: scale(1.18) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(-3deg); opacity: 1; } }
+@keyframes qb-burst-spin { to { transform: rotate(360deg); } }
+@keyframes qb-item-rise { 0% { transform: translateY(24px) scale(0.6); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+.qb-comic-pop { animation: qb-comic-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.qb-burst-spin { animation: qb-burst-spin 18s linear infinite; }
+.qb-item-rise { animation: qb-item-rise 0.5s 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+@keyframes qb-tp-fade { 0% { opacity: 0; } 22%, 78% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes qb-tp-shake { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-3px, 2px); } 40% { transform: translate(3px, -2px); } 60% { transform: translate(-2px, -3px); } 80% { transform: translate(2px, 3px); } }
+@keyframes qb-tp-title { 0%, 40% { opacity: 0; transform: translateY(12px) scale(0.95); } 55%, 85% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; } }
+.qb-tp-fade { animation: qb-tp-fade 3.2s ease-in-out both; }
+.qb-tp-shake { animation: qb-tp-shake 0.18s linear 6; }
+.qb-tp-title { animation: qb-tp-title 3.2s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .qb-tp-shake, .qb-burst-spin { animation: none; }
+}

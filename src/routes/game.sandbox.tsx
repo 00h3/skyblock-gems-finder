@@ -79,7 +79,30 @@ import { SkyblockCutscene } from "@/components/SkyblockIntro";
 import { BlockGravity } from "@/engine-sandbox/shared/block-physics";
 
 import { MineTeleportButton, useWeather } from "@/components/SkyblockExtras";
-import { buildMiningArea, type MiningArea } from "@/engine-sandbox/skyblock/mining-area";
+import { buildMiningArea, DRAGON_ARENA, type MiningArea } from "@/engine-sandbox/skyblock/mining-area";
+import { RewardChests } from "@/engine-sandbox/skyblock/reward-chests";
+import { RedDragon, type DragonHud } from "@/engine-sandbox/skyblock/red-dragon";
+import {
+  ChestHint,
+  ChestRewardModal,
+  DragonBossBar,
+  HurtVignette,
+  MissionCompleteToast,
+  MissionTracker,
+  NpcDialogue,
+  TeleportCinematic,
+} from "@/components/SkyblockOverlays";
+import {
+  MISSION_DONE_EVENT,
+  bumpMission,
+  collectReward,
+  grantStaff,
+  hasStaff,
+  rollReward,
+  useMissions,
+  type MissionDef,
+  type Reward,
+} from "@/lib/skyblock-missions";
 import { WEATHER_EVENT, WEATHER_ORDER, WEATHER_PRESETS, readWeather, setWeather, type Weather } from "@/lib/weather";
 
 const CUTSCENE_SECONDS = 9;
@@ -636,7 +659,7 @@ function buildSkyblockIsland(world: World) {
   world.set(3, 23, 46, 9); // Weeping leaves
   world.set(1, 23, 44, 9);
   world.set(3, 22, 45, 18); // Hanging grove lantern
-  world.set(1, 22, 43, 55); // Traveler's Chest
+  world.set(1, 22, 43, 0); // Traveler's chest is now a 3D prop
   world.set(2, 22, 43, 14); // Mossy stone
 
   // 3. West Sky (~46 blocks away) — The Golden Vein Mineral Island
@@ -657,7 +680,7 @@ function buildSkyblockIsland(world: World) {
   world.set(45, 24, 7, 5);
   world.set(45, 25, 7, 18); // Lantern
   world.set(44, 23, 6, 22); // Lapis Block altar
-  world.set(44, 24, 6, 55); // Ancient Chest
+  world.set(44, 24, 6, 0); // Ancient chest is now a 3D prop
   world.set(45, 23, 5, 14); // Mossy Cobblestone
 }
 
@@ -1258,11 +1281,12 @@ function createSunDustParticles(count = 100) {
 }
 
 const CRAFTED_KEY = "qb_skyblock_crafted";
-const STARTER_BACKPACK: (number | string)[] = ["dark_magic_staff", "gold_sword", 7, 9, 2, 4, 6, 13, 1, 3, 5, 38, 40, 42];
+const STARTER_BACKPACK: (number | string)[] = ["gold_sword", 7, 9, 2, 4, 6, 13, 1, 3, 5, 38, 40, 42];
 
 type SwordStats = { damage: number; knockback: number; cooldown: number; reach: number; slash: number };
 
 const STAFF_FIRE_SFX = "https://file.garden/alGOOylwpAfCa6qP/Sounds/fire.mp3";
+const WIN_SFX = "/skyblock/win.mp3";
 const BOSS_LASER_SFX = "https://file.garden/alGOOylwpAfCa6qP/Sounds/gun_jiguangbu.mp3";
 
 function playAudioUrl(url: string, volume = 0.8) {
@@ -1402,7 +1426,7 @@ export function SandboxGame({
     goldenDays
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
       : isSkyblockLike
-        ? ["dark_magic_staff", "short_sword", 1, 2, 3, 4, 44, 45, 46]
+        ? [...(skyblock && !hasStaff() ? [] : ["dark_magic_staff"]), "short_sword", 1, 2, 3, 4, 44, 45, 46]
         : blockFall
           ? []
           : bedwars
@@ -1519,7 +1543,59 @@ export function SandboxGame({
   const [cutsceneOn, setCutsceneOn] = useState(false);
   const weather = useWeather();
   const [inMine, setInMine] = useState(false);
+  const [staffOwned, setStaffOwned] = useState(() => hasStaff());
+  const [rewardChest, setRewardChest] = useState<Reward | null>(null);
+  const [chestNear, setChestNear] = useState(false);
+  const [dragonHud, setDragonHud] = useState<DragonHud>({ hp: 1000, max: 1000, engaged: false });
+  const [tpCine, setTpCine] = useState<"mine" | "island" | null>(null);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [missionToast, setMissionToast] = useState<MissionDef | null>(null);
+  const missionState = useMissions();
+  const wasCutsceneRef = useRef(false);
   const cutsceneRef = useRef({ active: false, t: 0 });
+
+  useEffect(() => {
+    if (!skyblock) return;
+    if (wasCutsceneRef.current && !cutsceneOn) {
+      try {
+        if (localStorage.getItem("qb_skyblock_welcome_seen") !== "1") setWelcomeOpen(true);
+      } catch {
+        setWelcomeOpen(true);
+      }
+    }
+    wasCutsceneRef.current = cutsceneOn;
+  }, [cutsceneOn, skyblock]);
+
+  useEffect(() => {
+    if (!skyblock) return;
+    let timer = 0;
+    const onDone = (e: Event) => {
+      setMissionToast((e as CustomEvent<MissionDef>).detail);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setMissionToast(null), 3600);
+    };
+    window.addEventListener(MISSION_DONE_EVENT, onDone);
+    return () => {
+      window.removeEventListener(MISSION_DONE_EVENT, onDone);
+      window.clearTimeout(timer);
+    };
+  }, [skyblock]);
+
+  const requestTeleport = useCallback(() => {
+    if (tpCine || cutsceneRef.current.active) return;
+    setTpCine(inMine ? "island" : "mine");
+    window.setTimeout(() => window.dispatchEvent(new Event(MINE_TELEPORT_EVENT)), 950);
+    window.setTimeout(() => setTpCine(null), 3300);
+  }, [tpCine, inMine]);
+
+  const closeWelcome = useCallback(() => {
+    try {
+      localStorage.setItem("qb_skyblock_welcome_seen", "1");
+    } catch {
+      // Ignore storage failures; dialogue just shows again next visit.
+    }
+    setWelcomeOpen(false);
+  }, []);
   const [graphicsError, setGraphicsError] = useState("");
   const hungerRef = useRef(20);
   const runesTimeRef = useRef(600);
@@ -2854,6 +2930,7 @@ export function SandboxGame({
           boss.bar.sprite.visible = false;
           boss.respawnTimer = 6.0;
           announce("BOSS_001 Defeated!", "Respawning in 6 seconds...");
+          bumpMission("forgerKills", 1);
           spawnFireExplosion(bCenter);
         }
       };
@@ -2879,6 +2956,35 @@ export function SandboxGame({
         away.y = 0.35;
         player.velocity.addScaledVector(away, 5.0);
       };
+
+      // ── Red Dragon: 1000 HP boss in its own arena, hostile only once hit ──
+      const redDragon: RedDragon | null = skyblock
+        ? new RedDragon({
+            scene,
+            arena: DRAGON_ARENA,
+            player: () => ({ position: player.position, dead: player.isDying }),
+            damagePlayer,
+            onHud: (hud) => setDragonHud(hud),
+            onDefeated: () => {
+              grantStaff();
+              setStaffOwned(true);
+              setHotbar((prev) => (prev.includes("dark_magic_staff") ? prev : ["dark_magic_staff", ...prev]));
+              announce("Red Dragon Defeated!", "You earned the Dark Magic Staff", "reward");
+              playAudioUrl(WIN_SFX, 0.9);
+              progression.grantXp(1500);
+              bumpMission("dragonKills", 1);
+            },
+            burst: (at, big) => {
+              spawnFireExplosion(at);
+              if (big) for (let i = 0; i < 4; i++) spawnFireExplosion(at.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 6)));
+            },
+            hitFx: (at, dmg) => {
+              spawnHitFx(at, dmg, true);
+              playSound("hurt");
+            },
+            sound: (name) => playSound(name as Parameters<typeof playSound>[0]),
+          })
+        : null;
 
       // Load Golden Forger model for the 3 bosses
       const bossLoader = new GLTFLoader();
@@ -2952,6 +3058,7 @@ export function SandboxGame({
       );
 
       const updateBossSystem = (dt: number) => {
+        if (playerInMine) redDragon?.update(dt);
         // 1. Staff Fireballs update
         for (let i = staffFireballs.length - 1; i >= 0; i--) {
           const fb = staffFireballs[i];
@@ -2962,7 +3069,12 @@ export function SandboxGame({
           fb.group.rotation.y += dt * 10;
 
           let hitTarget = false;
+          if (redDragon?.contains(fb.pos, 0.5)) {
+            hitTarget = true;
+            redDragon.hurt(12);
+          }
           for (const boss of bossEnemies) {
+            if (hitTarget) break;
             if (!boss.alive) continue;
             const bPos = boss.group.position.clone().add(new THREE.Vector3(0, 1.0, 0));
             if (fb.pos.distanceTo(bPos) < 1.4) {
@@ -3397,6 +3509,14 @@ export function SandboxGame({
           Math.round(baseDamage * features.comboHit(stats.cooldown).mul * (1 + chargeMul * 0.6));
         const sprinting = Math.hypot(player.velocity.x, player.velocity.z) > 5;
 
+        if (redDragon && heldItemId !== "dark_magic_staff") {
+          const dDist = redDragon.rayHit(eye, dir, stats.reach);
+          if (dDist >= 0) {
+            redDragon.hurt(landDamage());
+            return true;
+          }
+        }
+
         // Hit test against the 3 Golden Forger BOSS_001 NPCs
         for (const boss of bossEnemies) {
           if (!boss.alive) continue;
@@ -3773,6 +3893,48 @@ export function SandboxGame({
         scene.add(light);
         mineLights.push(light);
       }
+      const rewardChests: RewardChests | null = skyblock
+        ? new RewardChests({
+            scene,
+            camera,
+            canvas: renderer.domElement,
+            playerPosition: () => player.position,
+            onNear: (near) => setChestNear(near),
+            onOpened: () => {
+              document.exitPointerLock?.();
+              playAudioUrl(WIN_SFX, 0.9);
+              const reward = rollReward();
+              collectReward(reward);
+              if (reward.itemId) {
+                const itemId = reward.itemId;
+                setHotbar((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]));
+              }
+              setRewardChest(reward);
+            },
+          })
+        : null;
+      if (rewardChests && world) {
+        const chestWorld = world;
+        const groundAt = (x: number, z: number) => {
+          for (let y = 60; y > 4; y--) if (chestWorld.solid(Math.floor(x), y, Math.floor(z))) return y + 1;
+          return null;
+        };
+        for (const [x, z] of [[1.5, 43.5], [44.5, 6.5]] as const) {
+          const y = groundAt(x, z);
+          if (y !== null) rewardChests.add(x, y, z, Math.random() * Math.PI * 2);
+        }
+        // Main island: first two clear grass spots around the spawn.
+        let placed = 0;
+        for (const [x, z] of [[-5.5, 4.5], [5.5, 5.5], [-4.5, -4.5], [6.5, -6.5], [-7.5, 0.5], [0.5, 7.5], [0.5, -7.5]] as const) {
+          if (placed >= 2) break;
+          const y = groundAt(x, z);
+          if (y === null || y < 14 || y > 22) continue;
+          if (world.solid(Math.floor(x), y, Math.floor(z)) || world.solid(Math.floor(x), y + 1, Math.floor(z))) continue;
+          rewardChests.add(x, y, z, Math.atan2(-x, -z));
+          placed++;
+        }
+        for (const spot of mineArea?.chestSpots ?? []) rewardChests.add(spot.x, spot.y, spot.z, Math.random() * Math.PI * 2);
+      }
       const caveFogColor = new THREE.Color("#382b22");
       let savedFog: { near: number; far: number; color?: THREE.Color } | null = null;
       let islandSpawn: THREE.Vector3 | null = null;
@@ -3802,7 +3964,8 @@ export function SandboxGame({
           islandSpawn = player.spawnPoint.clone();
           player.setSpawnPoint(mineArea.spawn.x, mineArea.spawn.y, mineArea.spawn.z);
           setMineState(true);
-          announce("Deep Mines", "Rich ore lines the cavern walls", "reward");
+          announce("Deep Dungeon", "Rich ore lines the walls. The Red Dragon sleeps in the east.", "reward");
+          bumpMission("dungeonVisits", 1);
         } else {
           player.setSpawnPoint(islandSpawn ?? new THREE.Vector3(0.5, 17.5, 0.5));
           setMineState(false);
@@ -3813,8 +3976,18 @@ export function SandboxGame({
         setVeilToken((v) => v + 1);
         playSound("pop");
         if (renderer) renderer.shadowMap.needsUpdate = true;
+        player.frozen = true;
+        window.setTimeout(() => {
+          if (!cutsceneRef.current.active) player.frozen = false;
+        }, 2200);
       };
       window.addEventListener(MINE_TELEPORT_EVENT, onMineTeleport);
+      const onMissionDone = (e: Event) => {
+        const m = (e as CustomEvent<MissionDef>).detail;
+        progression.grantXp(m.xp);
+        playAudioUrl(WIN_SFX, 0.7);
+      };
+      window.addEventListener(MISSION_DONE_EVENT, onMissionDone);
 
       // Realistic ambient water sound when near Skyblock pond
       let stopWaterAudio: (() => void) | null = null;
@@ -4217,6 +4390,7 @@ export function SandboxGame({
         updateSwordFx(dt);
         if (staffMixer) staffMixer.update(dt);
         updateBossSystem(dt);
+        rewardChests?.update(dt);
 
         if (heldItemId === "dark_magic_staff") {
           const staffObj = heldSwords.get("dark_magic_staff");
@@ -4497,6 +4671,9 @@ export function SandboxGame({
         window.removeEventListener("qb-menu-respawn", onRespawn);
         window.removeEventListener(WEATHER_EVENT, onWeather);
         window.removeEventListener(MINE_TELEPORT_EVENT, onMineTeleport);
+        window.removeEventListener(MISSION_DONE_EVENT, onMissionDone);
+        rewardChests?.dispose();
+        redDragon?.dispose();
         for (const l of mineLights) l.dispose();
         mineAmbientLight.dispose();
         SNOW.uSnow.value = 0;
@@ -4861,7 +5038,7 @@ export function SandboxGame({
   const matchState = useStore(match.store);
   const progressState = useStore(progression.store);
   const backpack: (number | string)[] = isSkyblockLike
-    ? [...STARTER_BACKPACK, ...progressState.unlockedBlocks, ...crafted, ...NEW_BACKPACK_ITEMS]
+    ? [...(skyblock && !staffOwned ? [] : ["dark_magic_staff"]), ...STARTER_BACKPACK, ...progressState.unlockedBlocks, ...crafted, ...NEW_BACKPACK_ITEMS]
     : bedwars
       ? ["short_sword", "iron_sword", "diamond_sword", ...crafted, ...NEW_BACKPACK_ITEMS]
       : [];
@@ -4969,10 +5146,19 @@ export function SandboxGame({
       )}
 
       {ready && skyblock && !cutsceneOn && (
-        <div className="fixed right-3 top-[calc(env(safe-area-inset-top)+120px)] z-[85]">
-          <MineTeleportButton inMine={inMine} onPress={() => window.dispatchEvent(new Event(MINE_TELEPORT_EVENT))} />
+        <div className="fixed right-2 top-[calc(env(safe-area-inset-top)+112px)] z-[85]">
+          <MineTeleportButton inMine={inMine} onPress={requestTeleport} disabled={!!tpCine} />
         </div>
       )}
+
+      {skyblock && <HurtVignette hp={playerHp} />}
+      {skyblock && ready && !cutsceneOn && <MissionTracker state={missionState} />}
+      {skyblock && inMine && dragonHud.engaged && <DragonBossBar hp={dragonHud.hp} max={dragonHud.max} />}
+      {skyblock && chestNear && !rewardChest && !cutsceneOn && <ChestHint />}
+      {skyblock && missionToast && <MissionCompleteToast mission={missionToast} />}
+      {skyblock && tpCine && <TeleportCinematic to={tpCine} />}
+      {skyblock && rewardChest && <ChestRewardModal reward={rewardChest} onClose={() => setRewardChest(null)} />}
+      {skyblock && welcomeOpen && !cutsceneOn && <NpcDialogue onDone={closeWelcome} />}
 
       {cutsceneOn && (
         <SkyblockCutscene
@@ -5133,7 +5319,7 @@ export function SandboxGame({
                     onSelect: () => setWeather(WEATHER_ORDER[(WEATHER_ORDER.indexOf(weather) + 1) % WEATHER_ORDER.length]),
                   },
                   ...(skyblock
-                    ? [{ label: inMine ? "Return to island" : "Teleport to Deep Mines", onSelect: () => window.dispatchEvent(new Event(MINE_TELEPORT_EVENT)) }]
+                    ? [{ label: inMine ? "Return to island" : "Teleport to Deep Dungeon", onSelect: requestTeleport }]
                     : []),
                 ]
               : []

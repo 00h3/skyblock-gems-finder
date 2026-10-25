@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
-import { CloudSnow, Home, Pickaxe, Snowflake, Sun, Wind } from "lucide-react";
+import { CloudSnow, Snowflake, Sun, Wind } from "lucide-react";
 import { PANEL_INNER, SLOT_EMPTY, SLOT_FILLED, SLOT_SEL } from "@/components/AdvancedInventoryModal";
 import { WEATHER_EVENT, WEATHER_ORDER, WEATHER_PRESETS, readWeather, setWeather, type Weather } from "@/lib/weather";
 
-export function MineTeleportButton({ inMine, onPress }: { inMine: boolean; onPress: () => void }) {
-  const Icon = inMine ? Home : Pickaxe;
+export function MineTeleportButton({ inMine, onPress, disabled }: { inMine: boolean; onPress: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onPress}
-      aria-label={inMine ? "Teleport back to your island" : "Teleport to the Deep Mines"}
-      className="font-inter-bold pointer-events-auto flex h-[52px] w-[52px] flex-col items-center justify-center gap-0.5 text-white transition active:scale-95"
-      style={{ ...SLOT_FILLED, borderRadius: "10px", boxShadow: "0 6px 18px rgba(0,0,0,0.45)" }}
+      disabled={disabled}
+      aria-label={inMine ? "Teleport back to your island" : "Teleport to the Deep Dungeon"}
+      className="pointer-events-auto block cursor-pointer border-0 bg-transparent p-0 transition-transform hover:scale-105 active:scale-90 disabled:opacity-60"
     >
-      <Icon className="h-5 w-5 text-slate-100" aria-hidden="true" />
-      <span className="text-[9px] font-black italic leading-none text-slate-300">{inMine ? "Island" : "Mines"}</span>
+      <img
+        src={inMine ? "/skyblock/btn-island.png" : "/skyblock/btn-cave.png"}
+        alt=""
+        width={84}
+        height={84}
+        draggable={false}
+        className="h-[84px] w-[84px] select-none object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.55)]"
+      />
     </button>
   );
 }
