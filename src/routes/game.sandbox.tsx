@@ -88,8 +88,8 @@ import {
   DragonBossBar,
   HurtVignette,
   MissionCompleteToast,
-  MissionTracker,
   NpcDialogue,
+  SkyblockHudColumn,
   TeleportCinematic,
 } from "@/components/SkyblockOverlays";
 import {
@@ -5133,7 +5133,7 @@ export function SandboxGame({
         onPointerCancel={onTouchEnd}
       />
 
-      {ready && !cutsceneOn && (
+      {ready && loadingDismissed && !cutsceneOn && !showClickToPlay && (
         <div
           role="status"
           aria-live="polite"
@@ -5145,20 +5145,28 @@ export function SandboxGame({
         </div>
       )}
 
-      {ready && skyblock && !cutsceneOn && (
+      {ready && skyblock && loadingDismissed && !cutsceneOn && !showClickToPlay && (
         <div className="fixed right-2 top-[calc(env(safe-area-inset-top)+112px)] z-[85]">
           <MineTeleportButton inMine={inMine} onPress={requestTeleport} disabled={!!tpCine} />
         </div>
       )}
 
       {skyblock && <HurtVignette hp={playerHp} />}
-      {skyblock && ready && !cutsceneOn && <MissionTracker state={missionState} />}
-      {skyblock && inMine && dragonHud.engaged && <DragonBossBar hp={dragonHud.hp} max={dragonHud.max} />}
-      {skyblock && chestNear && !rewardChest && !cutsceneOn && <ChestHint />}
-      {skyblock && missionToast && <MissionCompleteToast mission={missionToast} />}
+      {skyblock && ready && loadingDismissed && !cutsceneOn && !showClickToPlay && (
+        <SkyblockHudColumn hp={playerHp} state={missionState} />
+      )}
+      {skyblock && ready && loadingDismissed && !showClickToPlay && inMine && dragonHud.engaged && (
+        <DragonBossBar hp={dragonHud.hp} max={dragonHud.max} />
+      )}
+      {skyblock && ready && loadingDismissed && !showClickToPlay && chestNear && !rewardChest && !cutsceneOn && (
+        <ChestHint />
+      )}
+      {skyblock && ready && loadingDismissed && !showClickToPlay && missionToast && (
+        <MissionCompleteToast mission={missionToast} />
+      )}
       {skyblock && tpCine && <TeleportCinematic to={tpCine} />}
       {skyblock && rewardChest && <ChestRewardModal reward={rewardChest} onClose={() => setRewardChest(null)} />}
-      {skyblock && welcomeOpen && !cutsceneOn && <NpcDialogue onDone={closeWelcome} />}
+      {skyblock && welcomeOpen && !cutsceneOn && !showClickToPlay && <NpcDialogue onDone={closeWelcome} />}
 
       {cutsceneOn && (
         <SkyblockCutscene
