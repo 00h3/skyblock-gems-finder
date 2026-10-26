@@ -24,33 +24,70 @@ export function HurtVignette({ hp, maxHp = 20 }: { hp: number; maxHp?: number })
   );
 }
 
-/* ── Dragon boss bar ──────────────────────────────────────────────────── */
+/* ── Grey inventory-style stat bars ───────────────────────────────────── */
 
-export function DragonBossBar({ hp, max }: { hp: number; max: number }) {
-  const pct = Math.max(0, Math.min(100, (hp / max) * 100));
+function GreyStatBar({
+  label,
+  value,
+  max,
+  fill,
+  labelClass = "text-slate-400",
+  className,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  fill: string;
+  labelClass?: string;
+  className?: string;
+}) {
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
     <div
-      className="pointer-events-none fixed left-1/2 top-[calc(env(safe-area-inset-top)+108px)] z-[88] w-[min(340px,86vw)] -translate-x-1/2 font-inter-bold"
+      className={`font-inter-bold ${className ?? ""}`}
       role="progressbar"
-      aria-label="Red Dragon health"
+      aria-label={`${label} ${value} of ${max}`}
       aria-valuemin={0}
       aria-valuemax={max}
-      aria-valuenow={hp}
+      aria-valuenow={value}
     >
-      <div className="px-3 py-2" style={{ ...PANEL_OUTER, padding: "8px 12px", backgroundColor: "rgba(22,25,31,0.94)" }}>
-        <div className="mb-1 flex items-baseline justify-between">
-          <span className={`text-[13px] font-black italic text-white ${OUTLINE}`}>Red Dragon</span>
-          <span className={`text-[11px] font-black tabular-nums text-slate-300 ${OUTLINE}`}>
-            {hp} / {max}
+      <div style={{ ...PANEL_OUTER, padding: "7px 9px", backgroundColor: "rgba(26,29,36,0.92)" }}>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={`text-[10px] font-black uppercase tracking-widest ${labelClass}`}>{label}</span>
+          <span className="text-[10px] font-black tabular-nums text-slate-400">
+            {value} / {max}
           </span>
         </div>
-        <div className="h-3.5 overflow-hidden p-[2px]" style={PANEL_INNER}>
-          <div
-            className="h-full rounded-[4px] bg-gradient-to-r from-red-500 to-red-700 transition-[width] duration-200"
-            style={{ width: `${pct}%` }}
-          />
+        <div className="mt-1 h-2.5 overflow-hidden p-[1.5px]" style={PANEL_INNER}>
+          <div className={`h-full rounded-[3px] transition-[width] duration-200 ${fill}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
+    </div>
+  );
+}
+
+export function PlayerHpBar({ hp, max = 20 }: { hp: number; max?: number }) {
+  return (
+    <GreyStatBar
+      label="Health"
+      value={hp}
+      max={max}
+      fill="bg-gradient-to-r from-red-500 to-red-600"
+      className="pointer-events-none w-full"
+    />
+  );
+}
+
+export function DragonBossBar({ hp, max }: { hp: number; max: number }) {
+  return (
+    <div className="pointer-events-none fixed left-1/2 top-[calc(env(safe-area-inset-top)+108px)] z-[88] w-[min(340px,86vw)] -translate-x-1/2">
+      <GreyStatBar
+        label="Red Dragon"
+        value={hp}
+        max={max}
+        fill="bg-gradient-to-r from-red-500 to-red-700"
+        labelClass="text-red-300"
+      />
     </div>
   );
 }
@@ -181,31 +218,34 @@ export function NpcDialogue({ onDone }: { onDone: () => void }) {
     else setLine(line + 1);
   };
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[125] flex justify-center px-3 pb-[max(14px,calc(env(safe-area-inset-bottom)+10px))] font-inter-bold">
+    <div className="fixed inset-x-0 bottom-0 z-[125] flex justify-center px-3 pb-[max(52px,calc(env(safe-area-inset-bottom)+48px))] font-inter-bold">
       <button
         type="button"
         onClick={advance}
         aria-label="Continue dialogue"
-        className="flex w-full max-w-[520px] cursor-pointer items-stretch gap-3 text-left transition active:scale-[0.99]"
-        style={{ ...PANEL_OUTER, padding: "10px", backgroundColor: "rgba(26,29,36,0.96)" }}
+        className="w-full max-w-[520px] cursor-pointer text-left transition active:scale-[0.99]"
+        style={{ ...PANEL_OUTER, backgroundColor: "rgba(26,29,36,0.96)" }}
       >
-        <img
-          src={nedAvatar}
-          alt="Ned, the island guide"
-          width={64}
-          height={64}
-          className="h-16 w-16 shrink-0 rounded-[10px] object-cover"
-          style={{ border: "2px solid #5b7bb2" }}
-        />
-        <div className="flex min-w-0 flex-1 flex-col justify-between">
-          <div>
-            <p className={`text-[12px] font-black italic text-sky-300 ${OUTLINE}`}>Ned</p>
-            <p className={`mt-0.5 min-h-[44px] text-[13px] font-black leading-snug text-white ${OUTLINE}`} aria-live="polite">
-              {text.slice(0, shown)}
-            </p>
+        <div className="flex items-center gap-2.5">
+          <img
+            src={nedAvatar}
+            alt="Ned, the island guide"
+            width={48}
+            height={48}
+            className="h-12 w-12 shrink-0 rounded-[6px] object-cover"
+            style={{ border: "1px solid #394152" }}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Island Guide</p>
+            <p className={`text-[15px] font-black italic leading-tight text-white ${OUTLINE}`}>Ned</p>
           </div>
-          <p className="mt-1 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-slate-400">
             {finished ? (line >= WELCOME_LINES.length - 1 ? "Tap to start" : "Tap to continue") : "..."}
+          </span>
+        </div>
+        <div className="mt-2 p-2.5" style={PANEL_INNER}>
+          <p className={`min-h-[42px] text-[13px] font-black leading-snug text-white ${OUTLINE}`} aria-live="polite">
+            {text.slice(0, shown)}
           </p>
         </div>
       </button>
@@ -215,17 +255,27 @@ export function NpcDialogue({ onDone }: { onDone: () => void }) {
 
 /* ── Mission tracker ──────────────────────────────────────────────────── */
 
+/** Left HUD column: health on top, mission chip below. Stacked so they never collide. */
+export function SkyblockHudColumn({ hp, maxHp = 20, state }: { hp: number; maxHp?: number; state: MissionState }) {
+  return (
+    <div className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+150px)] z-[85] flex w-[190px] flex-col gap-1.5 font-inter-bold">
+      <PlayerHpBar hp={hp} max={maxHp} />
+      <MissionTracker state={state} />
+    </div>
+  );
+}
+
 export function MissionTracker({ state }: { state: MissionState }) {
   const [open, setOpen] = useState(false);
   const active = currentMission(state);
   const doneCount = state.done.length;
   return (
-    <div className="pointer-events-auto fixed left-3 top-[calc(env(safe-area-inset-top)+120px)] z-[85] w-[190px] font-inter-bold">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="w-full cursor-pointer text-left transition active:scale-[0.98]"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="pointer-events-auto w-full cursor-pointer text-left transition active:scale-[0.98]"
         style={{ ...PANEL_OUTER, padding: "7px 9px", backgroundColor: "rgba(26,29,36,0.92)" }}
       >
         <div className="flex items-center justify-between">
@@ -254,27 +304,71 @@ export function MissionTracker({ state }: { state: MissionState }) {
           <p className={`mt-0.5 text-[12px] font-black italic text-amber-300 ${OUTLINE}`}>All missions complete!</p>
         )}
       </button>
-      {open && (
-        <ul className="mt-1.5 space-y-1" style={{ ...PANEL_OUTER, padding: "7px 9px", backgroundColor: "rgba(26,29,36,0.95)" }}>
+      {open && <MissionLogModal state={state} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function MissionLogModal({ state, onClose }: { state: MissionState; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[132] flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm font-inter-bold">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mission-log-title"
+        className="flex w-full max-w-[360px] flex-col gap-2"
+        style={{ ...PANEL_OUTER, backgroundColor: "rgba(26,29,36,0.97)" }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 id="mission-log-title" className={`flex items-center gap-1.5 text-[13px] font-black italic text-white ${OUTLINE}`}>
+            <Target className="h-3.5 w-3.5" aria-hidden="true" /> Missions
+          </h2>
+          <span className="text-[10px] font-black tabular-nums text-slate-400">
+            {state.done.length}/{MISSIONS.length}
+          </span>
+        </div>
+        <ul className="flex max-h-[52vh] flex-col gap-1.5 overflow-y-auto p-2" style={PANEL_INNER}>
           {MISSIONS.map((m) => {
             const done = state.done.includes(m.id);
             return (
-              <li key={m.id} className="flex items-start gap-1.5">
+              <li key={m.id} className="flex items-start gap-2">
                 <span
-                  className="mt-0.5 grid h-3.5 w-3.5 shrink-0 place-items-center rounded-[3px]"
+                  className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[3px]"
                   style={{ backgroundColor: done ? "#16a34a" : "#1e2128", border: "1px solid #394152" }}
                 >
                   {done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} aria-hidden="true" />}
                 </span>
                 <span className="min-w-0">
-                  <span className={`block text-[11px] font-black leading-tight ${done ? "text-slate-500 line-through" : "text-white"}`}>{m.title}</span>
-                  <span className="block text-[9.5px] font-bold leading-tight text-slate-400">Reward: {m.reward}</span>
+                  <span className={`block text-[12px] font-black leading-tight ${done ? "text-slate-500 line-through" : "text-white"}`}>
+                    {m.title}
+                  </span>
+                  <span className="block text-[10px] font-bold leading-tight text-slate-400">
+                    {m.detail} · Reward: {m.reward}
+                  </span>
                 </span>
               </li>
             );
           })}
         </ul>
-      )}
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          className={`w-full cursor-pointer px-4 py-2 text-[12px] font-black italic text-white transition active:scale-95 ${OUTLINE}`}
+          style={{ ...SLOT_FILLED, borderRadius: "10px", border: "1px solid #5b7bb2", backgroundColor: "#2b3952" }}
+        >
+          Close
+        </button>
+      </section>
     </div>
   );
 }
