@@ -49,7 +49,11 @@ const GlowCard: React.FC<GlowCardProps> = ({
     };
 
     document.addEventListener('pointermove', syncPointer);
-    return () => document.removeEventListener('pointermove', syncPointer);
+    document.addEventListener('pointerdown', syncPointer);
+    return () => {
+      document.removeEventListener('pointermove', syncPointer);
+      document.removeEventListener('pointerdown', syncPointer);
+    };
   }, []);
 
   const { base, spread } = glowColorMap[glowColor];
@@ -87,7 +91,7 @@ const GlowCard: React.FC<GlowCardProps> = ({
       backgroundAttachment: 'fixed',
       border: 'var(--border-size) solid var(--backup-border)',
       position: 'relative',
-      touchAction: 'none',
+      touchAction: 'pan-x',
     };
 
     // Add width and height if provided
