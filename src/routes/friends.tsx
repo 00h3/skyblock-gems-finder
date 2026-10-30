@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/MobileShell";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { useAuth } from "@/lib/auth-context";
@@ -289,20 +290,35 @@ function FriendsPage() {
         {/* Floating Bottom Glossy Tabs */}
         <div className="fixed bottom-[calc(56px+max(env(safe-area-inset-bottom),8px))] left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
           <div className="qb-glossy-menu pointer-events-auto flex max-w-full gap-1 overflow-x-auto rounded-full px-2 py-1 shadow-md hide-scrollbar">
-            {FRIENDS_TABS.map((label, index) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setTab(index)}
-                className={`press relative z-10 h-7 shrink-0 rounded-full px-3 text-[11px] font-normal transition-colors cursor-pointer ${
-                  index === tab
-                    ? "bg-foreground text-background shadow-xs"
-                    : "qb-glossy-chip text-foreground"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {FRIENDS_TABS.map((label, index) => {
+              const isSelected = index === tab;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setTab(index)}
+                  className={`press relative z-10 h-7 shrink-0 rounded-full px-3 text-[11px] transition-all cursor-pointer outline-none select-none ${
+                    isSelected
+                      ? "font-extrabold text-foreground"
+                      : "qb-glossy-chip font-medium text-foreground/75 hover:text-foreground"
+                  }`}
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="friendsTabActivePill"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 32,
+                        mass: 0.8,
+                      }}
+                      className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_10px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_12px_rgba(0,0,0,0.4)]"
+                    />
+                  )}
+                  <span className="relative z-10">{label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

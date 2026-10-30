@@ -12,6 +12,7 @@ import { DiscoveryPopup } from "@/components/DiscoveryPopup";
 import { getRecentlyPlayedGameIds } from "@/lib/games-cache";
 import { openFragments } from "@/lib/fragments-ui";
 import { openEvents } from "@/lib/events-ui";
+import { ThreeDTestimonials } from "@/components/ui/3d-testimonials";
 
 export function RedesignedHomePage({
   GAMES,
@@ -323,6 +324,15 @@ export function RedesignedHomePage({
             ))}
           </div>
         </section>
+
+        {/* 3D Community Player Reviews */}
+        <section className="mt-6 px-4">
+          <div className="mt-1">
+            <ThreeDTestimonials className="py-2" />
+          </div>
+        </section>
+
+
       </div>
 
       <DiscoveryPopup

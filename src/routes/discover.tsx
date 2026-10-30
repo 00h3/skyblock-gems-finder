@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
 import { OrangeHeartIcon } from "@/components/QbIcons";
+import { PlayersIcon } from "@/components/icons/PlayersIcon";
 import {
   ArrowRight,
   ChevronRight,
@@ -8,6 +9,8 @@ import {
   Gamepad2,
   Hammer,
   Info,
+  LayoutGrid,
+  List,
   Map,
   Play,
   Search,
@@ -18,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { GameSheet, type GameMeta } from "@/components/GameSheet";
 import { MobileShell } from "@/components/MobileShell";
 import { PrivateServerSheet } from "@/components/PrivateServerSheet";
@@ -132,16 +136,9 @@ const UPLOADED_DISCOVER_TABS = [
 function UploadedDiscoverPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [open, setOpen] = useState<DiscoveryGame | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
-  const [activeSlide, setActiveSlide] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev === 0 ? 1 : 0));
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
 
   const games = useMemo(() => {
     const activeTab = UPLOADED_DISCOVER_TABS[tab];
@@ -157,138 +154,236 @@ function UploadedDiscoverPage() {
 
   return (
     <MobileShell>
-      <div className="min-h-full bg-background pb-24">
-        {/* Switching Glossy Banner (same banner as homepage on top of the games) */}
-        <div className="px-4 pt-3 pb-1">
-          <div
-            onClick={() => setActiveSlide((prev) => (prev === 0 ? 1 : 0))}
-            className="qb-squircle press relative h-[105px] w-full overflow-hidden cursor-pointer select-none rounded-[14px]"
-          >
-            {/* Top gloss curve + shimmer sweep (same glossiness as mail/notify) */}
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent pointer-events-none z-10" />
-            <span
-              className="pointer-events-none absolute inset-0 -translate-x-[160%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/40 to-transparent z-10"
-              style={{
-                animation: "glossyShineSweep 16s cubic-bezier(0.4, 0, 0.2, 1) infinite",
-              }}
-            />
+      <div className="min-h-full bg-background pb-28">
+        {/* Top Header Bar with Title & Card/List Switcher in Bottom Menu Style */}
+        <div className="px-4 pt-[max(env(safe-area-inset-top),16px)] pb-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-[20px] font-black tracking-tight text-[#1A1D20] dark:text-white leading-tight">
+              Discover
+            </h1>
+            <p className="text-[11px] font-semibold text-[#8b929d]">
+              {games.length} experiences
+            </p>
+          </div>
 
-            {/* Slider track */}
-            <div
-              className="flex h-full w-[200%] transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${activeSlide * 50}%)` }}
+          {/* Card / List Switcher with clear liquid glass switch animation */}
+          <div className="qb-glossy-menu rounded-full p-1 flex items-center gap-1 shadow-md border border-black/[0.08] dark:border-white/12">
+            <button
+              type="button"
+              onClick={() => setViewMode("card")}
+              className={`press relative flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[11.5px] transition-all duration-200 cursor-pointer select-none outline-none ${
+                viewMode === "card"
+                  ? "font-black text-foreground"
+                  : "font-semibold text-foreground/60 hover:text-foreground"
+              }`}
+              aria-label="Card view"
             >
-              {/* Slide 1 */}
-              <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 pb-2 relative z-10">
-                <span className="text-[16px] font-black tracking-tight text-[#1A1D20] dark:text-white">
-                  Untitled Banner
-                </span>
-              </div>
-
-              {/* Slide 2 */}
-              <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 pb-2 relative z-10">
-                <span className="text-[16px] font-black tracking-tight text-[#1A1D20] dark:text-white">
-                  Untitled Banner
-                </span>
-              </div>
-            </div>
-
-            {/* Animated 2-dot indicator ● ● */}
-            <div className="absolute bottom-2.5 inset-x-0 z-20 flex items-center justify-center gap-1.5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveSlide(0);
-                }}
-                aria-label="Slide 1"
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeSlide === 0
-                    ? "w-4 bg-[#1A1D20] dark:bg-white"
-                    : "w-1.5 bg-black/20 dark:bg-white/20 hover:bg-black/35"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveSlide(1);
-                }}
-                aria-label="Slide 2"
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeSlide === 1
-                    ? "w-4 bg-[#1A1D20] dark:bg-white"
-                    : "w-1.5 bg-black/20 dark:bg-white/20 hover:bg-black/35"
-                }`}
-              />
-            </div>
+              {viewMode === "card" && (
+                <motion.div
+                  layoutId="discoverViewModePill"
+                  transition={{
+                    type: "spring",
+                    stiffness: 450,
+                    damping: 32,
+                    mass: 0.8,
+                  }}
+                  className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/18 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_10px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_12px_rgba(0,0,0,0.4)]"
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Card</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`press relative flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[11.5px] transition-all duration-200 cursor-pointer select-none outline-none ${
+                viewMode === "list"
+                  ? "font-black text-foreground"
+                  : "font-semibold text-foreground/60 hover:text-foreground"
+              }`}
+              aria-label="List view"
+            >
+              {viewMode === "list" && (
+                <motion.div
+                  layoutId="discoverViewModePill"
+                  transition={{
+                    type: "spring",
+                    stiffness: 450,
+                    damping: 32,
+                    mass: 0.8,
+                  }}
+                  className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/18 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_10px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_12px_rgba(0,0,0,0.4)]"
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <List className="h-3.5 w-3.5" />
+                <span>List</span>
+              </span>
+            </button>
           </div>
         </div>
 
         <div className="mt-1 px-4">
-          <div className="mb-2 text-[10.5px] font-normal uppercase tracking-[0.14em] text-text-secondary">
-            {UPLOADED_DISCOVER_TABS[tab]}
-          </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {games.map((game) => {
-              const isLiked = liked.has(game.id);
-              return (
-                <div key={game.id} className="flex flex-col gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(game)}
-                    className="press relative aspect-square overflow-hidden rounded-[14px] bg-gradient-to-br shadow-xs"
-                  >
-                    <img
-                      src={game.img}
-                      alt={game.title}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-25`} />
-                  </button>
-                  <div className="flex h-[36px] items-center justify-between gap-1 px-0.5">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[11px] font-medium">{game.title}</div>
-                      <div className="text-[9.5px] font-normal text-text-muted">{game.mode}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLiked((current) => {
-                          const next = new Set(current);
-                          if (next.has(game.id)) {
-                            next.delete(game.id);
-                          } else {
-                            next.add(game.id);
-                          }
-                          return next;
-                        });
-                      }}
-                      className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer active:scale-90 transition-transform"
-                      aria-label="Like game"
-                    >
-                      <OrangeHeartIcon
-                        className={
-                          isLiked
-                            ? "h-[15px] w-[15px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
-                            : "h-[15px] w-[15px] opacity-35 grayscale"
-                        }
-                      />
-                    </button>
+          {viewMode === "card" ? (
+            /* Card Grid View — squary squircle icons */
+            <div className="grid grid-cols-3 gap-x-3 gap-y-3.5">
+              {games.map((game) => {
+                const isLiked = liked.has(game.id);
+                return (
+                  <div key={game.id} className="flex flex-col items-start w-full text-left">
                     <button
                       type="button"
                       onClick={() => setOpen(game)}
-                      className="press grid h-6 w-6 shrink-0 place-items-center rounded-full bg-surface-2 cursor-pointer"
-                      aria-label="Game info"
+                      className="press relative aspect-square w-full overflow-hidden rounded-[10px] border border-black/[0.08] dark:border-white/10 bg-slate-100 shadow-none active:scale-[0.97] transition-transform text-left cursor-pointer"
                     >
-                      <Info className="h-3 w-3" />
+                      <img
+                        src={game.img}
+                        alt={game.title}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        draggable={false}
+                      />
+                      <div className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-20`} />
+                      {game.badge && (
+                        <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-[5px] bg-[#fa4616] text-white text-[8px] font-black uppercase tracking-wider leading-none shadow-xs">
+                          {game.badge}
+                        </span>
+                      )}
                     </button>
+                    <div className="mt-1.5 flex w-full items-center justify-between gap-1 pl-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[11.5px] font-extrabold tracking-tight text-[#1A1D20] dark:text-white leading-tight">
+                          {game.title}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold text-[#6B7280]">
+                          <span className="flex items-center gap-0.5">
+                            <OrangeHeartIcon className="h-2.5 w-2.5 text-[#fa4616]" />
+                            <span className="font-extrabold text-[#6B7280]">{game.likes}</span>
+                          </span>
+                          <span className="flex items-center gap-0.5">
+                            <PlayersIcon className="h-2.5 w-2.5" />
+                            <span className="font-extrabold text-[#6B7280]">{game.players}</span>
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLiked((current) => {
+                            const next = new Set(current);
+                            if (next.has(game.id)) {
+                              next.delete(game.id);
+                            } else {
+                              next.add(game.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer active:scale-90 transition-transform -mr-1"
+                        aria-label="Like game"
+                      >
+                        <OrangeHeartIcon
+                          className={
+                            isLiked
+                              ? "h-[14px] w-[14px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
+                              : "h-[14px] w-[14px] opacity-35 grayscale"
+                          }
+                        />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* List View — horizontal sleek rectangle cards with game pfp & bio */
+            <div className="flex flex-col gap-2.5">
+              {games.map((game) => {
+                const isLiked = liked.has(game.id);
+                return (
+                  <div
+                    key={game.id}
+                    onClick={() => setOpen(game)}
+                    className="press group relative flex items-center gap-3.5 p-3 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.99] transition-all cursor-pointer overflow-hidden select-none"
+                  >
+                    {/* Game pfp thumbnail — squary squircle */}
+                    <div className="relative h-[68px] w-[68px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] dark:border-white/10 bg-slate-100">
+                      <img
+                        src={game.img}
+                        alt={game.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        draggable={false}
+                      />
+                      <div className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-20`} />
+                      {game.badge && (
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-[5px] bg-[#fa4616] text-white text-[8px] font-black uppercase tracking-wider leading-none shadow-xs">
+                          {game.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Game Details: Title, Mode tag, Bio & Stats */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="truncate text-[13.5px] font-extrabold tracking-tight text-[#1A1D20] dark:text-white leading-tight">
+                          {game.title}
+                        </h3>
+                      </div>
+
+                      {/* Bio shown! */}
+                      <p className="mt-1 text-[11px] font-medium text-[#6B7280] dark:text-[#9ea7b3] leading-snug line-clamp-2">
+                        {game.bio}
+                      </p>
+
+                      {/* Online stats + likes */}
+                      <div className="mt-1.5 flex items-center gap-3 text-[10px] font-semibold text-[#8b929d]">
+                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="font-extrabold">{game.players} online</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <OrangeHeartIcon className="h-3 w-3 text-[#fa4616]" />
+                          <span>{game.likes}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Like button */}
+                    <div className="shrink-0 flex items-center gap-1 pl-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLiked((current) => {
+                            const next = new Set(current);
+                            if (next.has(game.id)) {
+                              next.delete(game.id);
+                            } else {
+                              next.add(game.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="press grid h-8 w-8 place-items-center rounded-full hover:bg-black/[0.05] dark:hover:bg-white/10 active:scale-90 transition-transform"
+                        aria-label="Like game"
+                      >
+                        <OrangeHeartIcon
+                          className={
+                            isLiked
+                              ? "h-[16px] w-[16px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
+                              : "h-[16px] w-[16px] opacity-30 grayscale"
+                          }
+                        />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {!games.length && (
             <div className="py-12 text-center text-[13px] font-normal text-text-muted">
               No worlds in this category.
@@ -300,20 +395,35 @@ function UploadedDiscoverPage() {
         <div className="fixed bottom-[calc(64px+max(env(safe-area-inset-bottom),10px))] left-0 right-0 z-30 flex justify-center px-2 pointer-events-none">
           <div className="qb-glossy-menu pointer-events-auto max-w-[calc(100vw-16px)] w-auto overflow-x-auto scroll-smooth hide-scrollbar rounded-full p-1 shadow-lg touch-pan-x overscroll-x-contain">
             <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max px-2 py-0.5">
-              {UPLOADED_DISCOVER_TABS.map((label, index) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => setTab(index)}
-                  className={`press relative z-10 h-7.5 shrink-0 rounded-full px-3.5 text-[11.5px] font-bold transition-all cursor-pointer whitespace-nowrap select-none ${
-                    index === tab
-                      ? "bg-foreground text-background shadow-xs font-black"
-                      : "qb-glossy-chip text-foreground/85 hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+              {UPLOADED_DISCOVER_TABS.map((label, index) => {
+                const isSelected = index === tab;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setTab(index)}
+                    className={`press relative z-10 h-7.5 shrink-0 rounded-full px-3.5 text-[11.5px] transition-all cursor-pointer whitespace-nowrap select-none outline-none ${
+                      isSelected
+                        ? "font-black text-foreground"
+                        : "qb-glossy-chip font-bold text-foreground/75 hover:text-foreground"
+                    }`}
+                  >
+                    {isSelected && (
+                      <motion.div
+                        layoutId="discoverCategoryPill"
+                        transition={{
+                          type: "spring",
+                          stiffness: 450,
+                          damping: 32,
+                          mass: 0.8,
+                        }}
+                        className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_10px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_12px_rgba(0,0,0,0.4)]"
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

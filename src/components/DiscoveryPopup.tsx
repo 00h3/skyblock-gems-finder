@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Info } from "lucide-react";
+import { Info, LayoutGrid, List } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { OrangeHeartIcon } from "@/components/QbIcons";
+import { PlayersIcon } from "@/components/icons/PlayersIcon";
 import {
   DISCOVERY_GAMES,
   UPLOADED_DISCOVER_TABS,
@@ -26,6 +27,7 @@ interface DiscoveryPopupProps {
 
 export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupProps) {
   const [tab, setTab] = useState(0);
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -104,12 +106,70 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
               <div className="h-1.5 w-12 rounded-full bg-slate-300/80" />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 shrink-0 border-b border-black/[0.06] bg-transparent z-20">
+            {/* Header with Card / List Switcher */}
+            <div className="flex items-center justify-between px-5 py-2.5 shrink-0 border-b border-black/[0.06] bg-transparent z-20">
               <div className="flex items-center gap-2">
-                <h2 className="text-[18px] font-extrabold tracking-tight text-[#141414]">
+                <h2 className="text-[17px] font-extrabold tracking-tight text-[#141414]">
                   Discover
                 </h2>
+              </div>
+
+              {/* Card / List Switcher in bottom menu clear liquid style */}
+              <div className="qb-glossy-menu rounded-full p-1 flex items-center gap-1 shadow-xs border border-black/[0.08] dark:border-white/[0.12] bg-white/40 dark:bg-black/20 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("card")}
+                  className={`press relative flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] transition-all duration-200 cursor-pointer select-none outline-none ${
+                    viewMode === "card"
+                      ? "font-black text-foreground"
+                      : "font-semibold text-foreground/60 hover:text-foreground"
+                  }`}
+                  aria-label="Card view"
+                >
+                  {viewMode === "card" && (
+                    <motion.div
+                      layoutId="discoveryPopupViewModePill"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 32,
+                        mass: 0.8,
+                      }}
+                      className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_10px_rgba(0,0,0,0.4)]"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <LayoutGrid className="h-3 w-3" />
+                    <span>Card</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`press relative flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] transition-all duration-200 cursor-pointer select-none outline-none ${
+                    viewMode === "list"
+                      ? "font-black text-foreground"
+                      : "font-semibold text-foreground/60 hover:text-foreground"
+                  }`}
+                  aria-label="List view"
+                >
+                  {viewMode === "list" && (
+                    <motion.div
+                      layoutId="discoveryPopupViewModePill"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 32,
+                        mass: 0.8,
+                      }}
+                      className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_10px_rgba(0,0,0,0.4)]"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <List className="h-3 w-3" />
+                    <span>List</span>
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -133,39 +193,98 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
               </div>
             </div>
 
-            {/* Discovery Games Grid */}
+            {/* Discovery Games Content */}
             <div className="flex-1 w-full overflow-y-auto overscroll-contain px-4 pt-3 pb-12 hide-scrollbar ios-scroll">
-              <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#8b929d]">
-                {UPLOADED_DISCOVER_TABS[tab]}
-              </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                {games.map((game) => {
-                  const isLiked = liked.has(game.id);
-                  return (
-                    <div key={game.id} className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleGameSelect(game)}
-                        className="press relative aspect-square overflow-hidden rounded-[10px] bg-gradient-to-br border border-black/[0.08] shadow-xs active:scale-95 transition-transform text-left cursor-pointer"
-                      >
-                        <img
-                          src={game.img}
-                          alt={game.title}
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-25`}
-                        />
-                      </button>
-                      <div className="flex h-[36px] items-center justify-between gap-1 px-0.5">
-                        <div className="min-w-0 flex-1">
+              {viewMode === "card" ? (
+                /* Card Grid View */
+                <div className="grid grid-cols-3 gap-2.5">
+                  {games.map((game) => {
+                    const isLiked = liked.has(game.id);
+                    return (
+                      <div key={game.id} className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleGameSelect(game)}
+                          className="press relative aspect-square overflow-hidden rounded-[10px] bg-gradient-to-br border border-black/[0.08] shadow-xs active:scale-95 transition-transform text-left cursor-pointer"
+                        >
+                          <img
+                            src={game.img}
+                            alt={game.title}
+                            className="absolute inset-0 h-full w-full object-cover"
+                            draggable={false}
+                          />
+                          <div
+                            className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-25`}
+                          />
+                        </button>
+                        <div className="flex flex-col gap-0.5 px-0.5">
                           <div className="truncate text-[11px] font-bold text-[#141414]">
                             {game.title}
                           </div>
-                          <div className="text-[9.5px] font-medium text-[#8b929d]">
-                            {game.mode}
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#6B7280]">
+                            <span className="flex items-center gap-0.5">
+                              <OrangeHeartIcon className="h-2.5 w-2.5 text-[#fa4616]" />
+                              <span className="font-extrabold text-[#6B7280]">99%</span>
+                            </span>
+                            <span className="flex items-center gap-0.5">
+                              <PlayersIcon className="h-2.5 w-2.5" />
+                              <span className="font-extrabold text-[#6B7280]">{game.players || "1"}</span>
+                            </span>
                           </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* List View — rectangles with game pfp & bio */
+                <div className="flex flex-col gap-2.5">
+                  {games.map((game) => {
+                    const isLiked = liked.has(game.id);
+                    return (
+                      <div
+                        key={game.id}
+                        onClick={() => handleGameSelect(game)}
+                        className="press group relative flex items-center gap-3 p-2.5 rounded-[12px] bg-white border border-black/[0.08] shadow-[0_2px_6px_rgba(0,0,0,0.03)] active:scale-[0.99] transition-all cursor-pointer overflow-hidden select-none"
+                      >
+                        {/* Game pfp thumbnail */}
+                        <div className="relative h-[62px] w-[62px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] bg-slate-100">
+                          <img
+                            src={game.img}
+                            alt={game.title}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            draggable={false}
+                          />
+                          <div className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-20`} />
+                        </div>
+
+                        {/* Info: title, bio, stats */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <h3 className="truncate text-[13px] font-extrabold tracking-tight text-[#141414] leading-tight">
+                              {game.title}
+                            </h3>
+                          </div>
+
+                          {/* Bio */}
+                          <p className="mt-0.5 text-[10.5px] font-medium text-[#6B7280] leading-snug line-clamp-2">
+                            {game.bio}
+                          </p>
+
+                          {/* Online stats + likes */}
+                          <div className="mt-1 flex items-center gap-2.5 text-[9.5px] font-semibold text-[#8b929d]">
+                            <span className="flex items-center gap-1 text-emerald-600">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="font-extrabold">{game.players || "Online"}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <OrangeHeartIcon className="h-2.5 w-2.5 text-[#fa4616]" />
+                              <span>{game.likes}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Like button */}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -180,30 +299,23 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
                               return next;
                             });
                           }}
-                          className="press grid h-6 w-6 shrink-0 place-items-center cursor-pointer active:scale-90 transition-transform"
+                          className="press grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-black/[0.05] active:scale-90 transition-transform"
                           aria-label="Like game"
                         >
                           <OrangeHeartIcon
                             className={
                               isLiked
                                 ? "h-[15px] w-[15px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
-                                : "h-[15px] w-[15px] opacity-35 grayscale"
+                                : "h-[15px] w-[15px] opacity-30 grayscale"
                             }
                           />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleGameSelect(game)}
-                          className="press grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 hover:bg-slate-200 cursor-pointer active:scale-90 transition-transform"
-                          aria-label="Game info"
-                        >
-                          <Info className="h-3 w-3 text-[#5f646d]" />
-                        </button>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {!games.length && (
                 <div className="py-12 text-center text-[13px] font-medium text-[#8b929d]">
                   No worlds in this category.

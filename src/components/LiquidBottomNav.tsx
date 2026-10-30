@@ -109,21 +109,13 @@ export function LiquidBottomNav({ pathname }: { pathname: string }) {
                     layoutId="liquidNavActivePill"
                     transition={{
                       type: "spring",
-                      stiffness: 420,
+                      stiffness: 450,
                       damping: 32,
                       mass: 0.8,
                     }}
                     className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
                   >
-                    <LiquidGlass
-                      material="clear"
-                      appearance={isDark ? "dark" : "light"}
-                      refraction={10}
-                      bezel={18}
-                      blur={1}
-                      interactive={false}
-                      className="w-full h-full rounded-full bg-black/[0.06] dark:bg-white/[0.14] border border-black/5 dark:border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.25),0_2px_12px_rgba(0,0,0,0.4)]"
-                    />
+                    <div className="w-full h-full rounded-full bg-white/60 dark:bg-white/18 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_10px_rgba(0,70,140,0.12)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_12px_rgba(0,0,0,0.5)]" />
                   </motion.div>
                 )}
 
