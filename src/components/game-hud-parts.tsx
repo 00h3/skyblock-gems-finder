@@ -10,6 +10,7 @@ import {
   LogOut,
   User,
   Sun,
+  Sunset,
   Moon,
   Compass,
   Sliders,
@@ -18,9 +19,89 @@ import {
   Shield,
   Volume2,
   Sparkles,
+  CloudLightning,
+  Snowflake,
+  Flame,
+  Waves,
+  CircleDot,
 } from "lucide-react";
 
 export type CamMode = "first" | "third" | "top";
+
+const ATMOSPHERE_OPTIONS = [
+  {
+    id: "normal",
+    label: "Day",
+    sub: "Golden Sunlight",
+    icon: Sun,
+    activeClasses: "bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.25)]",
+    iconColor: "text-amber-400",
+  },
+  {
+    id: "evening",
+    label: "Tramonto",
+    sub: "Warm Sunset",
+    icon: Sunset,
+    activeClasses: "bg-orange-500/20 border-orange-400 text-orange-300 shadow-[0_0_16px_rgba(249,115,22,0.25)]",
+    iconColor: "text-orange-400",
+  },
+  {
+    id: "night",
+    label: "Night",
+    sub: "Moon & Stars",
+    icon: Moon,
+    activeClasses: "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.25)]",
+    iconColor: "text-cyan-400",
+  },
+  {
+    id: "cinematic",
+    label: "Cinematic",
+    sub: "Mystic Twilight",
+    icon: Sparkles,
+    activeClasses: "bg-purple-500/20 border-purple-400 text-purple-300 shadow-[0_0_16px_rgba(168,85,247,0.25)]",
+    iconColor: "text-purple-400",
+  },
+  {
+    id: "tempesta",
+    label: "Tempesta",
+    sub: "Thunder & Rain",
+    icon: CloudLightning,
+    activeClasses: "bg-sky-500/20 border-sky-400 text-sky-200 shadow-[0_0_16px_rgba(56,189,248,0.25)]",
+    iconColor: "text-sky-300",
+  },
+  {
+    id: "christmas",
+    label: "Striking Christmas",
+    sub: "Winter & Snow",
+    icon: Snowflake,
+    activeClasses: "bg-emerald-500/20 border-emerald-400 text-emerald-200 shadow-[0_0_16px_rgba(52,211,153,0.25)]",
+    iconColor: "text-emerald-300",
+  },
+  {
+    id: "blood_moon",
+    label: "Blood Moon",
+    sub: "Crimson Eclipse",
+    icon: Flame,
+    activeClasses: "bg-red-500/20 border-red-500 text-red-300 shadow-[0_0_16px_rgba(239,68,68,0.25)]",
+    iconColor: "text-red-400",
+  },
+  {
+    id: "aurora",
+    label: "Aurora Borealis",
+    sub: "Cosmic Shimmer",
+    icon: Waves,
+    activeClasses: "bg-teal-500/20 border-teal-400 text-teal-200 shadow-[0_0_16px_rgba(45,212,191,0.25)]",
+    iconColor: "text-teal-300",
+  },
+  {
+    id: "solar_eclipse",
+    label: "Solar Eclipse",
+    sub: "Corona Umbra",
+    icon: CircleDot,
+    activeClasses: "bg-amber-500/20 border-amber-300 text-amber-200 shadow-[0_0_16px_rgba(245,158,11,0.25)]",
+    iconColor: "text-amber-300",
+  },
+];
 
 /** Full-screen loading spinner used while a world streams in. */
 export function GearboxLoader() {
@@ -345,6 +426,28 @@ export function GameSettingsModal({
     }
   });
 
+  const [atmosphere, setAtmosphere] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem("qb_atmosphere");
+      if (saved) return saved;
+      return nightMode ? "night" : "normal";
+    } catch {
+      return "normal";
+    }
+  });
+
+  const handleAtmosphereChange = (id: string) => {
+    setAtmosphere(id);
+    try {
+      localStorage.setItem("qb_atmosphere", id);
+      const isNightLike = id === "night" || id === "aurora" || id === "blood_moon";
+      localStorage.setItem("bm-nightmode", String(isNightLike));
+      if (isNightLike && !nightMode) onToggleNightMode?.();
+      else if (!isNightLike && nightMode) onToggleNightMode?.();
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: id }));
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -514,44 +617,46 @@ export function GameSettingsModal({
             </div>
           </div>
 
-          {/* Section 3: Skyblock Atmosphere & Celestial Night */}
+          {/* Section 3: Skyblock Atmosphere & Ambient Presets */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-              <Sparkles className="w-4 h-4" />
-              <span>Celestial Atmosphere & Night Mode</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10">
-              <div>
-                <div className="text-[13px] font-bold text-white flex items-center gap-1.5">
-                  {nightMode ? (
-                    <Moon className="w-4 h-4 text-cyan-300" />
-                  ) : (
-                    <Sun className="w-4 h-4 text-amber-400" />
-                  )}
-                  <span>
-                    {nightMode ? "Night Moon & Aurora Borealis" : "Golden Daylight Sunshine"}
-                  </span>
-                </div>
-                <div className="text-[10.5px] text-zinc-400 mt-0.5">
-                  {nightMode
-                    ? "Luminous moon, shimmering celestial aurora waves & cosmic emerald lighting"
-                    : "Bright golden sunlight, warm sun rays and radiant daytime sky"}
-                </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-base font-extrabold text-white">Atmosphere & Ambient</span>
               </div>
-              <button
-                onClick={onToggleNightMode}
-                className={`press px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  nightMode
-                    ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]"
-                    : "bg-gradient-to-r from-amber-400 to-yellow-500 text-zinc-950 font-black"
-                }`}
-              >
-                {nightMode ? "🌙 Night" : "☀️ Day"}
-              </button>
+              <span className="text-[11px] font-semibold text-white/50">
+                {ATMOSPHERE_OPTIONS.find((o) =>
+                  o.id === atmosphere ||
+                  (o.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
+                  (o.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"))
+                )?.label ?? "Day"}
+              </span>
             </div>
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-200 leading-relaxed">
-              🦅 <strong>Sun & Phoenix:</strong> The animated golden fire Phoenix soars near the
-              radiant sun in Skyblock with full glowing illumination!
+
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {ATMOSPHERE_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const active =
+                  atmosphere === opt.id ||
+                  (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
+                  (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleAtmosphereChange(opt.id)}
+                    className={`press flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition cursor-pointer relative overflow-hidden ${
+                      active
+                        ? `${opt.activeClasses} font-black`
+                        : "bg-white/[0.03] border-white/10 text-white/70 hover:bg-white/[0.07]"
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 mb-1 ${active ? "" : opt.iconColor}`} />
+                    <span className="text-[11px] font-bold leading-tight">{opt.label}</span>
+                    <span className="text-[9.5px] text-white/50 mt-0.5 leading-tight">{opt.sub}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

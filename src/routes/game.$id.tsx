@@ -1772,6 +1772,32 @@ function EngineGame({
     } catch {}
   }, [nightMode]);
 
+  // Atmosphere Mode ("day" | "tramonto" | "night" | "cinematic" | "tempesta" | "christmas" | "blood_moon" | "aurora" | "solar_eclipse")
+  const [atmosphere, setAtmosphere] = useState<string>(() => {
+    if (typeof window === "undefined") return "day";
+    const saved = localStorage.getItem("qb_atmosphere");
+    if (saved) return saved;
+    return localStorage.getItem("bm-nightmode") === "true" ? "night" : "day";
+  });
+  const atmosphereRef = useRef(atmosphere);
+  useEffect(() => {
+    atmosphereRef.current = atmosphere;
+  }, [atmosphere]);
+
+  useEffect(() => {
+    const onAtm = (e: Event) => {
+      const mode = (e as CustomEvent<string>).detail;
+      if (mode) {
+        setAtmosphere(mode);
+        atmosphereRef.current = mode;
+        const isNightLike = mode === "night" || mode === "aurora" || mode === "blood_moon";
+        setNightMode(isNightLike);
+      }
+    };
+    window.addEventListener("bm-atmosphere", onAtm);
+    return () => window.removeEventListener("bm-atmosphere", onAtm);
+  }, []);
+
   // Joystick Inversion controls (fixed inverted movement)
   const [invertJoyY, setInvertJoyY] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -6664,15 +6690,9 @@ function EngineGame({
       // Drifting ember/ash motes for atmospheric depth — warm glow in engine test,
       // cold crystalline snowflakes in spleef.
       // Low quality gets fewer ambient particles to save vertex-shader budget.
-      const AMBIENT_COUNT = isSkyblock
-        ? 0
-        : qualityPref === "low"
-          ? isMobileUA
-            ? 30
-            : 60
-          : isMobileUA
-            ? 60
-            : 120;
+      const AMBIENT_COUNT = qualityPref === "low"
+        ? (isMobileUA ? 40 : 70)
+        : (isMobileUA ? 70 : 130);
       const ambientGeo = new THREE.BufferGeometry();
       const ambientPos = new Float32Array(AMBIENT_COUNT * 3);
       const ambientSpeed = new Float32Array(AMBIENT_COUNT);
@@ -8607,6 +8627,8 @@ function EngineGame({
       };
       window.addEventListener("bm-fpscap", fpsCapHandler);
       let particleTick = 0;
+      let lightningTimer = 5.0;
+      let lightningFlash = 0.0;
       let lastPresenceTime = 0;
       let shadowUpdateAcc = 0;
       // Last player position where the shadow-camera was updated (see sun tracking).
@@ -8672,50 +8694,162 @@ function EngineGame({
           }
         }
 
-        // Skyblock Celestial Cycle (Sun, Moon & Aurora Borealis update):
+        // Skyblock / Universal Celestial Atmosphere presets
         if (isSkyblock) {
-          const isNight = nightModeRef.current;
-          if (celestialSunGroup) celestialSunGroup.visible = !isNight;
-          if (celestialMoonGroup) celestialMoonGroup.visible = isNight;
+          const atm = (atmosphereRef.current || (nightModeRef.current ? "night" : "day")).toLowerCase();
+
+          // Handle lightning for Tempesta
+          if (atm === "tempesta" || atm === "storm") {
+            lightningTimer -= dt;
+            if (lightningTimer <= 0) {
+              lightningFlash = 1.0;
+              lightningTimer = 3.5 + Math.random() * 5.0;
+            }
+            if (lightningFlash > 0) {
+              lightningFlash = Math.max(0, lightningFlash - dt * 5.5);
+            }
+          } else {
+            lightningFlash = 0;
+          }
+
+          const isNightLike = atm === "night" || atm === "aurora" || atm === "blood_moon";
+          if (celestialSunGroup) celestialSunGroup.visible = !isNightLike;
+          if (celestialMoonGroup) celestialMoonGroup.visible = isNightLike;
+
+          // Aurora ribbons in aurora or night mode
+          const showAurora = atm === "aurora" || atm === "night";
           if (auroraRibbonMesh) {
-            auroraRibbonMesh.visible = isNight;
-            if (isNight) {
-              // Shimmering undulating aurora waves across the night sky
+            auroraRibbonMesh.visible = showAurora;
+            if (showAurora) {
               const posAttr = auroraRibbonMesh.geometry.attributes.position;
               if (posAttr) {
                 const arr = posAttr.array as Float32Array;
                 for (let k = 0; k < arr.length; k += 6) {
                   const segIdx = k / 6;
-                  const waveY = Math.sin(now * 0.002 + segIdx * 0.35) * 4.5;
-                  const baseH = 95 + Math.sin((segIdx / 64) * Math.PI * 3.0) * 14 + waveY;
+                  const waveY = Math.sin(now * 0.0025 + segIdx * 0.35) * 5.5;
+                  const baseH = 95 + Math.sin((segIdx / 64) * Math.PI * 3.0) * 16 + waveY;
                   arr[k + 1] = baseH;
-                  arr[k + 4] = baseH + 24;
+                  arr[k + 4] = baseH + 28;
                 }
                 posAttr.needsUpdate = true;
               }
-              (auroraRibbonMesh.material as THREE.MeshBasicMaterial).opacity =
-                0.58 + Math.sin(now * 0.0025) * 0.18;
+              const mat = auroraRibbonMesh.material as THREE.MeshBasicMaterial;
+              mat.opacity = atm === "aurora" ? 0.88 + Math.sin(now * 0.003) * 0.12 : 0.58 + Math.sin(now * 0.0025) * 0.18;
             }
           }
+
           if (auroraLight) {
-            auroraLight.intensity = isNight ? 0.48 + Math.sin(now * 0.002) * 0.12 : 0;
+            auroraLight.intensity = atm === "aurora" ? 0.95 : atm === "night" ? 0.48 : 0;
+            if (atm === "aurora") auroraLight.color.setHex(0x14b8a6);
           }
+
           if (moonLight) {
-            moonLight.intensity = isNight ? 0.9 : 0;
+            if (atm === "blood_moon") {
+              moonLight.intensity = 1.4;
+              moonLight.color.setHex(0xef4444);
+            } else if (atm === "aurora") {
+              moonLight.intensity = 1.1;
+              moonLight.color.setHex(0x2dd4bf);
+            } else {
+              moonLight.intensity = isNightLike ? 0.9 : 0;
+              moonLight.color.setHex(0x7dd3fc);
+            }
           }
-          if (sun) {
-            sun.intensity = isNight ? 0.2 : 1.35;
-            sun.color.setHex(isNight ? 0x60a5fa : 0xfff8e8);
-          }
-          if (skyMat) {
-            if (isNight) {
+
+          // Apply dramatic atmospheric colors to sky shader, sun, and fog
+          if (skyMat && sun) {
+            if (atm === "tempesta" || atm === "storm") {
+              // Storm: brooding dark thunder clouds, flashing lightning
+              skyMat.uniforms.top.value.setHex(0x070c18);
+              skyMat.uniforms.mid.value.setHex(0x141f33);
+              skyMat.uniforms.bottom.value.setHex(0x223048);
+              if (lightningFlash > 0.05) {
+                skyMat.uniforms.mid.value.lerp(new THREE.Color(0xa5cbf7), lightningFlash * 0.85);
+                skyMat.uniforms.bottom.value.lerp(new THREE.Color(0x60a5fa), lightningFlash * 0.7);
+              }
+              sun.intensity = 0.45 + lightningFlash * 3.2;
+              sun.color.setHex(lightningFlash > 0.1 ? 0xc7e0ff : 0x60a5fa);
+              if (scene.fog) scene.fog.color.setHex(0x141f33);
+            } else if (atm === "christmas" || atm === "striking_christmas" || atm === "natale") {
+              // Striking Christmas Day: crisp arctic azure, golden festive sun, snow bounce
+              skyMat.uniforms.top.value.setHex(0x0284c7);
+              skyMat.uniforms.mid.value.setHex(0x38bdf8);
+              skyMat.uniforms.bottom.value.setHex(0xe0f2fe);
+              sun.intensity = 1.7;
+              sun.color.setHex(0xfef08a);
+              hemi.color.setHex(0xbae6fd);
+              hemi.groundColor.setHex(0xf8fafc);
+              if (scene.fog) scene.fog.color.setHex(0xe0f2fe);
+            } else if (atm === "blood_moon" || atm === "bloodmoon") {
+              // Blood Moon: apocalyptic crimson twilight, scarlet moon
+              skyMat.uniforms.top.value.setHex(0x160004);
+              skyMat.uniforms.mid.value.setHex(0x450a0a);
+              skyMat.uniforms.bottom.value.setHex(0x7f1d1d);
+              sun.intensity = 0.25;
+              sun.color.setHex(0xdc2626);
+              hemi.color.setHex(0x881337);
+              hemi.groundColor.setHex(0x27060a);
+              if (scene.fog) scene.fog.color.setHex(0x450a0a);
+            } else if (atm === "aurora" || atm === "aurora_borealis") {
+              // Aurora Borealis: deep emerald & teal starlight
+              skyMat.uniforms.top.value.setHex(0x02161b);
+              skyMat.uniforms.mid.value.setHex(0x064e3b);
+              skyMat.uniforms.bottom.value.setHex(0x0d9488);
+              sun.intensity = 0.18;
+              sun.color.setHex(0x14b8a6);
+              hemi.color.setHex(0x0d9488);
+              hemi.groundColor.setHex(0x022c22);
+              if (scene.fog) scene.fog.color.setHex(0x042f2e);
+            } else if (atm === "solar_eclipse" || atm === "eclipse") {
+              // Solar Eclipse: obsidian sun, violet twilight umbra, amber corona horizon
+              skyMat.uniforms.top.value.setHex(0x080210);
+              skyMat.uniforms.mid.value.setHex(0x240e3f);
+              skyMat.uniforms.bottom.value.setHex(0x6b21a8);
+              sun.intensity = 0.85;
+              sun.color.setHex(0xf59e0b);
+              hemi.color.setHex(0x581c87);
+              hemi.groundColor.setHex(0x1e0f2b);
+              if (scene.fog) scene.fog.color.setHex(0x240e3f);
+            } else if (atm === "evening" || atm === "tramonto" || atm === "golden") {
+              // Tramonto: blazing orange & amber sunset
+              skyMat.uniforms.top.value.setHex(0x1e1b4b);
+              skyMat.uniforms.mid.value.setHex(0xb45309);
+              skyMat.uniforms.bottom.value.setHex(0xf97316);
+              sun.intensity = 1.7;
+              sun.color.setHex(0xfb923c);
+              hemi.color.setHex(0xffbf8a);
+              hemi.groundColor.setHex(0x8a5c48);
+              if (scene.fog) scene.fog.color.setHex(0xb45309);
+            } else if (atm === "cinematic" || atm === "mystic") {
+              // Cinematic: mystical magenta & purple twilight
+              skyMat.uniforms.top.value.setHex(0x1e0538);
+              skyMat.uniforms.mid.value.setHex(0x701a75);
+              skyMat.uniforms.bottom.value.setHex(0xd946ef);
+              sun.intensity = 1.25;
+              sun.color.setHex(0xf0abfc);
+              hemi.color.setHex(0x783a8f);
+              hemi.groundColor.setHex(0x2a1236);
+              if (scene.fog) scene.fog.color.setHex(0x701a75);
+            } else if (atm === "night") {
+              // Night: starlight & cool moon
               skyMat.uniforms.top.value.setHex(0x050b18);
               skyMat.uniforms.mid.value.setHex(0x0a1628);
               skyMat.uniforms.bottom.value.setHex(0x0e2838);
+              sun.intensity = 0.2;
+              sun.color.setHex(0x60a5fa);
+              hemi.color.setHex(0x3a4f86);
+              hemi.groundColor.setHex(0x1a2440);
+              if (scene.fog) scene.fog.color.setHex(0x0a1628);
             } else {
+              // Day: clear blue daylight
               skyMat.uniforms.top.value.setHex(0x126fbe);
               skyMat.uniforms.mid.value.setHex(0x42b9f3);
               skyMat.uniforms.bottom.value.setHex(0xb9edff);
+              sun.intensity = 1.35;
+              sun.color.setHex(0xfff8e8);
+              hemi.color.setHex(0xd2e9ff);
+              hemi.groundColor.setHex(0x71805c);
+              if (scene.fog) scene.fog.color.setHex(0xb9edff);
             }
           }
         }
@@ -8741,16 +8875,60 @@ function EngineGame({
         // Throttle ambient particle update to every other frame on mobile
         particleTick++;
         if (!isMobileUA || particleTick % 2 === 0) {
+          const atm = (atmosphereRef.current || "day").toLowerCase();
+          const isTempest = atm === "tempesta" || atm === "storm";
+          const isChristmas = atm === "christmas" || atm === "striking_christmas" || atm === "natale";
+          const isBloodMoon = atm === "blood_moon" || atm === "bloodmoon";
+          const isAurora = atm === "aurora" || atm === "aurora_borealis";
+          const isEclipse = atm === "solar_eclipse" || atm === "eclipse";
+          const isCinematic = atm === "cinematic" || atm === "mystic";
+
+          const pMat = ambientPoints.material as THREE.PointsMaterial;
+          if (isTempest) {
+            pMat.color.setHex(0x93c5fd);
+            pMat.size = 0.28;
+            pMat.opacity = 0.85;
+          } else if (isChristmas) {
+            pMat.color.setHex(0xffffff);
+            pMat.size = 0.24;
+            pMat.opacity = 0.95;
+          } else if (isBloodMoon) {
+            pMat.color.setHex(0xef4444);
+            pMat.size = 0.26;
+            pMat.opacity = 0.9;
+          } else if (isAurora) {
+            pMat.color.setHex(0x2dd4bf);
+            pMat.size = 0.22;
+            pMat.opacity = 0.85;
+          } else if (isEclipse || isCinematic) {
+            pMat.color.setHex(0xc084fc);
+            pMat.size = 0.22;
+            pMat.opacity = 0.8;
+          }
+
           const posAttr = ambientGeo.attributes.position as THREE.BufferAttribute;
           for (let i = 0; i < AMBIENT_COUNT; i++) {
-            const fall = isSpleef ? ambientSpeed[i] * 1.4 : ambientSpeed[i] * 0.35;
-            let py = posAttr.array[i * 3 + 1] - fall * dt;
-            const px = posAttr.array[i * 3] + Math.sin(now * 0.0006 + i) * 0.01;
-            if (py < -1) py = 14 + Math.random() * 4;
+            const speedBase = isTempest
+              ? 18.0
+              : isChristmas
+                ? 1.3
+                : isBloodMoon
+                  ? -0.45
+                  : isSpleef
+                    ? ambientSpeed[i] * 1.4
+                    : ambientSpeed[i] * 0.35;
+            const sway = isTempest ? 0.08 : isChristmas ? 0.85 : 0.35;
+            let py = posAttr.array[i * 3 + 1] - speedBase * dt;
+            const px = posAttr.array[i * 3] + Math.sin(now * 0.001 + i) * sway * dt * 2.0;
+            if (isBloodMoon) {
+              if (py > 20) py = 0;
+            } else {
+              if (py < -1) py = 18 + Math.random() * 6;
+            }
             posAttr.array[i * 3] = px;
             posAttr.array[i * 3 + 1] = py;
           }
-          (ambientGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+          posAttr.needsUpdate = true;
         }
         ambientPoints.position.set(playerPos.x, 0, playerPos.z);
 

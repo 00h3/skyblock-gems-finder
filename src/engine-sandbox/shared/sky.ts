@@ -448,6 +448,7 @@ export class Sky {
     this.resetCustomModes();
     this.currentPreset = "day";
     this.cloudCoverTarget = 0.5;
+    this.setRange(10, 68);
     this.setTimeOfDay(0.3);
   }
 
@@ -456,6 +457,7 @@ export class Sky {
     this.isGoldenHour = true;
     this.currentPreset = "tramonto";
     this.cloudCoverTarget = 0.55;
+    this.setRange(12, 70);
     this.setTimeOfDay(0.72); // Low golden sun angle
   }
 
@@ -463,6 +465,7 @@ export class Sky {
     this.resetCustomModes();
     this.currentPreset = "night";
     this.cloudCoverTarget = 0.4;
+    this.setRange(10, 60);
     this.setTimeOfDay(0.85);
   }
 
@@ -471,6 +474,7 @@ export class Sky {
     this.isPurpleNight = true;
     this.currentPreset = "purple_night";
     this.cloudCoverTarget = 0.6;
+    this.setRange(8, 56);
     this.setTimeOfDay(0.85);
   }
 
@@ -479,6 +483,7 @@ export class Sky {
     this.isMystic = true;
     this.currentPreset = "cinematic";
     this.cloudCoverTarget = 0.65;
+    this.setRange(8, 54);
     this.setTimeOfDay(0.76); // Mystical purple twilight
   }
 
@@ -486,7 +491,8 @@ export class Sky {
     this.resetCustomModes();
     this.isTempesta = true;
     this.currentPreset = "tempesta";
-    this.cloudCoverTarget = 0.95;
+    this.cloudCoverTarget = 0.98;
+    this.setRange(5, 36);
     this.setTimeOfDay(0.74);
   }
 
@@ -495,6 +501,7 @@ export class Sky {
     this.isChristmas = true;
     this.currentPreset = "christmas";
     this.cloudCoverTarget = 0.55;
+    this.setRange(15, 95);
     this.setTimeOfDay(0.32);
   }
 
@@ -502,7 +509,8 @@ export class Sky {
     this.resetCustomModes();
     this.isBloodMoon = true;
     this.currentPreset = "blood_moon";
-    this.cloudCoverTarget = 0.62;
+    this.cloudCoverTarget = 0.65;
+    this.setRange(6, 44);
     this.setTimeOfDay(0.85);
   }
 
@@ -511,6 +519,7 @@ export class Sky {
     this.isAurora = true;
     this.currentPreset = "aurora";
     this.cloudCoverTarget = 0.35;
+    this.setRange(12, 75);
     this.setTimeOfDay(0.88);
   }
 
@@ -519,6 +528,7 @@ export class Sky {
     this.isSolarEclipse = true;
     this.currentPreset = "solar_eclipse";
     this.cloudCoverTarget = 0.45;
+    this.setRange(8, 52);
     this.setTimeOfDay(0.75);
   }
 
