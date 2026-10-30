@@ -1912,13 +1912,7 @@ export function SandboxGame({
       try {
         initialAtm = localStorage.getItem("qb_atmosphere") || "day";
       } catch {}
-      if (initialAtm === "golden") {
-        sky.setGoldenHour();
-      } else if (initialAtm === "night") {
-        sky.setNight();
-      } else {
-        sky.setNormalDay();
-      }
+      sky.setPreset(initialAtm);
 
       let initialFogMode = "realistic";
       try {
@@ -3841,20 +3835,6 @@ export function SandboxGame({
       };
       window.addEventListener("bm-fov", onFovEvt);
 
-      const onAtmosphereEvt = (e: Event) => {
-        const mode = (e as CustomEvent<string>).detail;
-        if (bedwars) {
-          sky.setPurpleNight();
-        } else if (mode === "golden") {
-          sky.setGoldenHour();
-        } else if (mode === "night") {
-          sky.setNight();
-        } else {
-          sky.setNormalDay();
-        }
-      };
-      window.addEventListener("bm-atmosphere", onAtmosphereEvt);
-
       const onFogModeEvt = (e: Event) => {
         const mode = (e as CustomEvent<string>).detail;
         if (mode) applyFogMode(mode);
@@ -3931,6 +3911,59 @@ export function SandboxGame({
         applyWeather();
       };
       window.addEventListener(WEATHER_EVENT, onWeather);
+
+      const applyAtmosphere = (mode: string) => {
+        if (bedwars) {
+          sky.setPurpleNight();
+          return;
+        }
+        sky.setPreset(mode);
+        if (!playerInMine) {
+          const m = (mode || "").toLowerCase();
+          if (m === "tempesta" || m === "storm") {
+            particles.setMode("rain");
+            particles.wind = 4.5;
+            particles.fallScale = 2.2;
+          } else if (m === "christmas" || m === "striking_christmas" || m === "natale") {
+            particles.setMode("snow");
+            particles.wind = 1.0;
+            particles.fallScale = 1.0;
+          } else if (m === "blood_moon" || m === "bloodmoon") {
+            particles.setMode("embers");
+            particles.wind = 0.4;
+            particles.fallScale = 0.7;
+          } else if (m === "aurora" || m === "aurora_borealis") {
+            particles.setMode("sparks");
+            particles.wind = 0.8;
+            particles.fallScale = 0.5;
+          } else if (m === "solar_eclipse" || m === "eclipse") {
+            particles.setMode("spores");
+            particles.wind = 0.3;
+            particles.fallScale = 0.4;
+          } else if (m === "cinematic" || m === "mystic") {
+            particles.setMode("spores");
+            particles.wind = 0.2;
+            particles.fallScale = 0.5;
+          } else if (isSkyblockLike) {
+            applyWeather();
+          } else if (m === "night") {
+            particles.setMode("sparks");
+            particles.wind = 0.5;
+            particles.fallScale = 0.4;
+          } else {
+            particles.setMode("off");
+          }
+        }
+      };
+
+      const onAtmosphereEvt = (e: Event) => {
+        const mode = (e as CustomEvent<string>).detail;
+        applyAtmosphere(mode);
+      };
+      window.addEventListener("bm-atmosphere", onAtmosphereEvt);
+      if (initialAtm && initialAtm !== "day" && initialAtm !== "normal") {
+        applyAtmosphere(initialAtm);
+      }
 
       // Dynamic lighting: warm handheld-lantern glow around the player that
       // fades in as night falls, so caves and night islands keep readable depth.

@@ -15,6 +15,11 @@ import {
   X,
   Check,
   Zap,
+  CloudLightning,
+  Snowflake,
+  Flame,
+  Waves,
+  CircleDot,
 } from "lucide-react";
 import { readQualityPref, RenderQuality } from "@/lib/rendering";
 import { WeatherSettingsSection } from "@/components/SkyblockExtras";
@@ -26,7 +31,102 @@ interface FlatSquareSettingsModalProps {
   showWeather?: boolean;
 }
 
-type AtmosphereMode = "normal" | "evening" | "night";
+export type AtmosphereMode =
+  | "normal"
+  | "day"
+  | "evening"
+  | "tramonto"
+  | "night"
+  | "cinematic"
+  | "tempesta"
+  | "christmas"
+  | "blood_moon"
+  | "aurora"
+  | "solar_eclipse";
+
+interface AtmosphereOption {
+  id: AtmosphereMode;
+  label: string;
+  sub: string;
+  icon: React.ComponentType<{ className?: string }>;
+  activeClasses: string;
+  iconColor: string;
+}
+
+const ATMOSPHERE_OPTIONS: AtmosphereOption[] = [
+  {
+    id: "normal",
+    label: "Day",
+    sub: "Golden Sunlight",
+    icon: Sun,
+    activeClasses: "bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.25)]",
+    iconColor: "text-amber-400",
+  },
+  {
+    id: "evening",
+    label: "Tramonto",
+    sub: "Warm Sunset",
+    icon: Sunset,
+    activeClasses: "bg-orange-500/20 border-orange-400 text-orange-300 shadow-[0_0_16px_rgba(249,115,22,0.25)]",
+    iconColor: "text-orange-400",
+  },
+  {
+    id: "night",
+    label: "Night",
+    sub: "Moon & Stars",
+    icon: Moon,
+    activeClasses: "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.25)]",
+    iconColor: "text-cyan-400",
+  },
+  {
+    id: "cinematic",
+    label: "Cinematic",
+    sub: "Mystic Twilight",
+    icon: Sparkles,
+    activeClasses: "bg-purple-500/20 border-purple-400 text-purple-300 shadow-[0_0_16px_rgba(168,85,247,0.25)]",
+    iconColor: "text-purple-400",
+  },
+  {
+    id: "tempesta",
+    label: "Tempesta",
+    sub: "Thunder & Rain",
+    icon: CloudLightning,
+    activeClasses: "bg-sky-500/20 border-sky-400 text-sky-200 shadow-[0_0_16px_rgba(56,189,248,0.25)]",
+    iconColor: "text-sky-300",
+  },
+  {
+    id: "christmas",
+    label: "Striking Christmas",
+    sub: "Winter & Snow",
+    icon: Snowflake,
+    activeClasses: "bg-emerald-500/20 border-emerald-400 text-emerald-200 shadow-[0_0_16px_rgba(52,211,153,0.25)]",
+    iconColor: "text-emerald-300",
+  },
+  {
+    id: "blood_moon",
+    label: "Blood Moon",
+    sub: "Crimson Eclipse",
+    icon: Flame,
+    activeClasses: "bg-red-500/20 border-red-500 text-red-300 shadow-[0_0_16px_rgba(239,68,68,0.25)]",
+    iconColor: "text-red-400",
+  },
+  {
+    id: "aurora",
+    label: "Aurora Borealis",
+    sub: "Cosmic Shimmer",
+    icon: Waves,
+    activeClasses: "bg-teal-500/20 border-teal-400 text-teal-200 shadow-[0_0_16px_rgba(45,212,191,0.25)]",
+    iconColor: "text-teal-300",
+  },
+  {
+    id: "solar_eclipse",
+    label: "Solar Eclipse",
+    sub: "Corona Umbra",
+    icon: CircleDot,
+    activeClasses: "bg-amber-500/20 border-amber-300 text-amber-200 shadow-[0_0_16px_rgba(245,158,11,0.25)]",
+    iconColor: "text-amber-300",
+  },
+];
 
 export function FlatSquareSettingsModal({
   onClose,
@@ -39,12 +139,18 @@ export function FlatSquareSettingsModal({
   // Graphics Quality ("normal" | "high")
   const [quality, setQuality] = useState<RenderQuality>(() => readQualityPref());
 
-  // Atmosphere / Time of Day ("normal" | "evening" | "night")
+  // Atmosphere / Time of Day
   const [atmosphere, setAtmosphere] = useState<AtmosphereMode>(() => {
     try {
       const saved = localStorage.getItem("qb_atmosphere") || "day";
-      if (saved === "golden" || saved === "evening") return "evening";
+      if (saved === "golden" || saved === "evening" || saved === "tramonto") return "evening";
       if (saved === "night") return "night";
+      if (saved === "cinematic" || saved === "mystic") return "cinematic";
+      if (saved === "tempesta" || saved === "storm") return "tempesta";
+      if (saved === "christmas" || saved === "striking_christmas" || saved === "natale") return "christmas";
+      if (saved === "blood_moon" || saved === "bloodmoon") return "blood_moon";
+      if (saved === "aurora" || saved === "aurora_borealis") return "aurora";
+      if (saved === "solar_eclipse" || saved === "eclipse") return "solar_eclipse";
       return "normal";
     } catch {
       return "normal";
@@ -270,60 +376,43 @@ export function FlatSquareSettingsModal({
               <div className="flex items-center gap-2">
                 <Sun className="w-4 h-4 text-amber-400" />
                 <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Atmosphere & Time
+                  Atmosphere & Ambient
                 </span>
               </div>
-              <span className="text-[11px] font-semibold text-white/50 capitalize">
-                {atmosphere === "normal" ? "Normal (Day)" : atmosphere}
+              <span className="text-[11px] font-semibold text-white/50">
+                {ATMOSPHERE_OPTIONS.find((o) =>
+                  o.id === atmosphere ||
+                  (o.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
+                  (o.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"))
+                )?.label ?? "Day"}
               </span>
             </div>
 
-            {/* Atmosphere 3-way switch */}
-            <div className="grid grid-cols-3 gap-2.5 pt-1">
-              {/* Normal / Day */}
-              <button
-                type="button"
-                onClick={() => handleAtmosphereChange("normal")}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
-                  atmosphere === "normal"
-                    ? "bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.25)] font-black"
-                    : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
-                }`}
-              >
-                <Sun className="w-6 h-6 mb-1 text-amber-400" />
-                <span className="text-xs font-bold">Normal (Day)</span>
-                <span className="text-[10px] text-white/50 mt-0.5">Golden Sunlight</span>
-              </button>
-
-              {/* Evening / Golden Hour */}
-              <button
-                type="button"
-                onClick={() => handleAtmosphereChange("evening")}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
-                  atmosphere === "evening"
-                    ? "bg-orange-500/20 border-orange-400 text-orange-300 shadow-[0_0_16px_rgba(249,115,22,0.25)] font-black"
-                    : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
-                }`}
-              >
-                <Sunset className="w-6 h-6 mb-1 text-orange-400" />
-                <span className="text-xs font-bold">Evening</span>
-                <span className="text-[10px] text-white/50 mt-0.5">Warm Sunset</span>
-              </button>
-
-              {/* Night */}
-              <button
-                type="button"
-                onClick={() => handleAtmosphereChange("night")}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
-                  atmosphere === "night"
-                    ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.25)] font-black"
-                    : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
-                }`}
-              >
-                <Moon className="w-6 h-6 mb-1 text-cyan-400" />
-                <span className="text-xs font-bold">Night</span>
-                <span className="text-[10px] text-white/50 mt-0.5">Moon & Stars</span>
-              </button>
+            {/* Atmosphere Presets Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+              {ATMOSPHERE_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const active =
+                  atmosphere === opt.id ||
+                  (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
+                  (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleAtmosphereChange(opt.id)}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer relative overflow-hidden ${
+                      active
+                        ? `${opt.activeClasses} font-black`
+                        : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    <Icon className={`w-6 h-6 mb-1 ${active ? "" : opt.iconColor}`} />
+                    <span className="text-xs font-bold leading-tight">{opt.label}</span>
+                    <span className="text-[10px] text-white/50 mt-0.5 leading-tight">{opt.sub}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

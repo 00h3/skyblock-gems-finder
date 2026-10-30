@@ -229,6 +229,56 @@ const C = {
   cloudShadePurpleNight: new THREE.Color("#180629"),
   hemiSkyPurpleNight: new THREE.Color("#823dc0"),
   hemiGroundPurpleNight: new THREE.Color("#2b0f40"),
+
+  // Tempesta (Storm): Dark brooding tempest sky with lightning
+  topTempesta: new THREE.Color("#0a0f1d"),
+  midTempesta: new THREE.Color("#182235"),
+  horizonTempesta: new THREE.Color("#283548"),
+  sunTempesta: new THREE.Color("#7dd3fc"),
+  cloudLitTempesta: new THREE.Color("#475569"),
+  cloudShadeTempesta: new THREE.Color("#0f172a"),
+  hemiSkyTempesta: new THREE.Color("#334155"),
+  hemiGroundTempesta: new THREE.Color("#1e293b"),
+
+  // Striking Christmas Day: Crisp arctic winter sky, festive lantern sun, snow bounce
+  topChristmas: new THREE.Color("#1d4ed8"),
+  midChristmas: new THREE.Color("#60a5fa"),
+  horizonChristmas: new THREE.Color("#e0f2fe"),
+  sunChristmas: new THREE.Color("#fef08a"),
+  cloudLitChristmas: new THREE.Color("#ffffff"),
+  cloudShadeChristmas: new THREE.Color("#bfdbfe"),
+  hemiSkyChristmas: new THREE.Color("#bfdbfe"),
+  hemiGroundChristmas: new THREE.Color("#f8fafc"),
+
+  // Blood Moon (Luna di Sangue): Apocalyptic crimson twilight with scarlet eclipse moon
+  topBloodMoon: new THREE.Color("#160205"),
+  midBloodMoon: new THREE.Color("#3f0708"),
+  horizonBloodMoon: new THREE.Color("#7f1d1d"),
+  moonBloodMoon: new THREE.Color("#ef4444"),
+  cloudLitBloodMoon: new THREE.Color("#991b1b"),
+  cloudShadeBloodMoon: new THREE.Color("#240306"),
+  hemiSkyBloodMoon: new THREE.Color("#881337"),
+  hemiGroundBloodMoon: new THREE.Color("#27060a"),
+
+  // Aurora Borealis: Shimmering ethereal northern lights curtains over arctic starlight
+  topAurora: new THREE.Color("#021a1b"),
+  midAurora: new THREE.Color("#064e3b"),
+  horizonAurora: new THREE.Color("#0d9488"),
+  moonAurora: new THREE.Color("#5eead4"),
+  cloudLitAurora: new THREE.Color("#2dd4bf"),
+  cloudShadeAurora: new THREE.Color("#042f2e"),
+  hemiSkyAurora: new THREE.Color("#14b8a6"),
+  hemiGroundAurora: new THREE.Color("#022c22"),
+
+  // Solar Eclipse: Obsidian sun disc with blazing golden corona ring and deep violet umbra
+  topEclipse: new THREE.Color("#07020d"),
+  midEclipse: new THREE.Color("#1e1035"),
+  horizonEclipse: new THREE.Color("#4a1d6d"),
+  sunEclipse: new THREE.Color("#f59e0b"),
+  cloudLitEclipse: new THREE.Color("#701a75"),
+  cloudShadeEclipse: new THREE.Color("#1a0928"),
+  hemiSkyEclipse: new THREE.Color("#581c87"),
+  hemiGroundEclipse: new THREE.Color("#1e0f2b"),
 };
 
 export type SkyOptions = {
@@ -246,7 +296,16 @@ export class Sky {
   public isGoldenHour = false;
   public isMystic = false;
   public isPurpleNight = false;
+  public isTempesta = false;
+  public isChristmas = false;
+  public isBloodMoon = false;
+  public isAurora = false;
+  public isSolarEclipse = false;
+  public currentPreset = "day";
   public paused = false;
+
+  private lightningTimer = 6;
+  private lightningFlash = 0;
 
   private mat: THREE.ShaderMaterial;
   private fog: THREE.Fog;
@@ -374,39 +433,116 @@ export class Sky {
     this.apply();
   }
 
-  setNormalDay() {
+  private resetCustomModes() {
     this.isGoldenHour = false;
     this.isMystic = false;
     this.isPurpleNight = false;
+    this.isTempesta = false;
+    this.isChristmas = false;
+    this.isBloodMoon = false;
+    this.isAurora = false;
+    this.isSolarEclipse = false;
+  }
+
+  setNormalDay() {
+    this.resetCustomModes();
+    this.currentPreset = "day";
+    this.cloudCoverTarget = 0.5;
     this.setTimeOfDay(0.3);
   }
 
   setGoldenHour() {
+    this.resetCustomModes();
     this.isGoldenHour = true;
-    this.isMystic = false;
-    this.isPurpleNight = false;
+    this.currentPreset = "tramonto";
+    this.cloudCoverTarget = 0.55;
     this.setTimeOfDay(0.72); // Low golden sun angle
   }
 
   setNight() {
-    this.isGoldenHour = false;
-    this.isMystic = false;
-    this.isPurpleNight = false;
+    this.resetCustomModes();
+    this.currentPreset = "night";
+    this.cloudCoverTarget = 0.4;
     this.setTimeOfDay(0.85);
   }
 
   setPurpleNight() {
-    this.isGoldenHour = false;
-    this.isMystic = false;
+    this.resetCustomModes();
     this.isPurpleNight = true;
+    this.currentPreset = "purple_night";
+    this.cloudCoverTarget = 0.6;
     this.setTimeOfDay(0.85);
   }
 
   setMysticTwilight() {
-    this.isGoldenHour = false;
+    this.resetCustomModes();
     this.isMystic = true;
-    this.isPurpleNight = false;
+    this.currentPreset = "cinematic";
+    this.cloudCoverTarget = 0.65;
     this.setTimeOfDay(0.76); // Mystical purple twilight
+  }
+
+  setTempesta() {
+    this.resetCustomModes();
+    this.isTempesta = true;
+    this.currentPreset = "tempesta";
+    this.cloudCoverTarget = 0.95;
+    this.setTimeOfDay(0.74);
+  }
+
+  setStrikingChristmas() {
+    this.resetCustomModes();
+    this.isChristmas = true;
+    this.currentPreset = "christmas";
+    this.cloudCoverTarget = 0.55;
+    this.setTimeOfDay(0.32);
+  }
+
+  setBloodMoon() {
+    this.resetCustomModes();
+    this.isBloodMoon = true;
+    this.currentPreset = "blood_moon";
+    this.cloudCoverTarget = 0.62;
+    this.setTimeOfDay(0.85);
+  }
+
+  setAuroraBorealis() {
+    this.resetCustomModes();
+    this.isAurora = true;
+    this.currentPreset = "aurora";
+    this.cloudCoverTarget = 0.35;
+    this.setTimeOfDay(0.88);
+  }
+
+  setSolarEclipse() {
+    this.resetCustomModes();
+    this.isSolarEclipse = true;
+    this.currentPreset = "solar_eclipse";
+    this.cloudCoverTarget = 0.45;
+    this.setTimeOfDay(0.75);
+  }
+
+  setPreset(preset: string) {
+    const p = (preset || "day").toLowerCase().trim();
+    if (p === "tempesta" || p === "storm") {
+      this.setTempesta();
+    } else if (p === "christmas" || p === "striking_christmas" || p === "natale") {
+      this.setStrikingChristmas();
+    } else if (p === "blood_moon" || p === "bloodmoon" || p === "luna_rossa") {
+      this.setBloodMoon();
+    } else if (p === "aurora" || p === "aurora_borealis" || p === "northern_lights") {
+      this.setAuroraBorealis();
+    } else if (p === "solar_eclipse" || p === "eclipse" || p === "eclissi") {
+      this.setSolarEclipse();
+    } else if (p === "cinematic" || p === "mystic") {
+      this.setMysticTwilight();
+    } else if (p === "night" || p === "notte") {
+      this.setNight();
+    } else if (p === "tramonto" || p === "evening" || p === "golden") {
+      this.setGoldenHour();
+    } else {
+      this.setNormalDay();
+    }
   }
 
   follow(pos: THREE.Vector3) {
@@ -425,25 +561,52 @@ export class Sky {
     this.tintAmount += (this.tintTarget - this.tintAmount) * k;
     this.mat.uniforms.uCloudCover.value = this.cloudCover;
 
-    // Aurora is a rare event: a roll every ~40s of night, ~25% chance.
-    const isNight = this.mat.uniforms.uNight.value > 0.45;
-    this.auroraTimer -= dt;
-    if (this.auroraTimer <= 0) {
-      if (this.auroraTarget > 0) {
-        this.auroraTarget = 0;
-        this.auroraTimer = 40 + Math.random() * 40;
-      } else if (isNight && Math.random() < 0.25) {
-        this.auroraTarget = 1;
-        this.auroraTimer = 45 + Math.random() * 35;
-      } else {
-        this.auroraTimer = 40;
+    if (this.isAurora) {
+      this.aurora = 1.0;
+      this.mat.uniforms.uAurora.value = 1.0;
+    } else {
+      // Aurora is a rare event: a roll every ~40s of night, ~25% chance.
+      const isNight = this.mat.uniforms.uNight.value > 0.45;
+      this.auroraTimer -= dt;
+      if (this.auroraTimer <= 0) {
+        if (this.auroraTarget > 0) {
+          this.auroraTarget = 0;
+          this.auroraTimer = 40 + Math.random() * 40;
+        } else if (isNight && Math.random() < 0.25) {
+          this.auroraTarget = 1;
+          this.auroraTimer = 45 + Math.random() * 35;
+        } else {
+          this.auroraTimer = 40;
+        }
       }
+      if (!isNight) this.auroraTarget = 0;
+      this.aurora += (this.auroraTarget - this.aurora) * (1 - Math.exp(-0.35 * dt));
+      this.mat.uniforms.uAurora.value = this.aurora;
     }
-    if (!isNight) this.auroraTarget = 0;
-    this.aurora += (this.auroraTarget - this.aurora) * (1 - Math.exp(-0.35 * dt));
-    this.mat.uniforms.uAurora.value = this.aurora;
 
-    if (!this.paused && !this.isGoldenHour && !this.isMystic) {
+    if (this.isTempesta) {
+      this.lightningTimer -= dt;
+      if (this.lightningTimer <= 0) {
+        this.lightningFlash = 1.0;
+        this.lightningTimer = 4.5 + Math.random() * 6.5;
+      }
+      if (this.lightningFlash > 0) {
+        this.lightningFlash = Math.max(0, this.lightningFlash - dt * 5.5);
+      }
+    } else {
+      this.lightningFlash = 0;
+    }
+
+    const isCustomLocked =
+      this.isGoldenHour ||
+      this.isMystic ||
+      this.isTempesta ||
+      this.isChristmas ||
+      this.isBloodMoon ||
+      this.isAurora ||
+      this.isSolarEclipse;
+
+    if (!this.paused && !isCustomLocked) {
       this.t = (this.t + dt / this.dayLength) % 1;
     }
     if (this.v2) {
@@ -512,6 +675,166 @@ export class Sky {
 
       this.fog.color.copy(C.horizonPurpleNight);
       if (this.scene.background instanceof THREE.Color) this.scene.background.copy(C.horizonPurpleNight);
+      return;
+    }
+
+    if (this.isTempesta) {
+      top.copy(C.topTempesta);
+      mid.copy(C.midTempesta);
+      horizon.copy(C.horizonTempesta);
+      sun.copy(C.sunTempesta);
+
+      if (this.lightningFlash > 0.05) {
+        mid.lerp(new THREE.Color("#93c5fd"), this.lightningFlash * 0.7);
+        horizon.lerp(new THREE.Color("#60a5fa"), this.lightningFlash * 0.6);
+      }
+
+      const u = this.mat.uniforms;
+      u.uTop.value.copy(top);
+      u.uMid.value.copy(mid);
+      u.uHorizon.value.copy(horizon);
+      u.uSunDir.value.copy(sunDir);
+      u.uSunColor.value.copy(sun);
+      u.uNight.value = 0.7;
+      u.uCloudLit.value.copy(C.cloudLitTempesta);
+      u.uCloudShade.value.copy(C.cloudShadeTempesta);
+
+      this.sunLight.position.set(-40, 80, 50);
+      this.sunLight.color.copy(C.sunTempesta);
+      this.sunLight.intensity = (0.55 + this.lightningFlash * 2.8) * this.cloudLight;
+
+      this.hemi.color.copy(C.hemiSkyTempesta);
+      this.hemi.groundColor.copy(C.hemiGroundTempesta);
+      this.hemi.intensity = 0.75 + this.lightningFlash * 0.8;
+      this.ambient.color.set("#1e293b");
+      this.ambient.intensity = 0.4;
+
+      this.fog.color.copy(horizon);
+      if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);
+      return;
+    }
+
+    if (this.isChristmas) {
+      top.copy(C.topChristmas);
+      mid.copy(C.midChristmas);
+      horizon.copy(C.horizonChristmas);
+      sun.copy(C.sunChristmas);
+
+      const u = this.mat.uniforms;
+      u.uTop.value.copy(top);
+      u.uMid.value.copy(mid);
+      u.uHorizon.value.copy(horizon);
+      u.uSunDir.value.copy(sunDir);
+      u.uSunColor.value.copy(sun);
+      u.uNight.value = 0.0;
+      u.uCloudLit.value.copy(C.cloudLitChristmas);
+      u.uCloudShade.value.copy(C.cloudShadeChristmas);
+
+      this.sunLight.position.set(50, 95, 45);
+      this.sunLight.color.copy(C.sunChristmas);
+      this.sunLight.intensity = 1.9 * this.cloudLight;
+
+      this.hemi.color.copy(C.hemiSkyChristmas);
+      this.hemi.groundColor.copy(C.hemiGroundChristmas);
+      this.hemi.intensity = 1.35;
+      this.ambient.color.set("#dbeafe");
+      this.ambient.intensity = 0.44;
+
+      this.fog.color.copy(horizon);
+      if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);
+      return;
+    }
+
+    if (this.isBloodMoon) {
+      top.copy(C.topBloodMoon);
+      mid.copy(C.midBloodMoon);
+      horizon.copy(C.horizonBloodMoon);
+      sun.copy(C.moonBloodMoon);
+
+      const u = this.mat.uniforms;
+      u.uTop.value.copy(top);
+      u.uMid.value.copy(mid);
+      u.uHorizon.value.copy(horizon);
+      u.uSunDir.value.copy(sunDir);
+      u.uSunColor.value.copy(sun);
+      u.uNight.value = 1.0;
+      u.uCloudLit.value.copy(C.cloudLitBloodMoon);
+      u.uCloudShade.value.copy(C.cloudShadeBloodMoon);
+
+      this.sunLight.position.set(-60, 90, 60);
+      this.sunLight.color.copy(C.moonBloodMoon);
+      this.sunLight.intensity = 1.3;
+
+      this.hemi.color.copy(C.hemiSkyBloodMoon);
+      this.hemi.groundColor.copy(C.hemiGroundBloodMoon);
+      this.hemi.intensity = 1.0;
+      this.ambient.color.set("#7f1d1d");
+      this.ambient.intensity = 0.38;
+
+      this.fog.color.copy(horizon);
+      if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);
+      return;
+    }
+
+    if (this.isAurora) {
+      top.copy(C.topAurora);
+      mid.copy(C.midAurora);
+      horizon.copy(C.horizonAurora);
+      sun.copy(C.moonAurora);
+
+      const u = this.mat.uniforms;
+      u.uTop.value.copy(top);
+      u.uMid.value.copy(mid);
+      u.uHorizon.value.copy(horizon);
+      u.uSunDir.value.copy(sunDir);
+      u.uSunColor.value.copy(sun);
+      u.uNight.value = 0.95;
+      u.uCloudLit.value.copy(C.cloudLitAurora);
+      u.uCloudShade.value.copy(C.cloudShadeAurora);
+
+      this.sunLight.position.set(-50, 90, 50);
+      this.sunLight.color.copy(C.moonAurora);
+      this.sunLight.intensity = 1.15;
+
+      this.hemi.color.copy(C.hemiSkyAurora);
+      this.hemi.groundColor.copy(C.hemiGroundAurora);
+      this.hemi.intensity = 1.2;
+      this.ambient.color.set("#0d9488");
+      this.ambient.intensity = 0.42;
+
+      this.fog.color.copy(horizon);
+      if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);
+      return;
+    }
+
+    if (this.isSolarEclipse) {
+      top.copy(C.topEclipse);
+      mid.copy(C.midEclipse);
+      horizon.copy(C.horizonEclipse);
+      sun.copy(C.sunEclipse);
+
+      const u = this.mat.uniforms;
+      u.uTop.value.copy(top);
+      u.uMid.value.copy(mid);
+      u.uHorizon.value.copy(horizon);
+      u.uSunDir.value.copy(sunDir);
+      u.uSunColor.value.copy(sun);
+      u.uNight.value = 0.85;
+      u.uCloudLit.value.copy(C.cloudLitEclipse);
+      u.uCloudShade.value.copy(C.cloudShadeEclipse);
+
+      this.sunLight.position.set(40, 85, 40);
+      this.sunLight.color.copy(C.sunEclipse);
+      this.sunLight.intensity = 0.95;
+
+      this.hemi.color.copy(C.hemiSkyEclipse);
+      this.hemi.groundColor.copy(C.hemiGroundEclipse);
+      this.hemi.intensity = 0.95;
+      this.ambient.color.set("#4a1d6d");
+      this.ambient.intensity = 0.36;
+
+      this.fog.color.copy(horizon);
+      if (this.scene.background instanceof THREE.Color) this.scene.background.copy(horizon);
       return;
     }
 

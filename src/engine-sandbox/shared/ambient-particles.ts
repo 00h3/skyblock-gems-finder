@@ -6,7 +6,7 @@ import * as THREE from "three";
  * costs a single draw call. Modes switch the look/motion for world events.
  */
 
-export type ParticleMode = "motes" | "sparks" | "spores" | "embers" | "snow" | "off";
+export type ParticleMode = "motes" | "sparks" | "spores" | "embers" | "snow" | "rain" | "off";
 
 function makeSprite() {
   const c = document.createElement("canvas");
@@ -79,6 +79,14 @@ export class AmbientParticles {
       this.mat.blending = THREE.NormalBlending;
       this.mat.needsUpdate = true;
       return;
+    } else if (mode === "rain") {
+      // High-speed storm precipitation
+      this.mat.color.set("#93c5fd");
+      this.mat.size = 0.15;
+      this.mat.opacity = 0.8;
+      this.mat.blending = THREE.NormalBlending;
+      this.mat.needsUpdate = true;
+      return;
     } else if (mode === "embers") {
       // Warm glowing forge & torch embers (Hytale image 2)
       this.mat.color.set("#ff8822");
@@ -113,15 +121,16 @@ export class AmbientParticles {
     const h = this.half;
     const isUpward = this.mode === "spores" || this.mode === "embers";
     const snow = this.mode === "snow";
-    const fall = (this.mode === "sparks" ? 7 : snow ? 1.3 : isUpward ? -0.45 : 0.18) * this.fallScale;
-    const sway = snow ? 0.9 : 0.35;
+    const isRain = this.mode === "rain";
+    const fall = (isRain ? 22 : this.mode === "sparks" ? 7 : snow ? 1.3 : isUpward ? -0.45 : 0.18) * this.fallScale;
+    const sway = isRain ? 0.15 : snow ? 0.9 : 0.35;
     const gust = this.wind * (0.75 + Math.sin(this.t * 0.6) * 0.25);
     for (let i = 0; i < this.count; i++) {
       const s = this.seeds[i];
       const ix = i * 3;
       p[ix] += Math.sin(this.t * 0.45 + s) * sway * simDt + (this.mode === "sparks" ? 2.5 * simDt : snow ? 0.4 * simDt : 0) + gust * simDt;
-      p[ix + 1] += (Math.sin(this.t * 0.75 + s * 1.3) * 0.25 - fall) * simDt;
-      p[ix + 2] += Math.cos(this.t * 0.4 + s) * 0.35 * simDt;
+      p[ix + 1] += (Math.sin(this.t * 0.75 + s * 1.3) * (isRain ? 0.05 : 0.25) - fall) * simDt;
+      p[ix + 2] += Math.cos(this.t * 0.4 + s) * (isRain ? 0.15 : 0.35) * simDt;
       if (p[ix + 1] < -4) p[ix + 1] += h + 4;
       else if (p[ix + 1] > h + 4) p[ix + 1] = -4;
       if (p[ix] > h) p[ix] -= h * 2;
