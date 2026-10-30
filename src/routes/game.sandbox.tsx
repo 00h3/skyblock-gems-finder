@@ -31,6 +31,7 @@ import { Controls } from "@/engine-sandbox/shared/controls";
 import { BlockFx, createHighlight, raycastVoxel } from "@/engine-sandbox/shared/interact";
 import { Sky } from "@/engine-sandbox/shared/sky";
 import { Avatar } from "@/engine-sandbox/shared/avatar";
+import { DroppedItemManager } from "@/engine-sandbox/shared/dropped-items";
 import { CRACK_STAGES } from "@/engine-sandbox/shared/textures";
 import { Link } from "@tanstack/react-router";
 import { SandboxChat } from "@/components/SandboxChat";
@@ -1503,6 +1504,7 @@ export function SandboxGame({
   const [freeLook, setFreeLook] = useState(false);
   const freeLookRef = useRef(false);
   const avatarInstanceRef = useRef<Avatar | null>(null);
+  const droppedItemsRef = useRef<DroppedItemManager | null>(null);
   const thirdRef = useRef(true);
   
   // Update thirdRef whenever thirdPerson changes
@@ -2520,6 +2522,7 @@ export function SandboxGame({
       const setHeldTile = (id: number | string) => {
         if (!atlas) return;
         heldItemId = id;
+        avatarInstanceRef.current?.setHeldItem(id);
         featuresRef.current?.setHeld(id);
         heldSwords.forEach((m) => (m.visible = false));
         heldSword = typeof id === "string" ? (heldSwords.get(id) ?? null) : null;
@@ -2607,6 +2610,7 @@ export function SandboxGame({
       avatar.load(2.28).then(() => {
         if (disposed || !avatar) return;
         setAvatarReady(true);
+        if (heldItemId) avatar.setHeldItem(heldItemId);
       }).catch((err) => {
         console.warn("Avatar model load notice:", err);
       });
@@ -3360,8 +3364,59 @@ export function SandboxGame({
 
       heldRig.visible = !thirdRef.current;
 
+      // ── Dropped Items system (Minecraft style Q-drop, physics, floating, magnetic pickup) ──
+      const droppedItems = new DroppedItemManager(scene, world!, atlas!);
+      droppedItemsRef.current = droppedItems;
+
+      const dropCurrentHeldItem = () => {
+        const currentSlot = slotRef.current;
+        const currentItem = hotbarRef.current[currentSlot];
+        if (!currentItem || currentItem === 0) return;
+
+        const throwDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const spawnPos = new THREE.Vector3(player.position.x, player.eyeY - 0.25, player.position.z).addScaledVector(throwDir, 0.45);
+
+        droppedItems.drop(currentItem, 1, spawnPos, throwDir);
+
+        setHotbar((prev) => {
+          const next = [...prev];
+          next[currentSlot] = 0;
+          return next;
+        });
+        setHeldTile(0);
+
+        const blockDef = BLOCKS.find((b) => b.id === currentItem);
+        const name = blockDef?.name || (typeof currentItem === "string" ? currentItem.replace(/_/g, " ") : "Item");
+        announce("Dropped item", `Dropped ${name}`);
+        playSound("pop");
+      };
+
+      const handlePickupItem = (itemId: number | string, count: number) => {
+        setHotbar((prev) => {
+          const next = [...prev];
+          const emptyIndex = next.findIndex((slot) => !slot || slot === 0);
+          if (emptyIndex !== -1) {
+            next[emptyIndex] = itemId;
+            if (slotRef.current === emptyIndex) {
+              setHeldTile(itemId);
+            }
+          } else if (next.length < 9) {
+            next.push(itemId);
+          }
+          return next;
+        });
+
+        const blockDef = BLOCKS.find((b) => b.id === itemId);
+        const name = blockDef?.name || (typeof itemId === "string" ? itemId.replace(/_/g, " ") : "Item");
+        announce("Picked up", `+${count} ${name}`);
+        playSound("pop");
+      };
+
       controls = new Controls(renderer.domElement);
       controlsRef.current = controls;
+      controls.onDrop = () => {
+        dropCurrentHeldItem();
+      };
       if (isSkyblockLike) {
         BmgoAudio.startSkyblockBgm();
       }
@@ -3678,9 +3733,11 @@ export function SandboxGame({
         setHeldTile: (id: number | string) => void;
         getAtlasUrl: (id: number | string) => string;
         plant: (species: Species) => boolean;
+        dropItem: () => void;
       };
       (mount as HTMLDivElement & { __api?: Api }).__api = {
         place: () => doPlace(),
+        dropItem: () => dropCurrentHeldItem(),
         swapOffhand: () => {
           const index = slotRef.current;
           const current = hotbarRef.current[index] ?? 0;
@@ -4391,6 +4448,9 @@ export function SandboxGame({
         if (staffMixer) staffMixer.update(dt);
         updateBossSystem(dt);
         rewardChests?.update(dt);
+        droppedItems.update(dt, player.position, (itemId, count) => {
+          handlePickupItem(itemId, count);
+        });
 
         if (heldItemId === "dark_magic_staff") {
           const staffObj = heldSwords.get("dark_magic_staff");
@@ -4673,6 +4733,8 @@ export function SandboxGame({
         window.removeEventListener(MINE_TELEPORT_EVENT, onMineTeleport);
         window.removeEventListener(MISSION_DONE_EVENT, onMissionDone);
         rewardChests?.dispose();
+        droppedItems.dispose();
+        droppedItemsRef.current = null;
         redDragon?.dispose();
         for (const l of mineLights) l.dispose();
         mineAmbientLight.dispose();
@@ -4731,6 +4793,8 @@ export function SandboxGame({
       selfTag?.dispose();
       avatar?.dispose();
       avatarInstanceRef.current = null;
+      droppedItemsRef.current?.dispose();
+      droppedItemsRef.current = null;
       sky?.dispose();
       fx?.dispose();
       ownBedIndicator?.material.map?.dispose();
@@ -4828,6 +4892,7 @@ export function SandboxGame({
             setHeldTile: (id: number | string) => void;
             getAtlasUrl: (id: number | string) => string;
             plant: (species: Species) => boolean;
+            dropItem: () => void;
           };
         })
       | null;
@@ -5089,6 +5154,14 @@ export function SandboxGame({
           label: "Build",
           kind: "tap",
           onPress: handleBuild,
+        },
+        {
+          id: "drop",
+          label: "Drop",
+          kind: "tap" as const,
+          onPress: () => {
+            api()?.dropItem();
+          },
         },
         ...(isSkyblockLike && totalSeeds > 0
           ? [

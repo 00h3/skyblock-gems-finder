@@ -155,7 +155,7 @@ export function ChestModal({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-2 sm:p-3"
+      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 p-2 sm:p-4 pointer-events-auto select-none"
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) {
           GameAudio.playChestClose();
@@ -167,15 +167,22 @@ export function ChestModal({
         role="dialog"
         aria-modal="true"
         aria-label="Chest"
-        className="wood-panel v2-anim-pop flex max-h-[82dvh] w-full max-w-[460px] scale-[0.85] origin-center sm:scale-90 flex-col overflow-hidden select-none"
+        className="v2-anim-pop flex max-h-[82dvh] w-full max-w-[460px] flex-col overflow-hidden rounded-[4px] p-2.5 sm:p-3.5 select-none shadow-[0_16px_40px_rgba(0,0,0,0.65)]"
+        style={{
+          backgroundColor: "#c6c6c6",
+          borderTop: "3px solid #ffffff",
+          borderLeft: "3px solid #ffffff",
+          borderBottom: "3px solid #555555",
+          borderRight: "3px solid #555555",
+        }}
       >
-        {/* Authentic Wood Header */}
-        <header className="wood-header relative flex h-9 shrink-0 items-center justify-center">
+        {/* Authentic Inventory Grey Header */}
+        <header className="relative flex h-8 shrink-0 items-center justify-between pb-1.5 border-b border-[#a0a0a0]">
           <div className="flex items-center gap-1.5">
-            <h2 className="font-lilita text-[17px] tracking-wide text-white [text-shadow:0_2px_0_rgba(0,0,0,.6)]">
+            <h2 className="font-lilita text-[16px] tracking-wide text-[#2b2b2b] uppercase">
               Chest
             </h2>
-            <span className="font-lilita text-[11.5px] text-amber-200/80">
+            <span className="font-lilita text-[12px] text-[#555555]">
               ({totalChestItems}/27)
             </span>
           </div>
@@ -186,15 +193,24 @@ export function ChestModal({
               onClose();
             }}
             aria-label="Close chest"
-            className="absolute right-2 grid h-6 w-6 place-items-center text-white/90 active:scale-90"
+            className="font-lilita text-[15px] text-[#444444] hover:text-black px-1.5 py-0.5 active:scale-95 transition"
           >
-            <X className="h-4 w-4 stroke-[3.5]" aria-hidden="true" />
+            ✕
           </button>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5 sm:p-2">
-          {/* 27 Chest Slots Grid inside wood-inset (3 rows x 9 columns) */}
-          <div className="wood-inset p-1.5">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pt-2">
+          {/* 27 Chest Slots Grid inside grey-inset (3 rows x 9 columns) */}
+          <div
+            className="p-1.5 rounded-[2px]"
+            style={{
+              backgroundColor: "#8b8b8b",
+              borderTop: "2px solid #373737",
+              borderLeft: "2px solid #373737",
+              borderBottom: "2px solid #ffffff",
+              borderRight: "2px solid #ffffff",
+            }}
+          >
             <div className="grid grid-cols-9 gap-1" aria-label="Chest storage slots">
               {chestSlots.map((item, idx) => {
                 const isSelected = selectedSlot === idx;
@@ -211,9 +227,16 @@ export function ChestModal({
                       }
                     }}
                     onDoubleClick={() => handleTake(idx)}
+                    style={{
+                      backgroundColor: isSelected ? "#a0a0a0" : "#8b8b8b",
+                      borderTop: "2px solid #373737",
+                      borderLeft: "2px solid #373737",
+                      borderBottom: "2px solid #ffffff",
+                      borderRight: "2px solid #ffffff",
+                    }}
                     className={cn(
-                      "wood-slot relative grid aspect-square place-items-center rounded-[3px] transition-transform duration-75 active:scale-95",
-                      isSelected && "wood-slot-picked",
+                      "relative grid aspect-square place-items-center rounded-[2px] transition-transform duration-75 active:scale-95",
+                      isSelected && "ring-2 ring-white",
                     )}
                   >
                     {item && (
@@ -235,11 +258,29 @@ export function ChestModal({
             </div>
           </div>
 
-          {/* Item details & Action row in wood-inset */}
-          <div className="wood-inset flex flex-wrap items-center justify-between gap-1.5 p-1.5">
+          {/* Item details & Action row in grey-inset */}
+          <div
+            className="flex flex-wrap items-center justify-between gap-1.5 p-2 rounded-[2px]"
+            style={{
+              backgroundColor: "#8b8b8b",
+              borderTop: "2px solid #373737",
+              borderLeft: "2px solid #373737",
+              borderBottom: "2px solid #ffffff",
+              borderRight: "2px solid #ffffff",
+            }}
+          >
             {selectedItem ? (
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="wood-slot grid h-9 w-9 shrink-0 place-items-center rounded-[3px]">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-[2px]"
+                  style={{
+                    backgroundColor: "#8b8b8b",
+                    borderTop: "2px solid #373737",
+                    borderLeft: "2px solid #373737",
+                    borderBottom: "2px solid #ffffff",
+                    borderRight: "2px solid #ffffff",
+                  }}
+                >
                   <img
                     src={selectedItem.icon}
                     alt={selectedItem.name}
@@ -247,16 +288,16 @@ export function ChestModal({
                   />
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-lilita text-[13.5px] text-white">
+                  <p className="truncate font-lilita text-[14px] text-white [text-shadow:0_1px_2px_#000]">
                     {selectedItem.name}
                   </p>
-                  <p className="truncate text-[10.5px] font-bold text-amber-200">
+                  <p className="truncate text-[11px] font-bold text-slate-200 [text-shadow:0_1px_1px_#000]">
                     Quantity: {selectedItem.count}
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="py-1.5 font-lilita text-[13px] text-white/60">
+              <p className="py-1 font-lilita text-[13px] text-slate-200 [text-shadow:0_1px_2px_#000]">
                 — Select Item or Take All —
               </p>
             )}
@@ -266,7 +307,14 @@ export function ChestModal({
                 <button
                   type="button"
                   onClick={() => handleTake(selectedSlot!)}
-                  className="wood-btn wood-btn-blue h-8 px-3 font-lilita text-[13px]"
+                  className="font-lilita text-[13px] text-[#222222] h-8 px-3 rounded-[2px] transition active:scale-95 cursor-pointer"
+                  style={{
+                    backgroundColor: "#c6c6c6",
+                    borderTop: "2px solid #ffffff",
+                    borderLeft: "2px solid #ffffff",
+                    borderBottom: "2px solid #555555",
+                    borderRight: "2px solid #555555",
+                  }}
                 >
                   Take
                 </button>
@@ -275,7 +323,14 @@ export function ChestModal({
                 <button
                   type="button"
                   onClick={handleTakeAll}
-                  className="wood-btn h-8 px-3 font-lilita text-[13px]"
+                  className="font-lilita text-[13px] text-[#222222] h-8 px-3 rounded-[2px] transition active:scale-95 cursor-pointer"
+                  style={{
+                    backgroundColor: "#c6c6c6",
+                    borderTop: "2px solid #ffffff",
+                    borderLeft: "2px solid #ffffff",
+                    borderBottom: "2px solid #555555",
+                    borderRight: "2px solid #555555",
+                  }}
                 >
                   Take All
                 </button>

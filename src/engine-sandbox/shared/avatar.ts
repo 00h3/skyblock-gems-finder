@@ -188,6 +188,8 @@ export class Avatar {
   private purpleAura: PurpleAuraFx | null = null;
   private deathCallback: (() => void) | null = null;
   private deathTimer: number | null = null;
+  private heldItemAnchor = new THREE.Group();
+  private heldItemMesh: THREE.Object3D | null = null;
 
   constructor() {
     // Build procedural rig as an emergency fallback, but keep it hidden unless GLB fails
@@ -197,6 +199,12 @@ export class Avatar {
     }
     this.purpleAura = new PurpleAuraFx();
     this.group.add(this.purpleAura.group);
+
+    // Right-hand held item anchor for 3rd person visibility
+    this.heldItemAnchor.position.set(0.32, 0.75, 0.22);
+    this.heldItemAnchor.rotation.set(-0.25, 0.35, -0.15);
+    this.heldItemAnchor.visible = false;
+    this.group.add(this.heldItemAnchor);
   }
 
   setEmote(active: boolean) {
@@ -663,8 +671,64 @@ export class Avatar {
     });
   }
 
+  setHeldItem(itemId: number | string) {
+    if (this.heldItemMesh) {
+      this.heldItemAnchor.remove(this.heldItemMesh);
+      this.heldItemMesh = null;
+    }
+    if (!itemId || itemId === 0) {
+      this.heldItemAnchor.visible = false;
+      return;
+    }
+    this.heldItemAnchor.visible = true;
+    if (typeof itemId === "number") {
+      const geo = new THREE.BoxGeometry(0.24, 0.24, 0.24);
+      const mat = new THREE.MeshStandardMaterial({
+        color:
+          itemId === 1 ? 0x5b8e3a :
+          itemId === 2 ? 0x866043 :
+          itemId === 3 ? 0x808080 :
+          itemId === 4 ? 0x9a9aa0 :
+          itemId === 13 ? 0x8b5a2b :
+          itemId === 20 ? 0x55ffff :
+          itemId === 19 ? 0xffd700 :
+          itemId === 47 ? 0xd8dde0 :
+          0xaaaaaa,
+        roughness: 0.7,
+      });
+      const cube = new THREE.Mesh(geo, mat);
+      cube.castShadow = true;
+      this.heldItemMesh = cube;
+      this.heldItemAnchor.add(cube);
+    } else {
+      const name = String(itemId).toLowerCase();
+      const url = name.includes("sword") || name.includes("staff") ? "/short-sword.svg" : `/items/${name}.png`;
+      const mat = new THREE.MeshStandardMaterial({
+        transparent: true,
+        side: THREE.DoubleSide,
+        alphaTest: 0.1,
+      });
+      new THREE.TextureLoader().load(url, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        mat.map = tex;
+        mat.needsUpdate = true;
+      });
+      const geo = new THREE.PlaneGeometry(0.38, 0.38);
+      const sprite = new THREE.Mesh(geo, mat);
+      sprite.castShadow = true;
+      this.heldItemMesh = sprite;
+      this.heldItemAnchor.add(sprite);
+    }
+  }
+
   dispose() {
     this.mixer?.stopAllAction();
+    if (this.heldItemMesh) {
+      this.heldItemAnchor.remove(this.heldItemMesh);
+      this.heldItemMesh = null;
+    }
     this.group.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.isMesh) {

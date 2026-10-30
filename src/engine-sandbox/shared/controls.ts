@@ -29,6 +29,7 @@ export class Controls {
   touch = { x: 0, y: 0, jump: false, sprint: false, crouch: false };
   sensitivity = 0.0022;
   onSlot?: (index: number) => void;
+  onDrop?: () => void;
   onLockChange?: (locked: boolean) => void;
   onAction?: (kind: "break" | "place") => void;
   /** Held-button state: hold left = mine, hold right = place (with cooldown). */
@@ -97,6 +98,9 @@ export class Controls {
     if (e.code.startsWith("Digit")) {
       const n = Number(e.code.slice(5));
       if (n >= 1 && n <= 9) this.onSlot?.(n - 1);
+    }
+    if (e.code === "KeyQ" && !e.repeat) {
+      this.onDrop?.();
     }
     if (e.code === "Space") e.preventDefault();
     this.sync();

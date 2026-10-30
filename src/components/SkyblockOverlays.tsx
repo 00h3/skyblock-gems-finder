@@ -92,81 +92,134 @@ export function DragonBossBar({ hp, max }: { hp: number; max: number }) {
   );
 }
 
-/* ── Chest reward screen ──────────────────────────────────────────────── */
+/* ── Chest reward screen (Minecraft Inventory Grey Bottom Popup) ──────────────────────────────────────────────── */
 
-const RARITY = {
-  common: { label: "Common", color: "#cbd5e1" },
-  rare: { label: "Rare", color: "#38bdf8" },
-  epic: { label: "Epic", color: "#c084fc" },
-  legend: { label: "Legendary", color: "#fbbf24" },
-} as const;
-
-const ACCESSORY_ICON: Record<string, typeof Gem> = {
-  "lucky-charm": Clover,
-  "ruby-ring": Gem,
-  "sky-crown": Crown,
-  "wind-boots": Wind,
-  "ender-pendant": Sparkles,
-  "gold-bracelet": Circle,
+const REWARD_TEXTURE_MAP: Record<string, string> = {
+  "lucky-charm": "/textures/blocks/emerald_block.png",
+  "ruby-ring": "/textures/blocks/redstone_ore.png",
+  "sky-crown": "/textures/blocks/gold_block.png",
+  "wind-boots": "/textures/blocks/iron_block.png",
+  "ender-pendant": "/textures/blocks/amethyst_block.png",
+  "gold-bracelet": "/textures/blocks/gold_block.png",
 };
 
 export function ChestRewardModal({ reward, onClose }: { reward: Reward; onClose: () => void }) {
   const rarity = RARITY[reward.rarity];
-  const Icon = reward.kind === "weapon" ? Swords : (ACCESSORY_ICON[reward.id] ?? Gem);
+  const itemTexture =
+    reward.kind === "weapon"
+      ? "/items/diamond_axe.png"
+      : REWARD_TEXTURE_MAP[reward.id] || "/textures/blocks/diamond_block.png";
   const closeRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
+
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/65 p-3 backdrop-blur-sm font-inter-bold">
+    <div className="fixed inset-0 z-[140] flex items-end justify-center bg-black/60 p-3 sm:p-5 pointer-events-auto select-none">
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="chest-win-title"
-        className="relative flex w-full max-w-[340px] flex-col items-center gap-3 overflow-hidden"
-        style={{ ...PANEL_OUTER, padding: "18px 16px 16px", backgroundColor: "rgba(26,29,36,0.97)" }}
+        className="v2-anim-pop relative flex w-full max-w-[420px] flex-col overflow-hidden rounded-[4px] p-3 sm:p-4 shadow-[0_16px_40px_rgba(0,0,0,0.65)]"
+        style={{
+          backgroundColor: "#c6c6c6",
+          borderTop: "3px solid #ffffff",
+          borderLeft: "3px solid #ffffff",
+          borderBottom: "3px solid #555555",
+          borderRight: "3px solid #555555",
+        }}
       >
+        {/* Header: YOU WON ITEM: */}
+        <header className="flex items-center justify-between pb-2 mb-2 border-b border-[#a0a0a0]">
+          <h2
+            id="chest-win-title"
+            className="font-lilita text-[16px] sm:text-[17px] tracking-wide text-[#2b2b2b] uppercase"
+          >
+            YOU WON ITEM:
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="font-lilita text-[15px] text-[#444444] hover:text-black px-1.5 py-0.5 active:scale-95 transition"
+          >
+            ✕
+          </button>
+        </header>
+
+        {/* Inventory Grey Inset Box with Pixelated Item */}
         <div
-          className="qb-burst-spin pointer-events-none absolute left-1/2 top-[88px] h-[460px] w-[460px] -translate-x-1/2 -translate-y-1/2 opacity-35"
+          className="flex items-center gap-3 p-2.5 rounded-[2px]"
           style={{
-            background: `repeating-conic-gradient(from 0deg, ${rarity.color}55 0deg 9deg, transparent 9deg 24deg)`,
-            maskImage: "radial-gradient(circle, #000 18%, transparent 68%)",
-            WebkitMaskImage: "radial-gradient(circle, #000 18%, transparent 68%)",
+            backgroundColor: "#8b8b8b",
+            borderTop: "2px solid #373737",
+            borderLeft: "2px solid #373737",
+            borderBottom: "2px solid #ffffff",
+            borderRight: "2px solid #ffffff",
           }}
-          aria-hidden="true"
-        />
-        <h2
-          id="chest-win-title"
-          className="qb-comic-pop relative text-[44px] font-black italic leading-none tracking-tight text-amber-300 [text-shadow:-3px_-3px_0_#000,3px_-3px_0_#000,-3px_3px_0_#000,3px_3px_0_#000,0_6px_0_#000,0_8px_14px_rgba(0,0,0,0.8)]"
         >
-          YOU WON!
-        </h2>
+          {/* Authentic Inventory Slot */}
+          <div
+            className="relative grid h-14 w-14 shrink-0 place-items-center rounded-[2px]"
+            style={{
+              backgroundColor: "#8b8b8b",
+              borderTop: "2px solid #373737",
+              borderLeft: "2px solid #373737",
+              borderBottom: "2px solid #ffffff",
+              borderRight: "2px solid #ffffff",
+            }}
+          >
+            <img
+              src={itemTexture}
+              alt={reward.name}
+              className="h-9 w-9 object-contain [image-rendering:pixelated]"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = "/textures/blocks/diamond_block.png";
+              }}
+            />
+          </div>
 
-        <div
-          className="qb-item-rise relative grid h-[104px] w-[104px] place-items-center"
-          style={{ ...SLOT_FILLED, borderRadius: "12px", border: `2px solid ${rarity.color}`, boxShadow: `0 0 28px ${rarity.color}66` }}
-        >
-          <Icon className="h-14 w-14" style={{ color: rarity.color }} strokeWidth={1.8} aria-hidden="true" />
+          {/* Item details */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="font-lilita text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded-[2px] text-white"
+                style={{ backgroundColor: rarity.color, textShadow: "0 1px 2px #000" }}
+              >
+                {rarity.label}
+              </span>
+              <span className="text-[11px] font-bold text-white/90 [text-shadow:0_1px_1px_#000]">
+                {reward.kind === "weapon" ? "Weapon" : "Accessory"}
+              </span>
+            </div>
+            <p className="font-lilita text-[17px] text-white truncate [text-shadow:0_1px_2px_#000] mt-0.5">
+              {reward.name}
+            </p>
+            <p className="text-[11.5px] font-semibold text-slate-200 truncate [text-shadow:0_1px_1px_#000]">
+              {reward.blurb}
+            </p>
+          </div>
         </div>
 
-        <div className="relative flex flex-col items-center gap-0.5 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: rarity.color }}>
-            {rarity.label} {reward.kind}
-          </p>
-          <p className={`text-[22px] font-black italic leading-tight text-white ${OUTLINE}`}>{reward.name}</p>
-          <p className="text-[12px] font-bold text-slate-300">{reward.blurb}</p>
-          {reward.kind === "weapon" && <p className="mt-1 text-[11px] font-bold text-slate-400">Added to your hotbar</p>}
+        {/* Action button in Minecraft inventory grey */}
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            className="font-lilita text-[14px] text-[#222222] px-5 py-2 rounded-[2px] transition active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: "#c6c6c6",
+              borderTop: "2px solid #ffffff",
+              borderLeft: "2px solid #ffffff",
+              borderBottom: "2px solid #555555",
+              borderRight: "2px solid #555555",
+            }}
+          >
+            Collect Item
+          </button>
         </div>
-
-        <button
-          ref={closeRef}
-          type="button"
-          onClick={onClose}
-          className={`relative mt-1 w-full cursor-pointer px-4 py-2.5 text-[13px] font-black italic text-white transition active:scale-95 ${OUTLINE}`}
-          style={{ ...SLOT_FILLED, borderRadius: "10px", border: "1px solid #5b7bb2", backgroundColor: "#2b3952" }}
-        >
-          Awesome!
-        </button>
       </section>
     </div>
   );
