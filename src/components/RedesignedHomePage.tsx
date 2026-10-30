@@ -128,8 +128,41 @@ export function RedesignedHomePage({
           </div>
         </header>
 
+        {/* Search — positioned on top of the 3 quick entry cards */}
+        <div className="px-4 mt-1.5 mb-2.5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const input = form.elements.namedItem("q") as HTMLInputElement;
+              if (input && input.value.trim()) {
+                navigate({ to: "/search", search: { q: input.value.trim() } } as any);
+              } else {
+                navigate({ to: "/search" as never });
+              }
+            }}
+            className="qb-squircle group press relative flex h-[40px] w-full items-center gap-2.5 px-3.5 overflow-hidden select-none transition-all duration-300 hover:border-[#fa4616]/80 hover:[animation:orangeOutlineGlow_2.2s_ease-in-out_infinite] focus-within:border-[#fa4616] focus-within:[animation:orangeOutlineGlow_2.2s_ease-in-out_infinite] rounded-[13px]"
+          >
+            {/* Top gloss curve (signature mail glossiness) */}
+            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 dark:from-white/15 to-transparent pointer-events-none rounded-t-[12px] z-10" />
+
+            {/* Animated glossy light sweep on hover / focus */}
+            <span
+              className="pointer-events-none absolute inset-0 -translate-x-[160%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/45 dark:via-white/20 to-transparent z-10 group-hover:translate-x-[240%] group-focus-within:translate-x-[240%] transition-transform duration-1000 ease-out"
+            />
+
+            <Search className="relative z-20 h-3.5 w-3.5 text-[#6B7280] group-hover:text-[#fa4616] group-focus-within:text-[#fa4616] shrink-0 transition-colors" />
+            <input
+              type="search"
+              name="q"
+              placeholder="Search experiences or players"
+              className="relative z-20 flex-1 bg-transparent text-[12.5px] font-semibold text-[#1A1D20] dark:text-white outline-none placeholder:text-[#6B7280] dark:placeholder:text-[#8E95A0]"
+            />
+          </form>
+        </div>
+
         {/* Quick Entries: Shop, Events (rectangle in middle), Fragments — blank glossy squircles */}
-        <div className="mt-1 px-4 flex items-center gap-2.5">
+        <div className="px-4 flex items-center gap-2.5">
           {/* Shop */}
           <button
             type="button"
@@ -161,39 +194,6 @@ export function RedesignedHomePage({
             className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
             aria-label="Fragments"
           />
-        </div>
-
-        {/* Search */}
-        <div className="px-4 mt-2.5">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.currentTarget;
-              const input = form.elements.namedItem("q") as HTMLInputElement;
-              if (input && input.value.trim()) {
-                navigate({ to: "/search", search: { q: input.value.trim() } } as any);
-              } else {
-                navigate({ to: "/search" as never });
-              }
-            }}
-            className="qb-squircle group press relative flex h-[40px] w-full items-center gap-2.5 px-3.5 overflow-hidden select-none transition-all duration-300 hover:border-[#fa4616]/80 hover:[animation:orangeOutlineGlow_2.2s_ease-in-out_infinite] focus-within:border-[#fa4616] focus-within:[animation:orangeOutlineGlow_2.2s_ease-in-out_infinite] rounded-[13px]"
-          >
-            {/* Top gloss curve (signature mail glossiness) */}
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 dark:from-white/15 to-transparent pointer-events-none rounded-t-[12px] z-10" />
-
-            {/* Animated glossy light sweep on hover / focus */}
-            <span
-              className="pointer-events-none absolute inset-0 -translate-x-[160%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/45 dark:via-white/20 to-transparent z-10 group-hover:translate-x-[240%] group-focus-within:translate-x-[240%] transition-transform duration-1000 ease-out"
-            />
-
-            <Search className="relative z-20 h-3.5 w-3.5 text-[#6B7280] group-hover:text-[#fa4616] group-focus-within:text-[#fa4616] shrink-0 transition-colors" />
-            <input
-              type="search"
-              name="q"
-              placeholder="Search experiences or players"
-              className="relative z-20 flex-1 bg-transparent text-[12.5px] font-semibold text-[#1A1D20] dark:text-white outline-none placeholder:text-[#6B7280] dark:placeholder:text-[#8E95A0]"
-            />
-          </form>
         </div>
 
         {/* Switching Glossy Banner */}
@@ -270,17 +270,17 @@ export function RedesignedHomePage({
             action=">"
             onAction={() => setDiscoverPopupOpen(true)}
           />
-          <div className="mt-2 flex items-center gap-2.5 overflow-x-auto hide-scrollbar py-0.5">
+          <div className="mt-2 flex items-center gap-2 overflow-x-auto hide-scrollbar py-0.5">
             {recentList.map((g, i) => (
               <button
                 key={`recent-${g.id}-${i}`}
                 onClick={() => setSheetGame(g)}
-                className="press relative h-[64px] w-[64px] shrink-0 rounded-[13px] overflow-hidden border border-black/[0.08] dark:border-white/10 bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
+                className="press relative h-[56px] w-[56px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] dark:border-white/10 bg-slate-100 shadow-none [box-shadow:none] active:scale-95 transition-transform"
                 title={g.t}
                 aria-label={g.t}
               >
                 {g.icon ? (
-                  <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
+                  <img src={g.icon} alt={g.t} className="h-full w-full object-cover" draggable={false} />
                 ) : null}
               </button>
             ))}
@@ -294,28 +294,28 @@ export function RedesignedHomePage({
             action=">"
             onAction={() => setDiscoverPopupOpen(true)}
           />
-          <div className="mt-2 grid grid-cols-3 gap-x-2.5 gap-y-3">
+          <div className="mt-2 grid grid-cols-3 gap-x-3 gap-y-3.5">
             {grid.slice(0, 9).map((g, i) => (
               <button
                 key={`${g.id}-${i}`}
                 onClick={() => setSheetGame(g)}
-                className="press flex flex-col items-start w-full text-left active:scale-[0.97] transition-transform"
+                className="press flex flex-col items-start w-full text-left active:scale-[0.97] transition-transform select-none"
               >
-                <span className="relative block aspect-square w-full overflow-hidden rounded-[13px] border border-black/[0.08] dark:border-white/10 bg-slate-100 shadow-none [box-shadow:none]">
+                <span className="relative block aspect-square w-full overflow-hidden rounded-[10px] border border-black/[0.08] dark:border-white/10 bg-slate-100 shadow-none [box-shadow:none]">
                   {g.icon ? (
-                    <img src={g.icon} alt={g.t} className="h-full w-full object-cover" />
+                    <img src={g.icon} alt={g.t} className="h-full w-full object-cover" draggable={false} />
                   ) : null}
                 </span>
-                <span className="mt-1 block w-full truncate text-left text-[11.5px] font-extrabold tracking-tight text-[#1A1D20] dark:text-white">
+                <span className="mt-1.5 block w-full truncate text-left text-[11.5px] font-extrabold tracking-tight text-[#1A1D20] dark:text-white leading-tight pl-0">
                   {g.t}
                 </span>
-                <span className="mt-0.5 flex w-full items-center gap-2 text-left text-[10px] font-bold text-[#6B7280]">
+                <span className="mt-0.5 flex w-full items-center gap-1.5 text-left text-[10px] font-bold text-[#6B7280] pl-0">
                   <span className="flex items-center gap-0.5">
-                    <PinkHeartIcon className="h-3 w-3" />
+                    <PinkHeartIcon className="h-2.5 w-2.5" />
                     <span className="font-extrabold text-[#6B7280]">99%</span>
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <PlayersIcon className="h-3 w-3" />
+                    <PlayersIcon className="h-2.5 w-2.5" />
                     <span className="font-extrabold text-[#6B7280]">1</span>
                   </span>
                 </span>
