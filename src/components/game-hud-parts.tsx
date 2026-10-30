@@ -738,30 +738,8 @@ export function GameSettingsModal({
   );
 }
 
-/** Placeholder Skyblock shop. */
-export function SkyblockShopModal({ onClose }: { onClose: () => void }) {
-  const items = [
-    { name: "Dirt x64", price: 25 },
-    { name: "Stone x64", price: 40 },
-    { name: "Wood x32", price: 60 },
-    { name: "Glass x16", price: 90 },
-  ];
-  return (
-    <ModalShell title="Island shop" onClose={onClose}>
-      <div className="flex flex-col gap-1.5">
-        {items.map((i) => (
-          <div
-            key={i.name}
-            className="flex items-center justify-between rounded-[12px] border border-white/10 bg-white/[0.04] px-3 py-2.5"
-          >
-            <span className="text-[13px] font-bold">{i.name}</span>
-            <span className="text-[12.5px] font-extrabold text-[#f4c430]">{i.price} coins</span>
-          </div>
-        ))}
-      </div>
-    </ModalShell>
-  );
-}
+export { SkyblockShopModal } from "@/components/SkyblockShopModal";
+
 
 /** Skyblock rules reference. */
 export function SkyblockRuleBookModal({ onClose }: { onClose: () => void }) {

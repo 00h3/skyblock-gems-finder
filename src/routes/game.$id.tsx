@@ -162,6 +162,22 @@ import {
 } from "@/lib/avatar";
 import { useCurrency, spendCurrency } from "@/lib/currency";
 import {
+  getPurseCoins,
+  getBankCoins,
+  setPurseCoins,
+  setBankCoins,
+  addPurseCoins,
+  depositToBank,
+  withdrawFromBank,
+  payPlayer,
+  applyVoidDeathPenalty,
+  applyPveDeathPenalty,
+  earnMiningCoin,
+  earnMobBounty,
+  useSkyblockEconomy,
+} from "@/lib/skyblock-economy";
+import { type ShopTab } from "@/components/SkyblockShopModal";
+import {
   GameChatIcon,
   GameBackpackIcon,
   GameHeartIcon,
@@ -2189,6 +2205,8 @@ function EngineGame({
     window.setTimeout(() => setSkyblockTeleporting(null), 220);
   };
   const [shopModalOpen, setShopModalOpen] = useState(false);
+  const [shopTab, setShopTab] = useState<ShopTab>("buy");
+  const { purse: sbPurse, bank: sbBank } = useSkyblockEconomy();
   const [ruleBookModalOpen, setRuleBookModalOpen] = useState(false);
   const [chestOpen, setChestOpen] = useState(false);
   const [skyblockHotbarSlots, setSkyblockHotbarSlots] = useState<number[]>([0, 1, 2, 3, 15]);
@@ -7204,6 +7222,23 @@ function EngineGame({
             setBwState((s) => ({ ...s, phase: "victory" }));
             return;
           }
+          if (isSkyblock) {
+            const penalty = applyPveDeathPenalty();
+            showSbToast(
+              `Died in PvE! Dropped 10% of purse (-${penalty.lost.toLocaleString()} coins). Bank safe!`,
+              4200,
+            );
+            setChatMsgs((m) => [
+              ...m,
+              {
+                id: Date.now(),
+                from: "System",
+                text: `💀 Died in PvE! Dropped 10% of purse (-${penalty.lost.toLocaleString()} coins). Bank safe (${penalty.bankSafe.toLocaleString()} coins)!`,
+              },
+            ]);
+            triggerSkyblockDeath();
+            return;
+          }
           respawn();
           if (isBedwars && bwMatchActive) {
             // Respawn back on red island
@@ -8394,6 +8429,12 @@ function EngineGame({
         window.dispatchEvent(
           new CustomEvent("bm-item-collected", { detail: { name: blockName, qty: 1 } }),
         );
+        if (isSkyblock) {
+          const payout = earnMiningCoin(targetType >= 0 ? targetType : 2, blockName);
+          if (payout.coins > 0) {
+            showSbToast(`+${payout.coins} coins (${blockName})`, 1600);
+          }
+        }
         if (isSpleef) sblocksRef.current++;
 
         // 4. Skyblock / Voxel Tree Physics:
@@ -9685,7 +9726,24 @@ function EngineGame({
             // lower cavern reachable; only respawn after falling well below both
             // the island and the mine.
             if (playerPos.y < (isSkyblock ? -225 : -20)) {
-              if (!skyblockIsDying) triggerSkyblockDeath();
+              if (!skyblockIsDying) {
+                if (isSkyblock) {
+                  const penalty = applyVoidDeathPenalty();
+                  showSbToast(
+                    `Fell into void! Lost 20% purse (-${penalty.lost.toLocaleString()} coins). Bank safe!`,
+                    4200,
+                  );
+                  setChatMsgs((m) => [
+                    ...m,
+                    {
+                      id: Date.now(),
+                      from: "System",
+                      text: `💀 Fell into the void! Lost 20% of purse (-${penalty.lost.toLocaleString()} coins). Bank safe (${penalty.bankSafe.toLocaleString()} coins)!`,
+                    },
+                  ]);
+                }
+                triggerSkyblockDeath();
+              }
             }
           }
         } // end fly else
@@ -10611,6 +10669,104 @@ function EngineGame({
       setChatVal("");
       return;
     }
+    // ── /balance, /bal ────────────────────────────────────────────────
+    if (/^\/bal(ance)?$/i.test(v)) {
+      const p = getPurseCoins();
+      const b = getBankCoins();
+      setChatMsgs((m) => [
+        ...m,
+        {
+          id: Date.now(),
+          from: "System",
+          text: `[Economy] Purse: ${p.toLocaleString()} coins | Bank: ${b.toLocaleString()} coins (safe from deaths)`,
+        },
+      ]);
+      setChatVal("");
+      return;
+    }
+    // ── /bank deposit <amount|all> ────────────────────────────────────
+    const depMatch = /^\/bank\s+deposit\s+(\d+|all)$/i.exec(v);
+    if (depMatch) {
+      const arg = depMatch[1].toLowerCase() === "all" ? "all" : parseInt(depMatch[1], 10);
+      const res = depositToBank(arg);
+      setChatMsgs((m) => [
+        ...m,
+        { id: Date.now(), from: "System", text: `[Bank] ${res.message}` },
+      ]);
+      setChatVal("");
+      return;
+    }
+    // ── /bank withdraw <amount|all> ───────────────────────────────────
+    const wdrMatch = /^\/bank\s+withdraw\s+(\d+|all)$/i.exec(v);
+    if (wdrMatch) {
+      const arg = wdrMatch[1].toLowerCase() === "all" ? "all" : parseInt(wdrMatch[1], 10);
+      const res = withdrawFromBank(arg);
+      setChatMsgs((m) => [
+        ...m,
+        { id: Date.now(), from: "System", text: `[Bank] ${res.message}` },
+      ]);
+      setChatVal("");
+      return;
+    }
+    // ── /bank ─────────────────────────────────────────────────────────
+    if (/^\/bank$/i.test(v)) {
+      setShopTab("bank");
+      setShopModalOpen(true);
+      setChatVal("");
+      return;
+    }
+    // ── /shop ─────────────────────────────────────────────────────────
+    if (/^\/shop$/i.test(v)) {
+      setShopTab("buy");
+      setShopModalOpen(true);
+      setChatVal("");
+      return;
+    }
+    // ── /quests ───────────────────────────────────────────────────────
+    if (/^\/quests?$/i.test(v)) {
+      setShopTab("quests");
+      setShopModalOpen(true);
+      setChatVal("");
+      return;
+    }
+    // ── /pay <player> <amount> ────────────────────────────────────────
+    const payMatch = /^\/pay\s+(\S+)\s+(\d+)$/i.exec(v);
+    if (payMatch) {
+      const targetUser = payMatch[1];
+      const amt = parseInt(payMatch[2], 10);
+      const res = payPlayer(targetUser, amt);
+      setChatMsgs((m) => [
+        ...m,
+        { id: Date.now(), from: "System", text: `[Economy] ${res.message}` },
+      ]);
+      setChatVal("");
+      return;
+    }
+    // ── /bounty <player> <coins> ──────────────────────────────────────
+    const bountyMatch = /^\/bounty\s+(\S+)\s+(\d+)$/i.exec(v);
+    if (bountyMatch) {
+      const targetUser = bountyMatch[1];
+      const amt = parseInt(bountyMatch[2], 10);
+      const p = getPurseCoins();
+      if (amt <= 0 || p < amt) {
+        setChatMsgs((m) => [
+          ...m,
+          { id: Date.now(), from: "System", text: `[Bounty] Invalid amount or insufficient purse coins.` },
+        ]);
+      } else {
+        addPurseCoins(-amt);
+        setChatMsgs((m) => [
+          ...m,
+          {
+            id: Date.now(),
+            from: "System",
+            text: `[Bounty] Placed a ${amt.toLocaleString()} coin bounty on ${targetUser}!`,
+          },
+        ]);
+      }
+      setChatVal("");
+      return;
+    }
     const ladybugMatch = /^\/ladybug\s+([\s\S]+)$/i.exec(v);
     const displayText = ladybugMatch ? ladybugMatch[1] : v;
     if (ladybugMatch) {
@@ -11378,40 +11534,78 @@ function EngineGame({
 
           {/* ── Currency + menu (top-right) ── */}
           <div className="absolute right-3 top-[max(10px,env(safe-area-inset-top))] flex items-center gap-1 pointer-events-auto">
-            {/* Gold */}
-            <div
-              className="h-[30px] px-1.5 rounded-[9px] flex items-center gap-1"
-              style={{
-                background: "rgba(6,8,20,0.72)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                border: "1px solid rgba(201,162,39,0.28)",
-                boxShadow: "0 3px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,220,80,0.08)",
-              }}
-            >
-              <GoldCoin size={13} />
-              <span
-                className="text-[10.5px] font-extrabold tabular-nums"
-                style={{ color: "#ffe066", textShadow: "0 0 8px rgba(255,200,50,0.50)" }}
-              >
-                {(bpGold ?? 0).toLocaleString()}
-              </span>
-              <button
-                className="press h-[18px] w-[18px] rounded-full grid place-items-center"
-                onClick={() => setSbBuyType("gold")}
-                style={{
-                  background: "rgba(255,220,80,0.16)",
-                  border: "1px solid rgba(255,220,80,0.22)",
+            {/* Skyblock Purse & Bank Display */}
+            {isSkyblock ? (
+              <div
+                className="h-[30px] px-2 rounded-[9px] flex items-center gap-2 cursor-pointer press"
+                onClick={() => {
+                  setShopTab("bank");
+                  setShopModalOpen(true);
                 }}
-                aria-label="Add gold"
+                style={{
+                  background: "rgba(6,8,20,0.78)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  border: "1px solid rgba(201,162,39,0.35)",
+                  boxShadow: "0 3px 12px rgba(0,0,0,0.40)",
+                }}
+                title="Click to open Bank Vault & Shop"
               >
-                <Plus
-                  className="h-2.5 w-2.5"
-                  style={{ color: "rgba(255,210,60,0.85)" }}
-                  strokeWidth={3}
-                />
-              </button>
-            </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-lilita text-amber-200 uppercase">Purse:</span>
+                  <span
+                    className="text-[11px] font-black tabular-nums font-mono"
+                    style={{ color: "#ffe066", textShadow: "0 0 8px rgba(255,200,50,0.50)" }}
+                  >
+                    {sbPurse.toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-[1px] h-3.5 bg-white/20" />
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-lilita text-emerald-300 uppercase">Bank:</span>
+                  <span
+                    className="text-[11px] font-black tabular-nums font-mono"
+                    style={{ color: "#a0ffb0", textShadow: "0 0 8px rgba(100,255,150,0.50)" }}
+                  >
+                    {sbBank.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="h-[30px] px-1.5 rounded-[9px] flex items-center gap-1"
+                style={{
+                  background: "rgba(6,8,20,0.72)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  border: "1px solid rgba(201,162,39,0.28)",
+                  boxShadow: "0 3px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,220,80,0.08)",
+                }}
+              >
+                <GoldCoin size={13} />
+                <span
+                  className="text-[10.5px] font-extrabold tabular-nums"
+                  style={{ color: "#ffe066", textShadow: "0 0 8px rgba(255,200,50,0.50)" }}
+                >
+                  {(bpGold ?? 0).toLocaleString()}
+                </span>
+                <button
+                  className="press h-[18px] w-[18px] rounded-full grid place-items-center"
+                  onClick={() => setSbBuyType("gold")}
+                  style={{
+                    background: "rgba(255,220,80,0.16)",
+                    border: "1px solid rgba(255,220,80,0.22)",
+                  }}
+                  aria-label="Add gold"
+                >
+                  <Plus
+                    className="h-2.5 w-2.5"
+                    style={{ color: "rgba(255,210,60,0.85)" }}
+                    strokeWidth={3}
+                  />
+                </button>
+              </div>
+            )}
             {/* Gems */}
             <div
               className="h-[30px] px-1.5 rounded-[9px] flex items-center gap-1"
@@ -12610,7 +12804,12 @@ function EngineGame({
       {sbBuyType && <BuyModal type={sbBuyType} onClose={() => setSbBuyType(null)} />}
 
       {/* Skyblock Shop & Rule Book Full Page Modals */}
-      {shopModalOpen && <SkyblockShopModal onClose={() => setShopModalOpen(false)} />}
+      {shopModalOpen && (
+        <SkyblockShopModal
+          initialTab={shopTab}
+          onClose={() => setShopModalOpen(false)}
+        />
+      )}
       {ruleBookModalOpen && <SkyblockRuleBookModal onClose={() => setRuleBookModalOpen(false)} />}
       {chestOpen && <ChestModal onClose={() => setChestOpen(false)} />}
     </div>
