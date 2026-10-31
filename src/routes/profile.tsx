@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { MobileShell } from "@/components/MobileShell";
 import { ProfileSheet } from "@/components/ProfileSheet";
+import Lanyard from "@/components/Lanyard";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/components/profile/GlossyHostedIcon";
 import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { BronzeCorniceAvatar } from "@/components/BronzeCornice";
+import { Watcher } from "@/components/Watcher";
 import { setDark, useDark } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
 import { useCurrency } from "@/lib/currency";
@@ -99,6 +101,7 @@ function ProfilePage() {
   const [characterDraft, setCharacterDraft] = useState<"char1" | "char2">("char1");
   const [nameStyleDraft, setNameStyleDraft] = useState<string>("default");
   const [saving, setSaving] = useState(false);
+  const [cardFrontUrl, setCardFrontUrl] = useState<string>("/card-front.png");
 
   useEffect(() => {
     if (!authLoading && !qbUser) {
@@ -114,6 +117,84 @@ function ProfilePage() {
     setNameStyleDraft(
       qbUser.nameStyle || (qbUser.useGradientName === false ? "default" : "default"),
     );
+
+    // Generate dynamic card front image with user pfp covering the full card with banner glossiness
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1434;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = qbUser.profilePhoto || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80";
+    img.onload = () => {
+      // Draw pfp covering the entire card canvas (object-fit cover)
+      const imgAspect = img.width / img.height;
+      const canvasAspect = canvas.width / canvas.height;
+      let sw = img.width;
+      let sh = img.height;
+      let sx = 0;
+      let sy = 0;
+      if (imgAspect > canvasAspect) {
+        sw = img.height * canvasAspect;
+        sx = (img.width - sw) / 2;
+      } else {
+        sh = img.width / canvasAspect;
+        sy = (img.height - sh) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+      // Banner gloss overlay gradient
+      const glossGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      glossGrad.addColorStop(0, "rgba(250, 70, 22, 0.5)");
+      glossGrad.addColorStop(0.3, "rgba(0, 0, 0, 0.25)");
+      glossGrad.addColorStop(0.7, "rgba(0, 0, 0, 0.65)");
+      glossGrad.addColorStop(1, "rgba(11, 12, 16, 0.96)");
+      ctx.fillStyle = glossGrad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Top specular highlight line (banner gloss)
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillRect(0, 0, canvas.width, 18);
+
+      // Top Header
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 58px sans-serif";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(0,0,0,0.85)";
+      ctx.shadowBlur = 18;
+      ctx.fillText("QBLOCK VIP PASS", canvas.width / 2, 110);
+
+      // Bottom Info Overlay
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 76px sans-serif";
+      ctx.fillText(qbUser.displayName || qbUser.username || "Player", canvas.width / 2, canvas.height - 240);
+
+      ctx.font = "42px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+      ctx.fillText(`@${qbUser.username || "player"}`, canvas.width / 2, canvas.height - 160);
+
+      ctx.fillStyle = "#fa4616";
+      ctx.font = "bold 48px sans-serif";
+      ctx.fillText(qbUser.customId || "QB-001", canvas.width / 2, canvas.height - 90);
+      ctx.shadowBlur = 0;
+
+      setCardFrontUrl(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => {
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, "#fa4616");
+      grad.addColorStop(1, "#111111");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 72px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(qbUser.displayName || qbUser.username || "Player", canvas.width / 2, canvas.height / 2);
+      setCardFrontUrl(canvas.toDataURL("image/png"));
+    };
   }, [authLoading, qbUser, nav]);
 
   async function handleSignOut() {
@@ -402,70 +483,98 @@ function ProfilePage() {
             {/* Clean top spacing with no 'Go Back' or 'Settings' text */}
             <div className="pt-[max(env(safe-area-inset-top),20px)] pb-1" />
 
-            {/* Profile area with Bronze Cornice crowning PFP */}
-            <div className="flex items-center gap-4 px-1 py-1 mb-4 mt-2">
-              <BronzeCorniceAvatar
-                size={62}
-                onClick={() => {
-                  setPreviousScreen(null);
-                  setActiveScreen("edit_avatar");
-                }}
-                title="Edit Avatar"
-              >
-                <GlossyAvatar
-                  snapshot={qbUser?.avatarSnapshot}
-                  photoUrl={qbUser?.profilePhoto}
-                  frame={qbUser?.avatarSnapshot?.frameId}
-                  height={62}
-                  className="h-full w-full object-cover pointer-events-none"
-                  autoRotate={false}
-                  focusZone="head"
-                />
-              </BronzeCorniceAvatar>
-
-              <div className="min-w-0 flex-1">
+            {/* Profile area & Lanyard overlapping on the right */}
+            <div className="relative mb-4 mt-2 px-1">
+              <div className="flex items-center gap-4 max-w-[calc(100%-140px)] sm:max-w-[calc(100%-180px)] md:max-w-[calc(100%-240px)] min-w-0">
                 <div
-                  onClick={() => setActiveScreen("edit_profile")}
-                  className="text-[17px] font-black text-[#1A1D20] dark:text-white tracking-tight leading-tight truncate cursor-pointer hover:opacity-85"
+                  onClick={() => {
+                    setPreviousScreen(null);
+                    setActiveScreen("edit_avatar");
+                  }}
+                  className="cursor-pointer group relative flex items-center justify-center shrink-0"
+                  title="Edit Avatar"
                 >
-                  {qbUser?.displayName || qbUser?.username || "Player"}
-                </div>
-                <div className="text-[11.5px] font-semibold text-[#8b929d] dark:text-[#8e95a0] mt-0.5 truncate leading-tight">
-                  Username:{" "}
-                  <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
-                    @{qbUser?.username || "player"}
-                  </span>
-                </div>
-                <div className="text-[11px] font-semibold text-[#8b929d] dark:text-[#8e95a0] leading-tight mt-0.5">
-                  ID:{" "}
-                  <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
-                    {qbUser?.customId || "QB-001"}
-                  </span>
+                  <BronzeCorniceAvatar size={64}>
+                    <GlossyAvatar
+                      snapshot={qbUser?.avatarSnapshot}
+                      photoUrl={qbUser?.profilePhoto}
+                      height={64}
+                      className="w-full h-full object-cover"
+                      autoRotate={false}
+                    />
+                  </BronzeCorniceAvatar>
                 </div>
 
-                <div className="flex items-center gap-2 mt-1.5 text-[12px] font-black text-[#17181b] dark:text-white">
-                  <div className="flex items-center gap-1">
-                    <img
-                      src={PINK_GEM_ICON}
-                      alt="Gems"
-                      className="h-4 w-4 object-contain shrink-0"
-                      draggable={false}
-                    />
-                    <span className="tabular-nums">{(gems ?? 0).toLocaleString()}</span>
+                <div className="min-w-0 flex-1">
+                  <div
+                    onClick={() => setActiveScreen("edit_profile")}
+                    className="text-[17px] font-black text-[#1A1D20] dark:text-white tracking-tight leading-tight truncate cursor-pointer hover:opacity-85"
+                  >
+                    {qbUser?.displayName || qbUser?.username || "Player"}
                   </div>
-                  <span className="text-black/25 dark:text-white/20 font-normal select-none">
-                    |
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <img
-                      src={GOLDEN_COINS_ICON}
-                      alt="Coins"
-                      className="h-4 w-4 object-contain shrink-0"
-                      draggable={false}
-                    />
-                    <span className="tabular-nums">{(gold ?? 0).toLocaleString()}</span>
+                  <div className="text-[11.5px] font-semibold text-[#8b929d] dark:text-[#8e95a0] mt-0.5 truncate leading-tight">
+                    Username:{" "}
+                    <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
+                      @{qbUser?.username || "player"}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-semibold text-[#8b929d] dark:text-[#8e95a0] leading-tight mt-0.5">
+                    ID:{" "}
+                    <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
+                      {qbUser?.customId || "QB-001"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-1.5 text-[12px] font-black text-[#17181b] dark:text-white">
+                    <div className="flex items-center gap-1">
+                      <img
+                        src={PINK_GEM_ICON}
+                        alt="Gems"
+                        className="h-4 w-4 object-contain shrink-0"
+                        draggable={false}
+                      />
+                      <span className="tabular-nums">{(gems ?? 0).toLocaleString()}</span>
+                    </div>
+                    <span className="text-black/25 dark:text-white/20 font-normal select-none">
+                      |
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <img
+                        src={GOLDEN_COINS_ICON}
+                        alt="Coins"
+                        className="h-4 w-4 object-contain shrink-0"
+                        draggable={false}
+                      />
+                      <span className="tabular-nums">{(gold ?? 0).toLocaleString()}</span>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Lanyard hanging down on the right physically overlapping settings */}
+              <div className="absolute -top-10 -right-4 w-[160px] sm:w-[220px] md:w-[270px] h-[360px] pointer-events-auto z-20 overflow-visible drop-shadow-[0_15px_30px_rgba(0,0,0,0.22)]">
+                <Lanyard
+                  frontImage={cardFrontUrl}
+                  backImage="/card-back.png"
+                  strapImage="/band.png"
+                  imageFit="cover"
+                  cardColor="#ffffff"
+                  orientation="portrait"
+                  finish="glossy"
+                  cornerRadius={0.3}
+                  size={0.7}
+                  anchor="center"
+                  strapLength={0.35}
+                  strapColor="#111111"
+                  strapWidth={0.65}
+                  metal="silver"
+                  gravity={1}
+                  damping={0.5}
+                  elasticity={0.5}
+                  breeze={0.5}
+                  interactive
+                  intro
+                />
               </div>
             </div>
 

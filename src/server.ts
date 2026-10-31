@@ -42,6 +42,23 @@ export default {
       });
     }
 
+    if (url.pathname === "/api/support-chat" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as { prompt?: string; history?: any[] };
+        const { handleSupportChat } = await import("./server/gemini-support");
+        const data = await handleSupportChat(body?.prompt || "", body?.history || []);
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err?.message || "Internal support error" }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
     try {
       const handler = serverEntry as ServerEntry;
       const response = await handler.fetch(request, env, ctx);

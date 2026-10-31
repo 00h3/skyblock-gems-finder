@@ -23,6 +23,7 @@ import {
   Compass,
   ShieldCheck,
 } from "lucide-react";
+import { Watcher } from "@/components/Watcher";
 import { UserNameWithBadges } from "@/lib/user-style";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -675,10 +676,44 @@ function ChatList() {
 
         {tab === "friends" ? (
           <div className="px-3.5">
-            {filtered.length === 0 && visibleFriends.length === 0 ? (
+            {/* Official Support item with Watcher & yellow gradient name */}
+            {(!searchQ || "official support".includes(searchQ.toLowerCase())) && (
+              <button
+                onClick={() => nav({ to: "/chat/$id" as never, params: { id: "support" } as never })}
+                className="w-full text-left px-1 py-2.5 flex items-center gap-2.5 border-b border-black/[0.05] active:bg-black/[0.02]"
+              >
+                <div
+                  className="w-10 h-10 shrink-0 rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 press cursor-pointer flex items-center justify-center"
+                  title="Official Support"
+                >
+                  <Watcher
+                    shape="Cube"
+                    eyes="Slant"
+                    size={36}
+                    follow={45}
+                    bounce={20}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-[13.5px] bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent truncate">
+                      Official Support
+                    </span>
+                    <span className="text-[10.5px] text-[#6B7280] dark:text-slate-400 shrink-0 font-medium font-mono">
+                      10:45 AM
+                    </span>
+                  </div>
+                  <div className="text-[11.5px] text-[#6B7280] dark:text-slate-400 truncate mt-0.5">
+                    Ask me anything about QBLOCK gameplay, Skyblock & items!
+                  </div>
+                </div>
+              </button>
+            )}
+
+            {filtered.length === 0 && visibleFriends.length === 0 && searchQ ? (
               <div className="py-14 text-center text-text-muted flex flex-col items-center gap-2">
                 <MessageCircle className="w-7 h-7" />
-                <p className="text-[13px] font-medium">No conversations yet</p>
+                <p className="text-[13px] font-medium">No matching conversations</p>
               </div>
             ) : null}
 

@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@gltf-transform/core": "^4.4.2",
+    "@google/genai": "^2.32.0",
     "@google/model-viewer": "^4.3.1",
     "@hookform/resolvers": "^5.2.2",
     "@iconify/react": "^6.0.2",

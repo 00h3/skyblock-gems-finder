@@ -21,6 +21,7 @@ import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { BlurReveal } from "@/components/ui/blur-reveal";
+import { AgentWorkflow } from "@/components/ui/ai-agent-response";
 
 const RUNNING_CAT_GIF = "https://maxwell.z3ki.dev/bot/_files/running-cat-transparent/running_cat_transparent.gif";
 
@@ -464,6 +465,52 @@ export function GroupChatRoom({ group: initialGroup, currentUser, onBack }: Grou
 
         {messages.map((msg) => {
           const isMe = msg.senderUid === currentUser.uid;
+          const isBot =
+            msg.senderUsername === "bot" ||
+            msg.senderUid === "system" ||
+            msg.senderName === "Server Bot" ||
+            msg.senderDisplayName === "Server Bot";
+
+          if (isBot) {
+            return (
+              <div key={msg.id} className="flex items-start gap-2.5 my-2.5 w-full">
+                <div className="h-8 w-8 rounded-[12px] shrink-0 flex items-center justify-center text-[12px] font-bold text-white overflow-hidden bg-[#5865F2] shadow-xs">
+                  🤖
+                </div>
+                <div className="relative flex-1 min-w-0 max-w-[94%] sm:max-w-[560px]">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[11.5px] font-bold text-[#5865F2]">
+                      {msg.senderDisplayName || "Server Bot"}
+                    </span>
+                    <span className="text-[10px] text-neutral-400 font-mono">10:45 AM</span>
+                  </div>
+                  <AgentWorkflow
+                    phases={[
+                      {
+                        trace: [
+                          {
+                            type: "reasoning",
+                            sentences: [
+                              "Verifying tribe and squad event triggers...",
+                              "Broadcasting announcement to squad members.",
+                            ],
+                            durationSeconds: 1.0,
+                          },
+                          {
+                            type: "tool",
+                            primary: "Server Dispatcher",
+                            secondary: "squad/channel",
+                          },
+                        ],
+                        message: msg.text,
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div
               key={msg.id}

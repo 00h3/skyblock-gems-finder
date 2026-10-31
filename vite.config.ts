@@ -20,6 +20,29 @@ function sandboxWsPlugin(): Plugin {
     name: "sandbox-ws",
     configureServer(server) {
       if (server.httpServer) attachSandboxWebSocketServer(server.httpServer);
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url === "/api/support-chat" && req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => {
+            body += chunk;
+          });
+          req.on("end", async () => {
+            try {
+              const json = JSON.parse(body || "{}");
+              const { handleSupportChat } = await import("./src/server/gemini-support.ts");
+              const result = await handleSupportChat(json.prompt || "", json.history || []);
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify(result));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: err?.message || "Internal error" }));
+            }
+          });
+          return;
+        }
+        next();
+      });
     },
   };
 }

@@ -39,6 +39,8 @@ import { ProfileSheet } from "@/components/ProfileSheet";
 import { normalizeAvatarSnapshot, type AvatarSnapshot } from "@/lib/avatar";
 import { UserNameWithBadges } from "@/lib/user-style";
 import { TextureButton } from "@/components/ui/texture-button";
+import { Watcher } from "@/components/Watcher";
+import { AgentWorkflow, ThinkingState, type AgentPhase } from "@/components/ui/ai-agent-response";
 
 import { HtmlSpinner } from "@/components/ui/HtmlLoadingScreen";
 
@@ -189,6 +191,8 @@ type Msg = {
   islandId?: string;
   islandOwner?: string;
   imageUrl?: string;
+  phases?: AgentPhase[];
+  isThinking?: boolean;
 };
 
 type OtherUser = {
@@ -275,6 +279,23 @@ function ChatRoom() {
     async function resolveRecipient() {
       const currentUid = myUid;
       if (!currentUid) return;
+
+      if (chatId === "support" || chatId === "official-support") {
+        setAccess("allowed");
+        const supportUser = {
+          uid: "support-ai",
+          displayName: "Official Support",
+          username: "OfficialSupport",
+          online: true,
+          staff: true,
+          badgeEquipped: true,
+          bio: "Official QBLOCK AI Support Assistant",
+        };
+        setOtherUser(supportUser);
+        setActiveChatId("support");
+        setRecipientUid("support-ai");
+        return;
+      }
 
       if (chatId && chatId.startsWith("demo-")) {
         setAccess("allowed");
@@ -420,6 +441,50 @@ function ChatRoom() {
   // Realtime messages via onSnapshot
   useEffect(() => {
     if (!myUid || !activeChatId) return;
+    if (activeChatId === "support") {
+      try {
+        const saved = localStorage.getItem("qblock_support_msgs");
+        if (saved) {
+          setMsgs(JSON.parse(saved));
+        } else {
+          const initialMsgs: Msg[] = [
+            {
+              id: "support-welcome",
+              senderId: "support-ai",
+              senderName: "Official Support",
+              text: "Hey there! I'm QBLOCK Official Support. I can help you with Skyblock progression, island building, rare ores, controls, avatar customization, shop items, events, and platform rules. What can I help you with today?",
+              phases: [
+                {
+                  trace: [
+                    {
+                      type: "reasoning",
+                      sentences: [
+                        "Initializing QBLOCK Official Support agent v2.4...",
+                        "Indexed Skyblock guides, mining rules, and platform features.",
+                        "Ready to assist players with platform questions and mechanics.",
+                      ],
+                      durationSeconds: 1.2,
+                    },
+                    {
+                      type: "tool",
+                      primary: "Agent Online",
+                      secondary: "qblock/support-cluster",
+                    },
+                  ],
+                  message:
+                    "Hey there! I'm QBLOCK Official Support. I can help you with Skyblock progression, island building, rare ores, controls, avatar customization, shop items, events, and platform rules. What can I help you with today?",
+                },
+              ],
+            },
+          ];
+          setMsgs(initialMsgs);
+          localStorage.setItem("qblock_support_msgs", JSON.stringify(initialMsgs));
+        }
+      } catch {
+        // fallback
+      }
+      return;
+    }
     const q = query(
       collection(db, "chats", activeChatId, "messages"),
       orderBy("timestamp", "asc"),
@@ -503,6 +568,90 @@ function ChatRoom() {
 
     const targetCid = activeChatId || friendshipId(qbUser.uid, otherUid);
     setSendError("");
+
+    if (activeChatId === "support") {
+      const userMsg: Msg = {
+        id: `user-${Date.now()}`,
+        senderId: qbUser.uid,
+        senderName: userDisplayName(qbUser, qbUser.uid),
+        text,
+      };
+      const thinkingId = `ai-thinking-${Date.now()}`;
+      const thinkingMsg: Msg = {
+        id: thinkingId,
+        senderId: "support-ai",
+        senderName: "Official Support",
+        text: "",
+        isThinking: true,
+      };
+
+      const updated = [...msgs, userMsg, thinkingMsg];
+      setMsgs(updated);
+      setVal("");
+      setSendState("sent");
+      window.setTimeout(() => setSendState("idle"), 1200);
+
+      try {
+        const historyPayload = msgs.slice(-6).map((m) => ({
+          role: m.senderId === qbUser.uid ? "user" : "model",
+          content: m.text,
+        }));
+        const res = await fetch("/api/support-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: text, history: historyPayload }),
+        });
+        const data = await res.json();
+        const phases: AgentPhase[] = [
+          {
+            trace: [
+              {
+                type: "reasoning",
+                sentences: data.thinkingSteps || [
+                  "Consulting QBLOCK knowledge repository for user question...",
+                  "Evaluating gameplay constraints and platform rules...",
+                ],
+                durationSeconds: 2.5,
+              },
+              {
+                type: "tool",
+                primary: data.actionLabel || "Inspect game index",
+                secondary: data.actionDetail || "qblock/knowledge-base",
+              },
+            ],
+            message: data.message || "How can I help you in QBLOCK?",
+          },
+        ];
+
+        setMsgs((prev) => {
+          const filtered = prev.filter((m) => m.id !== thinkingId);
+          const finalMsg: Msg = {
+            id: `support-${Date.now()}`,
+            senderId: "support-ai",
+            senderName: "Official Support",
+            text: data.message || "",
+            phases,
+          };
+          const nextMsgs = [...filtered, finalMsg];
+          try {
+            localStorage.setItem("qblock_support_msgs", JSON.stringify(nextMsgs));
+          } catch {}
+          return nextMsgs;
+        });
+      } catch (err) {
+        setMsgs((prev) => {
+          const filtered = prev.filter((m) => m.id !== thinkingId);
+          const errorMsg: Msg = {
+            id: `support-${Date.now()}`,
+            senderId: "support-ai",
+            senderName: "Official Support",
+            text: "I had a brief connection issue reaching the QBLOCK support cluster. Please ask again in a moment!",
+          };
+          return [...filtered, errorMsg];
+        });
+      }
+      return;
+    }
 
     if (chatId.startsWith("demo-")) {
       const newMsg: Msg = {
@@ -712,36 +861,53 @@ function ChatRoom() {
             >
               <ChevronLeft className="h-5 w-5" />
             </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setProfileTarget("other");
-                setProfileOpen(true);
-              }}
-              className="flex items-center gap-2 press cursor-pointer py-0.5 text-left min-w-0"
-            >
-              <Avatar
-                name={headerName}
-                size={34}
-                snapshot={otherUser?.avatarSnapshot}
-                isIra={otherUser?.username?.toLowerCase() === "ira"}
-                photoUrl={otherUser?.profilePhoto}
-              />
-              <div className="min-w-0 flex flex-col items-start justify-center">
-                <span className="text-[13.5px] font-bold text-[#141414] dark:text-white truncate max-w-[190px] leading-tight">
-                  @{otherUser?.username || headerName}
-                </span>
-                {otherUser?.online && (
+            {activeChatId === "support" ? (
+              <div className="flex items-center gap-2 press py-0.5 text-left min-w-0">
+                <div className="w-8.5 h-8.5 rounded-[10px] overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                  <Watcher shape="Cube" eyes="Slant" size={28} follow={35} bounce={18} />
+                </div>
+                <div className="min-w-0 flex flex-col items-start justify-center">
+                  <span className="text-[13.5px] font-bold bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent truncate leading-tight">
+                    Official Support
+                  </span>
                   <span className="text-[9.5px] font-semibold text-emerald-500 leading-tight mt-0.5">
                     Active now
                   </span>
-                )}
+                </div>
               </div>
-            </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileTarget("other");
+                  setProfileOpen(true);
+                }}
+                className="flex items-center gap-2 press cursor-pointer py-0.5 text-left min-w-0"
+              >
+                <Avatar
+                  name={headerName}
+                  size={34}
+                  snapshot={otherUser?.avatarSnapshot}
+                  isIra={otherUser?.username?.toLowerCase() === "ira"}
+                  photoUrl={otherUser?.profilePhoto}
+                />
+                <div className="min-w-0 flex flex-col items-start justify-center">
+                  <span className="text-[13.5px] font-bold text-[#141414] dark:text-white truncate max-w-[190px] leading-tight">
+                    @{otherUser?.username || headerName}
+                  </span>
+                  {otherUser?.online && (
+                    <span className="text-[9.5px] font-semibold text-emerald-500 leading-tight mt-0.5">
+                      Active now
+                    </span>
+                  )}
+                </div>
+              </button>
+            )}
           </div>
           <button
             type="button"
             onClick={() => {
+              if (activeChatId === "support") return;
               setProfileTarget("other");
               setProfileOpen(true);
             }}
@@ -751,33 +917,6 @@ function ChatRoom() {
             <MoreHorizontal className="h-4.5 w-4.5" />
           </button>
         </header>
-
-        {/* Hype Bar with Running Cat GIF */}
-        <div className="px-3.5 py-1.5 bg-slate-50 dark:bg-[#161922] border-b border-black/[0.05] dark:border-white/[0.05] flex items-center justify-between text-[11.5px] gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 truncate text-slate-700 dark:text-slate-300 font-semibold">
-            <img
-              src="https://maxwell.z3ki.dev/bot/_files/running-cat-transparent/running_cat_transparent.gif"
-              alt="Hype"
-              className="h-4 w-4 object-contain shrink-0"
-            />
-            <span className="truncate">
-              Chat Hype: <span className="text-[#fa4616] font-mono font-bold">{chatHype}</span>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={boostChatHype}
-            disabled={boostingHype}
-            className="press text-[10.5px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#fa4616] text-white shrink-0 shadow-xs cursor-pointer hover:bg-[#e03d12] transition-colors flex items-center gap-1"
-          >
-            <img
-              src="https://maxwell.z3ki.dev/bot/_files/running-cat-transparent/running_cat_transparent.gif"
-              alt=""
-              className="h-3 w-3 object-contain"
-            />
-            <span>{boostingHype ? "..." : "+50 Boost"}</span>
-          </button>
-        </div>
 
         {/* Messages */}
         <div
@@ -804,40 +943,145 @@ function ChatRoom() {
               m.senderId === recipientUid
                 ? otherUser?.username?.toLowerCase() === "ira"
                 : qbUser?.username?.toLowerCase() === "ira";
+            const isBot =
+              !isMe &&
+              (activeChatId === "support" ||
+                m.senderId === "support-ai" ||
+                m.senderId === "bot" ||
+                m.senderId === "system");
+
+            let timeStr = "10:45 AM";
+            if (m.timestamp) {
+              try {
+                const d =
+                  (m.timestamp as { toDate?: () => Date }).toDate?.() ??
+                  new Date(m.timestamp as string | number);
+                if (!isNaN(d.getTime())) {
+                  timeStr = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                }
+              } catch {}
+            }
+
+            if (isBot) {
+              const botPhases: AgentPhase[] =
+                m.phases && m.phases.length > 0
+                  ? m.phases
+                  : [
+                      {
+                        trace: [
+                          {
+                            type: "reasoning",
+                            sentences: [
+                              "Consulted QBLOCK knowledge repository for platform guidance.",
+                              "Verified game rules, Skyblock progression, and player safety.",
+                            ],
+                            durationSeconds: 1.2,
+                          },
+                          {
+                            type: "tool",
+                            primary: "Inspect game index",
+                            secondary: "qblock/knowledge-base",
+                          },
+                        ],
+                        message: m.text,
+                      },
+                    ];
+
+              return (
+                <div key={m.id} className="flex items-start gap-3 justify-start my-3 w-full">
+                  <div className={`shrink-0 pt-0.5 ${grouped ? "opacity-0" : ""}`}>
+                    <div className="w-8 h-8 rounded-[10px] overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-black/[0.06] dark:border-white/[0.08] shadow-xs">
+                      <Watcher shape="Cube" eyes="Slant" size={26} follow={30} bounce={15} />
+                    </div>
+                  </div>
+
+                  <div className="relative flex-1 min-w-0 max-w-[94%] sm:max-w-[560px]">
+                    {!grouped && (
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[12px] font-bold bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent truncate">
+                          {messageName || "Official Support"}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono font-medium">{timeStr}</span>
+                      </div>
+                    )}
+
+                    {m.isThinking ? (
+                      <div className="w-full">
+                        <ThinkingState
+                          nodes={[
+                            {
+                              type: "reasoning",
+                              sentences: [
+                                "Consulting QBLOCK knowledge repository for user question...",
+                                "Evaluating gameplay mechanics, platform policies, and rules...",
+                              ],
+                              durationSeconds: 2.5,
+                            },
+                            {
+                              type: "tool",
+                              primary: "Support Cluster",
+                              secondary: "gemini-3.8-flash",
+                            },
+                          ]}
+                          autoPlay={true}
+                          workingLabel="Thinking about QBLOCK..."
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full">
+                        <AgentWorkflow
+                          phases={botPhases}
+                          workingLabel="Thinking about QBLOCK..."
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={m.id}
                 className={`flex items-end gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}
               >
                 {!isMe && (
-                  <button
-                    type="button"
-                    onClick={() => setProfileOpen(true)}
-                    className={`shrink-0 cursor-pointer press ${grouped ? "opacity-0" : ""}`}
-                    aria-label="View user profile"
-                  >
-                    <Avatar
-                      name={messageName}
-                      size={28}
-                      snapshot={
-                        m.senderId === qbUser?.uid
-                          ? qbUser?.avatarSnapshot
-                          : otherUser?.avatarSnapshot
-                      }
-                      isIra={isIraSender}
-                      photoUrl={
-                        m.senderId === qbUser?.uid ? qbUser?.profilePhoto : otherUser?.profilePhoto
-                      }
-                    />
-                  </button>
+                  <div className={`shrink-0 ${grouped ? "opacity-0" : ""}`}>
+                    <button
+                      type="button"
+                      onClick={() => setProfileOpen(true)}
+                      className="cursor-pointer press"
+                      aria-label="View user profile"
+                    >
+                      <Avatar
+                        name={messageName}
+                        size={28}
+                        snapshot={
+                          m.senderId === qbUser?.uid
+                            ? qbUser?.avatarSnapshot
+                            : otherUser?.avatarSnapshot
+                        }
+                        isIra={isIraSender}
+                        photoUrl={
+                          m.senderId === qbUser?.uid
+                            ? qbUser?.profilePhoto
+                            : otherUser?.profilePhoto
+                        }
+                      />
+                    </button>
+                  </div>
                 )}
                 <div
-                  className={`relative max-w-[78%] text-[13px] leading-snug px-3 py-2 rounded-[14px] ${
-                    isMe ? "bg-[#fa4616] text-white" : "bg-[#f0f2f5] text-[#141414]"
+                  className={`relative max-w-[85%] text-[13px] leading-snug px-3 py-2 rounded-[14px] ${
+                    isMe
+                      ? "bg-[#fa4616] text-white"
+                      : "bg-[#f0f2f5] dark:bg-[#1a1d24] text-[#141414] dark:text-white"
                   }`}
                 >
                   {!isMe && !grouped && (
-                    <div className="mb-0.5 text-[9.5px] font-bold text-gray-500">{messageName}</div>
+                    <div className="mb-1 text-[10px] font-bold text-gray-500">
+                      {messageName}
+                    </div>
                   )}
                   {m.imageUrl ? (
                     <img
@@ -989,15 +1233,23 @@ function ChatRoom() {
                 onChange={(e) => setVal(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 onFocus={() => setEmojiOpen(false)}
-                placeholder="Message…"
+                placeholder={
+                  activeChatId === "support"
+                    ? "Ask Official Support about QBLOCK..."
+                    : "Message…"
+                }
                 className="flex-1 min-w-0 bg-transparent px-1.5 outline-none text-[13.5px] font-medium text-[#141414] dark:text-white placeholder:text-gray-400"
               />
-              {/* Attached glossy orange send button */}
+              {/* Attached glossy send button */}
               <button
                 type="button"
                 onClick={send}
                 disabled={imageUploading || (!val.trim() && sendState !== "sent")}
-                className="relative h-full px-4 shrink-0 bg-gradient-to-b from-[#ff6030] via-[#fa4616] to-[#dd380a] text-white flex items-center justify-center overflow-hidden transition-all duration-140 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.96] select-none disabled:opacity-40 disabled:pointer-events-none cursor-pointer border-l border-[#e03a0c] shadow-[inset_1px_0_0_rgba(255,255,255,0.2)] before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:bg-gradient-to-b before:from-white/35 before:to-transparent before:pointer-events-none"
+                className={`relative h-full px-4 shrink-0 text-white flex items-center justify-center overflow-hidden transition-all duration-140 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.96] select-none disabled:opacity-40 disabled:pointer-events-none cursor-pointer border-l shadow-[inset_1px_0_0_rgba(255,255,255,0.2)] before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:bg-gradient-to-b before:from-white/35 before:to-transparent before:pointer-events-none ${
+                  activeChatId === "support"
+                    ? "bg-gradient-to-b from-[#f59e0b] via-[#d97706] to-[#b45309] border-[#b45309]"
+                    : "bg-gradient-to-b from-[#ff6030] via-[#fa4616] to-[#dd380a] border-[#e03a0c]"
+                }`}
                 aria-label={sendState === "sent" ? "Sent" : "Send"}
               >
                 {sendState === "sent" ? (

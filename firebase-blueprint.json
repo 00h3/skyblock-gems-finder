@@ -8,10 +8,70 @@
         "uid": { "type": "string" },
         "username": { "type": "string" },
         "displayName": { "type": "string" },
+        "customId": { "type": "string" },
+        "email": { "type": "string" },
         "coins": { "type": "number" },
-        "gems": { "type": "number" }
+        "gems": { "type": "number" },
+        "online": { "type": "boolean" },
+        "badgeEquipped": { "type": "string" },
+        "bio": { "type": "string" },
+        "profilePhoto": { "type": "string" }
       },
       "required": ["uid", "username"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Friend request between players",
+      "type": "object",
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "status": { "type": "string" },
+        "fromUsername": { "type": "string" },
+        "fromDisplayName": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["from", "to", "status"]
+    },
+    "Friendship": {
+      "title": "Friendship",
+      "description": "Established mutual friendship between two players",
+      "type": "object",
+      "properties": {
+        "members": { "type": "array" },
+        "requestId": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["members"]
+    },
+    "ChatMeta": {
+      "title": "ChatMeta",
+      "description": "Direct conversation metadata, unread counts, and member summaries",
+      "type": "object",
+      "properties": {
+        "members": { "type": "array" },
+        "memberProfiles": { "type": "object" },
+        "lastMessage": { "type": "string" },
+        "lastSenderUid": { "type": "string" },
+        "lastAt": { "type": "number" },
+        "unreadCounts": { "type": "object" },
+        "hype": { "type": "number" }
+      },
+      "required": ["members"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message within a direct chat conversation",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "special": { "type": "string" }
+      },
+      "required": ["senderId", "text"]
     },
     "GroupChat": {
       "title": "GroupChat",
@@ -49,6 +109,24 @@
       },
       "required": ["groupId", "senderUid", "text"]
     },
+    "GameServer": {
+      "title": "GameServer",
+      "description": "Roblox-style game server lobby with active player list",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gameId": { "type": "string" },
+        "name": { "type": "string" },
+        "region": { "type": "string" },
+        "ping": { "type": "number" },
+        "maxPlayers": { "type": "number" },
+        "players": { "type": "array" },
+        "playerCount": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "lastActive": { "type": "number" }
+      },
+      "required": ["id", "gameId", "name"]
+    },
     "SkyblockProfile": {
       "title": "SkyblockProfile",
       "description": "Per-player persistent Skyblock progression, island level, XP, and stats",
@@ -66,7 +144,23 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
-      "description": "Stores user profiles"
+      "description": "Stores user profiles and stats"
+    },
+    "/friendRequests/{requestId}": {
+      "schema": "FriendRequest",
+      "description": "Stores friend requests between players"
+    },
+    "/friendships/{friendshipId}": {
+      "schema": "Friendship",
+      "description": "Stores mutual friendship records"
+    },
+    "/chatMeta/{chatId}": {
+      "schema": "ChatMeta",
+      "description": "Stores conversation metadata, hype, and unread counts"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Stores direct messages between players"
     },
     "/groups/{groupId}": {
       "schema": "GroupChat",
@@ -75,6 +169,10 @@
     "/groups/{groupId}/messages/{messageId}": {
       "schema": "GroupMessage",
       "description": "Stores messages for a group"
+    },
+    "/game_servers/{serverId}": {
+      "schema": "GameServer",
+      "description": "Stores Roblox-style active game servers and lobbies"
     },
     "/skyblockProfiles/{userId}": {
       "schema": "SkyblockProfile",

@@ -26,6 +26,8 @@ export function RedesignedHomePage({
   const navigate = useNavigate();
   const { qbUser } = useAuth();
   const [discoverPopupOpen, setDiscoverPopupOpen] = useState(false);
+
+  const [showSelfProfile, setShowSelfProfile] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
@@ -34,8 +36,6 @@ export function RedesignedHomePage({
     }, 4500);
     return () => clearInterval(timer);
   }, []);
-
-  const [showSelfProfile, setShowSelfProfile] = useState(false);
 
   const visibleGames = GAMES.filter(
     (g) =>
@@ -197,69 +197,105 @@ export function RedesignedHomePage({
           />
         </div>
 
-        {/* Switching Glossy Banner */}
+        {/* Switching Promotional Banner */}
         <div className="px-4 mt-2.5">
           <div
-            onClick={() => setActiveSlide((prev) => (prev === 0 ? 1 : 0))}
-            className="qb-squircle press relative h-[105px] w-full overflow-hidden cursor-pointer select-none rounded-[14px]"
+            onClick={() => {
+              if (activeSlide === 0) {
+                navigate({ to: "/game/sandbox" as never });
+              } else {
+                navigate({ to: "/avatar" as never });
+              }
+            }}
+            className="qb-squircle press relative h-[108px] w-full overflow-hidden cursor-pointer select-none rounded-[14px] bg-[#1a1c22] text-white shadow-md transition-all duration-300"
           >
-            {/* Top gloss curve + shimmer sweep (same glossiness as mail/notify) */}
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent pointer-events-none z-10" />
-            <span
-              className="pointer-events-none absolute inset-0 -translate-x-[160%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/40 to-transparent z-10"
-              style={{
-                animation: "glossyShineSweep 16s cubic-bezier(0.4, 0, 0.2, 1) infinite",
-              }}
-            />
+            {/* Top gloss curve */}
+            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 dark:from-white/15 to-transparent pointer-events-none rounded-t-[14px] z-10" />
 
-            {/* Slider track */}
+            {/* Slide 0: Horizon / Skyblock */}
             <div
-              className="flex h-full w-[200%] transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${activeSlide * 50}%)` }}
+              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-500 ease-out ${
+                activeSlide === 0
+                  ? "opacity-100 translate-x-0 pointer-events-auto"
+                  : "opacity-0 -translate-x-4 pointer-events-none"
+              }`}
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(250, 70, 22, 0.95) 0%, rgba(220, 45, 10, 0.9) 100%)",
+              }}
             >
-              {/* Slide 1 */}
-              <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 pb-2 relative z-10">
-                <span className="text-[16px] font-black tracking-tight text-[#1A1D20]">
+              <div className="relative z-20 flex flex-col justify-center max-w-[68%]">
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-200 bg-black/25 px-2 py-0.5 rounded-full w-fit">
                   Untitled Banner
                 </span>
+                <h3 className="mt-1 text-[16px] font-black tracking-tight text-white leading-tight">
+                  Skyblock Horizons
+                </h3>
+                <p className="text-[11px] font-semibold text-orange-100/90 mt-0.5 line-clamp-1">
+                  Mine rare ores, expand islands & build worlds
+                </p>
               </div>
-
-              {/* Slide 2 */}
-              <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 pb-2 relative z-10">
-                <span className="text-[16px] font-black tracking-tight text-[#1A1D20]">
-                  Untitled Banner
-                </span>
+              <div className="relative z-20 shrink-0 w-16 h-16 rounded-xl bg-black/20 backdrop-blur-md border border-white/20 grid place-items-center shadow-inner overflow-hidden p-1">
+                <img
+                  src="https://file.garden/alGOOylwpAfCa6qP/IMG_7240.png"
+                  alt="Skyblock"
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
               </div>
             </div>
 
-            {/* Animated 2-dot indicator ● ● */}
-            <div className="absolute bottom-2.5 inset-x-0 z-20 flex items-center justify-center gap-1.5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveSlide(0);
-                }}
-                aria-label="Slide 1"
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeSlide === 0
-                    ? "w-4 bg-[#1A1D20]"
-                    : "w-1.5 bg-black/20 hover:bg-black/35"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveSlide(1);
-                }}
-                aria-label="Slide 2"
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeSlide === 1
-                    ? "w-4 bg-[#1A1D20]"
-                    : "w-1.5 bg-black/20 hover:bg-black/35"
-                }`}
-              />
+            {/* Slide 1: Avatar Studio */}
+            <div
+              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-500 ease-out ${
+                activeSlide === 1
+                  ? "opacity-100 translate-x-0 pointer-events-auto"
+                  : "opacity-0 translate-x-4 pointer-events-none"
+              }`}
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)",
+              }}
+            >
+              <div className="relative z-20 flex flex-col justify-center max-w-[68%]">
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-sky-300 bg-white/10 px-2 py-0.5 rounded-full w-fit">
+                  Creator Lab
+                </span>
+                <h3 className="mt-1 text-[16px] font-black tracking-tight text-white leading-tight">
+                  Avatar Studio 3D
+                </h3>
+                <p className="text-[11px] font-semibold text-slate-300 mt-0.5 line-clamp-1">
+                  Customize skins, badges & collectible wearables
+                </p>
+              </div>
+              <div className="relative z-20 shrink-0 w-16 h-16 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 grid place-items-center shadow-inner overflow-hidden p-1">
+                <img
+                  src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+                  alt="Avatar"
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
+              </div>
+            </div>
+
+            {/* Slide switcher dots */}
+            <div className="absolute bottom-2.5 right-3.5 z-30 flex items-center gap-1.5">
+              {[0, 1].map((idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveSlide(idx);
+                  }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    activeSlide === idx
+                      ? "w-4 bg-white"
+                      : "w-1.5 bg-white/40 hover:bg-white/70"
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
             </div>
           </div>
         </div>

@@ -160,7 +160,7 @@ export function BedwarsGameSheet({
           <button
             type="button"
             onClick={onPlay}
-            className="flex-1 relative h-12 rounded-[16px] bg-gradient-to-b from-[#ff5b29] via-[#fa4616] to-[#e13b0e] text-white text-[14.5px] font-black tracking-tight select-none overflow-hidden transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:rounded-t-[15px] before:bg-gradient-to-b before:from-white/35 before:to-transparent before:pointer-events-none shadow-[0_4px_16px_rgba(250,70,22,0.3)]"
+            className="flex-1 relative h-13 rounded-[16px] bg-gradient-to-b from-[#ff6b3d] via-[#fa4616] to-[#d43509] text-white text-[15px] font-black tracking-tight select-none overflow-hidden transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:rounded-t-[15px] before:bg-gradient-to-b before:from-white/45 before:to-transparent before:pointer-events-none shadow-[0_8px_25px_rgba(250,70,22,0.45)] border border-white/20"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               <Play className="h-4 w-4 fill-white" />

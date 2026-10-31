@@ -114,61 +114,33 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
                 </h2>
               </div>
 
-              {/* Card / List Switcher in bottom menu clear liquid style */}
-              <div className="qb-glossy-menu rounded-full p-1 flex items-center gap-1 shadow-xs border border-black/[0.08] dark:border-white/[0.12] bg-white/40 dark:bg-black/20 backdrop-blur-md">
+              {/* Card / List Switcher (Reverted to old style) */}
+              <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-white/10 rounded-full p-1 border border-black/[0.06] dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setViewMode("card")}
-                  className={`press relative flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] transition-all duration-200 cursor-pointer select-none outline-none ${
+                  className={`press flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-bold transition-all cursor-pointer select-none ${
                     viewMode === "card"
-                      ? "font-black text-foreground"
-                      : "font-semibold text-foreground/60 hover:text-foreground"
+                      ? "bg-white dark:bg-white/25 text-[#141414] dark:text-white shadow-xs"
+                      : "text-[#6b7280] hover:text-[#141414] dark:hover:text-white"
                   }`}
                   aria-label="Card view"
                 >
-                  {viewMode === "card" && (
-                    <motion.div
-                      layoutId="discoveryPopupViewModePill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 32,
-                        mass: 0.8,
-                      }}
-                      className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_10px_rgba(0,0,0,0.4)]"
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    <LayoutGrid className="h-3 w-3" />
-                    <span>Card</span>
-                  </span>
+                  <LayoutGrid className="h-3 w-3" />
+                  <span>Card</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode("list")}
-                  className={`press relative flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] transition-all duration-200 cursor-pointer select-none outline-none ${
+                  className={`press flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-bold transition-all cursor-pointer select-none ${
                     viewMode === "list"
-                      ? "font-black text-foreground"
-                      : "font-semibold text-foreground/60 hover:text-foreground"
+                      ? "bg-white dark:bg-white/25 text-[#141414] dark:text-white shadow-xs"
+                      : "text-[#6b7280] hover:text-[#141414] dark:hover:text-white"
                   }`}
                   aria-label="List view"
                 >
-                  {viewMode === "list" && (
-                    <motion.div
-                      layoutId="discoveryPopupViewModePill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 32,
-                        mass: 0.8,
-                      }}
-                      className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_10px_rgba(0,0,0,0.4)]"
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    <List className="h-3 w-3" />
-                    <span>List</span>
-                  </span>
+                  <List className="h-3 w-3" />
+                  <span>List</span>
                 </button>
               </div>
             </div>

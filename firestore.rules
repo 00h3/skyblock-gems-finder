@@ -2,96 +2,156 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function signedIn() {
       return request.auth != null;
     }
 
-    // Profiles are public to signed-in & guest players
+    // User profiles, custom IDs, stats, and user subcollections (notifications, settings)
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if signedIn() && userId == request.auth.uid;
+      allow create, update, delete: if true;
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
     }
 
-    match /global_chat/{messageId} {
-      allow read: if true;
-      allow create: if true;
-    }
-
+    // Friend requests (pending, accepted, rejected)
     match /friendRequests/{requestId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      allow read, write: if true;
     }
 
+    // Established friendships between players
     match /friendships/{friendshipId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      allow read, write: if true;
     }
 
-    match /chatMeta/{chatId} {
-      allow read: if true;
-      allow create, update: if true;
-    }
-
-    match /chats/{chatId}/messages/{messageId} {
-      allow read: if true;
-      allow create: if true;
-    }
-
-    // Groups / Community Servers & subcollections
-    match /groups/{groupId} {
-      allow read: if true;
-      allow create, update, delete: if true;
-    }
-
-    match /groups/{groupId}/messages/{messageId} {
-      allow read: if true;
-      allow create, update, delete: if true;
-    }
-
-    match /groups/{groupId}/{document=**} {
-      allow read: if true;
-      allow create, update, delete: if true;
-    }
-
+    // Direct mailbox & alert inbox
     match /inbox/{messageId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      allow read, write: if true;
     }
 
-    // Sandbox multiplayer presence
+    // Chat metadata (1-on-1 direct conversations, participant lists, unread counts, hype)
+    match /chatMeta/{chatId} {
+      allow read, write: if true;
+    }
+
+    // 1-on-1 direct chat threads and messages
+    match /chats/{chatId} {
+      allow read, write: if true;
+
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // Community groups / servers and messages
+    match /groups/{groupId} {
+      allow read, write: if true;
+
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // Global community chat feed
+    match /global_chat/{messageId} {
+      allow read, write: if true;
+    }
+
+    // Roblox-style Game Servers & Lobbies (matchmaking, active player count, ping, host)
+    match /game_servers/{serverId} {
+      allow read, write: if true;
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // Servers collection alias
+    match /servers/{serverId} {
+      allow read, write: if true;
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // Game catalog metadata, claps, ratings, and stats
+    match /games/{gameId} {
+      allow read, write: if true;
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // Sandbox multiplayer positions & real-time presence
     match /sandboxPlayers/{playerId} {
       allow read, write: if true;
     }
 
-    // Shared sandbox blocks sync
+    // Sandbox blocks & voxel changes
     match /sandboxBlocks/{blockId} {
       allow read, write: if true;
     }
 
-    // Sandbox chat
+    // Sandbox in-game room chat
     match /sandboxChat/{messageId} {
       allow read, write: if true;
     }
 
-    // Skyblock multiplayer players
+    // BlockFall multiplayer presence & fallen block sync
+    match /blockFallPlayers/{playerId} {
+      allow read, write: if true;
+    }
+
+    match /blockFallBlocks/{blockId} {
+      allow read, write: if true;
+    }
+
+    // Skyblock multiplayer players presence
     match /skyblock_players/{playerId} {
       allow read, write: if true;
     }
 
-    // Skyblock islands & subcollections
+    // Skyblock islands, chests, blocks, and island chat
     match /islands/{islandId} {
       allow read, write: if true;
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
     }
 
-    match /islands/{islandId}/{document=**} {
-      allow read, write: if true;
-    }
-
-    // Skyblock persistent user profiles & island progression
+    // Skyblock persistent user progression & island level
     match /skyblockProfiles/{userId} {
       allow read, write: if true;
+
+      match /{allSubcollections=**} {
+        allow read, write: if true;
+      }
     }
 
+    // User inventories & item collections
+    match /inventories/{userId} {
+      allow read, write: if true;
+    }
+
+    match /userInventory/{userId} {
+      allow read, write: if true;
+    }
+
+    // Universal fallback rule ensuring all nested games and room collections sync seamlessly
     match /{document=**} {
       allow read, write: if true;
     }
