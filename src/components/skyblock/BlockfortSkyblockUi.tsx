@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { GameAudio } from "@/lib/game-audio";
 import {
@@ -8,6 +8,69 @@ import {
   type DailyQuest,
 } from "@/lib/skyblock-economy";
 import { useCurrency, spendCurrency, addCurrency } from "@/lib/currency";
+import { useAuth } from "@/lib/auth-context";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, limit } from "firebase/firestore";
+import {
+  subscribeToSkyblockChat,
+  sendSkyblockChatMessage,
+  type SkyblockChatMessage,
+} from "@/lib/skyblock-multiplayer";
+import { getPermanentPlayerId } from "@/lib/skyblock-profile";
+
+export interface IslandFriendPlayer {
+  uid: string;
+  name: string;
+  username: string;
+  profilePhoto?: string;
+  islandName?: string;
+  isOnline: boolean;
+  level?: number;
+  likesCount?: number;
+}
+
+const DEFAULT_COMMUNITY_FRIENDS: IslandFriendPlayer[] = [
+  {
+    uid: "island_host_sakura",
+    name: "Sakura Queen",
+    username: "sakura_builder",
+    profilePhoto: "https://file.garden/alGOOylwpAfCa6qP/file_000000003b508210b9ef5285b5568fe6_1788907881925.png",
+    islandName: "🌸 Sakura Blossom Sanctuary",
+    isOnline: true,
+    level: 6,
+    likesCount: 142,
+  },
+  {
+    uid: "island_host_crafter",
+    name: "CraftMaster Alex",
+    username: "craftmaster",
+    profilePhoto: "/assets/qblock-ui-kit/kit/assets/misc/avatar-monster.png",
+    islandName: "🏰 Obsidian Fortress & Mines",
+    isOnline: true,
+    level: 7,
+    likesCount: 389,
+  },
+  {
+    uid: "island_host_skyknight",
+    name: "SkyKnight 99",
+    username: "skyknight_99",
+    profilePhoto: "/icons/player-icon-custom.png",
+    islandName: "⚔️ Dragon Mountain Outpost",
+    isOnline: true,
+    level: 5,
+    likesCount: 95,
+  },
+  {
+    uid: "island_host_jerry",
+    name: "Jerry Builder",
+    username: "jerry_workshop",
+    profilePhoto: "/assets/avatar.png",
+    islandName: "❄️ Jerry's Winter Fortress",
+    isOnline: true,
+    level: 4,
+    likesCount: 78,
+  },
+];
 
 export interface IslandTierDef {
   tier: number;
@@ -152,13 +215,23 @@ interface Props {
   onEquipHotbar?: (blockType: number | string) => void;
   hotbar?: (number | string)[];
   tileUrls?: Record<number | string, string>;
+  onOpenSettings?: () => void;
+  currentVisitingId?: string | null;
+  currentVisitingName?: string | null;
+  onVisitIsland?: (islandId: string, hostName?: string) => void;
+  onReturnHome?: () => void;
 }
 
 export function BlockfortSkyblockUi({
   onEquipHotbar,
   hotbar = [],
   tileUrls = {},
+  currentVisitingId = null,
+  currentVisitingName = null,
+  onVisitIsland,
+  onReturnHome,
 }: Props) {
+  const { qbUser } = useAuth();
   const econ = useSkyblockEconomy();
   const globalGold = useCurrency("gold");
 
@@ -173,10 +246,24 @@ export function BlockfortSkyblockUi({
   const [shopOpen, setShopOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
   const [questsOpen, setQuestsOpen] = useState(false);
-  const [backpackOpen, setBackpackOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+
+  // Multiplayer Friends & Online Islands state
+  const [friendsList, setFriendsList] = useState<IslandFriendPlayer[]>(DEFAULT_COMMUNITY_FRIENDS);
+
+  // In-Game Live Chat Preview state
+  const [chatPreviewOpen, setChatPreviewOpen] = useState(true);
+  const [chatPreviewMinimized, setChatPreviewMinimized] = useState(false);
+  const [chatMessages, setChatMessages] = useState<SkyblockChatMessage[]>([]);
+  const [quickInput, setQuickInput] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Toast message
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Active island ID
+  const effectiveIslandId =
+    currentVisitingId || qbUser?.islandId || qbUser?.uid || getPermanentPlayerId(qbUser);
 
   // Manor Upgrade state
   const [selectedTierIdx, setSelectedTierIdx] = useState<number>(() => {
@@ -192,7 +279,7 @@ export function BlockfortSkyblockUi({
     setShopOpen(false);
     setDailyOpen(false);
     setQuestsOpen(false);
-    setBackpackOpen(false);
+    setFriendsOpen(false);
   }, []);
 
   // Responsive modal fit scaling so windows always fit viewport compactly
@@ -227,6 +314,144 @@ export function BlockfortSkyblockUi({
       setToastMsg((cur) => (cur === msg ? null : cur));
     }, 2800);
   }, []);
+
+  // ── Multiplayer Friends & Real-time Active Players Sync ───────────────────
+  useEffect(() => {
+    const currentMyUid = qbUser?.uid || getPermanentPlayerId(qbUser);
+    const unsubPlayers = onSnapshot(
+      collection(db, "skyblock_players"),
+      (snap) => {
+        const activeFromDb: IslandFriendPlayer[] = [];
+        const now = Date.now();
+        snap.forEach((d) => {
+          const data = d.data();
+          if (data.uid && data.uid !== currentMyUid && now - (data.lastSeen || 0) < 600000) {
+            activeFromDb.push({
+              uid: data.uid,
+              name: data.name || data.username || "Player",
+              username: data.username || data.name || "player",
+              profilePhoto: data.profilePhoto || "/icons/player-icon-custom.png",
+              islandName: `${data.name || "Player"}'s Sky Island`,
+              isOnline: true,
+              level: 5,
+            });
+          }
+        });
+
+        const seen = new Set<string>();
+        const combined: IslandFriendPlayer[] = [];
+        for (const p of activeFromDb) {
+          if (!seen.has(p.uid)) {
+            seen.add(p.uid);
+            combined.push(p);
+          }
+        }
+        for (const p of DEFAULT_COMMUNITY_FRIENDS) {
+          if (!seen.has(p.uid)) {
+            seen.add(p.uid);
+            combined.push(p);
+          }
+        }
+        setFriendsList(combined);
+      },
+      (err) => {
+        console.warn("Could not listen to skyblock players, using defaults:", err);
+      },
+    );
+
+    return () => unsubPlayers();
+  }, [qbUser]);
+
+  // ── In-Game Live Island Chat Real-time Subscription ──────────────────────
+  useEffect(() => {
+    const unsubChat = subscribeToSkyblockChat(
+      effectiveIslandId,
+      (newMsg) => {
+        setChatMessages((prev) => {
+          if (
+            prev.some(
+              (m) =>
+                m.id === newMsg.id ||
+                (m.createdAt === newMsg.createdAt &&
+                  m.senderName === newMsg.senderName &&
+                  m.text === newMsg.text),
+            )
+          ) {
+            return prev;
+          }
+          return [...prev, newMsg];
+        });
+      },
+      (allMsgs) => {
+        if (allMsgs && allMsgs.length > 0) {
+          setChatMessages(allMsgs);
+        }
+      },
+    );
+
+    return () => unsubChat();
+  }, [effectiveIslandId]);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  const handleSendChat = async (textToSend?: string) => {
+    const raw = (textToSend || quickInput).trim();
+    if (!raw) return;
+    setQuickInput("");
+    const senderName = qbUser?.displayName || qbUser?.username || "Player";
+    const senderId = qbUser?.uid || getPermanentPlayerId(qbUser);
+    const isOwner = !currentVisitingId || currentVisitingId === senderId;
+
+    const newMsg: SkyblockChatMessage = {
+      id: "local_" + Date.now(),
+      senderId,
+      senderName,
+      senderTag: isOwner ? "OWNER" : "PLAYER",
+      senderColor: isOwner ? "#fbbf24" : "#38bdf8",
+      text: raw,
+      createdAt: Date.now(),
+    };
+    setChatMessages((prev) => [...prev, newMsg]);
+    GameAudio.playChatChime();
+
+    await sendSkyblockChatMessage(effectiveIslandId, {
+      senderId,
+      senderName,
+      senderTag: isOwner ? "OWNER" : "PLAYER",
+      senderColor: isOwner ? "#fbbf24" : "#38bdf8",
+      text: raw,
+    });
+  };
+
+  const handleVisit = (player: IslandFriendPlayer) => {
+    GameAudio.playPop();
+    showToast(`Visiting ${player.name}'s Island! Connecting multiplayer...`);
+    closeAllModals();
+    if (onVisitIsland) {
+      onVisitIsland(player.uid, player.name);
+    } else if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("visit", player.uid);
+      window.location.href = url.toString();
+    }
+  };
+
+  const handleReturnHome = () => {
+    GameAudio.playPop();
+    showToast("Returning to your home island!");
+    closeAllModals();
+    if (onReturnHome) {
+      onReturnHome();
+    } else if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("visit");
+      window.location.href = url.toString();
+    }
+  };
 
   const spendRealCoins = async (amount: number): Promise<boolean> => {
     if (realBalance < amount) return false;
@@ -418,10 +643,10 @@ export function BlockfortSkyblockUi({
                 whileTap={{ scale: 0.93 }}
                 type="button"
                 className="bf-btn bf-btn--home bf-btn--mini"
-                onClick={() => setBackpackOpen(true)}
-                title="Backpack Inventory"
+                onClick={() => setFriendsOpen(true)}
+                title="Friends & Online Islands"
               >
-                <span className="bf-btn__label">Backpack</span>
+                <span className="bf-btn__label">Friends</span>
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.93 }}
@@ -963,8 +1188,11 @@ export function BlockfortSkyblockUi({
       {/* ═════════════════════════════════════════════════════════════════════ */}
       {/* ── BACKPACK INVENTORY MODAL ────────────────────────────────────────── */}
       {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* ===== FRIENDS & ISLAND VISITORS MODAL (Multiplayer Realm Visit) ===== */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
-        {backpackOpen && (
+        {friendsOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -984,15 +1212,16 @@ export function BlockfortSkyblockUi({
                 exit={{ opacity: 0, scale: 0.94, y: 12 }}
                 transition={{ type: "spring", damping: 25, stiffness: 380 }}
                 className="bf-modal bf-panel bf-panel--board"
-                style={{ width: 680, minHeight: 420 }}
+                style={{ width: "min(640px, 94vw)", minHeight: 420 }}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="backpack-title"
+                aria-labelledby="friends-title"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bf-panel__title">
-                  <span className="bf-plate bf-plate--title" id="backpack-title">
-                    Backpack
+                <div className="bf-panel__title" style={{ top: -86, height: 101 }}>
+                  <div className="bf-banner-crown" aria-hidden="true" />
+                  <span className="bf-plate bf-plate--title" id="friends-title">
+                    Friends & Islands
                   </span>
                 </div>
                 <button
@@ -1004,60 +1233,125 @@ export function BlockfortSkyblockUi({
                   ✕
                 </button>
 
-                <div className="mt-3">
-                  <p className="text-[13px] text-amber-900 font-bold text-center mb-3">
-                    Tap an item to equip it to your current active hotbar slot
+                {/* Visiting banner if currently exploring someone else's realm */}
+                {currentVisitingId && (
+                  <div className="mt-2 mb-3 px-3 py-2 rounded-[8px] bg-[#1a0e05]/95 border-2 border-amber-500/50 flex items-center justify-between gap-3 shadow-inner">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[18px]">🏝️</span>
+                      <div className="min-w-0 text-left">
+                        <p className="text-[13px] font-bold text-amber-200 truncate leading-tight">
+                          Currently visiting: {currentVisitingName || "Player's Island"}
+                        </p>
+                        <p className="text-[10px] text-emerald-400 font-semibold">
+                          ● Multiplayer sync active • Both characters visible
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="bf-btn bf-btn--plain !min-w-[96px] !h-8 !text-[12px] active:scale-95 cursor-pointer"
+                      onClick={handleReturnHome}
+                    >
+                      <span className="bf-btn__label">Return Home</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-2">
+                  <p className="text-[12.5px] text-amber-900 font-bold text-center mb-2.5">
+                    Visit other players&apos; islands, build together, and play in real-time!
                   </p>
-                  <div
-                    className="bf-slot-grid justify-center"
-                    style={{ ["--cols" as string]: 7 }}
-                  >
-                    {hotbar.map((itemId, i) => {
-                      const url = tileUrls[itemId] || "";
+
+                  <div className="max-h-[290px] overflow-y-auto pr-1 flex flex-col gap-2.5 [scrollbar-width:thin]">
+                    {friendsList.map((player) => {
+                      const isVisitingThis = currentVisitingId === player.uid;
                       return (
-                        <button
-                          key={`${itemId}-${i}`}
-                          type="button"
-                          onClick={() => {
-                            if (onEquipHotbar) onEquipHotbar(itemId);
-                            showToast(`Slot ${i + 1} selected!`);
+                        <div
+                          key={player.uid}
+                          className="w-full rounded-[8px] p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.4)] transition-all hover:brightness-105"
+                          style={{
+                            background: isVisitingThis
+                              ? "linear-gradient(135deg, rgba(60, 40, 20, 0.95), rgba(40, 25, 12, 0.95))"
+                              : "rgba(38, 24, 14, 0.92)",
+                            border: isVisitingThis ? "2px solid #f59e0b" : "2px solid #160c04",
                           }}
-                          className="bf-slot"
-                          aria-label={`Item ${i + 1}`}
                         >
-                          {url ? (
+                          {/* Left: Square Profile Photo */}
+                          <div className="relative w-12 h-12 rounded-[6px] border-2 border-[#160c04] bg-[#1a0e05] overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
                             <img
-                              src={url}
-                              alt=""
-                              className="[image-rendering:pixelated]"
-                              draggable={false}
+                              src={player.profilePhoto || "/icons/player-icon-custom.png"}
+                              alt={player.name}
+                              className="w-full h-full object-cover [image-rendering:pixelated]"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/icons/player-icon-custom.png";
+                              }}
                             />
-                          ) : (
-                            <span className="text-[10px] font-bold text-amber-900/40">Empty</span>
-                          )}
-                          <span className="bf-slot__count">{itemId ? 64 : ""}</span>
-                        </button>
+                            <span
+                              className={`absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-[#160c04] shadow-sm ${
+                                player.isOnline ? "bg-emerald-400" : "bg-amber-500"
+                              }`}
+                              title={player.isOnline ? "Online" : "Away"}
+                            />
+                          </div>
+
+                          {/* Center info */}
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-[14px] text-amber-100 font-heading leading-tight truncate [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
+                                {player.name}
+                              </span>
+                              {player.level && (
+                                <span className="px-1.5 py-0.2 rounded-[3px] bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                                  Lv.{player.level}
+                                </span>
+                              )}
+                              {isVisitingThis && (
+                                <span className="px-1.5 py-0.2 rounded-[3px] bg-emerald-500/30 text-emerald-300 text-[10px] font-bold border border-emerald-400/40">
+                                  Current Realm
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-amber-300/80 font-mono truncate">
+                              @{player.username}
+                            </p>
+                            <p className="text-[11px] text-amber-200/65 truncate mt-0.5 font-sans">
+                              {player.islandName || "Skyblock Realm"}
+                            </p>
+                          </div>
+
+                          {/* Right: Grey Button same style as UI kit called 'Visit' */}
+                          <div>
+                            {isVisitingThis ? (
+                              <button
+                                type="button"
+                                className="bf-btn bf-btn--plain !min-w-[76px] !h-8 !text-[12px] opacity-85 cursor-default"
+                                disabled
+                              >
+                                <span className="bf-btn__label">Visiting</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="bf-btn bf-btn--plain !min-w-[76px] !h-8 !text-[13px] active:scale-95 transition-transform cursor-pointer"
+                                onClick={() => handleVisit(player)}
+                              >
+                                <span className="bf-btn__label">Visit</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
-                    {/* Fill empty slots up to 21 */}
-                    {Array.from({ length: Math.max(0, 21 - hotbar.length) }).map((_, i) => (
-                      <button
-                        key={`empty-${i}`}
-                        type="button"
-                        className="bf-slot is-locked"
-                        aria-label="Empty slot"
-                      />
-                    ))}
                   </div>
                 </div>
 
-                <div className="flex justify-center mt-4">
+                <div className="flex justify-center mt-3">
                   <button
                     type="button"
                     className="bf-btn bf-btn--plain"
                     onClick={closeAllModals}
                   >
-                    <span className="bf-btn__label">Close</span>
+                    <span className="bf-btn__label">Done</span>
                   </button>
                 </div>
               </motion.section>
@@ -1065,6 +1359,190 @@ export function BlockfortSkyblockUi({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* ── IN-GAME LIVE CHAT PREVIEW ON THE RIGHT (Grey Inventory Style) ─── */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {chatPreviewOpen && (
+        <aside
+          aria-label="Island live chat"
+          className="fixed right-3.5 top-[80px] sm:top-[88px] z-[90] w-[270px] sm:w-[320px] pointer-events-auto rounded-[6px] p-2 sm:p-2.5 flex flex-col gap-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-all select-none"
+          style={{
+            background: "rgba(28, 28, 32, 0.88)",
+            border: "2px solid rgba(12, 12, 14, 0.95)",
+            boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.5)",
+            fontFamily: '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          }}
+        >
+          {/* Header row */}
+          <div className="flex items-center justify-between pb-1 border-b border-white/10">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="text-[11px] font-black uppercase tracking-wider text-zinc-300"
+                style={{
+                  textShadow:
+                    "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
+                }}
+              >
+                Island Chat
+              </span>
+              <span className="px-1.5 py-0.2 rounded-[3px] bg-emerald-500/20 text-emerald-400 text-[9px] font-bold border border-emerald-500/40">
+                ● Live
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setChatPreviewMinimized(!chatPreviewMinimized)}
+                className="w-5 h-5 rounded-[3px] bg-[rgba(40,40,44,0.62)] border border-[rgba(20,20,22,0.8)] text-zinc-400 hover:text-white flex items-center justify-center text-[10px] active:scale-95 cursor-pointer"
+                title={chatPreviewMinimized ? "Expand Chat" : "Minimize Chat"}
+              >
+                {chatPreviewMinimized ? "▲" : "▼"}
+              </button>
+            </div>
+          </div>
+
+          {/* Minimized teaser */}
+          {chatPreviewMinimized ? (
+            <div
+              className="py-1 text-center cursor-pointer"
+              onClick={() => setChatPreviewMinimized(false)}
+            >
+              <p
+                className="text-[10px] text-zinc-400 hover:text-zinc-200 transition"
+                style={{
+                  textShadow:
+                    "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                {chatMessages.length > 0
+                  ? `Latest: ${chatMessages[chatMessages.length - 1].senderName}: ${chatMessages[chatMessages.length - 1].text.slice(0, 24)}...`
+                  : "Tap to expand chat"}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Message Feed */}
+              <div
+                ref={chatScrollRef}
+                className="max-h-[140px] sm:max-h-[160px] overflow-y-auto flex flex-col gap-1.5 pr-1 [scrollbar-width:thin]"
+              >
+                {chatMessages.length === 0 ? (
+                  <div className="py-3 text-center">
+                    <p
+                      className="text-[11px] text-zinc-400 italic"
+                      style={{
+                        textShadow:
+                          "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                      }}
+                    >
+                      🏝️ Welcome to Skyblock Multiplayer! Type below to chat with players on this realm.
+                    </p>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, idx) => (
+                    <div key={msg.id || idx} className="flex items-start gap-1.5 w-full">
+                      {/* Square Profile Photo */}
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[4px] border-2 border-[rgba(20,20,22,0.85)] bg-[rgba(40,40,44,0.7)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] overflow-hidden shrink-0 flex items-center justify-center">
+                        <img
+                          src={
+                            msg.senderId === qbUser?.uid && qbUser?.profilePhoto
+                              ? qbUser.profilePhoto
+                              : "/icons/player-icon-custom.png"
+                          }
+                          alt=""
+                          className="w-full h-full object-cover [image-rendering:pixelated]"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/icons/player-icon-custom.png";
+                          }}
+                        />
+                      </div>
+
+                      {/* Chat text box */}
+                      <div className="flex-1 min-w-0 bg-[rgba(40,40,44,0.62)] border border-[rgba(20,20,22,0.85)] rounded-[4px] px-2 py-1 shadow-sm">
+                        <div className="flex items-center justify-between gap-1">
+                          <span
+                            className="text-[11px] font-black leading-none truncate"
+                            style={{
+                              color: msg.senderColor || "#38bdf8",
+                              textShadow:
+                                "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
+                            }}
+                          >
+                            {msg.senderName}
+                          </span>
+                          <span className="text-[8.5px] text-zinc-400 font-mono shrink-0">
+                            {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <p
+                          className="text-[11px] font-medium text-white/95 leading-snug break-words mt-0.5"
+                          style={{
+                            textShadow:
+                              "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
+                          }}
+                        >
+                          {msg.text}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Quick Input Bar */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendChat();
+                }}
+                className="flex items-center gap-1.5 pt-1 border-t border-white/10"
+              >
+                <input
+                  type="text"
+                  value={quickInput}
+                  onChange={(e) => setQuickInput(e.target.value)}
+                  placeholder="Chat with players..."
+                  maxLength={120}
+                  className="flex-1 min-w-0 h-7 bg-[rgba(40,40,44,0.62)] border-2 border-[rgba(20,20,22,0.85)] rounded-[4px] px-2 text-[11px] text-white placeholder-zinc-400 outline-none focus:border-amber-400/80"
+                  style={{
+                    fontFamily: '"InterDisplay", "Inter", sans-serif',
+                    textShadow:
+                      "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="bf-btn bf-btn--plain !min-w-[48px] !h-7 !text-[11px] cursor-pointer"
+                >
+                  <span className="bf-btn__label">Send</span>
+                </button>
+              </form>
+
+              {/* Quick Reaction Chips */}
+              <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+                {["👋 Hello!", "⚔️ Let's fight", "💎 Found gems!", "🏝️ Nice island!"].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => handleSendChat(chip)}
+                    className="shrink-0 px-1.5 py-0.5 bg-[rgba(40,40,44,0.5)] hover:bg-[rgba(60,60,66,0.7)] border border-white/10 rounded-[3px] text-[9.5px] text-zinc-300 font-bold active:scale-95 cursor-pointer"
+                    style={{
+                      textShadow:
+                        "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </aside>
+      )}
     </>
   );
 }

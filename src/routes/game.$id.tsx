@@ -3263,7 +3263,7 @@ function EngineGame({
 
         unsubIslandPlayers = subscribeToIslandPlayers(
           currentSkyblockIslandId,
-          qbUser?.uid || "guest_" + Math.random().toString(36).slice(2, 6),
+          qbUser?.uid || getPermanentPlayerId(qbUser),
           (livePlayers) => {
             syncRemotePlayers(livePlayers);
           },
@@ -10162,19 +10162,21 @@ function EngineGame({
         updateTreePhysicsAndPoppedBlocks(now, dt);
 
         // Skyblock Multiplayer: broadcast position and animate other players
-        if (isSkyblock && qbUser?.uid) {
+        const mySkyblockPlayerUid = qbUser?.uid || getPermanentPlayerId(qbUser);
+        if (isSkyblock && mySkyblockPlayerUid) {
           if (now - lastPresenceTime > 120) {
             lastPresenceTime = now;
             updatePlayerPresence({
-              uid: qbUser.uid,
-              name: qbUser.displayName || qbUser.username || "Player",
+              uid: mySkyblockPlayerUid,
+              name: qbUser?.displayName || qbUser?.username || "Player",
+              username: qbUser?.username || "Player",
               x: playerPos.x,
               y: playerPos.y,
               z: playerPos.z,
               rotY: camYaw,
               islandId: currentSkyblockIslandId,
-              profilePhoto: qbUser.profilePhoto,
-              avatarSnapshot: qbUser.avatarSnapshot,
+              profilePhoto: qbUser?.profilePhoto,
+              avatarSnapshot: qbUser?.avatarSnapshot,
             });
           }
         }
@@ -11679,6 +11681,22 @@ function EngineGame({
         <BlockfortSkyblockUi
           hotbar={skyblockHotbarSlots}
           tileUrls={blockIcons}
+          currentVisitingId={visitingUserId}
+          currentVisitingName={visitingHostName}
+          onVisitIsland={(targetId, hostName) => {
+            setVisitingUserId(targetId);
+            setVisitingHostName(hostName || null);
+            const url = new URL(window.location.href);
+            url.searchParams.set("visit", targetId);
+            window.location.href = url.toString();
+          }}
+          onReturnHome={() => {
+            setVisitingUserId(null);
+            setVisitingHostName(null);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("visit");
+            window.location.href = url.toString();
+          }}
           onEquipHotbar={(b) => {
             const blockIdx = typeof b === "number" ? b : BLOCKS.findIndex((bl) => bl.name === b);
             if (blockIdx >= 0) {

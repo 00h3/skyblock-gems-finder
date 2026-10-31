@@ -5520,6 +5520,17 @@ export function SandboxGame({
                 <BlockfortSkyblockUi
                   hotbar={hotbar}
                   tileUrls={tileUrls}
+                  currentVisitingId={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visit") : null}
+                  onVisitIsland={(targetId) => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("visit", targetId);
+                    window.location.href = url.toString();
+                  }}
+                  onReturnHome={() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("visit");
+                    window.location.href = url.toString();
+                  }}
                   onEquipHotbar={(b) => {
                     setHotbar((prev) => {
                       const next = [...prev];
