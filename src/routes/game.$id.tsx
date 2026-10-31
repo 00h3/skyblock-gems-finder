@@ -11534,7 +11534,8 @@ function EngineGame({
           </div>
 
           {/* ── Currency + menu (top-right) ── */}
-          <div className="absolute right-3 top-[max(10px,env(safe-area-inset-top))] flex items-center gap-1 pointer-events-auto">
+          {!isSkyblock && (
+            <div className="absolute right-3 top-[max(10px,env(safe-area-inset-top))] flex items-center gap-1 pointer-events-auto">
             {/* Skyblock Purse & Bank Display */}
             {isSkyblock ? (
               <div
@@ -11669,8 +11670,9 @@ function EngineGame({
               </svg>
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* ── SKYBLOCK BLOCKFORT UI KIT: Real Upgrades, Store, Quests, Daily Rewards, Real Currency ── */}
       {isSkyblock && (

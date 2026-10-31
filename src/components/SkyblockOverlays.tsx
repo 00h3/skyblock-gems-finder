@@ -66,16 +66,9 @@ function GreyStatBar({
   );
 }
 
-export function PlayerHpBar({ hp, max = 20 }: { hp: number; max?: number }) {
-  return (
-    <GreyStatBar
-      label="Health"
-      value={hp}
-      max={max}
-      fill="bg-gradient-to-r from-red-500 to-red-600"
-      className="pointer-events-none w-full"
-    />
-  );
+export function PlayerHpBar({ hp, max = 20 }: { hp?: number; max?: number }) {
+  // HP bar removed per user request: "Remove hp"
+  return null;
 }
 
 export function DragonBossBar({ hp, max }: { hp: number; max: number }) {
@@ -308,13 +301,9 @@ export function NpcDialogue({ onDone }: { onDone: () => void }) {
 
 /* ── Mission tracker ──────────────────────────────────────────────────── */
 
-/** Left HUD column: player health bar (old missions removed per user request) */
-export function SkyblockHudColumn({ hp, maxHp = 20 }: { hp: number; maxHp?: number; state?: MissionState }) {
-  return (
-    <div className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+140px)] z-[85] flex w-[170px] flex-col gap-1.5 font-inter-bold">
-      <PlayerHpBar hp={hp} max={maxHp} />
-    </div>
-  );
+/** Left HUD column: removed per user request: "Remove hp" */
+export function SkyblockHudColumn({ hp, maxHp = 20 }: { hp?: number; maxHp?: number; state?: MissionState }) {
+  return null;
 }
 
 export function MissionTracker({ state }: { state?: MissionState }) {

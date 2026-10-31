@@ -1,17 +1,22 @@
-/* ==========================================================================
-   Blockfort Skyblock UI Kit — Integrated for QBLOCK
-   All assets fetched directly from /assets/qblock-ui-kit/kit/assets/
-   ========================================================================== */
+@font-face {
+  font-family: "Inter Display QB";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: local("Inter Display SemiBold"),
+       url("/assets/qblock-ui-kit/kit/fonts/InterDisplay-SemiBold.otf") format("opentype"),
+       url("/fonts/InterDisplay-SemiBold.otf") format("opentype");
+}
 
 :root {
   --bf-assets: "/assets/qblock-ui-kit/kit/assets";
-  --bf-font: "InterDisplay", "Inter", system-ui, -apple-system, sans-serif;
+  --bf-font: "Inter Display QB", "InterDisplay", "Inter", system-ui, -apple-system, sans-serif;
   --bf-ink: #6b4a24;
   --bf-ink-soft: #94754a;
   --bf-tan-ink: #7d6842;
   --bf-outline: #5b3f1d;
   --bf-gold: #f6c445;
-  --bf-overlay: rgba(18, 12, 6, 0.72);
+  --bf-overlay: rgba(22, 14, 8, 0.58);
 }
 
 .bf, .bf *, .bf-overlay, .bf-overlay * {
@@ -36,10 +41,10 @@
 .bf-ink { color: var(--bf-ink); }
 .bf-ink--soft { color: var(--bf-ink-soft); }
 
-/* ---------- Buttons (Small & Compact for Games) -------------------------- */
+/* ---------- Buttons (Ultra-compact & sleek for games) -------------------- */
 .bf-btn {
-  --w: 136px;
-  --h: 38px;
+  --w: 104px;
+  --h: 29px;
   appearance: none;
   border: 0;
   padding: 0;
@@ -51,36 +56,45 @@
   justify-content: center;
   background: transparent center / 100% 100% no-repeat;
   font-family: var(--bf-font);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   line-height: 1;
   color: var(--bf-tan-ink);
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 2px 0 rgba(90, 60, 20, 0.35));
+  filter: drop-shadow(0 2px 0 rgba(70, 45, 15, 0.35));
   transition: filter 0.12s, transform 0.08s;
 }
 .bf-btn__label {
-  padding: 0 10px 1px 40px;
+  padding: 0 6px 1px 28px;
   text-align: center;
   white-space: nowrap;
 }
 .bf-btn:hover {
-  filter: brightness(1.08) drop-shadow(0 2px 0 rgba(90, 60, 20, 0.35));
+  filter: brightness(1.08) drop-shadow(0 2px 0 rgba(70, 45, 15, 0.35));
 }
 .bf-btn:active {
-  transform: translateY(1.5px);
+  transform: translateY(1px);
   filter: brightness(0.95);
 }
 .bf-btn:focus-visible {
   outline: 2px solid #fff;
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: 1px;
+  border-radius: 6px;
 }
 .bf-btn[disabled], .bf-btn.is-disabled {
   filter: grayscale(1) opacity(0.55);
   pointer-events: none;
+}
+
+.bf-btn--mini {
+  --w: 88px;
+  --h: 25px;
+  font-size: 11px;
+}
+.bf-btn--mini .bf-btn__label {
+  padding: 0 4px 1px 24px;
 }
 
 .bf-btn--build  { background-image: url("/assets/qblock-ui-kit/kit/assets/buttons/btn-build.png"); }
@@ -91,8 +105,8 @@
 /* Plain button: 9-slice, stretches smoothly */
 .bf-btn--plain {
   --w: auto;
-  min-width: 90px;
-  padding: 0 16px;
+  min-width: 72px;
+  padding: 0 12px;
   background: none;
   border-style: solid;
   border-width: 0 16px;
@@ -100,6 +114,35 @@
 }
 .bf-btn--plain .bf-btn__label {
   padding: 0 4px 1px;
+}
+
+/* Toggle menu button in blockfort button style */
+.bf-toggle-btn {
+  --w: auto;
+  min-width: 58px;
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border-style: solid;
+  border-width: 0 14px;
+  border-image: url("/assets/qblock-ui-kit/kit/assets/buttons/btn-plain.png") 0 16 fill / 0 14px stretch;
+  font-family: var(--bf-font);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--bf-tan-ink);
+  cursor: pointer;
+  filter: drop-shadow(0 2px 0 rgba(70, 45, 15, 0.4));
+  transition: transform 0.1s, filter 0.1s;
+}
+.bf-toggle-btn:hover {
+  filter: brightness(1.1) drop-shadow(0 2px 0 rgba(70, 45, 15, 0.4));
+}
+.bf-toggle-btn:active {
+  transform: scale(0.95);
 }
 
 /* Round close button (the yellow X) */
@@ -111,9 +154,19 @@
   width: 44px;
   height: 44px;
   cursor: pointer;
+  pointer-events: auto !important;
+  z-index: 80 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: url("/assets/qblock-ui-kit/kit/assets/buttons/btn-close.png") center / contain no-repeat;
   filter: drop-shadow(0 2px 0 rgba(60, 35, 10, 0.45));
   transition: transform 0.1s, filter 0.1s;
+  color: #fff;
+  font-family: var(--bf-font);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
 }
 .bf-close:hover {
   transform: scale(1.08);
@@ -122,7 +175,7 @@
 .bf-close:active {
   transform: scale(0.94);
 }
-.bf-close--sm { width: 34px; height: 34px; }
+.bf-close--sm { width: 34px; height: 34px; font-size: 14px; }
 .bf-close--alt { background-image: url("/assets/qblock-ui-kit/kit/assets/buttons/btn-close-2.png"); }
 
 /* ---------- Plates (Title labels) ---------------------------------------- */
@@ -239,16 +292,20 @@
   justify-content: center;
   pointer-events: none;
 }
-.bf-panel__title > * { pointer-events: auto; }
 .bf-panel__close {
   position: absolute;
-  top: -62px;
-  right: -66px;
-  z-index: 10;
+  top: -18px;
+  right: -12px;
+  z-index: 90;
+  pointer-events: auto;
 }
-.bf-panel--board > .bf-panel__close {
-  top: -54px;
-  right: -14px;
+.bf-panel--board > .bf-panel__close,
+.bf-panel--store > .bf-panel__close,
+.bf-dialog > .bf-panel__close {
+  top: -18px;
+  right: -12px;
+  z-index: 90;
+  pointer-events: auto;
 }
 
 /* Parchment scroll for store details */
@@ -528,7 +585,7 @@
   cursor: not-allowed;
 }
 
-/* Modals Overlay */
+/* Modals Overlay — Clean warm backdrop without black shadow artifacts */
 .bf-overlay {
   position: fixed;
   inset: 0;
@@ -536,22 +593,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bf-overlay);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  overflow: hidden;
+  background: rgba(22, 14, 8, 0.60);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
   animation: bf-fade 0.18s ease-out;
+  pointer-events: auto;
 }
 .bf-modal-wrap {
+  transform: scale(var(--bf-fit, 1));
   transform-origin: center center;
-  padding: 60px 20px 20px 20px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px 16px 16px;
   flex: none;
+  pointer-events: auto;
 }
 .bf-modal {
-  animation: bf-pop 0.22s cubic-bezier(0.2, 1.25, 0.4, 1);
+  position: relative;
+  max-width: 95vw;
+  animation: bf-pop 0.22s cubic-bezier(0.18, 1.25, 0.35, 1);
+  pointer-events: auto;
 }
-@keyframes bf-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes bf-pop  { from { transform: translateY(12px) scale(0.95); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes bf-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes bf-pop {
+  from {
+    transform: translateY(14px) scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
 
 /* Toast */
 .bf-toast {
