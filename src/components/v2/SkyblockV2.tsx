@@ -54,63 +54,13 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
   );
 }
 
-export function MilestoneTracker({ progression }: { progression: Progression }) {
-  const s = useStore(progression.store);
-  const next = progression.upcoming(3);
-  if (next.length === 0) return null;
-  return (
-    <aside
-      aria-label="Quests"
-      className="pointer-events-none absolute left-3 top-[calc(max(12px,env(safe-area-inset-top)+8px)+60px)] z-30 flex w-56 flex-col gap-2 sm:left-5 sm:w-64"
-    >
-      <div className="flex items-center justify-between px-1">
-        <span className="font-lilita text-[13px] tracking-wide text-amber-200 drop-shadow-sm">Quests & Milestones</span>
-        <span className="text-[11px] font-bold tabular-nums text-amber-100/60">{s.completed.length} done</span>
-      </div>
-      {next.map((m, i) => {
-        const pct = Math.round((m.progress / m.target) * 100);
-        return (
-          <div
-            key={m.id}
-            className={cn(
-              "wood-panel pointer-events-auto relative flex flex-col gap-1.5 !rounded-[4px] border-2 border-[#150b04] bg-[#2a170b] px-3 py-2 shadow-md",
-              i > 0 && "opacity-95",
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="truncate font-lilita text-[13px] tracking-wide text-amber-100 leading-tight">
-                🪵 {m.label}
-              </span>
-              <span className="shrink-0 rounded-[2px] border border-[#150b04] bg-[#160c04] px-1.5 py-0.5 font-lilita text-[10.5px] text-amber-300">
-                +{m.rewardXp} XP
-              </span>
-            </div>
-            {/* Wood-grooved progress track with glossy glass finish */}
-            <div className="relative h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
-              <div
-                className="relative h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-[width] duration-500 overflow-hidden"
-                style={{ width: `${pct}%` }}
-              >
-                <div className="absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-white/75 via-white/25 to-transparent pointer-events-none" />
-              </div>
-              <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/25 to-transparent pointer-events-none" />
-            </div>
-            <div className="flex justify-between text-[10px] font-bold tabular-nums text-amber-200/70">
-              <span>Quest progress</span>
-              <span>
-                {m.progress} / {m.target}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </aside>
-  );
+export function MilestoneTracker({ progression }: { progression?: Progression }) {
+  // Old missions removed per user request: "remove the old missions"
+  return null;
 }
 
 /**
- * Inventory bar — always pinned to the bottom edge. On touch the D-pad and
- * action keys are lifted above it by V2GameHud (see `hasHotbar`).
+ * Inventory bar — pinned nicely near bottom edge, compact size.
  */
 export function V2Hotbar({
   hotbar,
@@ -129,11 +79,11 @@ export function V2Hotbar({
 }) {
   if (hotbar.length === 0) return null;
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(1px,calc(env(safe-area-inset-bottom)+1px))] flex justify-center px-2 scale-[0.88] origin-bottom">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] flex justify-center px-2 scale-[0.78] origin-bottom">
       <div
         role="toolbar"
         aria-label="Inventory"
-        className="flex max-w-[min(98vw,640px)] gap-1 overflow-x-auto [scrollbar-width:none]"
+        className="flex max-w-[min(98vw,620px)] gap-1 overflow-x-auto [scrollbar-width:none]"
       >
         {hotbar.map((id, i) => {
           const active = slot === i;
@@ -145,7 +95,7 @@ export function V2Hotbar({
               aria-label={`Slot ${i + 1}`}
               aria-pressed={active}
               className={cn(
-                "blockman-slot relative grid h-10 w-10 sm:h-10.5 sm:w-10.5 shrink-0 place-items-center rounded-[4px] transition-transform duration-100 active:scale-95",
+                "blockman-slot relative grid h-9 w-9 sm:h-9.5 sm:w-9.5 shrink-0 place-items-center rounded-[4px] transition-transform duration-100 active:scale-95",
               )}
             >
               {tileUrls[id] ? (

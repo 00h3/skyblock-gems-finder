@@ -117,6 +117,7 @@ import { V2ClickToPlay, V2ConfirmDialog, V2LoadingScreen, V2Veil } from "@/compo
 import { getPermanentPlayerId, loadSkyblockProfile, saveSkyblockProfile } from "@/lib/skyblock-profile";
 import { TntRunStatus, TntRunCountdownOverlay } from "@/components/v2/TntRunHud";
 import { TntRunLeaderboardModal } from "@/components/v2/TntRunLeaderboardModal";
+import { BlockfortSkyblockUi } from "@/components/skyblock/BlockfortSkyblockUi";
 
 
 
@@ -5483,6 +5484,24 @@ export function SandboxGame({
               <CinematicVignette />
               {totalSeeds > 0 && (
                 <SeedPouch seeds={seeds} selected={seedSpecies} onSelect={setSeedSpecies} />
+              )}
+              {isSkyblockLike && (
+                <BlockfortSkyblockUi
+                  hotbar={hotbar}
+                  tileUrls={tileUrls}
+                  onEquipHotbar={(b) => {
+                    setHotbar((prev) => {
+                      const next = [...prev];
+                      next[slotRef.current] = b;
+                      return next;
+                    });
+                    api()?.setHeldTile(b);
+                  }}
+                  onOpenSettings={() => {
+                    controlsRef.current?.exitLock();
+                    setSettingsOpen(true);
+                  }}
+                />
               )}
               <V2Hotbar
                 hotbar={hotbar}

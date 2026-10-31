@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Blockfort UI kit  —  blockfort.css
+   Every graphic comes from ../assets. Change --bf-assets if you move them.
+   ========================================================================== */
+
+:root {
+  --bf-assets: "../assets";
+  --bf-font: "Inter Display QB", "Inter Display", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bf-ink: #6b4a24;          /* text on parchment */
+  --bf-ink-soft: #94754a;
+  --bf-tan-ink: #7d6842;      /* text on tan buttons */
+  --bf-outline: #5b3f1d;      /* outline around white text */
+  --bf-gold: #f6c445;
+  --bf-overlay: rgba(28, 18, 8, .58);
+}
+
+.bf, .bf *, .bf-overlay, .bf-overlay * { box-sizing: border-box; }
+
+@font-face { font-family: "Inter Display QB"; font-weight: 600; font-display: swap;
+  src: local("Inter Display SemiBold"), url("../fonts/InterDisplay-SemiBold.otf") format("opentype"); }
+.bf, .bf-overlay, .bf-toasts, .bf-btn, .bf-tab, .bf-slot { font-weight: 600; }
+
+/* ---------- Text helpers ------------------------------------------------- */
+.bf-text, .bf-ink {
+  font-family: var(--bf-font);
+  letter-spacing: .02em;
+  margin: 0;
+}
+.bf-text {            /* white text with a brown outline, for dark art */
+  color: #fff;
+  text-shadow:
+    -2px 0 var(--bf-outline), 2px 0 var(--bf-outline),
+    0 -2px var(--bf-outline), 0 2px var(--bf-outline),
+    -2px -2px var(--bf-outline), 2px -2px var(--bf-outline),
+    -2px 2px var(--bf-outline), 2px 2px var(--bf-outline),
+    0 3px 0 rgba(40, 22, 6, .55);
+}
+.bf-ink { color: var(--bf-ink); }
+.bf-ink--soft { color: var(--bf-ink-soft); }
+
+/* ---------- Buttons ------------------------------------------------------ */
+.bf-btn {
+  --w: 209px; --h: 54px;
+  appearance: none; border: 0; padding: 0; margin: 0;
+  width: var(--w); height: var(--h);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent center / 100% 100% no-repeat;
+  font-family: var(--bf-font); font-size: 22px; line-height: 1;
+  color: var(--bf-tan-ink);
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(90, 60, 20, .25));
+  transition: filter .12s, transform .08s;
+}
+.bf-btn__label { padding: 0 14px 2px 62px; text-align: center; white-space: nowrap; }
+.bf-btn:hover { filter: brightness(1.07) drop-shadow(0 2px 0 rgba(90, 60, 20, .25)); }
+.bf-btn:active { transform: translateY(2px); filter: brightness(.94); }
+.bf-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 10px; }
+.bf-btn[disabled], .bf-btn.is-disabled { filter: grayscale(1) opacity(.55); pointer-events: none; }
+
+/* url() can't take var(), so each variant spells out its own path */
+.bf-btn--build  { background-image: url("../assets/buttons/btn-build.png"); }
+.bf-btn--mail   { background-image: url("../assets/buttons/btn-mail.png"); }
+.bf-btn--remove { background-image: url("../assets/buttons/btn-remove.png"); }
+.bf-btn--home   { background-image: url("../assets/buttons/btn-home.png"); }
+
+/* Plain button: no icon, stretches to any width (9-slice) */
+.bf-btn--plain {
+  --w: auto; min-width: 120px; padding: 0 22px;
+  background: none;
+  border-style: solid; border-width: 0 16px;
+  border-image: url("../assets/buttons/btn-plain.png") 0 16 fill / 0 16px stretch;
+}
+.bf-btn--plain .bf-btn__label { padding: 0 6px 2px; }
+
+/* Round close button (the yellow X) */
+.bf-close {
+  appearance: none; border: 0; padding: 0; margin: 0;
+  width: 56px; height: 55px; cursor: pointer;
+  background: url("../assets/buttons/btn-close.png") center / contain no-repeat;
+  filter: drop-shadow(0 2px 0 rgba(60, 35, 10, .4));
+  transition: transform .1s, filter .1s;
+}
+.bf-close:hover { transform: scale(1.07); filter: brightness(1.08) drop-shadow(0 2px 0 rgba(60,35,10,.4)); }
+.bf-close:active { transform: scale(.95); }
+.bf-close:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.bf-close--sm { width: 40px; height: 39px; }
+.bf-close--alt { background-image: url("../assets/buttons/btn-close-2.png"); }
+
+/* ---------- Plates (title labels) --------------------------------------- */
+.bf-plate {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 33px; min-width: 110px; padding: 0 4px;
+  border-style: solid; border-width: 0 18px;
+  border-image: url("../assets/plates/plate-gold.png") 0 18 fill / 0 18px stretch;
+  font-family: var(--bf-font); font-size: 17px; color: #fff; white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(40, 28, 10, .6);
+}
+.bf-plate--red { border-image-source: url("../assets/plates/plate-red.png"); }
+.bf-plate--title, .bf-plate--title2 {
+  height: 47px; min-width: 150px; border-width: 0 28px; font-size: 24px;
+  border-image: url("../assets/plates/plate-title.png") 0 28 fill / 0 28px stretch;
+}
+.bf-plate--title2 { border-image-source: url("../assets/plates/plate-title-2.png"); }
+
+/* Banners (fixed-size art) */
+.bf-banner-crown, .bf-banner-buildings {
+  display: block; background: center / 100% 100% no-repeat;
+  filter: drop-shadow(0 3px 0 rgba(60, 35, 10, .35));
+}
+.bf-banner-crown { width: 372px; height: 101px; background-image: url("../assets/plates/banner-crown.png"); }
+.bf-banner-buildings { width: 216px; height: 126px; background-image: url("../assets/plates/banner-buildings.png"); }
+
+/* Wide fade banner: section heading strip */
+.bf-strip {
+  display: flex; align-items: center; justify-content: center;
+  height: 46px; min-width: 240px; padding: 0 40px;
+  background: url("../assets/misc/fade-strip.png") center / 100% 100% no-repeat;
+  font-family: var(--bf-font); font-size: 20px; color: #fff;
+  text-shadow: 0 2px 0 rgba(60, 35, 10, .7);
+}
+
+/* ---------- Panels (9-slice, resize freely) ----------------------------- */
+.bf-panel { position: relative; border-style: solid; }
+
+/* Big wooden board with parchment — manor / generic big window */
+.bf-panel--board {
+  width: 994px; height: 529px;
+  border-width: 62px 26px 28px 26px;
+  border-image: url("../assets/panels/panel-large-manor.png") 62 26 28 26 fill / 62px 26px 28px 26px stretch;
+  padding: 10px 14px; color: var(--bf-ink); font-family: var(--bf-font);
+}
+/* Store board — wide wooden sidebar on the left, zig-zag trim on the right */
+.bf-panel--store {
+  width: 1082px; height: 545px;
+  border-width: 84px 100px 22px 156px;
+  border-image: url("../assets/panels/panel-large-store.png") 84 100 22 156 fill / 84px 100px 22px 156px stretch;
+  padding: 10px 14px; color: var(--bf-ink); font-family: var(--bf-font);
+}
+.bf-panel__side { position: absolute; left: -150px; top: -84px; width: 144px; display: flex; flex-direction: column; align-items: center; }
+.bf-panel__title { position: absolute; left: 0; right: 0; top: -84px; height: 84px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.bf-panel__title > * { pointer-events: auto; }
+.bf-panel__close { position: absolute; top: -78px; right: -88px; z-index: 3; }
+.bf-panel--board > .bf-panel__close { top: -66px; right: -18px; }
+
+/* Parchment scroll (tall, for details / lists) */
+.bf-panel--scroll {
+  width: 284px; height: 446px;
+  border-width: 44px 30px 40px 30px;
+  border-image: url("../assets/panels/panel-tall-store.png") 44 30 40 30 fill / 44px 30px 40px 30px stretch;
+  padding: 0 4px; color: var(--bf-ink); font-family: var(--bf-font);
+}
+
+/* Pinned note card — frame with a picture window (fixed size) */
+.bf-note {
+  position: relative; width: 323px; height: 251px;
+  border-style: solid; border-width: 52px 58px 44px 58px;
+  border-image: url("../assets/panels/note-card-a.png") 52 58 44 58 fill / 52px 58px 44px 58px stretch;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  color: var(--bf-ink); font-family: var(--bf-font);
+}
+.bf-note--b { border-image-source: url("../assets/panels/note-card-b.png"); }
+.bf-note img { max-width: 100%; max-height: 100%; }
+
+/* Dark framed box with gold caps (HUD lists, inboxes) */
+.bf-frame {
+  width: 303px; min-height: 120px;
+  border-style: solid; border-width: 20px 0;
+  border-image: url("../assets/panels/panel-small.png") 20 0 fill / 20px 0 stretch;
+  background: rgba(70, 48, 24, .72); background-clip: padding-box;
+  box-shadow: inset 3px 0 #edc685, inset -3px 0 #edc685;
+  padding: 8px 14px; color: #fff3da; font-family: var(--bf-font);
+}
+.bf-frame--tall { width: 225px; min-height: 260px; border-image-source: url("../assets/panels/panel-tall.png"); }
+
+/* ---------- Modal system ------------------------------------------------- */
+.bf-overlay {
+  position: fixed; inset: 0; z-index: 1000; display: none;
+  align-items: center; justify-content: center;
+  background: var(--bf-overlay); backdrop-filter: blur(2px);
+  overflow: hidden;
+}
+.bf-overlay.is-open { display: flex; animation: bf-fade .16s ease-out; }
+.bf-overlay.is-closing { display: flex; animation: bf-fade .14s ease-in reverse forwards; }
+.bf-modal-wrap {
+  /* JS sets --bf-fit so a wide window shrinks to fit small screens */
+  transform: scale(var(--bf-fit, 1)); transform-origin: center center;
+  padding: 90px 30px 30px 30px;   /* room for banners & close button */
+  flex: none;
+}
+.bf-modal-wrap--board { padding: 80px 24px 24px 24px; }
+.bf-modal-wrap--small { padding: 30px; }
+.bf-modal { animation: bf-pop .2s cubic-bezier(.2, 1.3, .4, 1); }
+.bf-overlay.is-closing .bf-modal { animation: none; }
+@keyframes bf-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bf-pop  { from { transform: translateY(14px) scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+body.bf-lock { overflow: hidden; }
+
+/* Small dialog (confirm / message) — built on the board art, 9-slice */
+.bf-dialog {
+  position: relative; min-width: 360px; max-width: 520px;
+  border-style: solid; border-width: 62px 26px 28px 26px;
+  border-image: url("../assets/panels/panel-large-manor.png") 62 26 28 26 fill / 62px 26px 28px 26px stretch;
+  padding: 6px 16px 10px; text-align: center;
+  font-family: var(--bf-font); color: var(--bf-ink);
+}
+.bf-dialog__title { position: absolute; left: 0; right: 0; top: -62px; height: 62px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.bf-dialog .bf-panel__close { top: -52px; right: -14px; }
+.bf-dialog__body { font-size: 20px; line-height: 1.3; margin: 10px 0 18px; }
+.bf-dialog__actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- Slots -------------------------------------------------------- */
+.bf-slot {
+  position: relative; width: 101px; height: 103px; padding: 0; border: 0; cursor: pointer;
+  background: url("../assets/misc/slot-frame.png") center / 100% 100% no-repeat;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-family: var(--bf-font);
+  transition: transform .1s, filter .1s;
+}
+.bf-slot:hover { filter: brightness(1.08); }
+.bf-slot:active { transform: scale(.97); }
+.bf-slot:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.bf-slot img { max-width: 72%; max-height: 72%; pointer-events: none; }
+.bf-slot.is-selected::after, .bf-slot[aria-pressed="true"]::after {
+  content: ""; position: absolute; inset: 1px; pointer-events: none;
+  background: url("../assets/misc/slot-selected.png") center / 100% 100% no-repeat;
+}
+.bf-slot.is-locked, .bf-slot[aria-disabled="true"] { cursor: not-allowed; }
+.bf-slot.is-locked::before, .bf-slot[aria-disabled="true"]::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: url("../assets/misc/slot-locked.png") center / 100% 100% no-repeat;
+}
+.bf-slot__count {
+  position: absolute; right: 7px; bottom: 4px; font-size: 16px;
+  text-shadow: -1px 0 #4a3216, 1px 0 #4a3216, 0 -1px #4a3216, 0 1px #4a3216;
+}
+.bf-slot-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 101px); gap: 10px; }
+.bf-slot--tan { background-image: url("../assets/misc/slot-tan.png"); }
+
+/* ---------- Tabs (ribbons) ---------------------------------------------- */
+.bf-tab {
+  appearance: none; border: 0; padding: 0 0 4px; cursor: pointer;
+  width: 135px; height: 73px; margin-top: -6px;
+  background: url("../assets/plates/ribbon-grey.png") center / 100% 100% no-repeat;
+  font-family: var(--bf-font); font-size: 20px; color: #fff;
+  text-shadow: 0 2px 0 rgba(60, 40, 15, .65);
+  transition: transform .1s, filter .1s;
+}
+.bf-tab:hover { filter: brightness(1.06); }
+.bf-tab:focus-visible { outline: 3px solid #fff; outline-offset: -4px; }
+.bf-tab.is-active, .bf-tab[aria-selected="true"] { background-image: url("../assets/plates/ribbon-gold.png"); transform: translateX(8px); }
+.bf-tabpane { display: none; }
+.bf-tabpane.is-active { display: block; }
+
+/* ---------- Icons, chips & stat rows ------------------------------------ */
+.bf-icon { display: inline-block; vertical-align: middle; background: center / contain no-repeat; flex: none; }
+.bf-icon--coin   { width: 28px; height: 28px; background-image: url("../assets/icons/star-coin-sm.png"); } /* the only currency */
+.bf-icon--coin.bf-icon--lg { width: 56px; height: 56px; background-image: url("../assets/icons/star-coin.png"); }
+.bf-icon--up     { width: 26px; height: 24px; background-image: url("../assets/icons/icon-arrow-up.png"); }
+.bf-icon--bomb   { width: 25px; height: 27px; background-image: url("../assets/icons/icon-bomb.png"); }
+.bf-icon--heart  { width: 24px; height: 23px; background-image: url("../assets/icons/icon-heart.png"); }
+.bf-icon--cube   { width: 24px; height: 24px; background-image: url("../assets/icons/icon-cube.png"); }
+.bf-icon--chevron{ width: 33px; height: 35px; background-image: url("../assets/icons/arrow-chevron.png"); }
+
+.bf-chip {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 110px; height: 34px;
+  padding: 0 14px 0 8px; border-radius: 14px; corner-shape: squircle;
+  background: rgba(60, 38, 14, .72); box-shadow: inset 0 0 0 2px #edc685;
+  font-family: var(--bf-font); font-size: 18px; color: #fff;
+}
+.bf-chip .bf-icon { margin-left: -2px; }
+
+.bf-row {  /* list row on a brick / cream tile */
+  display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 16px;
+  border-style: solid; border-width: 6px 8px;
+  border-image: url("../assets/misc/tile-cream.png") 6 8 fill / 6px 8px stretch;
+  font-family: var(--bf-font); font-size: 18px; color: var(--bf-ink);
+}
+.bf-row--brick { border-image-source: url("../assets/misc/tile-brick.png"); color: #fff; text-shadow: 0 2px 0 rgba(60,35,10,.6); }
+.bf-row + .bf-row { margin-top: 4px; }
+.bf-row__grow { flex: 1; }
+
+.bf-divider { height: 13px; background: url("../assets/misc/divider-left.png") left center / 50% 100% no-repeat, url("../assets/misc/divider-right.png") right center / 50% 100% no-repeat; }
+
+.bf-avatar { width: 64px; height: 64px; border-radius: 8px; box-shadow: 0 0 0 3px #edc685, 0 3px 0 3px rgba(60,35,10,.3); display: block; }
+
+/* ---------- Islands ------------------------------------------------------ */
+.bf-island {
+  appearance: none; background: none; border: 0; padding: 4px; cursor: pointer; border-radius: 14px;
+  display: inline-flex; align-items: flex-end; justify-content: center;
+  transition: transform .15s, filter .15s;
+  filter: drop-shadow(0 4px 0 rgba(70, 45, 15, .25));
+}
+.bf-island img { height: var(--h, 90px); width: auto; display: block; pointer-events: none; }
+.bf-island:hover { transform: translateY(-4px); }
+.bf-island:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.bf-island.is-selected { transform: translateY(-6px); filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 8px rgba(255, 224, 120, .95)) drop-shadow(0 4px 0 rgba(70,45,15,.25)); }
+.bf-island.is-locked { filter: grayscale(1) brightness(.8); cursor: not-allowed; }
+
+/* ---------- Toast -------------------------------------------------------- */
+.bf-toasts { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.bf-toast {
+  min-width: 200px; max-width: 80vw; padding: 8px 40px; text-align: center;
+  border-style: solid; border-width: 0 28px;
+  border-image: url("../assets/plates/plate-title.png") 0 28 fill / 0 28px stretch;
+  font-family: var(--bf-font); font-size: 20px; color: #fff; line-height: 44px;
+  animation: bf-pop .22s cubic-bezier(.2, 1.3, .4, 1);
+}
+.bf-toast.is-leaving { opacity: 0; transform: translateY(8px); transition: .2s; }
+
+/* ---------- Utility ------------------------------------------------------ */
+.bf-hidden { display: none !important; }
+.bf-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-overlay.is-open, .bf-overlay.is-closing, .bf-modal, .bf-toast { animation: none !important; }
+  .bf-btn, .bf-close, .bf-slot, .bf-island, .bf-tab { transition: none !important; }
+}
+.bf-modal:focus, .bf-modal-wrap:focus { outline: none; }
+
+/* ---------- QBLOCK extras ------------------------------------------------ */
+.bf-xp { width: 300px; padding: 12px 16px 14px; color: #fff; border-radius: 6px; font-family: var(--bf-font);
+  background: linear-gradient(#4a3322, #33231a); box-shadow: 0 0 0 3px #1f140b, inset 0 0 0 2px #6b4a2a, 0 6px 14px rgba(0,0,0,.3); }
+.bf-xp__top, .bf-xp__bot { display: flex; justify-content: space-between; align-items: baseline; }
+.bf-xp__top { font-size: 22px; margin-bottom: 6px; } .bf-xp__top b { color: var(--bf-gold); font-weight: 600; }
+.bf-xp__bot { font-size: 14px; margin-top: 6px; opacity: .85; }
+.bf-bar { height: 12px; border-radius: 6px; overflow: hidden; background: #1b120a; box-shadow: inset 0 0 0 2px #5a3f23; }
+.bf-bar > i { display: block; height: 100%; width: var(--p, 0%); background: linear-gradient(#ffd45e, #ef8f16); transition: width .4s; }
+.bf-price { display: inline-flex; align-items: center; gap: 6px; font-size: 20px; }
+.bf-price.is-short { color: #b4361f; }
+.bf-blk { width: 56px; height: 56px; border-radius: 6px; pointer-events: none;
+  background: linear-gradient(var(--c1) 0 32%, var(--c2) 32%); box-shadow: inset 0 0 0 3px rgba(0,0,0,.22), inset 0 -8px 0 rgba(0,0,0,.12); }
+.bf-hotbar { display: flex; gap: 6px; }
+.bf-hotbar .bf-slot { width: 66px; height: 66px; background-size: 100% 100%; }
+.bf-hotbar .bf-blk { width: 38px; height: 38px; }
+.bf-hotbar .bf-slot__count { font-size: 13px; right: 5px; bottom: 2px; }
+.bf-toggle { appearance: none; border: 0; width: 66px; height: 34px; border-radius: 17px; padding: 0; cursor: pointer; position: relative;
+  background: #8a7556; box-shadow: inset 0 0 0 3px #5a3f23; transition: background .15s; }
+.bf-toggle::after { content: ""; position: absolute; top: 5px; left: 6px; width: 24px; height: 24px; border-radius: 50%; background: #f6e7c3; box-shadow: 0 2px 0 rgba(0,0,0,.3); transition: transform .15s; }
+.bf-toggle[aria-checked="true"] { background: #e9a720; }
+.bf-toggle[aria-checked="true"]::after { transform: translateX(30px); }
+.bf-toggle:focus-visible, .bf-range:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.bf-range { -webkit-appearance: none; appearance: none; width: 180px; height: 12px; border-radius: 6px; background: #8a7556; box-shadow: inset 0 0 0 2px #5a3f23; }
+.bf-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #e9a720; box-shadow: 0 0 0 3px #5a3f23; cursor: pointer; }
+.bf-range::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: #e9a720; box-shadow: 0 0 0 3px #5a3f23; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .bf-bar > i, .bf-toggle, .bf-toggle::after { transition: none; } }

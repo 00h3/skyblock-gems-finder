@@ -1,0 +1,554 @@
+{
+ "buttons/btn-build": {
+  "file": "assets/buttons/btn-build.png",
+  "w": 209,
+  "h": 54,
+  "source": "po",
+  "src_rect": [
+   128,
+   1,
+   337,
+   55
+  ]
+ },
+ "buttons/btn-mail": {
+  "file": "assets/buttons/btn-mail.png",
+  "w": 209,
+  "h": 54,
+  "source": "po",
+  "src_rect": [
+   128,
+   66,
+   337,
+   120
+  ]
+ },
+ "buttons/btn-remove": {
+  "file": "assets/buttons/btn-remove.png",
+  "w": 210,
+  "h": 54,
+  "source": "po",
+  "src_rect": [
+   1,
+   322,
+   211,
+   376
+  ]
+ },
+ "buttons/btn-home": {
+  "file": "assets/buttons/btn-home.png",
+  "w": 210,
+  "h": 54,
+  "source": "po",
+  "src_rect": [
+   1,
+   591,
+   211,
+   645
+  ]
+ },
+ "plates/plate-gold": {
+  "file": "assets/plates/plate-gold.png",
+  "w": 125,
+  "h": 33,
+  "source": "po",
+  "src_rect": [
+   1,
+   1,
+   126,
+   34
+  ]
+ },
+ "plates/plate-red": {
+  "file": "assets/plates/plate-red.png",
+  "w": 125,
+  "h": 33,
+  "source": "po",
+  "src_rect": [
+   1,
+   66,
+   126,
+   99
+  ]
+ },
+ "misc/avatar-monster": {
+  "file": "assets/misc/avatar-monster.png",
+  "w": 64,
+  "h": 64,
+  "source": "po",
+  "src_rect": [
+   338,
+   1,
+   402,
+   65
+  ]
+ },
+ "panels/panel-small": {
+  "file": "assets/panels/panel-small.png",
+  "w": 303,
+  "h": 200,
+  "source": "po",
+  "src_rect": [
+   1,
+   121,
+   304,
+   321
+  ]
+ },
+ "panels/panel-tall": {
+  "file": "assets/panels/panel-tall.png",
+  "w": 225,
+  "h": 268,
+  "source": "po",
+  "src_rect": [
+   212,
+   322,
+   437,
+   590
+  ]
+ },
+ "icons/arrow-chevron": {
+  "file": "assets/icons/arrow-chevron.png",
+  "w": 65,
+  "h": 70,
+  "source": "mu",
+  "src_rect": [
+   1,
+   1,
+   66,
+   71
+  ]
+ },
+ "plates/plate-title": {
+  "file": "assets/plates/plate-title.png",
+  "w": 166,
+  "h": 47,
+  "source": "mu",
+  "src_rect": [
+   74,
+   1,
+   240,
+   48
+  ]
+ },
+ "buttons/btn-close": {
+  "file": "assets/buttons/btn-close.png",
+  "w": 63,
+  "h": 62,
+  "source": "mu",
+  "src_rect": [
+   247,
+   1,
+   310,
+   63
+  ]
+ },
+ "icons/gem": {
+  "file": "assets/icons/gem.png",
+  "w": 27,
+  "h": 31,
+  "source": "mu",
+  "src_rect": [
+   310,
+   1,
+   337,
+   32
+  ]
+ },
+ "panels/note-card-a": {
+  "file": "assets/panels/note-card-a.png",
+  "w": 323,
+  "h": 251,
+  "source": "mu",
+  "src_rect": [
+   338,
+   1,
+   661,
+   252
+  ]
+ },
+ "islands/island-snow-1": {
+  "file": "assets/islands/island-snow-1.png",
+  "w": 148,
+  "h": 108,
+  "source": "mu",
+  "src_rect": [
+   681,
+   24,
+   829,
+   132
+  ]
+ },
+ "islands/island-grass-1": {
+  "file": "assets/islands/island-grass-1.png",
+  "w": 159,
+  "h": 115,
+  "source": "mu",
+  "src_rect": [
+   863,
+   21,
+   1022,
+   136
+  ]
+ },
+ "islands/island-mixed-1": {
+  "file": "assets/islands/island-mixed-1.png",
+  "w": 169,
+  "h": 134,
+  "source": "mu",
+  "src_rect": [
+   1043,
+   8,
+   1212,
+   142
+  ]
+ },
+ "islands/island-grass-2": {
+  "file": "assets/islands/island-grass-2.png",
+  "w": 173,
+  "h": 137,
+  "source": "mu",
+  "src_rect": [
+   1229,
+   3,
+   1402,
+   140
+  ]
+ },
+ "islands/island-snow-2": {
+  "file": "assets/islands/island-snow-2.png",
+  "w": 178,
+  "h": 144,
+  "source": "mu",
+  "src_rect": [
+   1413,
+   2,
+   1591,
+   146
+  ]
+ },
+ "islands/island-forest": {
+  "file": "assets/islands/island-forest.png",
+  "w": 181,
+  "h": 147,
+  "source": "mu",
+  "src_rect": [
+   1599,
+   1,
+   1780,
+   148
+  ]
+ },
+ "islands/island-lake": {
+  "file": "assets/islands/island-lake.png",
+  "w": 182,
+  "h": 149,
+  "source": "mu",
+  "src_rect": [
+   1784,
+   1,
+   1966,
+   150
+  ]
+ },
+ "misc/slot-tan": {
+  "file": "assets/misc/slot-tan.png",
+  "w": 78,
+  "h": 77,
+  "source": "mu",
+  "src_rect": [
+   1968,
+   1,
+   2046,
+   78
+  ]
+ },
+ "misc/divider-left": {
+  "file": "assets/misc/divider-left.png",
+  "w": 289,
+  "h": 13,
+  "source": "mu",
+  "src_rect": [
+   1,
+   257,
+   290,
+   270
+  ]
+ },
+ "misc/divider-right": {
+  "file": "assets/misc/divider-right.png",
+  "w": 290,
+  "h": 13,
+  "source": "mu",
+  "src_rect": [
+   1630,
+   257,
+   1920,
+   270
+  ]
+ },
+ "icons/coin": {
+  "file": "assets/icons/coin.png",
+  "w": 35,
+  "h": 33,
+  "source": "mu",
+  "src_rect": [
+   287,
+   257,
+   322,
+   290
+  ]
+ },
+ "panels/note-card-b": {
+  "file": "assets/panels/note-card-b.png",
+  "w": 324,
+  "h": 253,
+  "source": "mu",
+  "src_rect": [
+   320,
+   255,
+   644,
+   508
+  ]
+ },
+ "panels/panel-large-manor": {
+  "file": "assets/panels/panel-large-manor.png",
+  "w": 994,
+  "h": 529,
+  "source": "mu",
+  "src_rect": [
+   642,
+   255,
+   1636,
+   784
+  ]
+ },
+ "plates/banner-crown": {
+  "file": "assets/plates/banner-crown.png",
+  "w": 372,
+  "h": 101,
+  "source": "mu",
+  "src_rect": [
+   1,
+   785,
+   373,
+   886
+  ]
+ },
+ "misc/fade-bar": {
+  "file": "assets/misc/fade-bar.png",
+  "w": 187,
+  "h": 25,
+  "source": "st",
+  "src_rect": [
+   1,
+   1,
+   188,
+   26
+  ]
+ },
+ "icons/icon-arrow-up": {
+  "file": "assets/icons/icon-arrow-up.png",
+  "w": 26,
+  "h": 24,
+  "source": "st",
+  "src_rect": [
+   199,
+   2,
+   225,
+   26
+  ]
+ },
+ "icons/icon-bomb": {
+  "file": "assets/icons/icon-bomb.png",
+  "w": 25,
+  "h": 27,
+  "source": "st",
+  "src_rect": [
+   227,
+   1,
+   252,
+   28
+  ]
+ },
+ "icons/icon-heart": {
+  "file": "assets/icons/icon-heart.png",
+  "w": 24,
+  "h": 23,
+  "source": "st",
+  "src_rect": [
+   258,
+   3,
+   282,
+   26
+  ]
+ },
+ "icons/icon-cube": {
+  "file": "assets/icons/icon-cube.png",
+  "w": 24,
+  "h": 24,
+  "source": "st",
+  "src_rect": [
+   287,
+   2,
+   311,
+   26
+  ]
+ },
+ "misc/fade-strip": {
+  "file": "assets/misc/fade-strip.png",
+  "w": 560,
+  "h": 46,
+  "source": "st",
+  "src_rect": [
+   314,
+   1,
+   874,
+   47
+  ]
+ },
+ "plates/plate-title-2": {
+  "file": "assets/plates/plate-title-2.png",
+  "w": 182,
+  "h": 47,
+  "source": "st",
+  "src_rect": [
+   874,
+   1,
+   1056,
+   48
+  ]
+ },
+ "misc/tile-brick": {
+  "file": "assets/misc/tile-brick.png",
+  "w": 104,
+  "h": 57,
+  "source": "st",
+  "src_rect": [
+   1058,
+   1,
+   1162,
+   58
+  ]
+ },
+ "misc/tile-cream": {
+  "file": "assets/misc/tile-cream.png",
+  "w": 105,
+  "h": 57,
+  "source": "st",
+  "src_rect": [
+   1164,
+   1,
+   1269,
+   58
+  ]
+ },
+ "buttons/btn-close-2": {
+  "file": "assets/buttons/btn-close-2.png",
+  "w": 61,
+  "h": 63,
+  "source": "st",
+  "src_rect": [
+   1270,
+   1,
+   1331,
+   64
+  ]
+ },
+ "plates/ribbon-grey": {
+  "file": "assets/plates/ribbon-grey.png",
+  "w": 135,
+  "h": 73,
+  "source": "st",
+  "src_rect": [
+   1330,
+   1,
+   1465,
+   74
+  ]
+ },
+ "plates/ribbon-gold": {
+  "file": "assets/plates/ribbon-gold.png",
+  "w": 134,
+  "h": 73,
+  "source": "st",
+  "src_rect": [
+   1467,
+   1,
+   1601,
+   74
+  ]
+ },
+ "misc/slot-frame": {
+  "file": "assets/misc/slot-frame.png",
+  "w": 101,
+  "h": 103,
+  "source": "st",
+  "src_rect": [
+   1603,
+   1,
+   1704,
+   104
+  ]
+ },
+ "misc/slot-selected": {
+  "file": "assets/misc/slot-selected.png",
+  "w": 100,
+  "h": 100,
+  "source": "st",
+  "src_rect": [
+   1,
+   102,
+   101,
+   202
+  ]
+ },
+ "misc/slot-locked": {
+  "file": "assets/misc/slot-locked.png",
+  "w": 100,
+  "h": 101,
+  "source": "st",
+  "src_rect": [
+   104,
+   102,
+   204,
+   203
+  ]
+ },
+ "plates/banner-buildings": {
+  "file": "assets/plates/banner-buildings.png",
+  "w": 216,
+  "h": 126,
+  "source": "st",
+  "src_rect": [
+   203,
+   102,
+   419,
+   228
+  ]
+ },
+ "panels/panel-tall-store": {
+  "file": "assets/panels/panel-tall-store.png",
+  "w": 284,
+  "h": 446,
+  "source": "st",
+  "src_rect": [
+   418,
+   102,
+   702,
+   548
+  ]
+ },
+ "panels/panel-large-store": {
+  "file": "assets/panels/panel-large-store.png",
+  "w": 1082,
+  "h": 545,
+  "source": "st",
+  "src_rect": [
+   704,
+   100,
+   1786,
+   645
+  ]
+ }
+}

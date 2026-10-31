@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QBLOCK UI</title>
+<link rel="stylesheet" href="css/blockfort.css">
+<style>
+html,body{height:100%;margin:0}
+body{font-family:var(--bf-font);font-weight:600;overflow:hidden;color:#fff;background:linear-gradient(#8ec9ee 0 58%,#6fbf4a 58% 100%)}
+.hud{position:fixed;display:flex;gap:10px}
+.hud.tl{left:14px;top:14px;align-items:center}.hud.tr{right:14px;top:14px}
+.hud.rc .bf-btn{width:209px}.hud.rc{right:14px;top:14px;flex-direction:column;align-items:flex-end}
+.hud.bc{left:50%;bottom:12px;transform:translateX(-50%)}
+.balance{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 8px;border-radius:16px;corner-shape:squircle;font-size:24px;background:rgba(40,26,14,.8);box-shadow:inset 0 0 0 3px #edc685}
+.balance .bf-close{display:none}
+.plus{width:32px;height:32px;border-radius:10px;corner-shape:squircle;border:0;background:#e9a720;color:#fff;font:600 24px/1 var(--bf-font);cursor:pointer;box-shadow:0 0 0 3px #5a3f23}
+.hint{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);text-align:center;font-size:22px;opacity:.9}
+.row2{display:flex;gap:20px;align-items:flex-start}
+.detail{text-align:center;padding-top:8px}.detail h3{margin:6px 0 2px;font-size:24px;font-weight:600}.detail p{margin:0 0 8px;font-size:15px;color:var(--bf-ink-soft);line-height:1.25}
+.islands{display:flex;justify-content:center;align-items:flex-end;gap:10px;height:120px}
+.col{display:flex;flex-direction:column;gap:6px}
+.qrow .bf-row__grow small{display:block;font-size:13px;opacity:.7}.qrow .bf-bar{margin-top:5px;width:220px}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:30px;padding:8px 6px;font-size:20px}
+.dayslot{flex-direction:column;gap:2px;font-size:14px;color:#fff}.dayslot .bf-icon{width:34px;height:34px}
+.dayslot.is-done{filter:grayscale(.8) brightness(.8)}
+</style>
+</head>
+<body class="bf">
+
+<div class="hud tl"><div class="balance" aria-label="Stars"><i class="bf-icon bf-icon--coin"></i><span id="stars">1,240</span><button class="plus" data-bf-open="#m-shop" aria-label="Get more in the shop">+</button></div></div>
+<div class="hud rc">
+  <button class="bf-btn bf-btn--build" data-bf-open="#m-shop"><span class="bf-btn__label">Shop</span></button>
+  <button class="bf-btn bf-btn--mail" data-bf-open="#m-daily"><span class="bf-btn__label">Rewards</span></button>
+  <button class="bf-btn bf-btn--plain" data-bf-open="#m-inv"><span class="bf-btn__label">Backpack</span></button>
+  <button class="bf-btn bf-btn--plain" data-bf-open="#m-quests"><span class="bf-btn__label">Quests</span></button>
+  <button class="bf-btn bf-btn--plain" data-bf-open="#m-set"><span class="bf-btn__label">Settings</span></button>
+</div>
+<div class="hint bf-text">QBLOCK HUD preview<br><small style="font-size:16px">Tap Shop, Rewards, Backpack, Quests or Settings</small></div>
+
+<!-- SHOP -->
+<div class="bf-overlay" id="m-shop"><div class="bf-modal-wrap"><section class="bf-modal bf-panel bf-panel--store" role="dialog" aria-modal="true" aria-labelledby="shop-t">
+  <div class="bf-panel__title" style="left:-150px"><span class="bf-plate bf-plate--title" id="shop-t">Shop</span></div>
+  <div class="bf-panel__side" data-bf-tabs style="top:-14px">
+    <div style="height:30px"></div>
+    <button class="bf-tab is-active" data-bf-pane="#p-blocks">Blocks</button>
+    <button class="bf-tab" data-bf-pane="#p-tools">Tools</button>
+    <button class="bf-tab" data-bf-pane="#p-skins">Skins</button>
+  </div>
+  <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+  <div class="row2">
+    <div>
+      <div class="bf-tabpane is-active" id="p-blocks"><div class="bf-slot-grid shopgrid" data-bf-selectable style="--cols:4"></div></div>
+      <div class="bf-tabpane" id="p-tools"><div class="bf-slot-grid shopgrid" data-bf-selectable style="--cols:4"></div></div>
+      <div class="bf-tabpane" id="p-skins"><div class="bf-slot-grid shopgrid" data-bf-selectable style="--cols:4"></div></div>
+    </div>
+    <div class="bf-panel bf-panel--scroll detail">
+      <div style="height:150px;display:flex;align-items:center;justify-content:center"><span class="bf-blk" id="d-blk" style="width:90px;height:90px"></span></div>
+      <h3 class="bf-ink" id="d-name">Grass</h3><p id="d-desc">Select an item.</p>
+      <div class="bf-price bf-ink"><i class="bf-icon bf-icon--coin"></i><span id="d-cost">0</span></div><br>
+      <button class="bf-btn bf-btn--plain" id="buy" style="margin-top:8px"><span class="bf-btn__label">Buy</span></button>
+    </div>
+  </div>
+</section></div></div>
+
+<!-- INVENTORY -->
+<div class="bf-overlay" id="m-inv"><div class="bf-modal-wrap bf-modal-wrap--board"><section class="bf-modal bf-panel bf-panel--board" role="dialog" aria-modal="true" aria-labelledby="inv-t">
+  <div class="bf-panel__title"><span class="bf-plate bf-plate--title" id="inv-t">Backpack</span></div>
+  <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+  <div class="bf-slot-grid" id="invgrid" data-bf-selectable style="--cols:8;gap:8px;justify-content:center;margin-top:4px"></div>
+  <div style="display:flex;justify-content:center;align-items:center;gap:20px;margin-top:10px"><span class="bf-ink" style="font-size:20px" id="inv-sel">Pick a block</span></div>
+</section></div></div>
+
+<!-- QUESTS -->
+<div class="bf-overlay" id="m-quests"><div class="bf-modal-wrap bf-modal-wrap--board"><section class="bf-modal bf-panel bf-panel--board" role="dialog" aria-modal="true" aria-labelledby="q-t">
+  <div class="bf-panel__title"><span class="bf-plate bf-plate--title" id="q-t">Quests</span></div>
+  <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+  <div id="qlist" style="padding:6px 30px"></div>
+</section></div></div>
+
+<!-- DAILY -->
+<div class="bf-overlay" id="m-daily"><div class="bf-modal-wrap bf-modal-wrap--board"><section class="bf-modal bf-dialog" style="max-width:none;width:800px" role="dialog" aria-modal="true" aria-labelledby="dl-t">
+  <div class="bf-dialog__title"><span class="bf-plate bf-plate--title" id="dl-t">Daily rewards</span></div>
+  <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+  <div class="bf-slot-grid" id="days" style="--cols:7;gap:8px;justify-content:center;margin-top:10px"></div>
+  <div class="bf-dialog__actions" style="margin-top:14px"><button class="bf-btn bf-btn--plain" id="claim"><span class="bf-btn__label">Claim today</span></button></div>
+</section></div></div>
+
+<!-- SETTINGS -->
+<div class="bf-overlay" id="m-set"><div class="bf-modal-wrap bf-modal-wrap--board"><section class="bf-modal bf-dialog" style="min-width:460px" role="dialog" aria-modal="true" aria-labelledby="st-t">
+  <div class="bf-dialog__title"><span class="bf-plate bf-plate--title" id="st-t">Settings</span></div>
+  <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+  <div style="text-align:left">
+    <div class="setrow"><span>Music</span><button class="bf-toggle" role="switch" aria-checked="true" aria-label="Music"></button></div>
+    <div class="setrow"><span>Sound effects</span><button class="bf-toggle" role="switch" aria-checked="true" aria-label="Sound effects"></button></div>
+    <div class="setrow"><span>Camera shake</span><button class="bf-toggle" role="switch" aria-checked="false" aria-label="Camera shake"></button></div>
+    <div class="setrow"><span>Button size</span><input class="bf-range" type="range" min="70" max="130" value="100" aria-label="Button size"></div>
+  </div>
+  <div class="bf-dialog__actions" style="margin-top:12px"><button class="bf-btn bf-btn--plain" data-bf-close><span class="bf-btn__label">Done</span></button></div>
+</section></div></div>
+
+<script src="js/blockfort.js"></script>
+<script>
+var S={stars:1240,xp:882,lvl:5,sel:null,eq:null};
+var fmt=n=>n.toLocaleString('en-US');
+var BL={grass:['Grass','#6bbf3a','#7a4d2b',20,'Soft top, dirt below.'],dirt:['Dirt','#8b5a34','#6e4526',10,'Good for farms.'],stone:['Stone','#9a9a9a','#7c7c7c',40,'Sturdy and grey.'],sand:['Sand','#f1dfa0','#e0c985',30,'Falls if unsupported.'],wood:['Wood','#a9783f','#8a5f2f',35,'Warm planks.'],ore:['Gold ore','#b8b8b8','#e3b13a',160,'Mine it for stars.'],glass:['Glass','#bfe8f5','#9fd3e6',60,'See right through.'],brick:['Bricks','#b5523b','#963f2c',90,'Strong walls.']};
+var TL={pick:['Iron pickaxe','#c9ced3','#6b4a2a',300,'Mines twice as fast.'],axe:['Axe','#c9ced3','#8a5f2f',220,'Chops wood fast.'],shovel:['Shovel','#c9ced3','#8a5f2f',180,'Digs dirt and sand.']};
+var SK={witch:['Witch hat','#6a3d9a','#3d2060',500,'Pointy and purple.'],cape:['Bat cape','#8a4fc2','#4a2a70',650,'Flaps when you jump.'],crown:['Sky crown','#f6c445','#c98a12',1200,'For true barons.']};
+var inv={grass:64,dirt:64,stone:64,sand:64,wood:64,ore:12};
+function blk(k){var d=BL[k]||TL[k]||SK[k];return '<span class="bf-blk" style="--c1:'+d[1]+';--c2:'+d[2]+'"></span>'}
+function fill(sel,map){var g=document.querySelector(sel);g.innerHTML=Object.keys(map).map(function(k,i){return '<button class="bf-slot'+(i==0&&sel=='#p-blocks .shopgrid'?' is-selected':'')+'" data-value="'+k+'" aria-label="'+map[k][0]+'">'+blk(k)+'</button>'}).join('')}
+fill('#p-blocks .shopgrid',BL);fill('#p-tools .shopgrid',TL);fill('#p-skins .shopgrid',SK);
+function show(k){var d=BL[k]||TL[k]||SK[k];S.sel=k;
+ document.getElementById('d-blk').style.cssText='width:90px;height:90px;--c1:'+d[1]+';--c2:'+d[2];
+ document.getElementById('d-name').textContent=d[0];document.getElementById('d-desc').textContent=d[4];document.getElementById('d-cost').textContent=fmt(d[3]);
+ document.querySelector('.detail .bf-price').classList.toggle('is-short',d[3]>S.stars);BF.setEnabled(buy,d[3]<=S.stars)}
+document.getElementById('m-shop').addEventListener('bf:select',e=>show(e.detail.value));
+document.getElementById('m-shop').addEventListener('bf:tab',()=>{var p=document.querySelector('.bf-tabpane.is-active .bf-slot');if(p){BF.select(p)}});
+buy.onclick=async function(){var d=BL[S.sel]||TL[S.sel]||SK[S.sel];if(!d)return;
+ if(await BF.confirm('Buy '+d[0]+' for '+fmt(d[3])+' stars?',{title:'Buy',yes:'Buy'})){
+  S.stars-=d[3];if(BL[S.sel])inv[S.sel]=(inv[S.sel]||0)+16;money();show(S.sel);drawInv();BF.toast(d[0]+' bought')}};
+function money(){stars.textContent=fmt(S.stars)}
+function drawInv(){document.getElementById('invgrid').innerHTML=Object.keys(inv).map(function(k){return '<button class="bf-slot" data-value="'+k+'" aria-label="'+BL[k][0]+'">'+blk(k)+'<span class="bf-slot__count">'+inv[k]+'</span></button>'}).join('')+Array(24-Object.keys(inv).length).join('<button class="bf-slot is-locked" aria-label="Empty"></button>')}
+drawInv();
+document.getElementById('m-inv').addEventListener('bf:select',e=>{inv_sel=e.detail.value;document.getElementById('inv-sel').textContent=BL[inv_sel][0]+' x'+inv[inv_sel]});
+var inv_sel=null;
+var Q=[['Mine 20 stone',20,20,60,150],['Place 30 blocks',12,30,40,100],['Visit a friend’s island',0,1,50,120]],qd=[];
+function drawQ(){qlist.innerHTML=Q.map(function(q,i){var ok=q[1]>=q[2];return '<div class="bf-row qrow"><span class="bf-row__grow">'+q[0]+'<small>'+q[1]+' / '+q[2]+' · +'+q[4]+' XP</small><div class="bf-bar"><i style="--p:'+Math.min(100,q[1]/q[2]*100)+'%"></i></div></div><span class="bf-price"><i class="bf-icon bf-icon--coin"></i>'+q[3]+'</span><button class="bf-btn bf-btn--plain" data-q="'+i+'" style="height:42px;min-width:90px;font-size:18px"'+(!ok||qd[i]?' disabled':'')+'><span class="bf-btn__label">'+(qd[i]?'Done':'Claim')+'</span></button></div>'}).join('')}
+drawQ();qlist.onclick=function(e){var b=e.target.closest('[data-q]');if(!b)return;var i=+b.dataset.q;qd[i]=1;S.stars+=Q[i][3];money();drawQ();BF.toast('+'+Q[i][3]+' stars')};
+var day=2;function drawDays(){days.innerHTML=[50,75,100,150,200,300,500].map(function(v,i){return '<div class="bf-slot dayslot'+(i<day?' is-done':'')+(i==day?' is-selected':'')+'"><i class="bf-icon bf-icon--coin"></i>'+v+'<span>Day '+(i+1)+'</span></div>'}).join('')}
+drawDays();claim.onclick=function(){var v=[50,75,100,150,200,300,500][day];S.stars+=v;money();day++;drawDays();BF.setEnabled(claim,false);claim.firstChild.textContent='Come back tomorrow';BF.toast('+'+v+' stars')};
+document.querySelectorAll('.bf-toggle').forEach(t=>t.onclick=()=>t.setAttribute('aria-checked',t.getAttribute('aria-checked')!='true'));
+document.querySelector('.bf-range').oninput=e=>document.querySelector('.hud.rc').style.transform='scale('+e.target.value/100+')',document.querySelector('.hud.rc').style.transformOrigin='top right';
+document.getElementById('m-shop').addEventListener('bf:open',()=>{show(S.sel||'grass')});
+</script>
+</body></html>

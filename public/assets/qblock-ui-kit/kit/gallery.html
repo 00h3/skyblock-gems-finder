@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blockfort UI kit — gallery</title>
+
+<link rel="stylesheet" href="css/blockfort.css">
+<style>
+  body { margin: 0; font-family: var(--bf-font); background: #5f7f8c; color: #fff; padding: 24px 20px 80px; }
+  main { max-width: 1040px; margin: 0 auto; }
+  h1 { font-weight: 400; font-size: 34px; margin: 0 0 4px; }
+  .lead { margin: 0 0 28px; font-size: 18px; opacity: .9; }
+  .lead a { color: #fff; }
+  section { margin: 0 0 26px; background: rgba(255,255,255,.1); border-radius: 12px; padding: 16px 18px 18px; }
+  h2 { font-weight: 400; font-size: 22px; margin: 0 0 12px; }
+  .demo { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+  pre { margin: 14px 0 0; padding: 12px 14px; background: rgba(20,12,4,.55); border-radius: 8px; overflow-x: auto; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; color: #ffe9b8; }
+  .scale { transform: scale(.55); transform-origin: top left; width: 994px; height: 300px; }
+  .bf-note, .bf-panel--scroll { flex: none; }
+</style>
+</head>
+<body class="bf">
+<main>
+  <h1>Blockfort UI kit</h1>
+  <p class="lead">Every piece below is live. Copy the snippet under it. Back to the <a href="index.html">playground</a>.</p>
+
+  <section>
+    <h2>Buttons</h2>
+    <div class="demo">
+      <button class="bf-btn bf-btn--build"><span class="bf-btn__label">Build</span></button>
+      <button class="bf-btn bf-btn--mail"><span class="bf-btn__label">Mail</span></button>
+      <button class="bf-btn bf-btn--remove"><span class="bf-btn__label">Remove</span></button>
+      <button class="bf-btn bf-btn--home"><span class="bf-btn__label">Home</span></button>
+      <button class="bf-btn bf-btn--plain"><span class="bf-btn__label">Any label, any width</span></button>
+      <button class="bf-btn bf-btn--plain" disabled><span class="bf-btn__label">Disabled</span></button>
+      <button class="bf-btn bf-btn--build" id="tgl"><span class="bf-btn__label">Toast</span></button>
+      <button class="bf-close" aria-label="Close"></button>
+      <button class="bf-close bf-close--sm" aria-label="Close"></button>
+    </div>
+<pre>&lt;button class="bf-btn bf-btn--build"&gt;&lt;span class="bf-btn__label"&gt;Build&lt;/span&gt;&lt;/button&gt;
+&lt;button class="bf-btn bf-btn--plain"&gt;&lt;span class="bf-btn__label"&gt;Any label&lt;/span&gt;&lt;/button&gt;
+&lt;button class="bf-btn bf-btn--plain" disabled&gt;…&lt;/button&gt;   &lt;!-- or class "is-disabled" / BF.setEnabled(el,false) --&gt;
+&lt;button class="bf-close" aria-label="Close" data-bf-close&gt;&lt;/button&gt;</pre>
+  </section>
+
+  <section>
+    <h2>Enable / disable at runtime</h2>
+    <div class="demo">
+      <button class="bf-btn bf-btn--plain" id="target"><span class="bf-btn__label">I can be toggled</span></button>
+      <button class="bf-btn bf-btn--plain" data-bf-disable="#target"><span class="bf-btn__label">Disable it</span></button>
+      <button class="bf-btn bf-btn--plain" data-bf-enable="#target"><span class="bf-btn__label">Enable it</span></button>
+    </div>
+<pre>&lt;button data-bf-disable="#target"&gt;…&lt;/button&gt;   &lt;button data-bf-enable="#target"&gt;…&lt;/button&gt;
+BF.setEnabled('#target', false)</pre>
+  </section>
+
+  <section>
+    <h2>Plates, strips and banners</h2>
+    <div class="demo">
+      <span class="bf-plate">Gold plate</span>
+      <span class="bf-plate bf-plate--red">Red plate</span>
+      <span class="bf-plate bf-plate--title">Title plate</span>
+      <span class="bf-plate bf-plate--title2">Wide title plate stretches</span>
+      <span class="bf-strip">Section strip</span>
+      <div class="bf-banner-crown"></div>
+      <div class="bf-banner-buildings"></div>
+    </div>
+<pre>&lt;span class="bf-plate bf-plate--title"&gt;Any text&lt;/span&gt;     &lt;!-- plates are 9-slice: they grow with the text --&gt;
+&lt;span class="bf-strip"&gt;Section&lt;/span&gt;
+&lt;div class="bf-banner-crown"&gt;&lt;/div&gt;   &lt;div class="bf-banner-buildings"&gt;&lt;/div&gt;</pre>
+  </section>
+
+  <section>
+    <h2>Slots, islands and selection</h2>
+    <div class="demo">
+      <div class="bf-slot-grid" data-bf-selectable data-multiple style="--cols:4">
+        <button class="bf-slot is-selected"><img src="assets/icons/icon-bomb.png" alt="Bomb"><span class="bf-slot__count">x3</span></button>
+        <button class="bf-slot"><img src="assets/icons/icon-heart.png" alt="Heart"></button>
+        <button class="bf-slot is-locked" aria-label="Locked"></button>
+        <button class="bf-slot bf-slot--tan"></button>
+      </div>
+      <div data-bf-selectable style="display:flex;gap:6px;align-items:flex-end">
+        <button class="bf-island is-selected" style="--h:80px"><img src="assets/islands/island-grass-2.png" alt=""></button>
+        <button class="bf-island" style="--h:80px"><img src="assets/islands/island-forest.png" alt=""></button>
+        <button class="bf-island is-locked" style="--h:80px"><img src="assets/islands/island-lake.png" alt=""></button>
+      </div>
+    </div>
+<pre>&lt;div class="bf-slot-grid" data-bf-selectable data-multiple style="--cols:4"&gt;
+  &lt;button class="bf-slot is-selected" data-value="bomb"&gt;&lt;img src="…"&gt;&lt;span class="bf-slot__count"&gt;x3&lt;/span&gt;&lt;/button&gt;
+  &lt;button class="bf-slot is-locked"&gt;&lt;/button&gt;
+&lt;/div&gt;
+el.addEventListener('bf:select', e =&gt; console.log(e.detail.value, e.detail.selected))</pre>
+  </section>
+
+  <section>
+    <h2>Chips, icons, rows, avatar</h2>
+    <div class="demo" style="align-items:center">
+      <span class="bf-chip"><i class="bf-icon bf-icon--coin"></i>1,240</span>
+      <span class="bf-chip"><i class="bf-icon bf-icon--coin"></i>36</span>
+      <i class="bf-icon bf-icon--up"></i><i class="bf-icon bf-icon--bomb"></i><i class="bf-icon bf-icon--heart"></i><i class="bf-icon bf-icon--cube"></i><i class="bf-icon bf-icon--chevron"></i>
+      <img class="bf-avatar" src="assets/misc/avatar-monster.png" alt="">
+      <div style="width:300px"><div class="bf-row"><i class="bf-icon bf-icon--heart"></i><span class="bf-row__grow">Cream row</span><b>+250</b></div><div class="bf-row bf-row--brick"><span class="bf-row__grow">Brick row</span></div></div>
+    </div>
+<pre>&lt;span class="bf-chip"&gt;&lt;i class="bf-icon bf-icon--coin"&gt;&lt;/i&gt;1,240&lt;/span&gt;
+&lt;div class="bf-row"&gt;&lt;i class="bf-icon bf-icon--heart"&gt;&lt;/i&gt;&lt;span class="bf-row__grow"&gt;Health&lt;/span&gt;&lt;b&gt;+250&lt;/b&gt;&lt;/div&gt;</pre>
+  </section>
+
+  <section>
+    <h2>Panels</h2>
+    <div class="demo">
+      <div class="bf-note"><img src="assets/islands/island-snow-1.png" alt="" style="max-height:110px"></div>
+      <div class="bf-note bf-note--b"><span class="bf-ink">Any content</span></div>
+      <div class="bf-frame">Dark frame with gold caps. Good for HUD lists.</div>
+      <div class="bf-panel bf-panel--scroll"><p class="bf-ink" style="text-align:center">Parchment scroll</p></div>
+    </div>
+<pre>&lt;div class="bf-panel bf-panel--board" style="width:700px;height:400px"&gt;…&lt;/div&gt;   &lt;!-- 9-slice: set any size --&gt;
+&lt;div class="bf-panel bf-panel--store"&gt;…&lt;/div&gt;   &lt;div class="bf-panel bf-panel--scroll"&gt;…&lt;/div&gt;
+&lt;div class="bf-note"&gt;…&lt;/div&gt;   &lt;div class="bf-frame"&gt;…&lt;/div&gt;</pre>
+  </section>
+
+  <section>
+    <h2>Modals, dialogs, toasts</h2>
+    <div class="demo">
+      <button class="bf-btn bf-btn--plain" data-bf-open="#m-demo"><span class="bf-btn__label">Open modal</span></button>
+      <button class="bf-btn bf-btn--plain" id="d-alert"><span class="bf-btn__label">Alert</span></button>
+      <button class="bf-btn bf-btn--plain" id="d-confirm"><span class="bf-btn__label">Confirm</span></button>
+      <button class="bf-btn bf-btn--plain" id="d-choice"><span class="bf-btn__label">3 choices</span></button>
+      <button class="bf-btn bf-btn--plain" data-bf-toast="Saved!"><span class="bf-btn__label">Toast</span></button>
+    </div>
+<pre>&lt;button data-bf-open="#m-demo"&gt;Open&lt;/button&gt;  &lt;button data-bf-toggle="#m-demo"&gt;Toggle&lt;/button&gt;
+
+&lt;div class="bf-overlay" id="m-demo"&gt;           &lt;!-- add data-bf-static to block Esc / backdrop close --&gt;
+  &lt;div class="bf-modal-wrap bf-modal-wrap--board"&gt;
+    &lt;section class="bf-modal bf-dialog" role="dialog" aria-modal="true" aria-labelledby="t"&gt;
+      &lt;div class="bf-dialog__title"&gt;&lt;span class="bf-plate bf-plate--title" id="t"&gt;Title&lt;/span&gt;&lt;/div&gt;
+      &lt;button class="bf-close bf-panel__close" aria-label="Close" data-bf-close&gt;&lt;/button&gt;
+      …content…
+    &lt;/section&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+await BF.dialog({ title:'Hi', message:'Hello', buttons:[{label:'OK', value:1}] })
+if (await BF.confirm('Delete it?')) { … }
+BF.toast('Saved!')</pre>
+  </section>
+</main>
+
+<div class="bf-overlay" id="m-demo">
+  <div class="bf-modal-wrap bf-modal-wrap--board">
+    <section class="bf-modal bf-dialog" role="dialog" aria-modal="true" aria-labelledby="t1">
+      <div class="bf-dialog__title"><span class="bf-plate bf-plate--title" id="t1">Hello</span></div>
+      <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+      <div class="bf-dialog__body">Close me with the X, Esc, or by clicking outside.</div>
+      <div class="bf-dialog__actions"><button class="bf-btn bf-btn--plain" data-bf-close><span class="bf-btn__label">Got it</span></button></div>
+    </section>
+  </div>
+</div>
+
+<script src="js/blockfort.js"></script>
+<script>
+  var tgl = document.getElementById('tgl');
+  tgl.addEventListener('click', function(){ BF.toast('data-bf-toggle works on any modal'); });
+  document.getElementById('d-alert').onclick = function(){ BF.dialog({ title: 'Heads up', message: 'Your manor is under attack!' }); };
+  document.getElementById('d-confirm').onclick = async function(){ BF.toast((await BF.confirm('Delete this block?')) ? 'Deleted' : 'Cancelled'); };
+  document.getElementById('d-choice').onclick = async function(){
+    var v = await BF.dialog({ title: 'Pick one', message: 'Where to?', buttons: [
+      { label: 'Home', value: 'home', variant: 'home' }, { label: 'Build', value: 'build', variant: 'build' }, { label: 'Stay', value: 'stay' } ] });
+    BF.toast('You chose: ' + v);
+  };
+</script>
+</body>
+</html>

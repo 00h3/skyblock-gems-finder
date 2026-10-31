@@ -308,59 +308,20 @@ export function NpcDialogue({ onDone }: { onDone: () => void }) {
 
 /* ── Mission tracker ──────────────────────────────────────────────────── */
 
-/** Left HUD column: health on top, mission chip below. Stacked so they never collide. */
-export function SkyblockHudColumn({ hp, maxHp = 20, state }: { hp: number; maxHp?: number; state: MissionState }) {
+/** Left HUD column: player health bar (old missions removed per user request) */
+export function SkyblockHudColumn({ hp, maxHp = 20 }: { hp: number; maxHp?: number; state?: MissionState }) {
   return (
-    <div className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+150px)] z-[85] flex w-[190px] flex-col gap-1.5 font-inter-bold">
+    <div className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+140px)] z-[85] flex w-[170px] flex-col gap-1.5 font-inter-bold">
       <PlayerHpBar hp={hp} max={maxHp} />
-      <MissionTracker state={state} />
     </div>
   );
 }
 
-export function MissionTracker({ state }: { state: MissionState }) {
-  const [open, setOpen] = useState(false);
-  const active = currentMission(state);
-  const doneCount = state.done.length;
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        className="pointer-events-auto w-full cursor-pointer text-left transition active:scale-[0.98]"
-        style={{ ...PANEL_OUTER, padding: "7px 9px", backgroundColor: "rgba(26,29,36,0.92)" }}
-      >
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
-            <Target className="h-3 w-3" aria-hidden="true" /> Mission
-          </span>
-          <span className="text-[10px] font-black tabular-nums text-slate-400">
-            {doneCount}/{MISSIONS.length}
-          </span>
-        </div>
-        {active ? (
-          <>
-            <p className={`mt-0.5 text-[12px] font-black italic leading-tight text-white ${OUTLINE}`}>{active.title}</p>
-            <p className="text-[10.5px] font-bold leading-snug text-slate-300">{active.detail}</p>
-            <div className="mt-1 h-2 overflow-hidden p-[1.5px]" style={PANEL_INNER}>
-              <div
-                className="h-full rounded-[3px] bg-gradient-to-r from-sky-400 to-emerald-400"
-                style={{ width: `${Math.min(100, (state.stats[active.stat] / active.goal) * 100)}%` }}
-              />
-            </div>
-            <p className="mt-0.5 text-[10px] font-black tabular-nums text-slate-400">
-              {Math.min(state.stats[active.stat], active.goal)} / {active.goal}
-            </p>
-          </>
-        ) : (
-          <p className={`mt-0.5 text-[12px] font-black italic text-amber-300 ${OUTLINE}`}>All missions complete!</p>
-        )}
-      </button>
-      {open && <MissionLogModal state={state} onClose={() => setOpen(false)} />}
-    </>
-  );
+export function MissionTracker({ state }: { state?: MissionState }) {
+  // Old missions removed per user request
+  return null;
 }
+
 
 function MissionLogModal({ state, onClose }: { state: MissionState; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);

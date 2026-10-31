@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blockfort UI kit — playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="stylesheet" href="css/blockfort.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--bf-font); color: #fff; overflow: hidden;
+    background:
+      radial-gradient(ellipse 60% 40% at 78% 92%, rgba(255,255,255,.14), transparent 70%),
+      linear-gradient(#8fd3e8 0%, #b9e8d0 55%, #7fc57a 55.2%, #5aa660 100%);
+  }
+  .hud-left  { position: fixed; left: 14px; top: 14px; display: grid; grid-template-columns: auto auto; gap: 8px 12px; align-items: center; }
+  .hud-left .bf-plate { grid-column: 2; justify-self: start; }
+  .hud-chips { grid-column: 1 / -1; display: flex; gap: 8px; }
+  .hud-right { position: fixed; right: 14px; top: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .hint { position: fixed; left: 50%; top: 46%; transform: translate(-50%, -50%); text-align: center; font-size: 22px; max-width: 420px; line-height: 1.35; }
+  .hint small { display: block; font-size: 16px; margin-top: 6px; }
+  .link { position: fixed; left: 14px; bottom: 14px; }
+  .link a { color: #fff; text-decoration: none; }
+  .link a:hover { text-decoration: underline; }
+
+  /* manor modal layout */
+  .manor-islands { display: flex; justify-content: center; align-items: flex-end; gap: 6px; height: 118px; }
+  .manor-body { display: flex; gap: 26px; justify-content: center; align-items: center; margin-top: 6px; }
+  .manor-stats { width: 340px; }
+  .manor-stats .bf-btn { display: flex; margin: 14px auto 0; }
+  /* store modal layout */
+  .store-body { display: flex; gap: 20px; height: 100%; align-items: flex-start; }
+  .store-detail { text-align: center; padding-top: 6px; }
+  .store-detail h3 { margin: 6px 0 4px; font-weight: 400; font-size: 24px; }
+  .store-detail p { margin: 0 0 8px; font-size: 16px; line-height: 1.25; color: var(--bf-ink-soft); }
+  .stat { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 18px; margin: 4px 0; }
+</style>
+</head>
+<body class="bf">
+
+<!-- ===== HUD ===== -->
+<div class="hud-left">
+  <img class="bf-avatar" src="assets/misc/avatar-monster.png" alt="Player avatar">
+  <span class="bf-plate bf-text">Grumbo</span>
+  <div class="hud-chips">
+    <span class="bf-chip"><i class="bf-icon bf-icon--coin"></i><span id="coins">1,240</span></span>
+    <span class="bf-chip"><i class="bf-icon bf-icon--coin"></i><span id="gems">36</span></span>
+  </div>
+</div>
+
+<div class="hud-right">
+  <button class="bf-btn bf-btn--build"  data-bf-open="#m-store"><span class="bf-btn__label">Build</span></button>
+  <button class="bf-btn bf-btn--mail"   data-bf-open="#m-mail"><span class="bf-btn__label">Mail</span></button>
+  <button class="bf-btn bf-btn--remove" id="btn-remove"><span class="bf-btn__label">Remove</span></button>
+  <button class="bf-btn bf-btn--home"   data-bf-open="#m-manor"><span class="bf-btn__label">Manor</span></button>
+</div>
+
+<div class="hint bf-text">Tap the buttons on the right.<small>Esc, the X, or the dark backdrop closes a window.</small></div>
+<div class="link bf-text"><a href="gallery.html">Open component gallery &rsaquo;</a></div>
+
+<!-- ===== Store modal ===== -->
+<div class="bf-overlay" id="m-store">
+  <div class="bf-modal-wrap">
+    <section class="bf-modal bf-panel bf-panel--store" role="dialog" aria-modal="true" aria-label="Build menu">
+      <div class="bf-panel__side" data-bf-tabs style="top:-14px; left:-150px;">
+        <div class="bf-banner-buildings" style="position:absolute; top:-78px; left:-6px;" aria-hidden="true"></div>
+        <div style="height:128px"></div>
+        <button class="bf-tab is-active" data-bf-pane="#pane-walls">Walls</button>
+        <button class="bf-tab" data-bf-pane="#pane-towers">Towers</button>
+        <button class="bf-tab" data-bf-pane="#pane-decor">Decor</button>
+      </div>
+      <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+
+      <div class="store-body">
+        <div>
+          <div class="bf-tabpane is-active" id="pane-walls">
+            <div class="bf-slot-grid" data-bf-selectable style="--cols:4">
+              <button class="bf-slot is-selected" data-value="wood"  data-name="Wood wall"  data-cost="40"><img src="assets/icons/icon-cube.png" alt="Wood wall"><span class="bf-slot__count">x12</span></button>
+              <button class="bf-slot" data-value="stone" data-name="Stone wall" data-cost="120"><img src="assets/icons/icon-heart.png" alt="Stone wall"><span class="bf-slot__count">x4</span></button>
+              <button class="bf-slot" data-value="gate"  data-name="Gate" data-cost="300"><img src="assets/icons/icon-arrow-up.png" alt="Gate"></button>
+              <button class="bf-slot is-locked" data-value="iron" data-name="Iron wall" aria-label="Iron wall (locked)"></button>
+              <button class="bf-slot is-locked" data-value="x1" aria-label="Locked"></button>
+              <button class="bf-slot is-locked" data-value="x2" aria-label="Locked"></button>
+              <button class="bf-slot is-locked" data-value="x3" aria-label="Locked"></button>
+              <button class="bf-slot is-locked" data-value="x4" aria-label="Locked"></button>
+            </div>
+          </div>
+          <div class="bf-tabpane" id="pane-towers">
+            <div class="bf-slot-grid" data-bf-selectable style="--cols:4">
+              <button class="bf-slot" data-value="bomb" data-name="Bomb tower" data-cost="500"><img src="assets/icons/icon-bomb.png" alt="Bomb tower"></button>
+              <button class="bf-slot is-locked" aria-label="Locked"></button>
+              <button class="bf-slot is-locked" aria-label="Locked"></button>
+              <button class="bf-slot is-locked" aria-label="Locked"></button>
+            </div>
+          </div>
+          <div class="bf-tabpane" id="pane-decor">
+            <div class="bf-slot-grid" data-bf-selectable style="--cols:4">
+              <button class="bf-slot" data-value="island" data-name="Floating isle" data-cost="900"><img src="assets/islands/island-grass-1.png" alt="Isle"></button>
+              <button class="bf-slot is-locked" aria-label="Locked"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bf-panel bf-panel--scroll store-detail">
+          <div class="bf-note bf-note--b" style="margin: 0 auto; transform: scale(.7); transform-origin: top center; height: 175px; width: 226px; border-width:36px 40px 30px 40px; border-image-width:36px 40px 30px 40px;">
+            <img id="detail-img" src="assets/icons/icon-cube.png" alt="">
+          </div>
+          <h3 class="bf-ink" id="detail-name">Wood wall</h3>
+          <p>Cheap and quick to place. Holds against a few hits.</p>
+          <div class="stat"><i class="bf-icon bf-icon--coin"></i><span id="detail-cost">40</span></div>
+          <button class="bf-btn bf-btn--plain" style="margin-top:6px" id="btn-place"><span class="bf-btn__label">Place</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== Manor upgrade modal ===== -->
+<div class="bf-overlay" id="m-manor">
+  <div class="bf-modal-wrap bf-modal-wrap--board">
+    <section class="bf-modal bf-panel bf-panel--board" role="dialog" aria-modal="true" aria-labelledby="manor-title">
+      <div class="bf-panel__title" style="top:-86px; height:101px;">
+        <div class="bf-banner-crown" aria-hidden="true"></div>
+      </div>
+      <h2 class="bf-sr" id="manor-title">Manor upgrade</h2>
+      <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+
+      <div class="manor-islands" data-bf-selectable id="islands" style="margin-top:6px">
+        <button class="bf-island is-selected" data-value="Frost shelf"    style="--h:84px"><img src="assets/islands/island-snow-1.png"  alt="Frost shelf"></button>
+        <button class="bf-island"             data-value="Meadow shelf"   style="--h:84px"><img src="assets/islands/island-grass-1.png" alt="Meadow shelf"></button>
+        <button class="bf-island"             data-value="Cliff garden"   style="--h:98px"><img src="assets/islands/island-mixed-1.png" alt="Cliff garden"></button>
+        <button class="bf-island"             data-value="Green isle"     style="--h:98px"><img src="assets/islands/island-grass-2.png" alt="Green isle"></button>
+        <button class="bf-island"             data-value="Snowy isle"     style="--h:102px"><img src="assets/islands/island-snow-2.png" alt="Snowy isle"></button>
+        <button class="bf-island"             data-value="Forest isle"    style="--h:104px"><img src="assets/islands/island-forest.png" alt="Forest isle"></button>
+        <button class="bf-island is-locked"   data-value="Lake isle"      style="--h:104px"><img src="assets/islands/island-lake.png"   alt="Lake isle (locked)"></button>
+      </div>
+
+      <div class="manor-body">
+        <div class="bf-note"><img id="manor-preview" src="assets/islands/island-snow-1.png" alt="" style="max-height:120px"></div>
+        <div class="manor-stats">
+          <div class="bf-row"><span class="bf-icon bf-icon--up"></span><span class="bf-row__grow" id="manor-name">Frost shelf</span><b>Lv 1</b></div>
+          <div class="bf-row"><span class="bf-icon bf-icon--heart"></span><span class="bf-row__grow">Health</span><b>+250</b></div>
+          <div class="bf-row"><span class="bf-icon bf-icon--cube"></span><span class="bf-row__grow">Build slots</span><b>+2</b></div>
+          <div class="bf-row"><span class="bf-icon bf-icon--coin"></span><span class="bf-row__grow">Cost</span><b>800</b></div>
+          <button class="bf-btn bf-btn--build" id="btn-upgrade"><span class="bf-btn__label">Upgrade</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== Mail modal (uses the dark frame) ===== -->
+<div class="bf-overlay" id="m-mail">
+  <div class="bf-modal-wrap bf-modal-wrap--board">
+    <section class="bf-modal bf-dialog" role="dialog" aria-modal="true" aria-labelledby="mail-t" style="width:480px">
+      <div class="bf-dialog__title"><span class="bf-plate bf-plate--title" id="mail-t">Mailbox</span></div>
+      <button class="bf-close bf-panel__close" aria-label="Close" data-bf-close></button>
+      <div style="text-align:left; margin-top:8px">
+        <div class="bf-row"><span class="bf-icon bf-icon--coin"></span><span class="bf-row__grow">Welcome gift</span><button class="bf-btn bf-btn--plain" style="--h:38px;height:38px;min-width:80px;font-size:17px" data-bf-toast="Claimed 10 gems"><span class="bf-btn__label">Claim</span></button></div>
+        <div class="bf-row"><span class="bf-icon bf-icon--coin"></span><span class="bf-row__grow">Daily coins</span><button class="bf-btn bf-btn--plain" style="height:38px;min-width:80px;font-size:17px" data-bf-toast="Claimed 200 coins"><span class="bf-btn__label">Claim</span></button></div>
+        <div class="bf-row bf-row--brick"><span class="bf-row__grow">No more messages</span></div>
+      </div>
+      <div class="bf-dialog__actions" style="margin-top:14px"><button class="bf-btn bf-btn--plain" data-bf-close><span class="bf-btn__label">Done</span></button></div>
+    </section>
+  </div>
+</div>
+
+<script src="js/blockfort.js"></script>
+<script>
+  // Remove -> confirm dialog (promise based)
+  document.getElementById('btn-remove').addEventListener('click', async function () {
+    var ok = await BF.confirm('Remove the selected block? You will get half its cost back.', { title: 'Remove block', yes: 'Remove', no: 'Keep' });
+    if (ok) BF.toast('Block removed');
+  });
+
+  // Store: selecting a slot updates the detail card
+  document.getElementById('m-store').addEventListener('bf:select', function (e) {
+    var el = e.detail.element;
+    if (!el.dataset.name) return;
+    document.getElementById('detail-name').textContent = el.dataset.name;
+    document.getElementById('detail-cost').textContent = el.dataset.cost;
+    document.getElementById('detail-img').src = el.querySelector('img').src;
+  });
+  document.getElementById('btn-place').addEventListener('click', function () {
+    BF.close('#m-store'); BF.toast('Tap the map to place it');
+  });
+
+  // Manor: choose an island
+  document.getElementById('islands').addEventListener('bf:select', function (e) {
+    var el = e.detail.element;
+    document.getElementById('manor-name').textContent = el.dataset.value;
+    document.getElementById('manor-preview').src = el.querySelector('img').src;
+  });
+  document.getElementById('btn-upgrade').addEventListener('click', async function () {
+    var ok = await BF.confirm('Spend 800 coins to upgrade your manor?', { title: 'Upgrade', yes: 'Upgrade' });
+    if (ok) { document.getElementById('coins').textContent = '440'; BF.toast('Manor upgraded!'); BF.close('#m-manor'); }
+  });
+</script>
+</body>
+</html>

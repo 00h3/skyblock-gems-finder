@@ -48,6 +48,7 @@ import { getTargetDpr } from "@/lib/rendering";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { createHpBar, type HpBar } from "@/engine-sandbox/shared/hpbar";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { BlockfortSkyblockUi } from "@/components/skyblock/BlockfortSkyblockUi";
 import qblockGameLoaderUrl from "../assets/imported/IMG_6930_1786893754942.png?url";
 const goldTokenIcon = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
 const newGenIcon = "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png";
@@ -11671,77 +11672,22 @@ function EngineGame({
         </div>
       )}
 
-      {/* ── SKYBLOCK: Active quest tracker (left side, below player card) ─── */}
+      {/* ── SKYBLOCK BLOCKFORT UI KIT: Real Upgrades, Store, Quests, Daily Rewards, Real Currency ── */}
       {isSkyblock && (
-        <div
-          className="absolute left-3 z-10 flex flex-col gap-2"
-          style={{ top: "max(76px,calc(env(safe-area-inset-top)+66px))" }}
-        >
-          {/* Quest card */}
-          <div
-            className="wood-panel relative flex flex-col gap-1.5 !rounded-[4px] p-2.5 shadow-md"
-            style={{ width: 168 }}
-          >
-            <div className="flex items-center justify-between gap-1.5">
-              <span className="font-lilita text-[13px] tracking-wide text-amber-100 leading-none">
-                🪵 Collect Wood
-              </span>
-              <span className="rounded-[2px] border border-[#150b04] bg-[#160c04] px-1 py-0.5 text-[9.5px] font-lilita text-amber-300">
-                +15 XP
-              </span>
-            </div>
-            <p className="text-[10px] font-medium leading-snug text-amber-200/70">
-              Visit the tree and collect 10 wood
-            </p>
-            {/* Wood-grooved progress bar */}
-            <div className="h-2 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] mt-0.5">
-              <div
-                className="h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_6px_rgba(245,158,11,0.6)]"
-                style={{ width: "30%" }}
-              />
-            </div>
-            <div className="flex justify-between text-[9.5px] font-bold tabular-nums text-amber-200/70">
-              <span>Quest</span>
-              <span>3 / 10</span>
-            </div>
-          </div>
-
-          {/* Home / Shop island buttons */}
-          {!isEmbed && (
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => sbSceneRef.current?.teleportHome()}
-                className="press flex-1 h-9 rounded-[10px] flex items-center justify-center gap-1"
-                style={{
-                  background: "rgba(255,155,20,0.22)",
-                  backdropFilter: "blur(18px)",
-                  WebkitBackdropFilter: "blur(18px)",
-                  border: "1px solid rgba(255,200,80,0.30)",
-                  boxShadow: "0 3px 12px rgba(200,100,0,0.20)",
-                }}
-                aria-label="Home Island"
-              >
-                <img src="/home-icon.webp" alt="Home" className="h-5 w-5 object-contain" />
-                <span className="text-[9px] font-bold text-white/80">Home</span>
-              </button>
-              <button
-                onClick={() => sbSceneRef.current?.teleportShop()}
-                className="press flex-1 h-9 rounded-[10px] flex items-center justify-center gap-1"
-                style={{
-                  background: "rgba(20,180,160,0.22)",
-                  backdropFilter: "blur(18px)",
-                  WebkitBackdropFilter: "blur(18px)",
-                  border: "1px solid rgba(80,220,200,0.30)",
-                  boxShadow: "0 3px 12px rgba(0,130,110,0.20)",
-                }}
-                aria-label="Shop Island"
-              >
-                <img src="/shop-icon.webp" alt="Shop" className="h-5 w-5 object-contain" />
-                <span className="text-[9px] font-bold text-white/80">Shop</span>
-              </button>
-            </div>
-          )}
-        </div>
+        <BlockfortSkyblockUi
+          hotbar={skyblockHotbarSlots}
+          tileUrls={blockIcons}
+          onEquipHotbar={(b) => {
+            const blockIdx = typeof b === "number" ? b : BLOCKS.findIndex((bl) => bl.name === b);
+            if (blockIdx >= 0) {
+              setSlot(blockIdx);
+              window.dispatchEvent(
+                new CustomEvent("bm-equip", { detail: { type: "block", slot: blockIdx } }),
+              );
+            }
+          }}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
       )}
 
       {/* ── BLOCKY PLAZA TOP BAR ─────────────────────────────────────────────── */}
@@ -12335,13 +12281,13 @@ function EngineGame({
         </button>
       )}
 
-      {/* ── ACTION CONTROLS: Jump, Walk, Run, Crouch (Custom Assets) ──────────────────────── */}
+      {/* ── ACTION CONTROLS: Jump, Walk, Run, Crouch (Compact & Sleek) ──────────────────────── */}
       {!isBlockyplaza && (
         <div
-          className={`absolute right-4 bottom-[max(20px,calc(env(safe-area-inset-bottom)+16px))] z-30 flex flex-col items-end pointer-events-auto ${isSkyblock ? "gap-2.5" : "gap-3"}`}
+          className={`absolute right-3.5 bottom-[max(12px,calc(env(safe-area-inset-bottom)+8px))] z-30 flex flex-col items-end pointer-events-auto ${isSkyblock ? "gap-2" : "gap-2.5"}`}
         >
           {/* Movement Mode Toggle Buttons (Walk & Run) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Walk Button */}
             <button
               type="button"
@@ -12360,7 +12306,7 @@ function EngineGame({
               <img
                 src="https://maxwell.z3ki.dev/bot/_files/icon-front-walk/icon_front_walk.png"
                 alt="Walk"
-                className="h-11 w-11 sm:h-12 sm:w-12 object-contain pointer-events-none drop-shadow-md"
+                className="h-9 w-9 sm:h-9.5 sm:w-9.5 object-contain pointer-events-none drop-shadow-md"
                 draggable={false}
               />
             </button>
@@ -12383,7 +12329,7 @@ function EngineGame({
               <img
                 src="https://maxwell.z3ki.dev/bot/_files/icon-side-sprint/icon_side_sprint.png"
                 alt="Run"
-                className="h-11 w-11 sm:h-12 sm:w-12 object-contain pointer-events-none drop-shadow-md"
+                className="h-9 w-9 sm:h-9.5 sm:w-9.5 object-contain pointer-events-none drop-shadow-md"
                 draggable={false}
               />
             </button>
@@ -12407,12 +12353,12 @@ function EngineGame({
             <img
               src="https://maxwell.z3ki.dev/bot/_files/icon-side-walk/icon_side_walk.png"
               alt="Crouch"
-              className="h-12 w-12 sm:h-13 sm:w-13 object-contain pointer-events-none drop-shadow-md"
+              className="h-9.5 w-9.5 sm:h-10 sm:w-10 object-contain pointer-events-none drop-shadow-md"
               draggable={false}
             />
           </button>
 
-          {/* Jump Button (Hosted button PNG) */}
+          {/* Jump Button */}
           <button
             type="button"
             onPointerDown={(e) => {
@@ -12420,7 +12366,7 @@ function EngineGame({
               e.stopPropagation();
               window.dispatchEvent(new Event("bm-jump"));
             }}
-            className="relative w-16 h-16 sm:w-18 sm:h-18 p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none flex items-center justify-center"
+            className="relative w-13 h-13 sm:w-14 sm:h-14 p-0 border-0 bg-transparent outline-none active:scale-90 transition-transform cursor-pointer select-none flex items-center justify-center"
             title="Jump"
             aria-label="Jump"
           >
@@ -12433,86 +12379,18 @@ function EngineGame({
             <img
               src="https://maxwell.z3ki.dev/bot/_files/icon-head-sprint/icon_head_sprint.png"
               alt=""
-              className="absolute inset-0 w-full h-full object-contain p-2.5 pointer-events-none drop-shadow-md select-none"
+              className="absolute inset-0 w-full h-full object-contain p-2 pointer-events-none drop-shadow-md select-none"
               draggable={false}
             />
           </button>
         </div>
       )}
 
-      {/* Hotbar — TNT Rush shows single TNT slot; others show full block bar */}
-      {isTntRush && (
-        <div className="absolute bottom-[max(14px,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-10">
-          <div className="hud-plate rounded-[18px] p-1.5 flex items-center gap-2 px-3">
-            <div
-              className="h-11 w-11 rounded-[13px] grid place-items-center ring-2 ring-primary shadow-[0_0_0_3px_rgba(244,80,30,0.35),0_4px_10px_rgba(0,0,0,0.22)] scale-[1.08]"
-              style={{
-                backgroundImage: `url(/textures/blocks/tnt_side.png)`,
-                backgroundSize: "cover",
-                imageRendering: "pixelated",
-              }}
-            />
-            <span className="text-[12px] font-extrabold text-white/80 tracking-wide">TNT</span>
-          </div>
-        </div>
-      )}
-      {/* ── SKYBLOCK bottom status bars (hearts + food) ─────────────────────── */}
-      {isSkyblock && false && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-[5px]"
-          style={{ bottom: "max(76px,calc(env(safe-area-inset-bottom)+68px))" }}
-        >
-          {/* Hearts */}
-          <div className="flex items-center gap-[4px]">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <svg
-                key={i}
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill={
-                  i < hearts.filter((h) => h !== "empty").length
-                    ? "#e53e3e"
-                    : "rgba(255,255,255,0.15)"
-                }
-                style={{
-                  filter:
-                    i < hearts.filter((h) => h !== "empty").length
-                      ? "drop-shadow(0 0 3px rgba(229,62,62,0.70))"
-                      : "none",
-                }}
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            ))}
-          </div>
-          {/* Food / hunger */}
-          <div className="flex items-center gap-[4px]">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <svg
-                key={i}
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill={i < 7 ? "#c05621" : "rgba(255,255,255,0.15)"}
-                style={{ filter: i < 7 ? "drop-shadow(0 0 3px rgba(192,86,33,0.60))" : "none" }}
-              >
-                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                <line x1="6" y1="1" x2="6" y2="4" stroke="currentColor" strokeWidth="2" />
-                <line x1="10" y1="1" x2="10" y2="4" stroke="currentColor" strokeWidth="2" />
-                <line x1="14" y1="1" x2="14" y2="4" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Hotbar — available in Engine Test and BedWars (Skyblock uses SkyblockPastedHud) */}
+      {/* Hotbar — Available in Engine Test, BedWars, and Skyblock */}
       {!isSpleef && !isTntRush && !isBlockyplaza && !isSkyblock && (
-        <div className="absolute bottom-[max(14px,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5">
+        <div className="absolute bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 scale-[0.80] origin-bottom">
           <div
-            className="rounded-[20px] p-1.5 flex gap-1"
+            className="rounded-[18px] p-1.5 flex gap-1"
             style={
               isSkyblock
                 ? {
