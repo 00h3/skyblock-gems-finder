@@ -12,9 +12,16 @@ import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, limit } from "firebase/firestore";
 import {
+  subscribeFriends,
+  type Friend,
+} from "@/lib/friends-utils";
+import { getSavedAccounts } from "@/lib/saved-accounts";
+import {
   subscribeToSkyblockChat,
   sendSkyblockChatMessage,
+  getOrCreateIsland,
   type SkyblockChatMessage,
+  type PersistentIsland,
 } from "@/lib/skyblock-multiplayer";
 import { getPermanentPlayerId } from "@/lib/skyblock-profile";
 
@@ -25,52 +32,9 @@ export interface IslandFriendPlayer {
   profilePhoto?: string;
   islandName?: string;
   isOnline: boolean;
+  isFriend: boolean;
   level?: number;
-  likesCount?: number;
 }
-
-const DEFAULT_COMMUNITY_FRIENDS: IslandFriendPlayer[] = [
-  {
-    uid: "island_host_sakura",
-    name: "Sakura Queen",
-    username: "sakura_builder",
-    profilePhoto: "https://file.garden/alGOOylwpAfCa6qP/file_000000003b508210b9ef5285b5568fe6_1788907881925.png",
-    islandName: "🌸 Sakura Blossom Sanctuary",
-    isOnline: true,
-    level: 6,
-    likesCount: 142,
-  },
-  {
-    uid: "island_host_crafter",
-    name: "CraftMaster Alex",
-    username: "craftmaster",
-    profilePhoto: "/assets/qblock-ui-kit/kit/assets/misc/avatar-monster.png",
-    islandName: "🏰 Obsidian Fortress & Mines",
-    isOnline: true,
-    level: 7,
-    likesCount: 389,
-  },
-  {
-    uid: "island_host_skyknight",
-    name: "SkyKnight 99",
-    username: "skyknight_99",
-    profilePhoto: "/icons/player-icon-custom.png",
-    islandName: "⚔️ Dragon Mountain Outpost",
-    isOnline: true,
-    level: 5,
-    likesCount: 95,
-  },
-  {
-    uid: "island_host_jerry",
-    name: "Jerry Builder",
-    username: "jerry_workshop",
-    profilePhoto: "/assets/avatar.png",
-    islandName: "❄️ Jerry's Winter Fortress",
-    isOnline: true,
-    level: 4,
-    likesCount: 78,
-  },
-];
 
 export interface IslandTierDef {
   tier: number;
@@ -249,7 +213,9 @@ export function BlockfortSkyblockUi({
   const [friendsOpen, setFriendsOpen] = useState(false);
 
   // Multiplayer Friends & Online Islands state
-  const [friendsList, setFriendsList] = useState<IslandFriendPlayer[]>(DEFAULT_COMMUNITY_FRIENDS);
+  const [friendsList, setFriendsList] = useState<IslandFriendPlayer[]>([]);
+  const [friendsTab, setFriendsTab] = useState<"friends" | "all">("friends");
+  const [friendSearch, setFriendSearch] = useState("");
 
   // In-Game Live Chat Preview state
   const [chatPreviewOpen, setChatPreviewOpen] = useState(true);
@@ -315,51 +281,192 @@ export function BlockfortSkyblockUi({
     }, 2800);
   }, []);
 
-  // ── Multiplayer Friends & Real-time Active Players Sync ───────────────────
+  // ── Real Friends, Platform Users & Island Multiplayer Sync ────────────────
   useEffect(() => {
     const currentMyUid = qbUser?.uid || getPermanentPlayerId(qbUser);
-    const unsubPlayers = onSnapshot(
-      collection(db, "skyblock_players"),
+    const currentMyName = qbUser?.displayName || qbUser?.username || "Player";
+
+    // Ensure our own island is created in Firestore so visitors can visit us
+    getOrCreateIsland(currentMyUid, currentMyName).catch((err) => {
+      console.warn("Could not ensure own island in Firestore:", err);
+    });
+
+    let friendsData: Friend[] = [];
+    let usersData: IslandFriendPlayer[] = [];
+    let activePlayersData: { uid: string; lastSeen: number; photo?: string }[] = [];
+    let islandsMeta: Record<string, { islandName?: string; likesCount?: number }> = {};
+
+    function recomputeList() {
+      const now = Date.now();
+      const activeUids = new Set(
+        activePlayersData
+          .filter((p) => now - (p.lastSeen || 0) < 600000)
+          .map((p) => p.uid),
+      );
+
+      const friendUids = new Set(friendsData.map((f) => f.uid));
+      const combined = new Map<string, IslandFriendPlayer>();
+
+      // 1. Process accepted real friends from Firestore friendRequests
+      for (const f of friendsData) {
+        if (!f.uid || f.uid === currentMyUid) continue;
+        const name = f.displayName || f.username || "Friend";
+        const meta = islandsMeta[f.uid];
+        combined.set(f.uid, {
+          uid: f.uid,
+          name,
+          username: f.username || name.toLowerCase().replace(/\s+/g, "_"),
+          profilePhoto: f.profilePhoto || "/icons/player-icon-custom.png",
+          islandName: meta?.islandName || `${name}'s Island`,
+          likesCount: meta?.likesCount ?? 0,
+          isOnline: activeUids.has(f.uid) || Boolean(f.online),
+          isFriend: true,
+          level: 5,
+        });
+        // Guarantee everyone has an island created in Firestore
+        getOrCreateIsland(f.uid, name).catch(() => {});
+      }
+
+      // 2. Process real registered users from Firestore users collection
+      for (const u of usersData) {
+        if (!u.uid || u.uid === currentMyUid) continue;
+        const meta = islandsMeta[u.uid];
+        const isFr = friendUids.has(u.uid);
+        const existing = combined.get(u.uid);
+        if (existing) {
+          if (meta?.islandName) existing.islandName = meta.islandName;
+          if (meta?.likesCount !== undefined) existing.likesCount = meta.likesCount;
+          if (activeUids.has(u.uid)) existing.isOnline = true;
+          existing.isFriend = isFr;
+        } else {
+          combined.set(u.uid, {
+            uid: u.uid,
+            name: u.name,
+            username: u.username,
+            profilePhoto: u.profilePhoto || "/icons/player-icon-custom.png",
+            islandName: meta?.islandName || `${u.name}'s Island`,
+            likesCount: meta?.likesCount ?? 0,
+            isOnline: activeUids.has(u.uid) || u.isOnline,
+            isFriend: isFr,
+            level: u.level || 5,
+          });
+          // Guarantee everyone has an island created in Firestore
+          getOrCreateIsland(u.uid, u.name).catch(() => {});
+        }
+      }
+
+      // 3. Process local saved accounts (if any exist on browser)
+      try {
+        const saved = getSavedAccounts();
+        for (const s of saved) {
+          if (!s.uid || s.uid === currentMyUid) continue;
+          if (!combined.has(s.uid)) {
+            const meta = islandsMeta[s.uid];
+            const name = s.displayName || s.username || "Player";
+            combined.set(s.uid, {
+              uid: s.uid,
+              name,
+              username: s.username || name.toLowerCase().replace(/\s+/g, "_"),
+              profilePhoto: s.profilePhoto || "/icons/player-icon-custom.png",
+              islandName: meta?.islandName || `${name}'s Island`,
+              likesCount: meta?.likesCount ?? 0,
+              isOnline: activeUids.has(s.uid),
+              isFriend: friendUids.has(s.uid),
+              level: 5,
+            });
+            getOrCreateIsland(s.uid, name).catch(() => {});
+          }
+        }
+      } catch {}
+
+      setFriendsList(Array.from(combined.values()));
+    }
+
+    // Subscribe to real accepted friends from Firestore friendRequests
+    const unsubFriends = subscribeFriends(currentMyUid, (friends) => {
+      friendsData = friends || [];
+      recomputeList();
+    });
+
+    // Subscribe to real registered users from Firestore users collection
+    const unsubUsers = onSnapshot(
+      query(collection(db, "users"), limit(60)),
       (snap) => {
-        const activeFromDb: IslandFriendPlayer[] = [];
-        const now = Date.now();
+        const list: IslandFriendPlayer[] = [];
         snap.forEach((d) => {
           const data = d.data();
-          if (data.uid && data.uid !== currentMyUid && now - (data.lastSeen || 0) < 600000) {
-            activeFromDb.push({
-              uid: data.uid,
-              name: data.name || data.username || "Player",
-              username: data.username || data.name || "player",
-              profilePhoto: data.profilePhoto || "/icons/player-icon-custom.png",
-              islandName: `${data.name || "Player"}'s Sky Island`,
-              isOnline: true,
-              level: 5,
+          const uid = d.id;
+          if (uid !== currentMyUid) {
+            const name = (data.displayName as string) || (data.username as string) || "Player";
+            list.push({
+              uid,
+              name,
+              username: (data.username as string) || name.toLowerCase().replace(/\s+/g, "_"),
+              profilePhoto: (data.profilePhoto as string) || "/icons/player-icon-custom.png",
+              islandName: `${name}'s Island`,
+              isOnline: Boolean(data.online) || Date.now() - (data.lastActive || 0) < 600000,
+              isFriend: false,
+              level: typeof data.level === "number" ? data.level : 5,
             });
           }
         });
-
-        const seen = new Set<string>();
-        const combined: IslandFriendPlayer[] = [];
-        for (const p of activeFromDb) {
-          if (!seen.has(p.uid)) {
-            seen.add(p.uid);
-            combined.push(p);
-          }
-        }
-        for (const p of DEFAULT_COMMUNITY_FRIENDS) {
-          if (!seen.has(p.uid)) {
-            seen.add(p.uid);
-            combined.push(p);
-          }
-        }
-        setFriendsList(combined);
+        usersData = list;
+        recomputeList();
       },
       (err) => {
-        console.warn("Could not listen to skyblock players, using defaults:", err);
+        console.warn("Could not query users collection:", err);
       },
     );
 
-    return () => unsubPlayers();
+    // Subscribe to active players in skyblock_players
+    const unsubActive = onSnapshot(
+      collection(db, "skyblock_players"),
+      (snap) => {
+        const active: { uid: string; lastSeen: number; photo?: string }[] = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          if (data.uid) {
+            active.push({
+              uid: data.uid,
+              lastSeen: data.lastSeen || 0,
+              photo: data.profilePhoto,
+            });
+          }
+        });
+        activePlayersData = active;
+        recomputeList();
+      },
+      (err) => {
+        console.warn("Could not query skyblock_players:", err);
+      },
+    );
+
+    // Subscribe to islands in islands collection
+    const unsubIslands = onSnapshot(
+      collection(db, "islands"),
+      (snap) => {
+        const meta: Record<string, { islandName?: string; likesCount?: number }> = {};
+        snap.forEach((d) => {
+          const data = d.data() as PersistentIsland;
+          meta[d.id] = {
+            islandName: data.islandName,
+            likesCount: data.likesCount || data.likedBy?.length || 0,
+          };
+        });
+        islandsMeta = meta;
+        recomputeList();
+      },
+      (err) => {
+        console.warn("Could not query islands:", err);
+      },
+    );
+
+    return () => {
+      unsubFriends();
+      unsubUsers();
+      unsubActive();
+      unsubIslands();
+    };
   }, [qbUser]);
 
   // ── In-Game Live Island Chat Real-time Subscription ──────────────────────
@@ -1258,90 +1365,206 @@ export function BlockfortSkyblockUi({
                 )}
 
                 <div className="mt-2">
-                  <p className="text-[12.5px] text-amber-900 font-bold text-center mb-2.5">
+                  <p className="text-[12px] text-amber-950 font-bold text-center mb-2">
                     Visit other players&apos; islands, build together, and play in real-time!
                   </p>
 
-                  <div className="max-h-[290px] overflow-y-auto pr-1 flex flex-col gap-2.5 [scrollbar-width:thin]">
-                    {friendsList.map((player) => {
-                      const isVisitingThis = currentVisitingId === player.uid;
-                      return (
-                        <div
-                          key={player.uid}
-                          className="w-full rounded-[8px] p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.4)] transition-all hover:brightness-105"
-                          style={{
-                            background: isVisitingThis
-                              ? "linear-gradient(135deg, rgba(60, 40, 20, 0.95), rgba(40, 25, 12, 0.95))"
-                              : "rgba(38, 24, 14, 0.92)",
-                            border: isVisitingThis ? "2px solid #f59e0b" : "2px solid #160c04",
-                          }}
-                        >
-                          {/* Left: Square Profile Photo */}
-                          <div className="relative w-12 h-12 rounded-[6px] border-2 border-[#160c04] bg-[#1a0e05] overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
-                            <img
-                              src={player.profilePhoto || "/icons/player-icon-custom.png"}
-                              alt={player.name}
-                              className="w-full h-full object-cover [image-rendering:pixelated]"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/icons/player-icon-custom.png";
-                              }}
-                            />
-                            <span
-                              className={`absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-[#160c04] shadow-sm ${
-                                player.isOnline ? "bg-emerald-400" : "bg-amber-500"
-                              }`}
-                              title={player.isOnline ? "Online" : "Away"}
-                            />
-                          </div>
+                  {/* Friends & All Islands Tabs */}
+                  <div className="flex items-center justify-center gap-2 mb-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setFriendsTab("friends")}
+                      className={`px-3 py-1 rounded-[4px] text-[12px] font-bold transition-all cursor-pointer ${
+                        friendsTab === "friends"
+                          ? "bg-[rgba(50,45,40,0.95)] text-amber-300 border-2 border-amber-500/70 shadow-sm"
+                          : "bg-[rgba(30,24,18,0.7)] text-amber-200/60 border border-white/10 hover:text-white"
+                      }`}
+                      style={{
+                        textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                      }}
+                    >
+                      My Friends ({friendsList.filter((p) => p.isFriend).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFriendsTab("all")}
+                      className={`px-3 py-1 rounded-[4px] text-[12px] font-bold transition-all cursor-pointer ${
+                        friendsTab === "all"
+                          ? "bg-[rgba(50,45,40,0.95)] text-amber-300 border-2 border-amber-500/70 shadow-sm"
+                          : "bg-[rgba(30,24,18,0.7)] text-amber-200/60 border border-white/10 hover:text-white"
+                      }`}
+                      style={{
+                        textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                      }}
+                    >
+                      All Islands ({friendsList.length})
+                    </button>
+                  </div>
 
-                          {/* Center info */}
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-[14px] text-amber-100 font-heading leading-tight truncate [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
-                                {player.name}
-                              </span>
-                              {player.level && (
-                                <span className="px-1.5 py-0.2 rounded-[3px] bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                                  Lv.{player.level}
-                                </span>
-                              )}
-                              {isVisitingThis && (
-                                <span className="px-1.5 py-0.2 rounded-[3px] bg-emerald-500/30 text-emerald-300 text-[10px] font-bold border border-emerald-400/40">
-                                  Current Realm
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-amber-300/80 font-mono truncate">
-                              @{player.username}
-                            </p>
-                            <p className="text-[11px] text-amber-200/65 truncate mt-0.5 font-sans">
-                              {player.islandName || "Skyblock Realm"}
-                            </p>
-                          </div>
+                  {/* Search bar */}
+                  <div className="mb-2.5 px-0.5">
+                    <input
+                      type="text"
+                      value={friendSearch}
+                      onChange={(e) => setFriendSearch(e.target.value)}
+                      placeholder="Search players or islands..."
+                      className="w-full h-8 bg-[rgba(24,16,10,0.85)] border-2 border-[#160c04] rounded-[5px] px-3 text-[12px] text-amber-100 placeholder-amber-200/40 outline-none focus:border-amber-400/80 shadow-inner"
+                      style={{
+                        fontFamily: '"InterDisplay", "Inter", sans-serif',
+                        textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                      }}
+                    />
+                  </div>
 
-                          {/* Right: Grey Button same style as UI kit called 'Visit' */}
-                          <div>
-                            {isVisitingThis ? (
-                              <button
-                                type="button"
-                                className="bf-btn bf-btn--plain !min-w-[76px] !h-8 !text-[12px] opacity-85 cursor-default"
-                                disabled
-                              >
-                                <span className="bf-btn__label">Visiting</span>
-                              </button>
+                  {/* Players / Islands Feed */}
+                  <div className="max-h-[280px] overflow-y-auto pr-1 flex flex-col gap-2 [scrollbar-width:thin]">
+                    {(() => {
+                      const displayedPlayers = friendsList.filter((p) => {
+                        if (friendsTab === "friends" && !p.isFriend) return false;
+                        if (!friendSearch.trim()) return true;
+                        const q = friendSearch.toLowerCase();
+                        return (
+                          p.name.toLowerCase().includes(q) ||
+                          p.username.toLowerCase().includes(q) ||
+                          (p.islandName && p.islandName.toLowerCase().includes(q))
+                        );
+                      });
+
+                      if (displayedPlayers.length === 0) {
+                        return (
+                          <div className="py-6 px-4 text-center rounded-[8px] bg-[rgba(28,20,12,0.85)] border border-amber-900/40">
+                            {friendsTab === "friends" ? (
+                              <>
+                                <p className="text-[13px] font-bold text-amber-200">
+                                  No Friends Added Yet
+                                </p>
+                                <p className="text-[11.5px] text-amber-200/60 mt-1 max-w-xs mx-auto">
+                                  You haven&apos;t added any friends yet. Explore all player islands to visit and play together!
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setFriendsTab("all")}
+                                  className="bf-btn bf-btn--plain !min-w-[120px] !h-8 mt-3 cursor-pointer"
+                                >
+                                  <span className="bf-btn__label">Explore All Islands</span>
+                                </button>
+                              </>
                             ) : (
-                              <button
-                                type="button"
-                                className="bf-btn bf-btn--plain !min-w-[76px] !h-8 !text-[13px] active:scale-95 transition-transform cursor-pointer"
-                                onClick={() => handleVisit(player)}
-                              >
-                                <span className="bf-btn__label">Visit</span>
-                              </button>
+                              <p className="text-[12px] text-amber-200/70">
+                                No player islands found matching &quot;{friendSearch}&quot;.
+                              </p>
                             )}
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      }
+
+                      return displayedPlayers.map((player) => {
+                        const isVisitingThis = currentVisitingId === player.uid;
+                        return (
+                          <div
+                            key={player.uid}
+                            className="w-full rounded-[6px] p-2 sm:p-2.5 flex items-center justify-between gap-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] transition-all hover:brightness-105"
+                            style={{
+                              background: isVisitingThis
+                                ? "rgba(45, 38, 28, 0.95)"
+                                : "rgba(28, 28, 32, 0.88)",
+                              border: isVisitingThis
+                                ? "2px solid #f59e0b"
+                                : "2px solid rgba(12, 12, 14, 0.95)",
+                              fontFamily:
+                                '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                            }}
+                          >
+                            {/* Left: Square Profile Photo with 2px grey border */}
+                            <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-[4px] border-2 border-[rgba(15,15,18,0.95)] bg-[rgba(38,38,42,0.8)] overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
+                              <img
+                                src={player.profilePhoto || "/icons/player-icon-custom.png"}
+                                alt={player.name}
+                                className="w-full h-full object-cover [image-rendering:pixelated]"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "/icons/player-icon-custom.png";
+                                }}
+                              />
+                              <span
+                                className={`absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-[rgba(12,12,14,0.95)] shadow-sm ${
+                                  player.isOnline ? "bg-emerald-400" : "bg-zinc-500"
+                                }`}
+                                title={player.isOnline ? "Online" : "Offline"}
+                              />
+                            </div>
+
+                            {/* Center info */}
+                            <div className="flex-1 min-w-0 text-left">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span
+                                  className="font-black text-[13px] sm:text-[14px] text-white leading-tight truncate"
+                                  style={{
+                                    textShadow:
+                                      "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
+                                  }}
+                                >
+                                  {player.name}
+                                </span>
+                                {player.isFriend && (
+                                  <span className="px-1.5 py-0.2 rounded-[3px] bg-amber-500/20 text-amber-300 text-[9.5px] font-bold border border-amber-500/40">
+                                    Friend
+                                  </span>
+                                )}
+                                {player.isOnline && (
+                                  <span className="px-1.5 py-0.2 rounded-[3px] bg-emerald-500/20 text-emerald-400 text-[9.5px] font-bold border border-emerald-500/40">
+                                    ● Online
+                                  </span>
+                                )}
+                                {isVisitingThis && (
+                                  <span className="px-1.5 py-0.2 rounded-[3px] bg-amber-500/30 text-amber-300 text-[9.5px] font-bold border border-amber-400/50">
+                                    Current Realm
+                                  </span>
+                                )}
+                              </div>
+                              <p
+                                className="text-[10.5px] text-zinc-400 font-mono truncate"
+                                style={{
+                                  textShadow:
+                                    "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                                }}
+                              >
+                                @{player.username}
+                              </p>
+                              <p
+                                className="text-[11px] text-amber-200/90 truncate mt-0.5 font-medium"
+                                style={{
+                                  textShadow:
+                                    "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                                }}
+                              >
+                                🏝️ {player.islandName || "Skyblock Realm"}
+                              </p>
+                            </div>
+
+                            {/* Right: Grey Button called 'Visit' */}
+                            <div>
+                              {isVisitingThis ? (
+                                <button
+                                  type="button"
+                                  className="bf-btn bf-btn--plain !min-w-[76px] !h-8 !text-[12px] opacity-80 cursor-default"
+                                  disabled
+                                >
+                                  <span className="bf-btn__label">Visiting</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="bf-btn bf-btn--plain !min-w-[76px] !h-8 !text-[13px] active:scale-95 transition-transform cursor-pointer"
+                                  onClick={() => handleVisit(player)}
+                                >
+                                  <span className="bf-btn__label">Visit</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
 
@@ -1361,12 +1584,12 @@ export function BlockfortSkyblockUi({
       </AnimatePresence>
 
       {/* ═════════════════════════════════════════════════════════════════════ */}
-      {/* ── IN-GAME LIVE CHAT PREVIEW ON THE RIGHT (Grey Inventory Style) ─── */}
+      {/* ── IN-GAME LIVE CHAT PREVIEW ON THE LEFT (Grey Inventory Style) ──── */}
       {/* ═════════════════════════════════════════════════════════════════════ */}
       {chatPreviewOpen && (
         <aside
           aria-label="Island live chat"
-          className="fixed right-3.5 top-[80px] sm:top-[88px] z-[90] w-[270px] sm:w-[320px] pointer-events-auto rounded-[6px] p-2 sm:p-2.5 flex flex-col gap-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-all select-none"
+          className="fixed left-3.5 top-[54px] sm:top-[60px] z-[90] w-[270px] sm:w-[320px] pointer-events-auto rounded-[6px] p-2 sm:p-2.5 flex flex-col gap-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-all select-none"
           style={{
             background: "rgba(28, 28, 32, 0.88)",
             border: "2px solid rgba(12, 12, 14, 0.95)",
