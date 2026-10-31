@@ -60,6 +60,15 @@ export function MilestoneTracker({ progression }: { progression?: Progression })
   return null;
 }
 
+import { BLOCKS } from "@/engine-sandbox/shared/world";
+import { ITEM_INFO } from "@/components/v2/BlockmanInventory";
+
+function getItemName(id: number | string | undefined): string {
+  if (id === undefined || id === 0) return "";
+  if (typeof id === "string") return ITEM_INFO[id]?.name ?? id.replace(/_/g, " ");
+  return BLOCKS.find((b) => b.id === id)?.name ?? "Block";
+}
+
 /**
  * Inventory bar — pinned nicely near bottom edge, compact size.
  */
@@ -82,6 +91,9 @@ export function V2Hotbar({
 
   if (hotbar.length === 0) return null;
 
+  const activeItem = hotbar[slot];
+  const activeName = getItemName(activeItem);
+
   const handleSlotClick = (i: number) => {
     const now = Date.now();
     if (slot === i && lastTapRef.current.index === i && now - lastTapRef.current.time < 350) {
@@ -95,7 +107,17 @@ export function V2Hotbar({
   };
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] flex justify-center px-2 scale-[0.78] origin-bottom">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] flex flex-col items-center justify-center px-2 scale-[0.78] origin-bottom">
+      {/* Selected Item Badge showing clear name + picture */}
+      {activeName && (
+        <div className="mb-1.5 px-3 py-0.5 rounded-full bg-black/85 border border-amber-400/40 text-[11px] font-black text-amber-300 shadow-lg backdrop-blur-md pointer-events-none animate-in fade-in zoom-in-95 duration-100 flex items-center gap-1.5 whitespace-nowrap [text-shadow:0_1px_2px_#000]">
+          {tileUrls[activeItem] && (
+            <img src={tileUrls[activeItem]} alt="" className="w-4 h-4 object-contain pixelated rounded-sm" />
+          )}
+          <span>{activeName}</span>
+        </div>
+      )}
+
       <div
         role="toolbar"
         aria-label="Inventory"

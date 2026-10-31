@@ -628,81 +628,18 @@ export function BedwarsHud({
             </div>
           </div>
 
-          {/* Right-Side Controls: Movement state & Jump (NO button holders, pure icons) */}
-          <div className="pointer-events-auto fixed right-4 bottom-[max(20px,calc(env(safe-area-inset-bottom)+14px))] z-[88] flex flex-col items-center gap-3 select-none">
-            {/* Crouch / Walk / Run state control icon positioned ABOVE Jump */}
-            {isSkyblock ? (
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => onMovementModeChange?.("walk")}
-                  className={`p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none ${currentMode === 'walk' ? 'opacity-100' : 'opacity-60'}`}
-                  aria-label="Walk"
-                >
-                  <img src={HUD_ASSETS.walkIcon} alt="Walk" className="h-[51px] w-[51px] object-contain pointer-events-none drop-shadow-md" draggable={false} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onMovementModeChange?.("run")}
-                  className={`p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none ${currentMode === 'run' ? 'opacity-100' : 'opacity-60'}`}
-                  aria-label="Run"
-                >
-                  <img src={HUD_ASSETS.runIcon} alt="Run" className="h-[51px] w-[51px] object-contain pointer-events-none drop-shadow-md" draggable={false} />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={cycleMovementMode}
-                className="p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none"
-                aria-label={`Movement state: ${currentMode}. Tap to change.`}
-              >
-                <img
-                  src={currentModeIcon}
-                  alt={currentMode}
-                  className="h-16 w-16 object-contain pointer-events-none drop-shadow-md"
-                  draggable={false}
-                />
-              </button>
-            )}
-
-            {/* Jump Button (raw dark jump button, NO holder) */}
+          {/* Right-Side Controls: Ergonomically clustered for fast thumb switching during PVP */}
+          <div className="pointer-events-auto fixed right-3 sm:right-4 bottom-[max(16px,calc(env(safe-area-inset-bottom)+10px))] z-[88] flex items-end gap-2.5 select-none">
+            {/* Build/Place/Attack Quick Action Trigger (positioned right beside Jump for rapid thumb toggling) */}
             <button
               type="button"
               onPointerDown={(e) => {
                 e.preventDefault();
-                onJump(true);
-              }}
-              onPointerUp={(e) => {
-                e.preventDefault();
-                onJump(false);
-              }}
-              onPointerLeave={(e) => {
-                e.preventDefault();
-                onJump(false);
-              }}
-              onPointerCancel={(e) => {
-                e.preventDefault();
-                onJump(false);
-              }}
-              className="p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none"
-              aria-label="Jump"
-            >
-              <img
-                src={HUD_ASSETS.jumpIcon}
-                alt="Jump"
-                className="h-[74px] w-[74px] sm:h-[83px] sm:w-[83px] object-contain pointer-events-none drop-shadow-md"
-                draggable={false}
-              />
-            </button>
-          </div>
-
-          {/* Build/Place/Shoot Quick Action Trigger (positioned left of Jump, NO button holder) */}
-          <div className="pointer-events-auto fixed right-[88px] bottom-[max(20px,calc(env(safe-area-inset-bottom)+14px))] z-[88] select-none">
-            <button
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
+                try {
+                  if (typeof window !== "undefined" && "vibrate" in navigator) {
+                    navigator.vibrate(25); // Vibrate on placing/attacking
+                  }
+                } catch {}
                 onPlace?.(true);
               }}
               onPointerUp={(e) => {
@@ -723,10 +660,79 @@ export function BedwarsHud({
               <img
                 src={HUD_ASSETS.rightShoot}
                 alt="Action"
-                className="h-14 w-14 object-contain pointer-events-none drop-shadow-md"
+                className="h-14 w-14 sm:h-16 sm:w-16 object-contain pointer-events-none drop-shadow-md"
                 draggable={false}
               />
             </button>
+
+            {/* Stacked Movement Mode (Walk/Run/Crouch) & Jump Button */}
+            <div className="flex flex-col items-center gap-2">
+              {/* Movement mode switch */}
+              {isSkyblock ? (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onMovementModeChange?.("walk")}
+                    className={`p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none ${currentMode === 'walk' ? 'opacity-100 scale-105' : 'opacity-60'}`}
+                    aria-label="Walk"
+                  >
+                    <img src={HUD_ASSETS.walkIcon} alt="Walk" className="h-11 w-11 object-contain pointer-events-none drop-shadow-md" draggable={false} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onMovementModeChange?.("run")}
+                    className={`p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none ${currentMode === 'run' ? 'opacity-100 scale-105' : 'opacity-60'}`}
+                    aria-label="Run"
+                  >
+                    <img src={HUD_ASSETS.runIcon} alt="Run" className="h-11 w-11 object-contain pointer-events-none drop-shadow-md" draggable={false} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={cycleMovementMode}
+                  className="p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none"
+                  aria-label={`Movement state: ${currentMode}. Tap to change.`}
+                >
+                  <img
+                    src={currentModeIcon}
+                    alt={currentMode}
+                    className="h-12 w-12 sm:h-14 sm:w-14 object-contain pointer-events-none drop-shadow-md"
+                    draggable={false}
+                  />
+                </button>
+              )}
+
+              {/* Jump Button */}
+              <button
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  onJump(true);
+                }}
+                onPointerUp={(e) => {
+                  e.preventDefault();
+                  onJump(false);
+                }}
+                onPointerLeave={(e) => {
+                  e.preventDefault();
+                  onJump(false);
+                }}
+                onPointerCancel={(e) => {
+                  e.preventDefault();
+                  onJump(false);
+                }}
+                className="p-0 border-0 bg-transparent outline-none active:scale-95 transition-transform cursor-pointer select-none"
+                aria-label="Jump"
+              >
+                <img
+                  src={HUD_ASSETS.jumpIcon}
+                  alt="Jump"
+                  className="h-[72px] w-[72px] sm:h-[80px] sm:w-[80px] object-contain pointer-events-none drop-shadow-md"
+                  draggable={false}
+                />
+              </button>
+            </div>
           </div>
         </>
       )}

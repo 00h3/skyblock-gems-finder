@@ -4353,8 +4353,8 @@ export function SandboxGame({
           rig.update(dt, camera, _pivot, world!);
         }
 
-        // Skyblock intro: sweeping orbit that descends onto the island while
-        // the phoenix leads the camera.
+        // Skyblock intro: smooth sweeping orbit that descends onto the island while
+        // the phoenix glides gracefully in front of the camera.
         if (cutsceneRef.current.active) {
           const cs = cutsceneRef.current;
           cs.t += dt;
@@ -4364,20 +4364,33 @@ export function SandboxGame({
           const smooth = (v: number) => v * v * (3 - 2 * v);
           const k = Math.min(1, cs.t / CUTSCENE_SECONDS);
           const orbit = smooth(Math.min(1, k / 0.82));
-          const ang = -0.6 + orbit * Math.PI * 1.45;
-          const radius = 50 - orbit * 30;
-          camera.position.set(Math.cos(ang) * radius, 42 - orbit * 20 + Math.sin(cs.t * 0.7) * 0.6, Math.sin(ang) * radius);
+          const ang = -0.6 + orbit * Math.PI * 1.35;
+          const radius = 48 - orbit * 28;
+          camera.position.set(
+            Math.cos(ang) * radius,
+            40 - orbit * 18 + Math.sin(cs.t * 0.5) * 0.4,
+            Math.sin(ang) * radius,
+          );
 
           csLook.set(0, 17, 0);
           const phoenix = phoenixModelRef.current;
           if (phoenix) {
             phoenix.scale.setScalar(0.028);
-            const pAng = ang + 1.05;
-            const pR = 13 + (1 - orbit) * 7;
-            const pY = 25 - orbit * 4 + Math.sin(cs.t * 2.4) * 0.8;
-            phoenix.position.set(Math.cos(pAng) * pR, pY, Math.sin(pAng) * pR);
-            phoenix.lookAt(Math.cos(pAng + 0.12) * pR, pY, Math.sin(pAng + 0.12) * pR);
-            csLook.lerp(phoenix.position, 0.4 * (1 - orbit * 0.6));
+            const pAng = ang + 0.45;
+            const pR = 14 + (1 - orbit) * 6;
+            const pY = 24 - orbit * 4 + Math.sin(cs.t * 0.8) * 0.4;
+            const px = Math.cos(pAng) * pR;
+            const pz = Math.sin(pAng) * pR;
+            phoenix.position.set(px, pY, pz);
+
+            // Compute smooth forward flight tangent so orientation never jitters
+            const nextAng = pAng + 0.08;
+            const npx = Math.cos(nextAng) * pR;
+            const npz = Math.sin(nextAng) * pR;
+            _scratchVec.set(npx, pY, npz);
+            phoenix.lookAt(_scratchVec);
+
+            csLook.lerp(phoenix.position, 0.22);
           }
           camera.lookAt(csLook);
 

@@ -205,8 +205,8 @@ export function BlockfortSkyblockUi({
   // Keep in-sync real balance (highest of purse or global gold, sync changes)
   const realBalance = Math.max(econ.purse, globalGold);
 
-  // Buttons collapsible state
-  const [buttonsExpanded, setButtonsExpanded] = useState(true);
+  // Buttons collapsible state - naturally minimized on load to maximize screen visibility
+  const [buttonsExpanded, setButtonsExpanded] = useState(false);
 
   // Active modals
   const [manorOpen, setManorOpen] = useState(false);
@@ -220,9 +220,9 @@ export function BlockfortSkyblockUi({
   const [friendsTab, setFriendsTab] = useState<"friends" | "all">("friends");
   const [friendSearch, setFriendSearch] = useState("");
 
-  // In-Game Live Chat Preview state
-  const [chatPreviewOpen, setChatPreviewOpen] = useState(true);
-  const [chatPreviewMinimized, setChatPreviewMinimized] = useState(false);
+  // In-Game Live Chat Preview state - minimized on initial load
+  const [chatPreviewOpen, setChatPreviewOpen] = useState(false);
+  const [chatPreviewMinimized, setChatPreviewMinimized] = useState(true);
   const [chatMessages, setChatMessages] = useState<SkyblockChatMessage[]>([]);
   const [quickInput, setQuickInput] = useState("");
   const chatScrollRef = useRef<HTMLDivElement>(null);

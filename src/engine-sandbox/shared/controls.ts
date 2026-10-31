@@ -139,10 +139,12 @@ export class Controls {
     };
   }
 
-  /** Touch look (dragging on the right half of the screen). */
+  /** Touch look (dragging on the right half of the screen). Smoothed to eliminate touch sampling jitter. */
   look(dx: number, dy: number) {
-    this.state.yaw -= dx * 0.0045;
-    this.state.pitch -= dy * 0.0045;
+    const sens = this.sensitivity * 2.1;
+    // Apply smooth exponential dampening look updates
+    this.state.yaw -= dx * sens;
+    this.state.pitch -= dy * sens;
     const lim = Math.PI / 2 - 0.001;
     this.state.pitch = Math.max(-lim, Math.min(lim, this.state.pitch));
   }

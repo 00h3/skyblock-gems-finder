@@ -48,6 +48,7 @@ import { incrementOnlineTime } from "../lib/daily-events";
 import { GlobalFragmentsPopup } from "@/components/GlobalFragmentsPopup";
 import { GlobalEventsPopup } from "@/components/GlobalEventsPopup";
 import { GlobalSettingsPopup } from "@/components/GlobalSettingsPopup";
+import { TouchFeedbackRipples } from "@/components/TouchFeedbackRipples";
 import { GlobalLoader } from "@/components/GlobalLoader";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
 import { ShinyButton } from "@/components/ui/shiny-button";
@@ -697,6 +698,7 @@ function RootComponent() {
         <GlobalFragmentsPopup />
         <GlobalEventsPopup />
         <GlobalSettingsPopup />
+        <TouchFeedbackRipples />
         <Toaster position="top-center" richColors />
       </AuthProvider>
     </QueryClientProvider>

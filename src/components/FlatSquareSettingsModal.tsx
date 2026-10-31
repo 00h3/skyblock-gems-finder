@@ -248,8 +248,15 @@ export function FlatSquareSettingsModal({
           </button>
         </div>
 
-        {/* Content list (Scrollable) */}
-        <div className="space-y-6 overflow-y-auto pr-1 flex-1 custom-scrollbar">
+        {/* Content list (Scrollable with GPU hardware acceleration & zero jitter) */}
+        <div
+          className="space-y-6 overflow-y-auto pr-1 flex-1 custom-scrollbar transition-all duration-150"
+          style={{
+            willChange: "scroll-position",
+            WebkitOverflowScrolling: "touch",
+            contain: "layout style",
+          }}
+        >
           {/* SECTION 1: GRAPHICS QUALITY */}
           <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-3">
             <div className="flex items-center justify-between">
