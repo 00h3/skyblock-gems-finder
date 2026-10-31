@@ -198,6 +198,7 @@ export function BlockfortSkyblockUi({
   const { qbUser } = useAuth();
   const econ = useSkyblockEconomy();
   const globalGold = useCurrency("gold");
+  const starCoins = useCurrency("starCoins");
 
   // Keep in-sync real balance (highest of purse or global gold, sync changes)
   const realBalance = Math.max(econ.purse, globalGold);
@@ -656,35 +657,67 @@ export function BlockfortSkyblockUi({
 
   return (
     <>
-      {/* ── TOP-LEFT: Star Coin Balance Chip with Luxury Blur ────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, filter: "blur(10px)", y: -10 }}
-        animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-        transition={{ type: "spring", damping: 24, stiffness: 350 }}
-        className="fixed left-3 top-3 z-40 pointer-events-auto flex items-center gap-2 select-none"
-      >
-        <div className="balance" aria-label="Star Coins">
-          <i className="bf-icon bf-icon--coin" />
-          <span id="stars">{realBalance.toLocaleString()}</span>
-          <button
-            type="button"
-            className="plus"
-            onClick={() => setShopOpen(true)}
-            aria-label="Get more in the shop"
-            title="Open Shop"
-          >
-            +
-          </button>
-        </div>
-      </motion.div>
-
-      {/* ── RIGHT-RAIL: Ultra-compact, Sleek Collapsible Buttons with Toggle ─── */}
+      {/* ── RIGHT-TOP: Small Grey Inventory-Style Currency + Sleek Menu Toggle ─── */}
       <div
         className="fixed right-3 top-3 z-40 pointer-events-auto flex flex-col items-end gap-1 select-none"
         style={{ transformOrigin: "top right" }}
       >
-        {/* Toggle button in Blockfort style: X to close, Menu to open */}
-        <div className="flex items-center gap-1 mb-0.5">
+        {/* Top row: Small grey inventory currency + Toggle button */}
+        <div className="flex items-center gap-1.5 mb-0.5">
+          {/* Small Grey Inventory Style Currency (Gold & Star Coins) */}
+          <div
+            onClick={() => setShopOpen(true)}
+            className="flex items-center gap-2 px-2.5 py-1 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
+            style={{
+              background: "rgba(28, 28, 32, 0.88)",
+              border: "2px solid rgba(12, 12, 14, 0.95)",
+              fontFamily:
+                '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}
+            title="Gold & Star Coins (Click to open shop)"
+          >
+            {/* Gold */}
+            <div className="flex items-center gap-1">
+              <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0 overflow-hidden">
+                <img
+                  src="https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png"
+                  alt="Gold"
+                  className="w-full h-full object-contain pointer-events-none [image-rendering:pixelated]"
+                />
+              </div>
+              <span
+                className="text-[11px] font-bold text-amber-400 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                {(globalGold || econ.purse || 0).toLocaleString()}
+              </span>
+            </div>
+
+            <div className="w-[1px] h-3 bg-white/10 shrink-0" />
+
+            {/* Star Coins */}
+            <div className="flex items-center gap-1">
+              <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0 overflow-hidden">
+                <img
+                  src="https://file.garden/alGOOylwpAfCa6qP/IMG_7269.png"
+                  alt="Star Coins"
+                  className="w-full h-full object-contain pointer-events-none [image-rendering:pixelated]"
+                />
+              </div>
+              <span
+                className="text-[11px] font-bold text-pink-400 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                {(starCoins || realBalance || 0).toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          {/* Toggle button in Blockfort style: X to close, Menu to open */}
           {buttonsExpanded ? (
             <motion.button
               whileTap={{ scale: 0.92 }}
