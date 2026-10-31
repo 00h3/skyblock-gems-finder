@@ -265,7 +265,7 @@ export function FlatSquareSettingsModal({
   return createPortal(
     <div
       id="flat-square-settings-fullscreen"
-      className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center bg-black/75 p-3 sm:p-5 backdrop-blur-md select-none animate-in fade-in duration-150"
+      className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center bg-transparent p-3 sm:p-5 backdrop-blur-none select-none animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

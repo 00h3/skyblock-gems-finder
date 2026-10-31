@@ -1,4 +1,5 @@
 import { useEffect, useState, type RefObject } from "react";
+import { motion } from "motion/react";
 import {
   Lock,
   Users,
@@ -411,10 +412,25 @@ export function GameSettingsModal({
   motionBlur?: boolean;
   onToggleMotionBlur?: () => void;
 }) {
-  const modes: { id: CamMode; label: string; icon: string }[] = [
-    { id: "first", label: "1st Person", icon: "👁️" },
-    { id: "third", label: "3rd Person", icon: "🧍" },
-    { id: "top", label: "Top-Down", icon: "🗺️" },
+  type SettingsTab = "camera" | "controls" | "graphics" | "sky" | "server";
+  const [activeTab, setActiveTab] = useState<SettingsTab>("camera");
+
+  const [bfFit, setBfFit] = useState(1);
+  useEffect(() => {
+    const calc = () => {
+      const scaleX = (window.innerWidth - 24) / 840;
+      const scaleY = (window.innerHeight - 36) / 510;
+      setBfFit(Math.min(1, Math.max(0.68, Math.min(scaleX, scaleY))));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+
+  const modes: { id: CamMode; label: string; icon: string; desc: string }[] = [
+    { id: "first", label: "1st Person", icon: "👁️", desc: "Precision mining & close interaction" },
+    { id: "third", label: "3rd Person", icon: "🧍", desc: "Classic third-person hero perspective" },
+    { id: "top", label: "Top-Down", icon: "🗺️", desc: "Bird's eye isometric tactical overview" },
   ];
 
   const [cameraFov, setCameraFov] = useState<number>(() => {
@@ -456,283 +472,374 @@ export function GameSettingsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#0c1017]/95 backdrop-blur-2xl text-white overflow-y-auto"
+      className="bf-overlay is-open"
+      style={{ background: "transparent", backdropFilter: "none", WebkitBackdropFilter: "none" }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl mx-auto flex-1 flex flex-col p-4 sm:p-6 md:p-8"
-        onClick={(e) => e.stopPropagation()}
+        className="bf-modal-wrap bf-modal-wrap--store"
+        style={{ transform: `scale(${bfFit})`, transformOrigin: "center center" }}
+        onClick={onClose}
       >
-        {/* Top Header Bar */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/10">
-          <div className="flex items-center gap-3.5">
-            <div className="w-14 h-14 shrink-0 flex items-center justify-center">
-              <img
-                src={HUD_ASSETS.menu}
-                alt=""
-                className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
-                draggable={false}
-              />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white font-lilita">
-                Game Settings
-              </h1>
-              <p className="text-[12px] text-zinc-400">
-                Configure controls, camera view, graphics, and Skyblock atmosphere
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close Settings"
-            className="relative w-11 h-11 p-0 border-0 bg-transparent flex items-center justify-center active:scale-90 transition-transform cursor-pointer outline-none"
-          >
-            <img
-              src={HUD_ASSETS.button}
-              alt=""
-              className="w-full h-full object-contain pointer-events-none drop-shadow-md select-none"
-              draggable={false}
-            />
-            <span className="absolute inset-0 flex items-center justify-center text-white text-lg font-black select-none pointer-events-none">
-              ✕
+        <motion.section
+          initial={{ opacity: 0, scale: 0.94, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.94, y: 12 }}
+          transition={{ type: "spring", damping: 25, stiffness: 380 }}
+          className="bf-modal bf-panel bf-settings-board"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="settings-title"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Title plate matching Shop */}
+          <div className="bf-panel__title">
+            <span className="bf-plate bf-plate--title" id="settings-title">
+              Settings
             </span>
-          </button>
-        </div>
-
-        {/* Settings Grid */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
-          {/* Section 1: Camera & View */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-3 text-amber-400 font-bold text-sm">
-              <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-                <img src={HUD_ASSETS.video} alt="" className="w-full h-full object-contain drop-shadow-md" />
-              </div>
-              <span className="text-base font-extrabold">Camera & Perspective</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {modes.map((m) => {
-                const active = camMode === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => onCamMode(m.id)}
-                    className={`press flex flex-col items-center justify-center p-3 rounded-xl border transition cursor-pointer ${
-                      active
-                        ? "bg-amber-400/20 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.2)] font-black"
-                        : "bg-white/[0.03] border-white/10 text-white/70 hover:bg-white/[0.07] font-semibold"
-                    }`}
-                  >
-                    <span className="text-2xl mb-1">{m.icon}</span>
-                    <span className="text-[11px]">{m.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Field of View slider */}
-            <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-white/10">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-bold text-white/90">Field of View (FOV)</span>
-                <span className="text-[11px] font-mono font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
-                  {cameraFov}°
-                </span>
-              </div>
-              <input
-                type="range"
-                min={60}
-                max={95}
-                step={5}
-                value={cameraFov}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setCameraFov(val);
-                  try {
-                    localStorage.setItem("qb_camera_fov", String(val));
-                  } catch {}
-                  window.dispatchEvent(new CustomEvent("bm-fov", { detail: val }));
-                }}
-                className="w-full h-2 bg-white/20 accent-amber-400 rounded-lg cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] font-mono text-white/40">
-                <span>Narrow (60°)</span>
-                <span>Standard (72°)</span>
-                <span>Wide (95°)</span>
-              </div>
-            </div>
           </div>
 
-          {/* Section 2: Controls & Joystick Direction */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-3 text-sky-400 font-bold text-sm">
-              <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-                <img src={HUD_ASSETS.arrow} alt="" className="w-full h-full object-contain drop-shadow-md" />
-              </div>
-              <span className="text-base font-extrabold">Joystick & Movement</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                <div>
-                  <div className="text-[12.5px] font-bold text-white">Invert Vertical (Y-Axis)</div>
-                  <div className="text-[10.5px] text-zinc-400">
-                    {invertJoyY
-                      ? "Up goes backward, Down goes forward"
-                      : "Standard (Up goes forward, Down goes backward)"}
-                  </div>
-                </div>
-                <button
-                  onClick={onToggleInvertJoyY}
-                  className={`press px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                    invertJoyY
-                      ? "bg-amber-400 text-zinc-950 shadow-sm"
-                      : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/15"
-                  }`}
-                >
-                  {invertJoyY ? "Inverted" : "Standard"}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                <div>
-                  <div className="text-[12.5px] font-bold text-white">
-                    Invert Horizontal (X-Axis)
-                  </div>
-                  <div className="text-[10.5px] text-zinc-400">
-                    {invertJoyX
-                      ? "Right goes left, Left goes right"
-                      : "Standard (Right goes right, Left goes left)"}
-                  </div>
-                </div>
-                <button
-                  onClick={onToggleInvertJoyX}
-                  className={`press px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                    invertJoyX
-                      ? "bg-amber-400 text-zinc-950 shadow-sm"
-                      : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/15"
-                  }`}
-                >
-                  {invertJoyX ? "Inverted" : "Standard"}
-                </button>
-              </div>
-            </div>
+          {/* Side category tabs using the EXACT same ribbon buttons as Shop, styled in grey */}
+          <div className="bf-panel__side">
+            <button
+              type="button"
+              className={`bf-tab bf-tab--grey ${activeTab === "camera" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("camera")}
+            >
+              Camera
+            </button>
+            <button
+              type="button"
+              className={`bf-tab bf-tab--grey ${activeTab === "controls" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("controls")}
+            >
+              Controls
+            </button>
+            <button
+              type="button"
+              className={`bf-tab bf-tab--grey ${activeTab === "graphics" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("graphics")}
+            >
+              Graphics
+            </button>
+            <button
+              type="button"
+              className={`bf-tab bf-tab--grey ${activeTab === "sky" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("sky")}
+            >
+              Sky
+            </button>
+            <button
+              type="button"
+              className={`bf-tab bf-tab--grey ${activeTab === "server" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("server")}
+            >
+              Server
+            </button>
           </div>
 
-          {/* Section 3: Skyblock Atmosphere & Ambient Presets */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                <Sparkles className="w-4 h-4" />
-                <span className="text-base font-extrabold text-white">Atmosphere & Ambient</span>
-              </div>
-              <span className="text-[11px] font-semibold text-white/50">
-                {ATMOSPHERE_OPTIONS.find((o) =>
-                  o.id === atmosphere ||
-                  (o.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
-                  (o.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"))
-                )?.label ?? "Day"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              {ATMOSPHERE_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const active =
-                  atmosphere === opt.id ||
-                  (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
-                  (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => handleAtmosphereChange(opt.id)}
-                    className={`press flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition cursor-pointer relative overflow-hidden ${
-                      active
-                        ? `${opt.activeClasses} font-black`
-                        : "bg-white/[0.03] border-white/10 text-white/70 hover:bg-white/[0.07]"
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 mb-1 ${active ? "" : opt.iconColor}`} />
-                    <span className="text-[11px] font-bold leading-tight">{opt.label}</span>
-                    <span className="text-[9.5px] text-white/50 mt-0.5 leading-tight">{opt.sub}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section 4: Graphics & Performance */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
-              <Sliders className="w-4 h-4" />
-              <span>Graphics Quality</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {(["low", "medium", "high", "uhd"] as const).map((q) => {
-                const active = qualityPref === q;
-                return (
-                  <button
-                    key={q}
-                    onClick={() => onQualityPref?.(q)}
-                    className={`press py-2.5 rounded-xl text-xs font-extrabold uppercase transition cursor-pointer ${
-                      active
-                        ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.35)]"
-                        : "bg-white/[0.03] border border-white/10 text-white/70 hover:bg-white/[0.07]"
-                    }`}
-                  >
-                    {q === "uhd" ? "UHD 4K" : q}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="text-[11px] text-zinc-400">
-              {qualityPref === "uhd"
-                ? "Old UHD 4K: Crystal-clear native 4K resolution, 0% pixelation, 4096 dynamic soft shadows & maximum visual fidelity."
-                : qualityPref === "high"
-                ? "Full dynamic resolution, high-precision shaders & ultra-smooth 60fps."
-                : qualityPref === "medium"
-                  ? "Balanced resolution and optimized shadow maps."
-                  : "Battery saver mode for low-power mobile devices."}
-            </div>
-
-            {/* Motion Blur & Ultra Smoothness */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10 mt-1">
-              <div>
-                <div className="text-[13px] font-bold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>AAA Game Motion Blur & High-FPS Smoothness</span>
-                </div>
-                <div className="text-[10.5px] text-zinc-400 mt-0.5">
-                  Cinematic velocity blur when moving & turning (replicates buttery 600 FPS AAA fluidity)
-                </div>
-              </div>
-              <button
-                onClick={onToggleMotionBlur}
-                className={`press px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                  motionBlur
-                    ? "bg-cyan-500 text-zinc-950 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                    : "bg-white/10 text-white/60 hover:bg-white/15"
-                }`}
-              >
-                {motionBlur ? "ON" : "OFF"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer info & close */}
-        <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-400">
-          <div>
-            {privateServer
-              ? `Private Server (${privateServer.privacy === "friends" ? "Friends only" : "Global"})`
-              : "Public Server • Skyblock Cosmic Spark"}
-          </div>
+          {/* Yellow round close X button anchored top-right */}
           <button
+            type="button"
+            className="bf-close bf-panel__close"
+            aria-label="Close Settings"
             onClick={onClose}
-            className="press px-5 py-2 rounded-xl bg-amber-400 text-zinc-950 font-bold text-xs hover:bg-amber-300 transition cursor-pointer"
           >
-            Done
+            ✕
           </button>
-        </div>
+
+          {/* Settings main content divided into polished grey sections */}
+          <div className="bf-settings-content">
+            {/* ── TAB 1: CAMERA ─────────────────────────────────────────── */}
+            {activeTab === "camera" && (
+              <div className="flex flex-col gap-3">
+                <div className="bf-settings-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-black text-[15px] text-white flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-cyan-400" />
+                      Perspective View
+                    </span>
+                    <span className="text-[11px] text-zinc-400 font-semibold">
+                      Current: {modes.find((m) => m.id === camMode)?.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {modes.map((m) => {
+                      const isActive = camMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => onCamMode(m.id)}
+                          className={`bf-btn-grey flex flex-col items-center justify-center p-3 text-center transition cursor-pointer ${
+                            isActive ? "is-active" : ""
+                          }`}
+                        >
+                          <span className="text-2xl mb-1">{m.icon}</span>
+                          <span className="text-[13px] font-black">{m.label}</span>
+                          <span className="text-[9.5px] text-zinc-300/80 mt-0.5 leading-tight">
+                            {m.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="bf-settings-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-black text-[15px] text-white flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-amber-400" />
+                      Field of View (FOV)
+                    </span>
+                    <span className="text-[12px] font-mono font-black text-amber-300 bg-black/40 px-2.5 py-0.5 rounded-md border border-white/10">
+                      {cameraFov}°
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={60}
+                    max={95}
+                    step={1}
+                    value={cameraFov}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setCameraFov(val);
+                      try {
+                        localStorage.setItem("qb_camera_fov", String(val));
+                      } catch {}
+                      window.dispatchEvent(new CustomEvent("bm-fov", { detail: val }));
+                    }}
+                    className="w-full h-2.5 bg-zinc-700/80 accent-amber-400 rounded-lg cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400 mt-1">
+                    <span>Narrow (60°)</span>
+                    <span>Standard (72°)</span>
+                    <span>Wide (95°)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 2: CONTROLS ───────────────────────────────────────── */}
+            {activeTab === "controls" && (
+              <div className="flex flex-col gap-3">
+                <div className="bf-settings-card flex flex-col gap-2.5">
+                  <div className="bf-settings-row">
+                    <div>
+                      <div className="text-[14px] font-black text-white">Invert Vertical (Y-Axis)</div>
+                      <div className="text-[11px] text-zinc-400">
+                        {invertJoyY
+                          ? "Inverted (Push up to move back, pull down to move forward)"
+                          : "Standard (Push up to move forward, pull down to move back)"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onToggleInvertJoyY}
+                      className={`bf-btn-grey !min-w-[95px] text-[12px] font-black ${
+                        invertJoyY ? "is-active" : ""
+                      }`}
+                    >
+                      {invertJoyY ? "Inverted" : "Standard"}
+                    </button>
+                  </div>
+
+                  <div className="bf-settings-row">
+                    <div>
+                      <div className="text-[14px] font-black text-white">Invert Horizontal (X-Axis)</div>
+                      <div className="text-[11px] text-zinc-400">
+                        {invertJoyX
+                          ? "Inverted (Push right to go left, pull left to go right)"
+                          : "Standard (Push right to go right, pull left to go left)"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onToggleInvertJoyX}
+                      className={`bf-btn-grey !min-w-[95px] text-[12px] font-black ${
+                        invertJoyX ? "is-active" : ""
+                      }`}
+                    >
+                      {invertJoyX ? "Inverted" : "Standard"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bf-settings-card">
+                  <div className="text-[13px] font-black text-white mb-1">🎮 Control Schemes</div>
+                  <p className="text-[11.5px] text-zinc-300/80 leading-relaxed">
+                    • <strong>Mobile:</strong> Use the left virtual thumbstick to walk or run. Swipe on the right half of the screen to rotate your camera.
+                    <br />
+                    • <strong>Desktop:</strong> WASD keys to move, Space to jump, double-tap W to sprint. Click anywhere inside the viewport to look around.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 3: GRAPHICS ───────────────────────────────────────── */}
+            {activeTab === "graphics" && (
+              <div className="flex flex-col gap-3">
+                <div className="bf-settings-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-black text-[15px] text-white flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-purple-400" />
+                      Visual Fidelity & Resolution
+                    </span>
+                    <span className="text-[11px] text-purple-300 font-bold uppercase">
+                      Preset: {qualityPref}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {(["low", "medium", "high", "uhd"] as const).map((q) => {
+                      const isActive = qualityPref === q;
+                      return (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => onQualityPref?.(q)}
+                          className={`bf-btn-grey py-2.5 text-center transition cursor-pointer ${
+                            isActive ? "is-active font-black" : "font-semibold"
+                          }`}
+                        >
+                          <span className="text-[12px]">{q === "uhd" ? "UHD 4K" : q.toUpperCase()}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+                    {qualityPref === "uhd"
+                      ? "UHD 4K: Crystal-clear native resolution, 0% pixelation, 4096 dynamic soft shadows & maximum visual fidelity."
+                      : qualityPref === "high"
+                        ? "High: Full dynamic resolution, high-precision shaders & ultra-smooth 60fps."
+                        : qualityPref === "medium"
+                          ? "Medium: Balanced resolution and optimized shadow maps."
+                          : "Low: Battery saver mode for low-power mobile devices."}
+                  </p>
+                </div>
+
+                <div className="bf-settings-card">
+                  <div className="bf-settings-row">
+                    <div>
+                      <div className="text-[13.5px] font-black text-white flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>AAA Velocity Motion Blur</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">
+                        Fluid camera shutter blur when turning & moving (buttery smooth game feel)
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onToggleMotionBlur}
+                      className={`bf-btn-grey !min-w-[85px] text-[12px] font-black ${
+                        motionBlur ? "is-active" : ""
+                      }`}
+                    >
+                      {motionBlur ? "ON" : "OFF"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 4: SKY & ATMOSPHERE ───────────────────────────────── */}
+            {activeTab === "sky" && (
+              <div className="bf-settings-card">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-black text-[15px] text-white flex items-center gap-2">
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    Atmosphere & Ambience
+                  </span>
+                  <span className="text-[11px] text-amber-300 font-bold">
+                    Active: {ATMOSPHERE_OPTIONS.find((o) => o.id === atmosphere)?.label ?? "Day"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {ATMOSPHERE_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const isActive =
+                      atmosphere === opt.id ||
+                      (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
+                      (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleAtmosphereChange(opt.id)}
+                        className={`bf-btn-grey flex flex-col items-center justify-center p-2.5 text-center transition cursor-pointer ${
+                          isActive ? "is-active" : ""
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 mb-1 ${isActive ? "text-amber-300" : opt.iconColor}`} />
+                        <span className="text-[12px] font-black leading-tight text-white">{opt.label}</span>
+                        <span className="text-[9.5px] text-zinc-300/80 mt-0.5 leading-tight">{opt.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 5: SERVER ─────────────────────────────────────────── */}
+            {activeTab === "server" && (
+              <div className="flex flex-col gap-3">
+                <div className="bf-settings-card flex flex-col gap-2.5">
+                  <div className="bf-settings-row">
+                    <div>
+                      <div className="text-[14px] font-black text-white">Server Connection</div>
+                      <div className="text-[11px] text-zinc-400">
+                        {privateServer
+                          ? `Private Island Realm (${privateServer.privacy === "friends" ? "Friends only" : "Password Protected"})`
+                          : "QBlock Public Skyblock Cluster (Real-Time Multiplayer)"}
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Connected
+                    </span>
+                  </div>
+
+                  <div className="bf-settings-row">
+                    <div>
+                      <div className="text-[14px] font-black text-white">Reset Settings</div>
+                      <div className="text-[11px] text-zinc-400">
+                        Restore default camera FOV (72°), high quality, and standard controls
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onCamMode("third");
+                        setCameraFov(72);
+                        try {
+                          localStorage.setItem("qb_camera_fov", "72");
+                        } catch {}
+                        window.dispatchEvent(new CustomEvent("bm-fov", { detail: 72 }));
+                        onQualityPref?.("high");
+                        handleAtmosphereChange("normal");
+                      }}
+                      className="bf-btn-grey !min-w-[95px] text-[12px] font-black hover:text-amber-300"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom action row with Close button */}
+          <div className="flex justify-center mt-3 pt-2 border-t border-[#8c7355]/40">
+            <button
+              type="button"
+              className="bf-btn bf-btn--plain !min-w-[120px] !h-9 text-[13px] font-black cursor-pointer"
+              onClick={onClose}
+            >
+              <span className="bf-btn__label">Close Settings</span>
+            </button>
+          </div>
+        </motion.section>
       </div>
     </div>
   );

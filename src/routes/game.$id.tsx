@@ -11688,7 +11688,6 @@ function EngineGame({
               );
             }
           }}
-          onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
 

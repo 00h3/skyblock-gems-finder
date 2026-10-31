@@ -139,14 +139,12 @@ interface Props {
   onEquipHotbar?: (blockType: number | string) => void;
   hotbar?: (number | string)[];
   tileUrls?: Record<number | string, string>;
-  onOpenSettings?: () => void;
 }
 
 export function BlockfortSkyblockUi({
   onEquipHotbar,
   hotbar = [],
   tileUrls = {},
-  onOpenSettings,
 }: Props) {
   const econ = useSkyblockEconomy();
   const globalGold = useCurrency("gold");
@@ -415,23 +413,12 @@ export function BlockfortSkyblockUi({
               <motion.button
                 whileTap={{ scale: 0.93 }}
                 type="button"
-                className="bf-btn bf-btn--plain bf-btn--mini"
+                className="bf-btn bf-btn--plain bf-btn--mini !min-w-[96px] !min-h-[30px] cursor-pointer touch-manipulation active:scale-95"
                 onClick={() => setQuestsOpen(true)}
-                title="Island Quests"
+                title="Daily Quests"
               >
                 <span className="bf-btn__label">Quests</span>
               </motion.button>
-              {onOpenSettings && (
-                <motion.button
-                  whileTap={{ scale: 0.93 }}
-                  type="button"
-                  className="bf-btn bf-btn--plain bf-btn--mini"
-                  onClick={onOpenSettings}
-                  title="Settings"
-                >
-                  <span className="bf-btn__label">Settings</span>
-                </motion.button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -868,41 +855,75 @@ export function BlockfortSkyblockUi({
                   ✕
                 </button>
 
-                <div className="flex flex-col gap-2 mt-4 px-2">
+                <div className="flex flex-col gap-2.5 mt-4 px-2 max-h-[380px] overflow-y-auto pr-1">
                   {econ.dailyQuests.map((q) => {
                     const pct = Math.min(100, Math.round((q.current / q.target) * 100));
                     const isDone = q.current >= q.target;
+                    const isClaimed = Boolean(q.claimed);
+
+                    const handleQuestAction = () => {
+                      if (isDone && !isClaimed) {
+                        handleClaimQuest(q);
+                      } else if (!isDone) {
+                        showToast(`In progress: ${q.title} (${q.current}/${q.target}). ${q.desc}`);
+                      } else {
+                        showToast(`Quest already claimed today! +${q.reward} Star Coins received.`);
+                      }
+                    };
+
                     return (
-                      <div key={q.id} className="bf-row flex items-center justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-black text-[15px]">{q.title}</span>
-                            <span className="text-[12px] font-bold text-amber-700">
+                      <div
+                        key={q.id}
+                        onClick={handleQuestAction}
+                        className={`bf-row flex items-center justify-between gap-3 p-3 rounded-xl transition-all cursor-pointer ${
+                          isDone && !isClaimed
+                            ? "ring-2 ring-amber-500 bg-amber-50/90 shadow-md"
+                            : isClaimed
+                              ? "opacity-75"
+                              : "hover:brightness-105"
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="font-black text-[15px] truncate text-amber-950 flex items-center gap-1.5">
+                              {isDone && !isClaimed && <span className="text-amber-500 animate-pulse">⭐</span>}
+                              {q.title}
+                            </span>
+                            <span className="text-[12px] font-bold text-amber-800 shrink-0 ml-2">
                               {q.current} / {q.target}
                             </span>
                           </div>
-                          <p className="text-[11px] text-amber-900/80 leading-none mt-0.5">{q.desc}</p>
-                          <div className="w-full bg-[#3d2716] h-2 rounded overflow-hidden mt-1.5 border border-[#5a3f23]">
+                          <p className="text-[11.5px] text-amber-900/85 leading-tight">{q.desc}</p>
+                          <div className="w-full bg-[#3d2716] h-2.5 rounded-full overflow-hidden mt-2 border border-[#5a3f23]">
                             <div
-                              className="bg-gradient-to-r from-amber-400 to-amber-600 h-full transition-[width] duration-300"
+                              className={`h-full transition-[width] duration-300 ${
+                                isDone
+                                  ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                                  : "bg-gradient-to-r from-amber-400 to-amber-600"
+                              }`}
                               style={{ width: `${pct}%` }}
                             />
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <span className="inline-flex items-center gap-1 font-black text-amber-900 text-[14px]">
                             <i className="bf-icon bf-icon--coin" />
                             +{q.reward}
                           </span>
                           <button
                             type="button"
-                            className="bf-btn bf-btn--plain !min-w-[80px] !h-8 text-[13px]"
-                            disabled={!isDone || q.claimed}
-                            onClick={() => handleClaimQuest(q)}
+                            className={`bf-btn bf-btn--plain !min-w-[96px] !h-9 text-[13px] font-black cursor-pointer touch-manipulation active:scale-95 ${
+                              isDone && !isClaimed
+                                ? "!brightness-110 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                                : isClaimed
+                                  ? "opacity-60"
+                                  : ""
+                            }`}
+                            onClick={handleQuestAction}
                           >
                             <span className="bf-btn__label">
-                              {q.claimed ? "Claimed" : isDone ? "Claim" : "In Progress"}
+                              {isClaimed ? "✓ Done" : isDone ? "Claim!" : `${q.current}/${q.target}`}
                             </span>
                           </button>
                         </div>
@@ -914,7 +935,7 @@ export function BlockfortSkyblockUi({
                 <div className="flex justify-center mt-3">
                   <button
                     type="button"
-                    className="bf-btn bf-btn--plain"
+                    className="bf-btn bf-btn--plain !min-w-[100px] !h-9"
                     onClick={closeAllModals}
                   >
                     <span className="bf-btn__label">Close</span>
