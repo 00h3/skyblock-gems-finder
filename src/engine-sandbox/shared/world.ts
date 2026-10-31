@@ -670,6 +670,7 @@ export class SubChunk {
   readonly minY: number;
   readonly maxY: number;
   readonly boundingBox: THREE.Box3;
+  readonly cullingBox: THREE.Box3;
   readonly boundingSphere: THREE.Sphere;
   readonly center: THREE.Vector3;
 
@@ -686,6 +687,7 @@ export class SubChunk {
       new THREE.Vector3(minX, this.minY, minZ),
       new THREE.Vector3(minX + CHUNK, this.maxY, minZ + CHUNK),
     );
+    this.cullingBox = this.boundingBox.clone().expandByScalar(3.0);
     this.center = new THREE.Vector3(minX + CHUNK / 2, this.minY + SUB_H / 2, minZ + CHUNK / 2);
     this.boundingSphere = new THREE.Sphere(this.center, Math.sqrt(3 * (8 * 8)));
     this.group = new THREE.Group();
@@ -1477,6 +1479,7 @@ export class World {
     // High-performance frustum culling on sub-chunk bounding boxes
     this.frustumCheckTick++;
     if (camera && this.frustumCheckTick % 2 === 0) {
+      camera.updateMatrixWorld();
       this.projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       this.frustum.setFromProjectionMatrix(this.projScreenMatrix);
       const px = playerPos?.x ?? 0;
@@ -1485,7 +1488,7 @@ export class World {
         for (let i = 0; i < SUB_CHUNKS; i++) {
           const sc = c.subChunks[i];
           if (sc.empty || (!sc.mesh && !sc.transparentMesh && !sc.waterMesh)) continue;
-          const visible = this.frustum.intersectsBox(sc.boundingBox);
+          const visible = this.frustum.intersectsBox(sc.cullingBox);
           sc.group.visible = visible;
           if (visible && playerPos) {
             const distSq = (sc.center.x - px) ** 2 + (sc.center.z - pz) ** 2;

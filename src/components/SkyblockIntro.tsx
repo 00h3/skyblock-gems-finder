@@ -35,31 +35,7 @@ export function SkyblockCutscene({
       <div className="qb-cutscene-vignette absolute inset-0 pointer-events-none" aria-hidden="true" />
 
       {/* Top letterbox bar */}
-      <div className="relative h-[12vh] bg-black/95 backdrop-blur-md flex items-center justify-center border-b border-white/10" />
-
-      {/* Welcome Title Panel in sleek grey outlined style */}
-      <div className="relative flex flex-col items-center px-4 text-center mt-2 pointer-events-none">
-        <div
-          className="flex flex-col items-center gap-1.5 px-6 py-3.5 max-w-[360px] animate-scale-in"
-          style={{
-            ...PANEL_OUTER,
-            backgroundColor: "rgba(22, 25, 31, 0.94)",
-            border: "1px solid #363b46",
-            boxShadow: "0 18px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12)",
-          }}
-        >
-          <p className="text-[10px] font-sans font-black uppercase tracking-widest text-slate-400 [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
-            Welcome to
-          </p>
-          <h1 className="text-[32px] sm:text-[40px] font-sans font-black italic leading-none tracking-tight text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000,0_2px_4px_rgba(0,0,0,0.9)]">
-            Skyblock
-          </h1>
-          <div className="mt-1 h-px w-full bg-[#363b46]" />
-          <p className="text-[11.5px] font-sans font-black text-slate-200 [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
-            Follow the phoenix, find golden chests, slay the dragon
-          </p>
-        </div>
-      </div>
+      <div className="relative h-[10vh] bg-black/90 backdrop-blur-md flex items-center justify-center border-b border-white/10" />
 
       {/* Bottom Area: Cinematic letterbox with progress + Skip button */}
       <div className="relative flex flex-col items-center pb-[max(12px,calc(env(safe-area-inset-bottom)+8px))] pt-4 bg-gradient-to-t from-black/95 to-transparent gap-2">

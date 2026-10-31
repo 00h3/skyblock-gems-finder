@@ -112,27 +112,40 @@ export interface ShopItem {
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
-  // Blocks
-  { id: "grass", name: "Grass Block", tab: "blocks", cost: 20, icon: "/textures/blocks/grass_block_side.png", blockType: 1, desc: "Fresh topsoil for flowers and crops." },
-  { id: "dirt", name: "Dirt Block", tab: "blocks", cost: 10, icon: "/textures/blocks/dirt.png", blockType: 3, desc: "Standard building earth." },
-  { id: "stone", name: "Stone Block", tab: "blocks", cost: 40, icon: "/textures/blocks/stone.png", blockType: 2, desc: "Sturdy structural stone." },
-  { id: "wood", name: "Oak Wood", tab: "blocks", cost: 35, icon: "/textures/blocks/oak_log.png", blockType: 4, desc: "Solid timber for crafting and walls." },
-  { id: "sand", name: "Sand", tab: "blocks", cost: 30, icon: "/textures/blocks/sand.png", blockType: 10, desc: "Fine desert sand." },
-  { id: "gold_ore", name: "Gold Ore", tab: "blocks", cost: 160, icon: "/textures/blocks/gold_block.png", blockType: 6, desc: "Precious gold ore vein." },
-  { id: "glass", name: "Clear Glass", tab: "blocks", cost: 60, icon: "/textures/blocks/glass.png", blockType: 7, desc: "Smooth transparent glass." },
-  { id: "bricks", name: "Stone Bricks", tab: "blocks", cost: 90, icon: "/textures/blocks/stone_bricks.png", blockType: 15, desc: "Chiseled fortified fortress bricks." },
+  // ── Real Voxel Blocks ──────────────────────────────────────────────────────
+  { id: "grass", name: "Grass Block", tab: "blocks", cost: 20, icon: "/textures/blocks/grass_block_side.png", blockType: 1, desc: "Fresh topsoil for flowers, saplings, and expanding your island." },
+  { id: "dirt", name: "Dirt Block", tab: "blocks", cost: 10, icon: "/textures/blocks/dirt.png", blockType: 2, desc: "Standard building earth for farming terraces." },
+  { id: "stone", name: "Smooth Stone", tab: "blocks", cost: 30, icon: "/textures/blocks/stone.png", blockType: 3, desc: "Solid quarried bedrock stone for sturdy structures." },
+  { id: "cobble", name: "Cobblestone", tab: "blocks", cost: 25, icon: "/textures/blocks/cobblestone.png", blockType: 4, desc: "Classic masonry stone for bridges and walls." },
+  { id: "bricks", name: "Stone Bricks", tab: "blocks", cost: 60, icon: "/textures/blocks/stone_bricks.png", blockType: 5, desc: "Reinforced fortress bricks." },
+  { id: "sand", name: "Desert Sand", tab: "blocks", cost: 25, icon: "/textures/blocks/sand.png", blockType: 6, desc: "Fine yellow sand for smelting into glass." },
+  { id: "oak_log", name: "Oak Wood Log", tab: "blocks", cost: 45, icon: "/textures/blocks/oak_log.png", blockType: 7, desc: "Heavy hardwood timber for structural beams." },
+  { id: "oak_planks", name: "Oak Planks", tab: "blocks", cost: 35, icon: "/textures/blocks/oak_planks.png", blockType: 13, desc: "Polished wooden planks for manor floors and ceilings." },
+  { id: "glass", name: "Clear Glass", tab: "blocks", cost: 50, icon: "/textures/blocks/glass.png", blockType: 10, desc: "Crystal transparent architectural glass." },
+  { id: "ice", name: "Glacial Ice", tab: "blocks", cost: 80, icon: "/textures/blocks/ice.png", blockType: 17, desc: "Slick mountain ice block for water flows." },
+  { id: "glowstone", name: "Glowstone", tab: "blocks", cost: 200, icon: "/textures/blocks/glowstone.png", blockType: 18, desc: "Luminous crystalline block radiating permanent golden light." },
+  { id: "gold_block", name: "Gold Block", tab: "blocks", cost: 600, icon: "/textures/blocks/gold_block.png", blockType: 19, desc: "Pure solid gilded bullion block for royal builds." },
+  { id: "diamond_block", name: "Diamond Block", tab: "blocks", cost: 1800, icon: "/textures/blocks/diamond_block.png", blockType: 20, desc: "Gleaming condensed diamond block of ultimate status." },
+  { id: "emerald_block", name: "Emerald Block", tab: "blocks", cost: 1400, icon: "/textures/blocks/emerald_block.png", blockType: 21, desc: "Vibrant emerald block for high-tier island beacons." },
+  { id: "lapis_block", name: "Lapis Lazuli Block", tab: "blocks", cost: 400, icon: "/textures/blocks/lapis_block.png", blockType: 22, desc: "Deep mystical azure mineral block." },
+  { id: "amethyst", name: "Amethyst Block", tab: "blocks", cost: 500, icon: "/textures/blocks/amethyst_block.png", blockType: 23, desc: "Resonant purple crystal geode block." },
+  { id: "obsidian", name: "Obsidian", tab: "blocks", cost: 1500, icon: "/textures/blocks/obsidian.png", blockType: 11, desc: "Blast-resistant volcanic glass of supreme density." },
 
-  // Tools
-  { id: "pick_iron", name: "Iron Pickaxe", tab: "tools", cost: 300, icon: "/items/diamond_axe.png", blockType: "iron_pickaxe", desc: "Mines stone and ores twice as fast." },
-  { id: "pick_diamond", name: "Diamond Pickaxe", tab: "tools", cost: 800, icon: "/items/netherite_axe.png", blockType: "diamond_pickaxe", desc: "Supreme mining speed and obsidian tier." },
-  { id: "axe_iron", name: "Iron Axe", tab: "tools", cost: 220, icon: "/items/diamond_axe.png", blockType: "iron_axe", desc: "Chops trees and logs with ease." },
-  { id: "shovel_iron", name: "Iron Shovel", tab: "tools", cost: 180, icon: "/public/items/iron_shovel.png", blockType: "iron_shovel", desc: "Instantly scoops dirt and sand." },
+  // ── Authentic Tools & Weapons ──────────────────────────────────────────────
+  { id: "short_sword", name: "Hunter Short Sword", tab: "tools", cost: 150, icon: "/public/short-sword.svg", blockType: "short_sword", desc: "Reliable starting blade for mob defense." },
+  { id: "iron_sword", name: "Iron Broadsword", tab: "tools", cost: 800, icon: "/items/diamond_axe.png", blockType: "iron_sword", desc: "Forged iron blade dealing +8 combat damage." },
+  { id: "diamond_sword", name: "Diamond Katana", tab: "tools", cost: 3500, icon: "/items/netherite_axe.png", blockType: "diamond_sword", desc: "High-grade tempered diamond blade with swift critical strike." },
+  { id: "staff_dark", name: "Dark Magic Sickle Staff", tab: "tools", cost: 15000, icon: "/textures/blocks/amethyst_block.png", blockType: "dark_magic_staff", desc: "LEGENDARY: Mythic WoW-inspired celestial weapon that shoots piercing fireball bursts!" },
+  { id: "pick_iron", name: "Iron Pickaxe", tab: "tools", cost: 350, icon: "/public/items/diamond_axe.png", blockType: "iron_pickaxe", desc: "Mines stone, coal, and iron ore at 2x baseline speed." },
+  { id: "pick_diamond", name: "Diamond Pickaxe", tab: "tools", cost: 1200, icon: "/public/items/netherite_axe.png", blockType: "diamond_pickaxe", desc: "High-durability pickaxe capable of fracturing deep obsidian." },
+  { id: "axe_diamond", name: "Diamond Great Axe", tab: "tools", cost: 700, icon: "/public/items/diamond_axe.png", blockType: "iron_axe", desc: "Instantly fells ancient oak and birch trees." },
+  { id: "shovel_diamond", name: "Diamond Spade", tab: "tools", cost: 400, icon: "/public/items/diamond_shovel.png", blockType: "diamond_shovel", desc: "Rapidly excavates topsoil, sand, and gravel deposits." },
 
-  // Decor
-  { id: "lucky_block", name: "Lucky Cat Block", tab: "decor", cost: 350, icon: "/lucky-block-cat.png", blockType: "lucky_block", desc: "Break to unleash surprising rare rewards!" },
-  { id: "sky_crown", name: "Golden Sky Crown", tab: "decor", cost: 1200, icon: "/public/assets/ui/icon-crown.svg", desc: "Gilded headpiece of island royalty." },
-  { id: "chest_rare", name: "Ancient Relic Chest", tab: "decor", cost: 2500, icon: "/public/chest_gold_1788909061642.png", desc: "Contains legendary enchanted loot." },
-  { id: "dragon_egg", name: "Red Dragon Egg", tab: "decor", cost: 5000, icon: "/textures/blocks/obsidian.png", desc: "Hatchable core from the Deep Dungeon boss." },
+  // ── Real Decor & Sky Relics ───────────────────────────────────────────────
+  { id: "lucky_block", name: "Lucky Cat Block", tab: "decor", cost: 350, icon: "/lucky-block-cat.png", blockType: "lucky_block", desc: "Break to unleash surprising rare island rewards!" },
+  { id: "ancient_chest", name: "Golden Treasure Chest", tab: "decor", cost: 2200, icon: "/public/chest_gold_1788909061642.png", desc: "Gilded chest containing ancient Skyblock relics and gemstones." },
+  { id: "dragon_trophy", name: "Red Dragon Crest", tab: "decor", cost: 6500, icon: "/public/3d-trophy.png", desc: "Gilded victory trophy forged from the fiery breath of the Red Dragon." },
+  { id: "sky_crown", name: "Golden Sky Crown", tab: "decor", cost: 10000, icon: "/public/assets/ui/icon-crown.svg", desc: "The ultimate crown worn only by sovereign island lords." },
 ];
 
 interface Props {
@@ -182,15 +195,15 @@ export function BlockfortSkyblockUi({
     setBackpackOpen(false);
   }, []);
 
-  // Responsive modal fit scaling so windows always fit viewport
+  // Responsive modal fit scaling so windows always fit viewport compactly
   const [bfFit, setBfFit] = useState<number>(1);
   useEffect(() => {
     const updateFit = () => {
       if (typeof window === "undefined") return;
       const w = window.innerWidth;
       const h = window.innerHeight;
-      const scale = Math.min(1, (w - 28) / 760, (h - 28) / 480);
-      setBfFit(Math.max(0.62, Math.min(1, scale)));
+      const scale = Math.min(1, (w - 24) / 580, (h - 24) / 360);
+      setBfFit(Math.max(0.68, Math.min(1, scale)));
     };
     updateFit();
     window.addEventListener("resize", updateFit);
@@ -483,8 +496,8 @@ export function BlockfortSkyblockUi({
                   ✕
                 </button>
 
-                {/* 7 Island Selection Shelf */}
-                <div className="manor-islands mt-2" data-bf-selectable>
+                {/* 7 Island Selection Shelf - compact & balanced */}
+                <div className="manor-islands mt-1" data-bf-selectable>
                   {ISLAND_TIERS.map((tier, idx) => {
                     const unlocked = econ.islandInfo.level >= tier.tier;
                     const isSelected = selectedTierIdx === idx;
@@ -495,7 +508,7 @@ export function BlockfortSkyblockUi({
                         onClick={() => setSelectedTierIdx(idx)}
                         className={`bf-island ${isSelected ? "is-selected" : ""} ${!unlocked ? "is-locked" : ""}`}
                         title={`${tier.name} (Level ${tier.tier})`}
-                        style={{ ["--h" as string]: `${68 + idx * 4}px` }}
+                        style={{ ["--h" as string]: `${46 + idx * 3}px` }}
                       >
                         <img src={tier.image} alt={tier.name} draggable={false} />
                       </button>
@@ -503,41 +516,41 @@ export function BlockfortSkyblockUi({
                   })}
                 </div>
 
-                {/* Island Details & Stats */}
-                <div className="flex gap-5 justify-center items-center mt-3">
+                {/* Island Details & Stats - compact 2-column layout */}
+                <div className="flex gap-3 justify-center items-center mt-2">
                   <div className="bf-note">
                     <img
                       src={selectedTier.image}
                       alt={selectedTier.name}
-                      style={{ maxHeight: 110 }}
+                      style={{ maxHeight: 85 }}
                       draggable={false}
                     />
                   </div>
-                  <div className="w-[340px] flex flex-col gap-1">
+                  <div className="w-[290px] flex flex-col gap-0.5">
                     <div className="bf-row">
                       <span className="bf-icon bf-icon--up" />
-                      <span className="bf-row__grow text-[16px] font-black">{selectedTier.name}</span>
-                      <b className="text-amber-600">Lv {selectedTier.tier}</b>
+                      <span className="bf-row__grow text-[14.5px] font-semibold">{selectedTier.name}</span>
+                      <b className="text-amber-700 font-semibold">Lv {selectedTier.tier}</b>
                     </div>
                     <div className="bf-row">
                       <span className="bf-icon bf-icon--heart" />
-                      <span className="bf-row__grow">Health Bonus</span>
-                      <b>+{selectedTier.hpBonus} HP</b>
+                      <span className="bf-row__grow text-[13.5px]">Health Bonus</span>
+                      <b className="font-semibold">+{selectedTier.hpBonus} HP</b>
                     </div>
                     <div className="bf-row">
                       <span className="bf-icon bf-icon--cube" />
-                      <span className="bf-row__grow">Build Slots / Minions</span>
-                      <b>+{selectedTier.buildSlots}</b>
+                      <span className="bf-row__grow text-[13.5px]">Build Slots / Minions</span>
+                      <b className="font-semibold">+{selectedTier.buildSlots}</b>
                     </div>
                     <div className="bf-row">
                       <span className="bf-icon bf-icon--chevron" style={{ transform: "rotate(-90deg)" }} />
-                      <span className="bf-row__grow">Boundary Size</span>
-                      <b>{selectedTier.boundary}x{selectedTier.boundary}</b>
+                      <span className="bf-row__grow text-[13.5px]">Boundary Size</span>
+                      <b className="font-semibold">{selectedTier.boundary}x{selectedTier.boundary}</b>
                     </div>
                     <div className="bf-row">
                       <span className="bf-icon bf-icon--coin" />
-                      <span className="bf-row__grow">Upgrade Cost</span>
-                      <b className={realBalance < selectedTier.cost && isSelectedTierNext ? "text-red-600" : ""}>
+                      <span className="bf-row__grow text-[13.5px]">Upgrade Cost</span>
+                      <b className={`font-semibold ${realBalance < selectedTier.cost && isSelectedTierNext ? "text-red-600" : ""}`}>
                         {selectedTier.cost === 0 ? "Unlocked" : `${selectedTier.cost.toLocaleString()} Coins`}
                       </b>
                     </div>

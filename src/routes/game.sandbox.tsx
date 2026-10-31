@@ -1642,10 +1642,10 @@ export function SandboxGame({
       try {
         fogMode = localStorage.getItem("qb_fog_mode") || "realistic";
       } catch {}
-      if (fogMode === "dense") skyRef.current.setRange(5, 34);
-      else if (fogMode === "subtle") skyRef.current.setRange(18, 90);
-      else if (fogMode === "off") skyRef.current.setRange(90, 450);
-      else skyRef.current.setRange(10, 64);
+      if (fogMode === "dense") skyRef.current.setRange(15, 75);
+      else if (fogMode === "subtle") skyRef.current.setRange(35, 340);
+      else if (fogMode === "off") skyRef.current.setRange(90, 600);
+      else skyRef.current.setRange(25, 240);
       if (celestialSunRef.current) celestialSunRef.current.visible = true;
       if (celestialMoonRef.current) celestialMoonRef.current.visible = false;
       if (auroraGroupRef.current) auroraGroupRef.current.visible = false;
@@ -1855,7 +1855,7 @@ export function SandboxGame({
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.0; // Clean, natural contrast matching Blockman GO
+      renderer.toneMappingExposure = 1.15; // 20% graphics enhancement with rich vibrant color and crisp contrast
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       // Keep the full-resolution shadow map, but honor the explicit update
@@ -1923,14 +1923,14 @@ export function SandboxGame({
       const applyFogMode = (mode: string) => {
         if (!sky) return;
         if (mode === "dense") {
-          sky.setRange(5, 34);
+          sky.setRange(15, 75);
         } else if (mode === "subtle") {
-          sky.setRange(18, 90);
+          sky.setRange(35, 340);
         } else if (mode === "off") {
-          sky.setRange(90, 450);
+          sky.setRange(90, 600);
         } else {
-          // "realistic" (default) — close atmospheric fog with rich depth
-          sky.setRange(10, blockFall ? 100 : 64);
+          // "realistic" (default) — extended atmospheric depth so blocks never disappear
+          sky.setRange(25, blockFall ? 160 : 240);
         }
       };
 
@@ -5172,30 +5172,61 @@ export function SandboxGame({
     api()?.place();
   }, [api]);
 
+  // Unified Action Button: Hold = break/attack, Tap = build, Double-tap = drop item
+  const actionPressTimeRef = useRef(0);
+  const actionHoldingMiningRef = useRef(false);
+  const actionLastTapTimeRef = useRef(0);
+  const actionHoldTimerRef = useRef<number | null>(null);
+
+  const handleSmartAction = useCallback((down: boolean) => {
+    if (down) {
+      actionPressTimeRef.current = Date.now();
+      actionHoldingMiningRef.current = false;
+      if (actionHoldTimerRef.current) window.clearTimeout(actionHoldTimerRef.current);
+      actionHoldTimerRef.current = window.setTimeout(() => {
+        actionHoldingMiningRef.current = true;
+        handleMine(true);
+      }, 220);
+    } else {
+      if (actionHoldTimerRef.current) {
+        window.clearTimeout(actionHoldTimerRef.current);
+        actionHoldTimerRef.current = null;
+      }
+      if (actionHoldingMiningRef.current) {
+        actionHoldingMiningRef.current = false;
+        handleMine(false);
+      } else {
+        const now = Date.now();
+        const sinceLastTap = now - actionLastTapTimeRef.current;
+        if (sinceLastTap < 340) {
+          actionLastTapTimeRef.current = 0;
+          api()?.dropItem();
+        } else {
+          actionLastTapTimeRef.current = now;
+          handleBuild();
+        }
+      }
+    }
+  }, [handleMine, handleBuild, api]);
+
+  useEffect(() => {
+    const onDropActive = () => {
+      api()?.dropItem();
+    };
+    window.addEventListener("qb-drop-active-item", onDropActive);
+    return () => window.removeEventListener("qb-drop-active-item", onDropActive);
+  }, [api]);
+
   const totalSeeds = seeds.oak + seeds.birch + seeds.spruce;
   const v2Actions: HudAction[] = blockFall
     ? [{ id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump }]
     : [
         { id: "jump", label: "Jump", kind: "hold", primary: true, icon: HUD_UI.jump, onPress: setJump },
         {
-          id: "mine",
-          label: "Mine",
+          id: "action",
+          label: isMiningActive ? "Break" : "Action",
           kind: "hold",
-          onPress: handleMine,
-        },
-        {
-          id: "build",
-          label: "Build",
-          kind: "tap",
-          onPress: handleBuild,
-        },
-        {
-          id: "drop",
-          label: "Drop",
-          kind: "tap" as const,
-          onPress: () => {
-            api()?.dropItem();
-          },
+          onPress: handleSmartAction,
         },
         ...(isSkyblockLike && totalSeeds > 0
           ? [

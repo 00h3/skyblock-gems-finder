@@ -385,15 +385,15 @@ export class Sky {
     this.group.add(this.sunLight.target);
     scene.add(this.hemi, this.ambient, this.group);
 
-    let initialNear = 10;
-    let initialFar = 64;
+    let initialNear = 25;
+    let initialFar = 220;
     try {
       if (typeof window !== "undefined") {
         const mode = localStorage.getItem("qb_fog_mode") || "realistic";
-        if (mode === "dense") { initialNear = 5; initialFar = 34; }
-        else if (mode === "subtle") { initialNear = 18; initialFar = 90; }
-        else if (mode === "off") { initialNear = 90; initialFar = 450; }
-        else { initialNear = 10; initialFar = 64; }
+        if (mode === "dense") { initialNear = 15; initialFar = 75; }
+        else if (mode === "subtle") { initialNear = 35; initialFar = 340; }
+        else if (mode === "off") { initialNear = 90; initialFar = 600; }
+        else { initialNear = 25; initialFar = 220; }
       }
     } catch {}
 
@@ -448,7 +448,7 @@ export class Sky {
     this.resetCustomModes();
     this.currentPreset = "day";
     this.cloudCoverTarget = 0.5;
-    this.setRange(10, 68);
+    this.setRange(25, 220);
     this.setTimeOfDay(0.3);
   }
 
@@ -457,7 +457,7 @@ export class Sky {
     this.isGoldenHour = true;
     this.currentPreset = "tramonto";
     this.cloudCoverTarget = 0.55;
-    this.setRange(12, 70);
+    this.setRange(25, 220);
     this.setTimeOfDay(0.72); // Low golden sun angle
   }
 
@@ -465,7 +465,7 @@ export class Sky {
     this.resetCustomModes();
     this.currentPreset = "night";
     this.cloudCoverTarget = 0.4;
-    this.setRange(10, 60);
+    this.setRange(20, 190);
     this.setTimeOfDay(0.85);
   }
 
@@ -474,7 +474,7 @@ export class Sky {
     this.isPurpleNight = true;
     this.currentPreset = "purple_night";
     this.cloudCoverTarget = 0.6;
-    this.setRange(8, 56);
+    this.setRange(20, 190);
     this.setTimeOfDay(0.85);
   }
 
@@ -483,7 +483,7 @@ export class Sky {
     this.isMystic = true;
     this.currentPreset = "cinematic";
     this.cloudCoverTarget = 0.65;
-    this.setRange(8, 54);
+    this.setRange(20, 190);
     this.setTimeOfDay(0.76); // Mystical purple twilight
   }
 
@@ -492,7 +492,7 @@ export class Sky {
     this.isTempesta = true;
     this.currentPreset = "tempesta";
     this.cloudCoverTarget = 0.98;
-    this.setRange(5, 36);
+    this.setRange(10, 60);
     this.setTimeOfDay(0.74);
   }
 
@@ -501,7 +501,7 @@ export class Sky {
     this.isChristmas = true;
     this.currentPreset = "christmas";
     this.cloudCoverTarget = 0.55;
-    this.setRange(15, 95);
+    this.setRange(25, 240);
     this.setTimeOfDay(0.32);
   }
 
@@ -510,7 +510,7 @@ export class Sky {
     this.isBloodMoon = true;
     this.currentPreset = "blood_moon";
     this.cloudCoverTarget = 0.65;
-    this.setRange(6, 44);
+    this.setRange(15, 120);
     this.setTimeOfDay(0.85);
   }
 
@@ -519,7 +519,7 @@ export class Sky {
     this.isAurora = true;
     this.currentPreset = "aurora";
     this.cloudCoverTarget = 0.35;
-    this.setRange(12, 75);
+    this.setRange(25, 220);
     this.setTimeOfDay(0.88);
   }
 
@@ -528,7 +528,7 @@ export class Sky {
     this.isSolarEclipse = true;
     this.currentPreset = "solar_eclipse";
     this.cloudCoverTarget = 0.45;
-    this.setRange(8, 52);
+    this.setRange(20, 190);
     this.setTimeOfDay(0.75);
   }
 

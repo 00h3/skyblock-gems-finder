@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { Progression } from "@/engine-sandbox/skyblock/progression";
 import type { WorldEvents } from "@/engine-sandbox/skyblock/world-events";
@@ -77,7 +78,22 @@ export function V2Hotbar({
   isTouch: boolean;
   onOpenInventory?: () => void;
 }) {
+  const lastTapRef = useRef<{ index: number; time: number }>({ index: -1, time: 0 });
+
   if (hotbar.length === 0) return null;
+
+  const handleSlotClick = (i: number) => {
+    const now = Date.now();
+    if (slot === i && lastTapRef.current.index === i && now - lastTapRef.current.time < 350) {
+      // Double tap on selected slot drops the item
+      window.dispatchEvent(new Event("qb-drop-active-item"));
+      lastTapRef.current = { index: -1, time: 0 };
+    } else {
+      lastTapRef.current = { index: i, time: now };
+      onSelect(i);
+    }
+  };
+
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] flex justify-center px-2 scale-[0.78] origin-bottom">
       <div
@@ -91,7 +107,7 @@ export function V2Hotbar({
             <button
               key={`${id}-${i}`}
               type="button"
-              onClick={() => onSelect(i)}
+              onClick={() => handleSlotClick(i)}
               aria-label={`Slot ${i + 1}`}
               aria-pressed={active}
               className={cn(
