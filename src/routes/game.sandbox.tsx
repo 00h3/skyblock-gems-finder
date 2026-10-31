@@ -65,6 +65,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { loadSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
+import { subscribeToSandboxPlayers, updateSandboxPresence } from "@/lib/sandbox-presence";
 import { loadBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
 import { getShadowMapSize, readQualityPref } from "@/lib/rendering";
 import { COMPETITIVE_PHYSICS } from "@/engine-sandbox/shared/player";
@@ -708,50 +709,12 @@ function buildBaseplateWorld(world: World) {
     }
   }
 
-  // Starter Tree for wood resources
-  const treeX = -6;
-  const treeZ = -6;
-  for (let ty = 17; ty <= 21; ty++) {
-    world.set(treeX, ty, treeZ, 5); // Oak Log
-  }
-  for (let lx = -2; lx <= 2; lx++) {
-    for (let lz = -2; lz <= 2; lz++) {
-      for (let ly = 20; ly <= 22; ly++) {
-        if (Math.abs(lx) + Math.abs(lz) <= 3 && !(lx === 0 && lz === 0 && ly < 22)) {
-          world.set(treeX + lx, ly, treeZ + lz, 9); // Oak Leaves
-        }
-      }
-    }
-  }
-
   // Center spawn cobblestone cross
   world.set(0, 16, 0, 4);
   world.set(1, 16, 0, 4);
   world.set(-1, 16, 0, 4);
   world.set(0, 16, 1, 4);
   world.set(0, 16, -1, 4);
-
-  // Water spring pond
-  world.set(6, 16, 6, 0);
-  world.set(7, 16, 6, 0);
-  world.set(6, 16, 7, 0);
-  world.set(7, 16, 7, 0);
-  world.set(6, 15, 6, 6);
-  world.set(7, 15, 6, 6);
-  world.set(6, 15, 7, 6);
-  world.set(7, 15, 7, 6);
-
-  // Lava pool with cobblestone containment
-  world.set(6, 16, -6, 0);
-  world.set(7, 16, -6, 0);
-  world.set(6, 15, -6, 62);
-  world.set(7, 15, -6, 62);
-  world.set(5, 16, -6, 4);
-  world.set(8, 16, -6, 4);
-  world.set(6, 16, -7, 4);
-  world.set(7, 16, -7, 4);
-  world.set(6, 16, -5, 4);
-  world.set(7, 16, -5, 4);
 }
 
 async function loadCell99Map(scene: THREE.Scene, atlas: Atlas) {
@@ -807,6 +770,71 @@ async function loadCell99Map(scene: THREE.Scene, atlas: Atlas) {
   });
 
   scene.add(model);
+}
+
+export type VerityCharacterHandle = {
+  group: THREE.Group;
+  mixer: THREE.AnimationMixer | null;
+  update: (dt: number, cameraPosition: THREE.Vector3) => void;
+};
+
+async function loadVerityCharacter(scene: THREE.Scene): Promise<VerityCharacterHandle | null> {
+  const loader = new GLTFLoader();
+  const url = "https://file.garden/alGOOylwpAfCa6qP/verity_full_model.glb";
+  try {
+    const gltf = await loader.loadAsync(url);
+    if (!gltf || !gltf.scene) return null;
+
+    const model = gltf.scene;
+    normalizeShowcaseModel(model, 2.2);
+
+    const group = new THREE.Group();
+    group.add(model);
+    group.position.set(3.5, 16.0, -2.5);
+    scene.add(group);
+
+    let mixer: THREE.AnimationMixer | null = null;
+    if (gltf.animations && gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(model);
+      gltf.animations.forEach((clip) => {
+        const action = mixer!.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.play();
+      });
+    }
+
+    const tag = new NameTag("Verity", 2.4, [], "#38bdf8");
+    tag.group.position.set(0, 0, 0);
+    group.add(tag.group);
+
+    let targetRotation = 0;
+    let rotationTimer = 0;
+
+    return {
+      group,
+      mixer,
+      update: (dt: number, cameraPosition: THREE.Vector3) => {
+        if (mixer) mixer.update(dt);
+
+        rotationTimer += dt;
+        if (rotationTimer > 3.5 + Math.random() * 2.5) {
+          rotationTimer = 0;
+          targetRotation = (Math.random() - 0.5) * Math.PI * 2;
+        }
+
+        group.rotation.y = THREE.MathUtils.lerp(
+          group.rotation.y,
+          targetRotation,
+          Math.min(1, dt * 2.8),
+        );
+
+        tag.update(cameraPosition);
+      },
+    };
+  } catch (err) {
+    console.warn("Could not load Verity character model:", err);
+    return null;
+  }
 }
 
 const SKYBLOCK_POND = { x: 2.5, z: 2.5, radius: 1.8 };
@@ -1861,6 +1889,8 @@ export function SandboxGame({
     let matchmakerTag: NameTag | null = null;
     const matchmakerPos = new THREE.Vector3(BEDWARS_MATCHMAKER_POS.x, BEDWARS_MATCHMAKER_POS.y, BEDWARS_MATCHMAKER_POS.z);
     let unsubPresence: (() => void) | null = null;
+    let unsubFirestorePresence: (() => void) | null = null;
+    let verityChar: VerityCharacterHandle | null = null;
     let unsubWorld: (() => void) | null = null;
     let unsubSocketStatus: (() => void) | null = null;
     let unsubSocketError: (() => void) | null = null;
@@ -2023,6 +2053,9 @@ export function SandboxGame({
       } else if (baseplate) {
         buildBaseplateWorld(world);
         void loadCell99Map(scene, atlas).catch((err) => console.warn("Cell 99 GLTF map load:", err));
+        void loadVerityCharacter(scene).then((v) => {
+          if (!disposed) verityChar = v;
+        });
       } else if (skyblock) {
         buildSkyblockIsland(world);
       } else {
@@ -3356,6 +3389,17 @@ export function SandboxGame({
         rotY: 0,
       });
 
+      if (!skyblock && !blockFall && !bedwars) {
+        unsubFirestorePresence = subscribeToSandboxPlayers(
+          meRef.current.uid,
+          (list) => {
+            for (const p of list) names.set(p.uid, p.name || "Player");
+            remotes?.sync(list);
+          },
+          (err) => console.warn("Firestore presence error:", err),
+        );
+      }
+
       const onSavedWorldError = (error: Error) => {
         if (disposed) return;
         console.warn("Saved world unavailable, playing offline:", multiplayerErrorMessage(error, "world"));
@@ -4494,6 +4538,7 @@ export function SandboxGame({
         runesTags.forEach((tag) => tag.update(camera.position));
         runesTimers.forEach((timer) => timer.update(camera.position, runesTimeRef.current));
         workbenchTags.forEach((tag) => tag.update(camera.position));
+        if (verityChar) verityChar.update(dt, camera.position);
         if (remotes) {
           remotes.update(dt, camera.position);
           // Keep every HP bar pinned above its entity; dead ones heal back.
@@ -4509,7 +4554,6 @@ export function SandboxGame({
             }
           }
         }
-        // Presence uses a lightweight room WebSocket, not Firestore writes in the render loop.
         presenceAcc += dt;
         if (presenceAcc >= 0.05) {
           presenceAcc %= 0.05;
@@ -4519,6 +4563,19 @@ export function SandboxGame({
             z: player.position.z,
             rotY: heading,
           });
+          if (!skyblock && !blockFall && !bedwars) {
+            void updateSandboxPresence({
+              uid: meRef.current.uid,
+              name: meRef.current.name,
+              photo: meRef.current.photo,
+              frame: meRef.current.frame,
+              badges: meRef.current.badges,
+              x: player.position.x,
+              y: player.position.y,
+              z: player.position.z,
+              rotY: heading,
+            });
+          }
         }
 
         // Keep shadow detail at full resolution. Refresh at full frame rate
@@ -4825,6 +4882,17 @@ export function SandboxGame({
         rewardChests?.dispose();
         droppedItems.dispose();
         droppedItemsRef.current = null;
+        if (verityChar) {
+          scene.remove(verityChar.group);
+          verityChar.group.traverse((o) => {
+            const m = o as THREE.Mesh;
+            if (m.isMesh) {
+              m.geometry.dispose();
+              if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
+              else m.material.dispose();
+            }
+          });
+        }
         redDragon?.dispose();
         for (const l of mineLights) l.dispose();
         mineAmbientLight.dispose();
@@ -4873,6 +4941,7 @@ export function SandboxGame({
       (mount as HTMLDivElement & { __cleanup?: () => void }).__cleanup?.();
       controls?.dispose();
       unsubPresence?.();
+      unsubFirestorePresence?.();
       unsubWorld?.();
       unsubSocketStatus?.();
       unsubSocketError?.();
@@ -5572,8 +5641,9 @@ export function SandboxGame({
               {totalSeeds > 0 && (
                 <SeedPouch seeds={seeds} selected={seedSpecies} onSelect={setSeedSpecies} />
               )}
-              {skyblock && (
+              {isSkyblockLike && (
                 <BlockfortSkyblockUi
+                  hideHudButtons={baseplate}
                   hotbar={hotbar}
                   tileUrls={tileUrls}
                   currentVisitingId={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visit") : null}
