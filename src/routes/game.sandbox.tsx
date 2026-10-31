@@ -754,6 +754,61 @@ function buildBaseplateWorld(world: World) {
   world.set(7, 16, -5, 4);
 }
 
+async function loadCell99Map(scene: THREE.Scene, atlas: Atlas) {
+  const loader = new GLTFLoader();
+  const remoteUrl = "https://file.garden/alGOOylwpAfCa6qP/scene.gltf";
+  let gltf;
+  try {
+    gltf = await loader.loadAsync(remoteUrl);
+  } catch (e) {
+    console.warn("Could not load remote scene.gltf, loading shrine-island fallback map:", e);
+    try {
+      gltf = await loader.loadAsync("/maps/shrine-island/scene.gltf");
+    } catch (err) {
+      console.error("Map GLTF load failed:", err);
+      return;
+    }
+  }
+
+  if (!gltf || !gltf.scene) return;
+  const model = gltf.scene;
+
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z, 0.01);
+  const scale = 54.0 / maxDim;
+  model.scale.setScalar(scale);
+
+  const center = box.getCenter(new THREE.Vector3());
+  model.position.sub(center.multiplyScalar(scale));
+  model.position.y += 16.2;
+
+  model.traverse((node) => {
+    if ((node as THREE.Mesh).isMesh) {
+      const mesh = node as THREE.Mesh;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      if (mesh.material) {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach((m) => {
+          if (
+            m instanceof THREE.MeshStandardMaterial ||
+            m instanceof THREE.MeshLambertMaterial ||
+            m instanceof THREE.MeshBasicMaterial
+          ) {
+            if (atlas && atlas.texture) {
+              m.map = atlas.texture;
+              m.needsUpdate = true;
+            }
+          }
+        });
+      }
+    }
+  });
+
+  scene.add(model);
+}
+
 const SKYBLOCK_POND = { x: 2.5, z: 2.5, radius: 1.8 };
 /** Water plane: fits cleanly inside pond basin */
 const SKYBLOCK_POND_SURFACE = { x: SKYBLOCK_POND.x, y: 15.88, z: SKYBLOCK_POND.z, size: 3.5 };
@@ -1967,6 +2022,7 @@ export function SandboxGame({
         buildForestArena(world);
       } else if (baseplate) {
         buildBaseplateWorld(world);
+        void loadCell99Map(scene, atlas).catch((err) => console.warn("Cell 99 GLTF map load:", err));
       } else if (skyblock) {
         buildSkyblockIsland(world);
       } else {
@@ -5313,7 +5369,7 @@ export function SandboxGame({
       )}
 
       {/* ── FLOATING TOP BAR (Filled Icons + Translucent Login / Sign Up) ── */}
-      {ready && !skyblock && !blockFall && !bedwars && (
+      {ready && !skyblock && !blockFall && !bedwars && !baseplate && (
         <header className="fixed top-[max(12px,calc(env(safe-area-inset-top)+8px))] inset-x-3 z-[95] pointer-events-none flex items-center justify-between">
           {/* Top-Left: Sleek Translucent Controls with Filled Icons */}
           <div className="pointer-events-auto flex items-center gap-2">
@@ -5452,14 +5508,14 @@ export function SandboxGame({
           topCenter={
             blockFall ? (
               <BlockFallStatus match={match} />
-            ) : bedwars ? null : (
+            ) : bedwars ? null : skyblock ? (
               <SkyblockStatus progression={progression} events={worldEvents} />
-            )
+            ) : null
           }
           menuExtra={
             isSkyblockLike
               ? [
-                  { label: baseplate ? "Respawn on baseplate" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) },
+                  { label: baseplate ? "Respawn in Cell 99" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) },
                   {
                     label: `Weather: ${WEATHER_PRESETS[weather].label}`,
                     onSelect: () => setWeather(WEATHER_ORDER[(WEATHER_ORDER.indexOf(weather) + 1) % WEATHER_ORDER.length]),
@@ -5516,7 +5572,7 @@ export function SandboxGame({
               {totalSeeds > 0 && (
                 <SeedPouch seeds={seeds} selected={seedSpecies} onSelect={setSeedSpecies} />
               )}
-              {isSkyblockLike && (
+              {skyblock && (
                 <BlockfortSkyblockUi
                   hotbar={hotbar}
                   tileUrls={tileUrls}
@@ -5577,10 +5633,10 @@ export function SandboxGame({
       {ready && isV2 && veilToken > 0 && loadingDismissed && <V2Veil token={veilToken} />}
       {showClickToPlay && loadingDismissed && !cutsceneOn && (
         <V2ClickToPlay
-          title={baseplate ? "Baseplate" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
+          title={baseplate ? "Cell 99" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
           hint={
             baseplate
-              ? "Build, experiment and explore the endless voxel canvas"
+              ? "Build, experiment and explore freely in Cell 99"
               : skyblock
                 ? "Build, mine and grow your island"
                 : bedwars
@@ -5766,8 +5822,8 @@ export function SandboxGame({
       {/* Loading menu */}
       {!loadingDismissed && !graphicsError && isV2 && (
         <V2LoadingScreen
-          title={baseplate ? "Baseplate" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
-          subtitle={baseplate ? "Loading baseplate world" : skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
+          title={baseplate ? "Cell 99" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
+          subtitle={baseplate ? "Loading Cell 99 world" : skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
           progress={progress}
           isAssetsLoaded={engineReady}
           onFinished={() => setLoadingDismissed(true)}
