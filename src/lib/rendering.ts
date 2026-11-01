@@ -31,14 +31,12 @@ export const getTargetDpr = (quality?: RenderQuality): number => {
     return Math.min(rawDpr, 2.0);
   }
 
-  // Cap mobile DPR at 2.0 max to preserve native Retina sharpness without supersampling fill-rate lag
-  if (isMobile) {
-    if (quality === "low") return Math.min(rawDpr, 1.25);
-    if (quality === "medium") return Math.min(rawDpr, 1.5);
-    return Math.min(rawDpr, 2.0);
+  // Preserve 100% native Retina HD resolution across all devices — zero pixelation
+  if (quality === "low") {
+    return Math.min(rawDpr, 1.5);
   }
 
-  return Math.min(rawDpr * 1.15, 3.25);
+  return Math.min(rawDpr, 3.0);
 };
 
 /**

@@ -2315,13 +2315,13 @@ function EngineGame({
     const conservative3D = isSafariBrowser;
 
     // Read persistent graphics quality and FPS cap (set via in-game settings)
-    const qualityPref = (localStorage.getItem("bm-quality") || "uhd") as "low" | "medium" | "high" | "uhd";
+    const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high" | "uhd";
     const fpsPrefInit = localStorage.getItem("bm-fpscap") || "60";
 
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        // Antialiasing: skip on Low quality or Safari (context budget)
+        // Antialiasing: enabled for smooth crisp edges
         antialias: qualityPref !== "low" && !isSafariBrowser && !conservative3D,
         powerPreference: isSafariBrowser || conservative3D ? "default" : "high-performance",
         stencil: false,
@@ -2617,11 +2617,11 @@ function EngineGame({
       const sun = new THREE.DirectionalLight(0xfff8e8, isSpleef ? 1.4 : isSkyblock ? 1.35 : 1.45);
       // Skyblock: golden-hour angle — sun lower on the horizon for warm long shadows
       sun.position.set(isSkyblock ? 28 : 34, isSkyblock ? 45 : 60, isSkyblock ? 18 : 22);
-      // On mobile low-quality, shadows are disabled by default — they're the
-      // single biggest GPU cost on phones. User can re-enable in settings.
-      const mobileLow = isMobileUA && qualityPref === "low";
-      sun.castShadow = !mobileLow;
-      renderer.shadowMap.enabled = !mobileLow;
+      // On mobile devices, directional shadows are disabled on low/medium quality to
+      // eliminate the double-render depth pass cost on mobile GPUs.
+      const enableShadows = isMobileUA ? (qualityPref === "high" || qualityPref === "uhd") : qualityPref !== "low";
+      sun.castShadow = enableShadows;
+      renderer.shadowMap.enabled = enableShadows;
       // Shadow map: 2048 on desktop and 1024 on mobile devices (512 on mobile low).
       const shadowMapSize = isMobileUA
         ? (qualityPref === "low" ? 512 : 1024)

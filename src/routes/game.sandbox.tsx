@@ -1917,9 +1917,10 @@ export function SandboxGame({
           ) as Record<number | string, string>,
         );
 
+        const qualityPref = readQualityPref();
         try {
           renderer = new THREE.WebGLRenderer({
-            antialias: true,
+            antialias: qualityPref !== "low",
             powerPreference: "high-performance",
           });
         } catch {
@@ -1936,23 +1937,22 @@ export function SandboxGame({
             return;
           }
         }
-      const qualityPref = readQualityPref();
       renderer.setPixelRatio(getTargetDpr(qualityPref));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.15; // 20% graphics enhancement with rich vibrant color and crisp contrast
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.LinearToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      const enableShadows = isMobileUA ? (qualityPref === "high" || qualityPref === "uhd") : qualityPref !== "low";
+      renderer.shadowMap.enabled = enableShadows;
+      renderer.shadowMap.type = isMobileUA ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
       // Keep the full-resolution shadow map, but honor the explicit update
       // scheduling below instead of regenerating it unconditionally per frame.
       renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
 
-      // Full anisotropic filtering keeps grazing-angle (distant floor) texels
-      // crisp instead of smearing into blocky mip levels.
+      // Anisotropic filtering capped at 2x on mobile to avoid texture sampler bottlenecks
       const maxAniso = renderer.capabilities.getMaxAnisotropy();
-      atlas.texture.anisotropy = maxAniso;
+      atlas.texture.anisotropy = isMobileUA ? Math.min(maxAniso, 2) : maxAniso;
       atlas.texture.magFilter = THREE.LinearFilter;
       atlas.texture.minFilter = THREE.LinearMipmapLinearFilter;
       atlas.texture.generateMipmaps = true;
