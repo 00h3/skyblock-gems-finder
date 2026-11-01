@@ -9,14 +9,17 @@ import { toast } from "sonner";
 import {
   subscribeFriends,
   subscribeIncomingRequests,
+  subscribeRequestHistory,
   acceptFriendRequest,
   rejectFriendRequest,
   sendFriendRequest,
+  unfriendUser,
   areFriends,
   ensureChatMeta,
   getCachedFriends,
   type Friend,
   type FriendRequest,
+  type FriendRequestHistoryItem,
 } from "@/lib/friends-utils";
 
 export const Route = createFileRoute("/friends")({
@@ -24,19 +27,21 @@ export const Route = createFileRoute("/friends")({
   component: FriendsPage,
 });
 
-const FRIENDS_TABS = ["Requests", "All Friends", "Add Friend"] as const;
+const FRIENDS_TABS = ["Requests", "All Friends", "Add Friend", "History"] as const;
 
 function FriendsPage() {
   const nav = useNavigate();
   const { qbUser } = useAuth();
   const [tab, setTab] = useState<number>(0);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [history, setHistory] = useState<FriendRequestHistoryItem[]>([]);
   const [friends, setFriends] = useState<Friend[]>(() =>
     qbUser ? getCachedFriends(qbUser.uid) : []
   );
   const [requestModal, setRequestModal] = useState<FriendRequest | null>(null);
   const [accepting, setAccepting] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState<Set<string>>(new Set());
+  const [unfriending, setUnfriending] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<ProfileUser | null>(null);
 
   // Add friend state
@@ -50,34 +55,41 @@ function FriendsPage() {
       setFriends(cached);
     }
     const unsubReq = subscribeIncomingRequests(qbUser.uid, (realRequests) => {
-      if (realRequests.length === 0) {
-        setRequests([
-          {
-            id: "mock-1",
-            from: "user_a",
-            to: qbUser.uid,
-            status: "pending",
-            createdAt: Date.now(),
-            fromDisplayName: "ProGamer99",
-            fromUsername: "progamer99",
-            fromBio: "I love playing Skyblock!",
-            fromColor: "#000000",
-          },
-        ]);
-      } else {
-        setRequests(realRequests);
-      }
+      setRequests(realRequests);
     });
 
     const unsubFriends = subscribeFriends(qbUser.uid, (list) => {
       setFriends(list);
     });
 
+    const unsubHistory = subscribeRequestHistory(qbUser.uid, (hist) => {
+      setHistory(hist);
+    });
+
     return () => {
       unsubReq();
       unsubFriends();
+      unsubHistory();
     };
   }, [qbUser]);
+
+  async function handleUnfriend(otherUid: string, name: string) {
+    if (!qbUser || unfriending.has(otherUid)) return;
+    setUnfriending((s) => new Set([...s, otherUid]));
+    try {
+      await unfriendUser(qbUser.uid, otherUid);
+      toast.success(`Removed ${name} from friends`);
+    } catch (err) {
+      toast.error("Could not unfriend user.");
+      console.error("Unfriend error:", err);
+    } finally {
+      setUnfriending((s) => {
+        const next = new Set(s);
+        next.delete(otherUid);
+        return next;
+      });
+    }
+  }
 
   async function handleAccept(req: FriendRequest) {
     setAccepting((s) => new Set([...s, req.id]));
@@ -137,14 +149,18 @@ function FriendsPage() {
                 Community
               </p>
               <h1 className="mt-1 text-[22px] font-medium tracking-tight">
-                {tab === 0 ? "Requests" : tab === 1 ? "Friends" : "Add Friend"}
+                {tab === 0 ? "Requests" : tab === 1 ? "Friends" : tab === 2 ? "Add Friend" : "Request History"}
               </h1>
             </div>
-            {tab === 0 && (
+            {tab === 0 ? (
               <span className="mb-1 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/10 dark:border-white/10 px-3 py-1 text-[11px] font-normal text-neutral-700 dark:text-neutral-300">
                 {requests.length} pending
               </span>
-            )}
+            ) : tab === 3 ? (
+              <span className="mb-1 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/10 dark:border-white/10 px-3 py-1 text-[11px] font-normal text-neutral-700 dark:text-neutral-300">
+                {history.length} records
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -226,43 +242,59 @@ function FriendsPage() {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {friends.map((f) => (
-                  <div
-                    key={f.id}
-                    onClick={() => {
-                      setSelected({
-                        id: f.id,
-                        username: f.username || "player",
-                        displayName: f.displayName || "Player",
-                        color: f.color || "#000",
-                        bio: f.bio,
-                        avatarSnapshot: f.avatarSnapshot,
-                        customId: f.customId,
-                      });
-                    }}
-                    className="p-3 flex items-center gap-3 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 rounded-[18px] cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition"
-                  >
+                {friends.map((f) => {
+                  const targetUid = f.uid;
+                  const isRemoving = unfriending.has(targetUid);
+                  return (
                     <div
-                      className="h-10 w-10 rounded-[12px] shrink-0"
-                      style={{ background: f.color || "#000" }}
+                      key={targetUid}
+                      onClick={() => {
+                        setSelected({
+                          id: targetUid,
+                          username: f.username || "player",
+                          displayName: f.displayName || "Player",
+                          color: f.color || "#000",
+                          bio: f.bio,
+                          avatarSnapshot: f.avatarSnapshot,
+                          customId: f.customId,
+                          profilePhoto: f.profilePhoto,
+                        });
+                      }}
+                      className="p-3 flex items-center gap-3 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 rounded-[18px] cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition"
                     >
-                      <GlossyAvatar
-                        snapshot={f.avatarSnapshot}
-                        height={40}
-                        className="h-full w-full"
-                        autoRotate={false}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13.5px] font-medium text-black dark:text-white truncate">
-                        {f.displayName}
+                      <div
+                        className="h-10 w-10 rounded-[12px] shrink-0"
+                        style={{ background: f.color || "#000" }}
+                      >
+                        <GlossyAvatar
+                          snapshot={f.avatarSnapshot}
+                          photoUrl={f.profilePhoto}
+                          height={40}
+                          className="h-full w-full"
+                          autoRotate={false}
+                        />
                       </div>
-                      <div className="text-[11px] font-normal text-neutral-500 dark:text-neutral-400 truncate">
-                        @{f.username}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13.5px] font-medium text-black dark:text-white truncate">
+                          {f.displayName}
+                        </div>
+                        <div className="text-[11px] font-normal text-neutral-500 dark:text-neutral-400 truncate">
+                          @{f.username || "player"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleUnfriend(targetUid, f.displayName || f.username)}
+                          disabled={isRemoving}
+                          className="px-2.5 py-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-[10px] press transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {isRemoving ? "Removing…" : "Unfriend"}
+                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -291,6 +323,117 @@ function FriendsPage() {
                 {sendingFriend ? "Sending…" : "Add Friend"}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Tab 3: Request History */}
+        {tab === 3 && (
+          <div className="mt-5 px-5 pb-6">
+            {history.length === 0 ? (
+              <div className="mt-12 flex flex-col items-center gap-3 text-center p-8 rounded-[20px] bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 shadow-xs">
+                <div className="text-[16px] font-medium text-black dark:text-white">
+                  No Request History
+                </div>
+                <p className="text-[12px] font-normal text-neutral-500 dark:text-neutral-400 max-w-xs leading-relaxed">
+                  All past incoming and outgoing friend requests and status changes will be recorded here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {history.map((h) => {
+                  const isIncoming = h.direction === "incoming";
+                  const isPending = h.status === "pending";
+                  const isAccepted = h.status === "accepted";
+                  const isRejected = h.status === "rejected";
+                  const isRemoved = h.status === "removed";
+
+                  return (
+                    <div
+                      key={h.id}
+                      onClick={() => {
+                        setSelected({
+                          id: h.otherUid,
+                          username: h.otherUsername || "player",
+                          displayName: h.otherDisplayName || "Player",
+                          color: "#fa4616",
+                          bio: h.otherBio,
+                          avatarSnapshot: h.otherAvatar,
+                          profilePhoto: h.otherPhoto,
+                        });
+                      }}
+                      className="p-3.5 flex items-center gap-3 bg-neutral-50 dark:bg-neutral-950 border border-black/10 dark:border-white/15 rounded-[18px] shadow-xs cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition"
+                    >
+                      <div className="relative shrink-0">
+                        <div className="h-11 w-11 rounded-[14px] overflow-hidden bg-neutral-200 dark:bg-neutral-800">
+                          <GlossyAvatar
+                            snapshot={h.otherAvatar}
+                            photoUrl={h.otherPhoto}
+                            height={44}
+                            className="h-full w-full"
+                            autoRotate={false}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[13.5px] font-bold text-black dark:text-white truncate">
+                            {h.otherDisplayName || h.otherUsername || "Player"}
+                          </span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                            {isIncoming ? "Incoming" : "Outgoing"}
+                          </span>
+                        </div>
+                        <div className="text-[11.5px] font-medium text-neutral-500 dark:text-neutral-400 mt-0.5">
+                          @{h.otherUsername || "player"}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        {isPending ? (
+                          isIncoming ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRequestModal({
+                                  id: h.id,
+                                  from: h.from,
+                                  to: h.to,
+                                  status: "pending",
+                                  fromDisplayName: h.otherDisplayName,
+                                  fromUsername: h.otherUsername,
+                                  fromAvatar: h.otherAvatar,
+                                  fromBio: h.otherBio,
+                                });
+                              }}
+                              className="px-2.5 py-1 rounded-[10px] bg-[#fa4616] text-white text-[11px] font-bold press"
+                            >
+                              Respond
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                              Pending
+                            </span>
+                          )
+                        ) : isAccepted ? (
+                          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            Accepted
+                          </span>
+                        ) : isRejected ? (
+                          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-[10px] bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                            Declined
+                          </span>
+                        ) : isRemoved ? (
+                          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-[10px] bg-neutral-500/10 text-neutral-500 border border-neutral-500/20">
+                            Removed
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

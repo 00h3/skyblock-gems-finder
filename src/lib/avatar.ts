@@ -136,6 +136,7 @@ export type AvatarSnapshot = {
 
 export type AvatarFrameId =
   | "none"
+  | "qblock-beta"
   | "star-program"
   | "blue-gold"
   | "staff"
@@ -150,6 +151,7 @@ export type AvatarFrameId =
 export function normalizeAvatarFrameId(value: unknown): AvatarFrameId | undefined {
   if (
     value === "none" ||
+    value === "qblock-beta" ||
     value === "star-program" ||
     value === "blue-gold" ||
     value === "staff" ||

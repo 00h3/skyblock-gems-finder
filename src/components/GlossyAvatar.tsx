@@ -8,7 +8,7 @@ import nellyPortrait from "../assets/images/nelly_support_avatar_1787672860439.j
 export type AvatarFrame = AvatarFrameId;
 
 export const GLOBAL_DEFAULT_PFP =
-  "https://file.garden/alGOOylwpAfCa6qP/C24029F2-83D1-4C8B-B67C-71A7E0186ED4.png";
+  "https://cdn.discordapp.com/attachments/1555854715580063797/1566413705762316440/IMG_7887.png?ex=6ae873f2&is=6ae72272&hm=985d38e8e4464e24dc2d2d402483d031942a8bbd7a5c68678e5056996545c78a&";
 
 export function isIraAccount(
   user: { email?: string | null; username?: string; customId?: string } | null | undefined,
@@ -26,7 +26,10 @@ export function isDieAccount(
   return email.includes("die") || username === "die";
 }
 
-function frameAssetFor(frame: AvatarFrameId): string | null {
+export function frameAssetFor(frame: AvatarFrameId | string): string | null {
+  if (frame === "qblock-beta") {
+    return "https://maxwell.z3ki.dev/bot/_files/qblock-beta-frame/D1C13704-40F0-4A9A-822B-D846A4CFE313.png";
+  }
   return frame === "staff" || frame === "blue-gold" || frame === "gold-treasure"
     ? "https://file.garden/alGOOylwpAfCa6qP/EE22FE2B-63EC-474E-84AD-21DB230D39BE.png"
     : frame === "star-program"
@@ -36,7 +39,7 @@ function frameAssetFor(frame: AvatarFrameId): string | null {
         : null;
 }
 
-function customFrameClass(frame: AvatarFrameId): string {
+function customFrameClass(frame: AvatarFrameId | string): string {
   return frame === "emerald"
     ? "border-4 border-emerald-500/80"
     : frame === "halloween"
@@ -52,7 +55,7 @@ function customFrameClass(frame: AvatarFrameId): string {
               : "";
 }
 
-function customFrameRingClass(frame: AvatarFrameId): string {
+function customFrameRingClass(frame: AvatarFrameId | string): string {
   return frame === "emerald"
     ? "ring-4 ring-emerald-500/80"
     : frame === "halloween"
@@ -68,16 +71,28 @@ function customFrameRingClass(frame: AvatarFrameId): string {
               : "";
 }
 
-/** Frame-only overlay for large live previews (disabled for now per specification). */
+/** Frame-only overlay for live avatars and previews */
 export function AvatarFrameOverlay({
-  frame: _frame,
-  className: _className = "",
+  frame,
+  className = "",
 }: {
-  frame?: AvatarFrame;
+  frame?: AvatarFrame | string;
   className?: string;
 }) {
-  // Frame system is temporarily disabled in UI; returns null so it's easy to restore later.
-  return null;
+  if (!frame || frame === "none") return null;
+  const asset = frameAssetFor(frame);
+  if (!asset) return null;
+  return (
+    <div
+      className={`absolute inset-0 pointer-events-none z-20 flex items-center justify-center ${className}`}
+    >
+      <img
+        src={asset}
+        alt="Avatar Frame"
+        className="w-[124%] h-[124%] max-w-none max-h-none object-contain pointer-events-none select-none drop-shadow-md"
+      />
+    </div>
+  );
 }
 
 export function GlossyAvatar({
@@ -156,6 +171,9 @@ export function GlossyAvatar({
           />
         )}
       </div>
+      {_activeFrame && _activeFrame !== "none" && (
+        <AvatarFrameOverlay frame={_activeFrame} />
+      )}
     </div>
   );
 }

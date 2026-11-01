@@ -2942,7 +2942,7 @@ function EngineGame({
       const dummyObj = new THREE.Object3D();
       const scratchMatrix = new THREE.Matrix4();
       const currentSkyblockIslandId =
-        visitingUserId || qbUser?.islandId || qbUser?.uid || getPermanentPlayerId(qbUser);
+        visitingUserId || qbUser?.islandId || "shared_skyblock_island";
 
       function makeGroupMesh(type: number, capacity: number) {
         const leaf = isLeafType(type);

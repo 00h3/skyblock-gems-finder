@@ -44,10 +44,12 @@ import {
   ShieldCheck,
   AlertCircle,
   X,
+  Plus,
 } from "lucide-react";
 import { APP_VERSION } from "@/components/LegalDocs";
 import { BetaFeatures } from "@/components/BetaFeatures";
 import { VerifiedTick } from "@/components/VerifiedTick";
+import { isStaffUser } from "@/lib/user-style";
 import { GlossyAvatar, AvatarFrameOverlay } from "@/components/GlossyAvatar";
 import { BronzeCorniceAvatar, BronzeCorniceUpper } from "@/components/BronzeCornice";
 import { TextureButton } from "@/components/ui/texture-button";
@@ -216,26 +218,33 @@ export function NicknameStyleView({
   const [animKey, setAnimKey] = useState(0);
 
   const displayName = name || user?.displayName || user?.username || "Player";
+  const isStaff = isStaffUser(user) || Boolean((user as any)?.staff);
+  const isUserVerified = Boolean(
+    (user as any)?.verified === true ||
+    (user as any)?.isVerified === true ||
+    isStaff
+  );
 
   const handleChooseStyle = (style: "default" | "orange" | "rainbow") => {
     setActivePreview(style);
     setAnimKey((prev) => prev + 1);
 
-    if (style === "orange") {
-      toast.error("Orange nickname style is locked", {
-        description: "Special event reward required to unlock this style.",
-      });
-      return;
-    }
-    if (style === "rainbow") {
-      toast.error("Rainbow nickname style is locked", {
-        description: "Elite server rank required to unlock this style.",
+    if (style !== "default" && !isStaff) {
+      toast.error(`${style.charAt(0).toUpperCase() + style.slice(1)} nickname style is locked`, {
+        description: "Only staff members can unlock and switch nickname styles.",
       });
       return;
     }
 
-    onSelectStyle("default");
-    toast.success("Default nickname style active");
+    onSelectStyle(style);
+    if (user?.uid) {
+      setDoc(
+        doc(db, "users", user.uid),
+        { nameGradient: style, nameStyle: style, useGradientName: style !== "default" },
+        { merge: true },
+      ).catch(() => {});
+    }
+    toast.success(`${style.charAt(0).toUpperCase() + style.slice(1)} nickname style active`);
   };
 
   return (
@@ -283,10 +292,10 @@ export function NicknameStyleView({
                     {displayName}
                   </motion.span>
                 )}
-                <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />
+                {isUserVerified && <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />}
               </div>
               <div className="mt-1 text-[13px] font-medium text-[#697383] dark:text-slate-400 italic">
-                Hehe this is a preview ig
+                {isStaff ? "Staff special rank preview" : "Standard player preview"}
               </div>
             </div>
           </div>
@@ -330,7 +339,7 @@ export function NicknameStyleView({
               )}
             </button>
 
-            {/* 2. Orange Style (LOCKED) */}
+            {/* 2. Orange Style */}
             <button
               type="button"
               onClick={() => handleChooseStyle("orange")}
@@ -343,9 +352,15 @@ export function NicknameStyleView({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] font-bold text-[#fa4616]">Orange</span>
-                  <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Lock className="h-2.5 w-2.5" /> Locked
-                  </span>
+                  {isStaff ? (
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles className="h-2.5 w-2.5" /> Staff Unlocked
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="h-2.5 w-2.5" /> Locked
+                    </span>
+                  )}
                 </div>
                 <div className="text-[13px] font-black bg-gradient-to-r from-[#fa4616] to-[#ff7a00] bg-clip-text text-transparent">
                   {displayName}
@@ -353,11 +368,17 @@ export function NicknameStyleView({
               </div>
 
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-neutral-400" />
+                {activePreview === "orange" ? (
+                  <div className="h-6 w-6 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[12px] font-bold shadow-xs">
+                    <Check className="h-3.5 w-3.5 stroke-[3]" />
+                  </div>
+                ) : !isStaff ? (
+                  <Lock className="h-4 w-4 text-neutral-400" />
+                ) : null}
               </div>
             </button>
 
-            {/* 3. Rainbow Style (LOCKED) */}
+            {/* 3. Rainbow Style */}
             <button
               type="button"
               onClick={() => handleChooseStyle("rainbow")}
@@ -372,9 +393,15 @@ export function NicknameStyleView({
                   <span className="text-[14px] font-bold text-purple-600 dark:text-purple-400">
                     Rainbow
                   </span>
-                  <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Lock className="h-2.5 w-2.5" /> Locked
-                  </span>
+                  {isStaff ? (
+                    <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles className="h-2.5 w-2.5" /> Staff Unlocked
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="h-2.5 w-2.5" /> Locked
+                    </span>
+                  )}
                 </div>
                 <div className="text-[13px] font-black bg-gradient-to-r from-red-500 via-amber-400 via-emerald-400 via-sky-400 to-purple-500 bg-clip-text text-transparent">
                   {displayName}
@@ -382,7 +409,13 @@ export function NicknameStyleView({
               </div>
 
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-neutral-400" />
+                {activePreview === "rainbow" ? (
+                  <div className="h-6 w-6 rounded-full bg-[#fa4616] text-white flex items-center justify-center text-[12px] font-bold shadow-xs">
+                    <Check className="h-3.5 w-3.5 stroke-[3]" />
+                  </div>
+                ) : !isStaff ? (
+                  <Lock className="h-4 w-4 text-neutral-400" />
+                ) : null}
               </div>
             </button>
           </div>
@@ -547,7 +580,9 @@ export function EditProfileView({
               >
                 {nameDraft || user?.displayName || "Player"}
               </span>
-              <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />
+              {(Boolean((user as any)?.verified === true || (user as any)?.isVerified === true || isStaffUser(user) || (user as any)?.staff)) && (
+                <VerifiedTick className="h-4 w-4 shrink-0 text-sky-500" />
+              )}
             </div>
             <div className="mt-0.5 truncate text-[11.5px] font-medium text-[#697383]">
               {bioDraft || user?.bio || "No bio added yet"}
@@ -676,23 +711,46 @@ export function EditAvatarView({
   onOpenFrames?: () => void;
   onBack: () => void;
 }) {
-  const [currentPhoto, setCurrentPhoto] = useState<string>(user?.profilePhoto || "");
+  const DEFAULT_PFP =
+    "https://cdn.discordapp.com/attachments/1555854715580063797/1566413705762316440/IMG_7887.png?ex=6ae873f2&is=6ae72272&hm=985d38e8e4464e24dc2d2d402483d031942a8bbd7a5c68678e5056996545c78a&";
+  const historyKey = `qb_pfp_history_${user?.uid || "guest"}`;
+
+  const [pfpHistory, setPfpHistory] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem(historyKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 5);
+      }
+    } catch {}
+    const initial = user?.profilePhoto && user.profilePhoto.trim() ? [user.profilePhoto] : [DEFAULT_PFP];
+    try {
+      localStorage.setItem(historyKey, JSON.stringify(initial));
+    } catch {}
+    return initial;
+  });
+
+  const [currentPhoto, setCurrentPhoto] = useState<string>(
+    user?.profilePhoto || (pfpHistory[0] ? pfpHistory[0] : DEFAULT_PFP),
+  );
   const equippedFrame = useEquippedFrame();
   const [selectedFrame, setSelectedFrame] = useState<AvatarFrameId>(
     (user?.avatarSnapshot?.frameId as AvatarFrameId) || equippedFrame || "none",
   );
-  const [activeTab, setActiveTab] = useState<"pfp" | "frames">("pfp");
   const [saving, setSaving] = useState(false);
 
-  const PREVIEWS = [
-    "/qblock-app-icon.png",
-    user?.profilePhoto && user.profilePhoto !== "/qblock-app-icon.png"
-      ? user.profilePhoto
-      : "/qblock-mascot.png",
-    "/cat-costume.png",
-    "/lucky-block-cat.png",
-    "/emojis/face/kirakira.png",
-  ];
+  const addPhotoToHistory = (photo: string) => {
+    if (!photo) return;
+    setPfpHistory((prev) => {
+      const filtered = prev.filter((p) => p !== photo);
+      const next = [photo, ...filtered].slice(0, 5);
+      try {
+        localStorage.setItem(historyKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -702,6 +760,7 @@ export function EditAvatarView({
       const res = event.target?.result;
       if (typeof res === "string") {
         setCurrentPhoto(res);
+        addPhotoToHistory(res);
         toast.success("Avatar image loaded");
       }
     };
@@ -713,6 +772,7 @@ export function EditAvatarView({
     setSaving(true);
     try {
       setEquippedFrame(selectedFrame);
+      addPhotoToHistory(currentPhoto);
       if (user?.uid) {
         await setDoc(
           doc(db, "users", user.uid),
@@ -781,12 +841,12 @@ export function EditAvatarView({
           </div>
         </div>
 
-        {/* Tab 1: Preset PFPs & Custom Upload */}
+        {/* Tab 1: Saved History PFPs & Add Button */}
         <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2.5 px-1">
               <span className="text-[12px] font-bold text-[#697383] dark:text-slate-400">
-                Select Profile Picture
+                Avatar History (First 5 Saved)
               </span>
               <label className="press text-[11.5px] font-bold text-[#fa4616] cursor-pointer flex items-center gap-1">
                 <Camera className="h-3 w-3" />
@@ -801,34 +861,9 @@ export function EditAvatarView({
             </div>
 
             <div className="grid grid-cols-4 gap-3">
-              {/* Default Avatar Preset */}
-              <button
-                type="button"
-                onClick={() => setCurrentPhoto("")}
-                className={`press relative rounded-[16px] overflow-hidden aspect-square border-2 transition-all p-1 bg-white dark:bg-[#15171c] ${
-                  !currentPhoto
-                    ? "border-[#fa4616] ring-2 ring-[#fa4616]/30 shadow-sm"
-                    : "border-black/[0.06] dark:border-white/[0.08]"
-                }`}
-                title="Default Avatar"
-              >
-                <div className="h-full w-full rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <GlossyAvatar
-                    snapshot={user?.avatarSnapshot}
-                    imageFallbackOnly={true}
-                    height={64}
-                    className="h-full w-full object-cover"
-                    autoRotate={false}
-                  />
-                </div>
-                <span className="absolute bottom-1 inset-x-1 text-[8.5px] font-extrabold uppercase text-center bg-black/60 text-white rounded-md py-0.5 backdrop-blur-xs">
-                  Default
-                </span>
-              </button>
-
-              {PREVIEWS.map((src, i) => (
+              {pfpHistory.map((src, i) => (
                 <button
-                  key={i}
+                  key={src + i}
                   type="button"
                   onClick={() => setCurrentPhoto(src)}
                   className={`press relative rounded-[16px] overflow-hidden aspect-square border-2 transition-all p-1 bg-white dark:bg-[#15171c] ${
@@ -839,11 +874,32 @@ export function EditAvatarView({
                 >
                   <img
                     src={src}
-                    alt={`Preview ${i + 1}`}
+                    alt={`PFP ${i + 1}`}
                     className="h-full w-full object-cover rounded-[12px]"
                   />
+                  {i === 0 && (
+                    <span className="absolute bottom-1 inset-x-1 text-[8px] font-extrabold uppercase text-center bg-black/60 text-white rounded-md py-0.5 backdrop-blur-xs">
+                      Saved
+                    </span>
+                  )}
                 </button>
               ))}
+
+              {pfpHistory.length < 5 && (
+                <label
+                  className="press relative rounded-[16px] overflow-hidden aspect-square border-2 border-dashed border-black/20 dark:border-white/20 flex flex-col items-center justify-center text-center p-2 cursor-pointer hover:border-[#fa4616] transition-colors bg-black/[0.03] dark:bg-white/[0.03]"
+                  title="Add new avatar picture"
+                >
+                  <Plus className="h-6 w-6 text-[#fa4616] mb-0.5" />
+                  <span className="text-[10.5px] font-bold text-neutral-600 dark:text-neutral-400">Add</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
+              )}
             </div>
           </div>
         </div>
@@ -881,6 +937,13 @@ export const FRAME_LIST: Array<{
     tag: "Standard",
     description: "Clean profile avatar with no border overlay",
     color: "#9ca3af",
+  },
+  {
+    id: "qblock-beta",
+    name: "QBlock Beta",
+    tag: "Exclusive",
+    description: "Official QBlock Beta avatar frame",
+    color: "#fa4616",
   },
   {
     id: "star-program",

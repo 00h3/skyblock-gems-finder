@@ -164,6 +164,18 @@ export function getUserNameClass(
   const outlineClass =
     "[filter:drop-shadow(1px_0_0_#000)_drop-shadow(-1px_0_0_#000)_drop-shadow(0_1px_0_#000)_drop-shadow(0_-1px_0_#000)]";
 
+  // Check custom selected nickname style first
+  const style = (user.nameGradient || user.nameStyle || "") as string;
+  if (style === "default") {
+    return defaultClass;
+  }
+  if (style === "orange") {
+    return `bg-gradient-to-r from-[#fa4616] via-[#ff7a00] to-[#ffa726] bg-clip-text text-transparent font-black ${outlineClass}`;
+  }
+  if (style === "rainbow") {
+    return `bg-gradient-to-r from-red-500 via-amber-400 via-emerald-400 via-sky-400 to-purple-500 bg-clip-text text-transparent font-black ${outlineClass}`;
+  }
+
   if (isH3User(user)) {
     return `bg-gradient-to-r from-[#fa4616] via-[#ff7a00] to-[#ffa726] bg-clip-text text-transparent font-black ${outlineClass}`;
   }
@@ -183,8 +195,13 @@ export function getUserNameClass(
 /** Resolves all badges for a user into structured items (icon, name, id) */
 export function getUserBadges(user: UserProfileLike | null | undefined): UserBadgeItem[] {
   if (!user) return [];
-  const isStaff = isStaffUser(user) || isH3User(user) || isStrUser(user);
-  if (!isStaff) return [];
+  const isVerified =
+    (user as any).verified === true ||
+    (user as any).isVerified === true ||
+    isStaffUser(user) ||
+    isH3User(user) ||
+    isStrUser(user);
+  if (!isVerified) return [];
 
   const badgesMap = new Map<string, UserBadgeItem>();
   const add = (id: string, name: string, iconUrl: string) => {
@@ -215,16 +232,23 @@ export function UserNameWithBadges({
   const displayName =
     name || user?.displayName || user?.username || user?.n || user?.name || "Player";
   const nameStyleClass = getUserNameClass(user, defaultColorClass);
-  const badges = getUserBadges(user);
   const isStr = isStrUser(user);
   const isH3 = isH3User(user);
+  const isVerified = Boolean(
+    (user as any)?.verified === true ||
+    (user as any)?.isVerified === true ||
+    isStaffUser(user) ||
+    isH3 ||
+    isStr
+  );
+  const badges = isVerified ? getUserBadges(user) : [];
 
   return (
     <span className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
       <span className={nameStyleClass}>{displayName}</span>
       {isStr && <VerifiedTick badgeType="pink" size={badgeSize} />}
       {!isStr && isH3 && <VerifiedTick badgeType="verified" size={badgeSize} />}
-      {!isStr && !isH3 && badges.map((b) => (
+      {!isStr && !isH3 && isVerified && badges.map((b) => (
         <img
           key={b.id}
           src={b.iconUrl}

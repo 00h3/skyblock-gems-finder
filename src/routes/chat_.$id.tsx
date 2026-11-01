@@ -49,13 +49,13 @@ export const Route = createFileRoute("/chat_/$id")({
   component: ChatRoom,
 });
 
-// ── Emoji packs (keep existing, they are real assets) ─────────────────────────
+// ── Unified Emojis Pack (Discord + WeChat combined) ─────────────────────────
 type EmojiPack = { id: string; label: string; emojis: { name: string; path: string }[] };
 
 const EMOJI_PACKS: EmojiPack[] = [
   {
-    id: "wechat",
-    label: "WeChat",
+    id: "emojis",
+    label: "Emojis",
     emojis: [
       { name: "wechat-clap", path: "/emojis/wechat/342085-wechat-clap.png" },
       { name: "wechat-silent", path: "/emojis/wechat/121502-wechat-silent.png" },
@@ -64,12 +64,6 @@ const EMOJI_PACKS: EmojiPack[] = [
       { name: "wechat-sob", path: "/emojis/wechat/239087-wechat-sob.png" },
       { name: "wechat-whimper", path: "/emojis/wechat/275780-wechat-whimper.png" },
       { name: "wechat-sly", path: "/emojis/wechat/16662-wechatsly.png" },
-    ],
-  },
-  {
-    id: "face",
-    label: "Face",
-    emojis: [
       { name: "uwu", path: "/emojis/face/uwu.png" },
       { name: "weep", path: "/emojis/face/weep.png" },
       { name: "yawn", path: "/emojis/face/yawn.png" },
@@ -85,30 +79,159 @@ const EMOJI_PACKS: EmojiPack[] = [
       { name: "kirakira", path: "/emojis/face/kirakira.png" },
     ],
   },
-  {
-    id: "qblock",
-    label: "QBlock",
-    emojis: [
-      {
-        name: "hype",
-        path: "https://maxwell.z3ki.dev/bot/_files/running-cat-transparent/running_cat_transparent.gif",
-      },
-      { name: "qblock", path: "/qblock-mascot.png" },
-      { name: "catcostume", path: "/cat-costume.png" },
-      { name: "friendheart", path: "/friend-heart.png" },
-      { name: "catcoin", path: "/catcoin.png" },
-      { name: "luckycat", path: "/lucky-block-cat.png" },
-      { name: "catticket", path: "/cat-ticket.png" },
-    ],
-  },
 ];
 
 const EMOJI_MAP: Record<string, string> = {};
 EMOJI_PACKS.forEach((p) =>
   p.emojis.forEach((e) => {
     EMOJI_MAP[`${p.id}:${e.name}`] = e.path;
+    EMOJI_MAP[`wechat:${e.name}`] = e.path;
+    EMOJI_MAP[`face:${e.name}`] = e.path;
+    EMOJI_MAP[`qblock:${e.name}`] = e.path;
   }),
 );
+
+/** Search GIFs using provided Giphy API key */
+async function searchGifs(query: string, limit = 14) {
+  const apiKey = "sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh";
+  const url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(
+    query,
+  )}&limit=${limit}&rating=g`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+    const json = await res.json();
+    return (json.data || []).map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      url: item.images.original.url,
+      preview: item.images.fixed_height_small.url,
+      mp4: item.images.original.mp4,
+    }));
+  } catch (err) {
+    console.error("Failed to fetch GIFs:", err);
+    return [];
+  }
+}
+
+function GifPickerModal({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (gifUrl: string) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("trending");
+  const [gifs, setGifs] = useState<
+    Array<{ id: string; title: string; url: string; preview: string }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const timer = setTimeout(() => {
+      searchGifs(query || "trending", 14).then((res) => {
+        if (!cancelled) {
+          setGifs(res);
+          setLoading(false);
+        }
+      });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-[420px] rounded-[24px] bg-[#14161b] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎬</span>
+            <h3 className="text-[16px] font-bold text-white tracking-tight">GIF Library</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-3 border-b border-white/5 bg-white/[0.02]">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search GIFs (e.g. dance, gg, laugh)..."
+            className="w-full h-10 px-3.5 rounded-xl bg-white/10 text-white placeholder-white/40 text-[13px] outline-none border border-white/10 focus:border-amber-400/60 transition-colors"
+            autoFocus
+          />
+        </div>
+
+        {/* Quick Tag Pills */}
+        <div className="flex gap-1.5 px-3 py-2 overflow-x-auto hide-scrollbar border-b border-white/5 bg-black/20">
+          {["Trending", "GG", "Dance", "Laugh", "Bye", "Hyped", "Victory", "Flex"].map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setQuery(tag.toLowerCase())}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold shrink-0 transition-colors cursor-pointer ${
+                query.toLowerCase() === tag.toLowerCase()
+                  ? "bg-amber-500 text-black"
+                  : "bg-white/10 text-white/80 hover:bg-white/20"
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
+        {/* GIF Grid */}
+        <div className="p-3 flex-1 overflow-y-auto ios-scroll hide-scrollbar min-h-[220px]">
+          {loading ? (
+            <div className="h-48 grid place-items-center">
+              <HtmlSpinner size={24} />
+            </div>
+          ) : gifs.length === 0 ? (
+            <div className="h-48 grid place-items-center text-center p-4 text-white/50 text-[13px]">
+              No GIFs found. Try searching something else!
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {gifs.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect(g.url);
+                    onClose();
+                  }}
+                  className="group relative rounded-xl overflow-hidden bg-black/40 aspect-video border border-white/10 hover:border-amber-400 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                >
+                  <img
+                    src={g.preview || g.url}
+                    alt={g.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Parse text with [emoji:pack:name] tokens
 type Part = { type: "text"; v: string } | { type: "emoji"; key: string; url: string };
@@ -254,16 +377,38 @@ function ChatRoom() {
     return null;
   });
 
-  const [access, setAccess] = useState<"checking" | "allowed" | "blocked">(() =>
-    myUid ? "allowed" : "checking",
-  );
-  const [sendError, setSendError] = useState("");
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileTarget, setProfileTarget] = useState<"self" | "other">("other");
-  const [chatHype, setChatHype] = useState(150);
-  const [boostingHype, setBoostingHype] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const lastBackspace = useRef<number>(0);
+  const [replyTo, setReplyTo] = useState<{ id: string; senderName: string; text: string } | null>(null);
+  const [gifOpen, setGifOpen] = useState(false);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+
+  // Sync typing indicator
+  useEffect(() => {
+    if (!activeChatId || !recipientUid || activeChatId === "support") return;
+    const unsub = onSnapshot(doc(db, "chatMeta", activeChatId), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const typingMap = data.typing || {};
+        const lastTypedAt = typingMap[recipientUid];
+        if (typeof lastTypedAt === "number" && Date.now() - lastTypedAt < 3500) {
+          setIsOtherTyping(true);
+        } else {
+          setIsOtherTyping(false);
+        }
+      }
+    });
+    return unsub;
+  }, [activeChatId, recipientUid]);
+
+  // Update own typing indicator
+  useEffect(() => {
+    if (!activeChatId || !qbUser?.uid || activeChatId === "support") return;
+    if (val.trim()) {
+      updateDoc(doc(db, "chatMeta", activeChatId), {
+        [`typing.${qbUser.uid}`]: Date.now(),
+      }).catch(() => {});
+    }
+  }, [val, activeChatId, qbUser?.uid]);
 
   // Resolve recipient metadata
   useEffect(() => {
@@ -695,6 +840,7 @@ function ChatRoom() {
         senderId: qbUser.uid,
         senderName: userDisplayName(qbUser, qbUser.uid),
         text,
+        replyTo: replyTo ? { id: replyTo.id, senderName: replyTo.senderName, text: replyTo.text } : null,
         timestamp: serverTimestamp(),
       });
       recordChatSent();
@@ -710,6 +856,7 @@ function ChatRoom() {
         { merge: true },
       );
       setVal("");
+      setReplyTo(null);
       setSendState("sent");
       window.setTimeout(() => setSendState("idle"), 1200);
     } catch (err) {
@@ -1043,7 +1190,26 @@ function ChatRoom() {
             return (
               <div
                 key={m.id}
-                className={`flex items-end gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}
+                onTouchStart={(e) => {
+                  touchStartX.current = e.touches[0].clientX;
+                }}
+                onTouchEnd={(e) => {
+                  if (touchStartX.current !== null) {
+                    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+                    if (deltaX > 45) {
+                      if (typeof navigator !== "undefined" && navigator.vibrate) {
+                        navigator.vibrate(25);
+                      }
+                      setReplyTo({
+                        id: m.id,
+                        senderName: messageName,
+                        text: m.text || (m.imageUrl ? "Photo" : "Message"),
+                      });
+                    }
+                  }
+                  touchStartX.current = null;
+                }}
+                className={`flex items-end gap-1.5 ${isMe ? "justify-end" : "justify-start"} transition-transform active:translate-x-1`}
               >
                 {!isMe && (
                   <div className={`shrink-0 ${grouped ? "opacity-0" : ""}`}>
@@ -1083,6 +1249,19 @@ function ChatRoom() {
                       {messageName}
                     </div>
                   )}
+
+                  {/* Quoted reply pill inside message bubble */}
+                  {m.replyTo && (
+                    <div className="mb-1.5 px-2.5 py-1 rounded-[8px] bg-black/15 dark:bg-white/10 border-l-2 border-amber-400 text-[11px] leading-tight">
+                      <div className="font-bold text-amber-300 dark:text-amber-400 truncate">
+                        {m.replyTo.senderName}
+                      </div>
+                      <div className="text-white/80 dark:text-white/80 truncate">
+                        {m.replyTo.text || "Photo"}
+                      </div>
+                    </div>
+                  )}
+
                   {m.imageUrl ? (
                     <img
                       src={m.imageUrl}
@@ -1152,15 +1331,46 @@ function ChatRoom() {
           })}
         </div>
 
+        {/* Discord-style Typing Indicator */}
+        {isOtherTyping && (
+          <div className="fixed bottom-[68px] left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 py-1 z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 dark:bg-white/10 backdrop-blur-md text-[11px] font-bold text-amber-400 shadow-md">
+              <div className="flex gap-1 items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+              <span>{headerName} is typing...</span>
+            </div>
+          </div>
+        )}
+
         {/* Input bar */}
         <div
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] bg-white border-t border-black/[0.06] px-3 pt-1.5"
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] bg-white dark:bg-[#121418] border-t border-black/[0.06] dark:border-white/[0.08] px-3 pt-1.5"
           style={{
             paddingBottom: "max(10px,env(safe-area-inset-bottom))",
           }}
         >
+          {/* Replying quote bar preview */}
+          {replyTo && (
+            <div className="mb-1.5 px-3 py-1.5 rounded-[12px] bg-slate-100 dark:bg-[#1f222a] border-l-3 border-amber-400 flex items-center justify-between text-[11.5px] shadow-xs">
+              <div className="min-w-0 pr-2">
+                <span className="font-bold text-amber-500">Replying to {replyTo.senderName}</span>
+                <p className="text-gray-600 dark:text-gray-300 truncate font-medium">{replyTo.text}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {emojiOpen && (
-            <div className="mb-2 rounded-[16px] bg-white border border-border-soft shadow-md animate-fade-in overflow-hidden">
+            <div className="mb-2 rounded-[16px] bg-white dark:bg-[#1a1d24] border border-border-soft shadow-md animate-fade-in overflow-hidden">
               <div className="flex border-b border-border-soft px-2 pt-1.5 gap-1">
                 {EMOJI_PACKS.map((pack, pi) => (
                   <button
@@ -1180,7 +1390,7 @@ function ChatRoom() {
                       onClick={() =>
                         setVal((v) => v + `[emoji:${EMOJI_PACKS[emojiTab].id}:${em.name}]`)
                       }
-                      className="press h-9 w-9 rounded-[8px] grid place-items-center hover:bg-slate-100"
+                      className="press h-9 w-9 rounded-[8px] grid place-items-center hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <img src={em.path} alt={em.name} className="h-6 w-6 object-contain" />
                     </button>
@@ -1228,10 +1438,18 @@ function ChatRoom() {
               >
                 <Smile className="h-4 w-4" />
               </button>
+              <button
+                type="button"
+                onClick={() => setGifOpen(true)}
+                className="press px-2 h-7 rounded-full flex items-center justify-center shrink-0 text-[10.5px] font-extrabold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 transition-colors mr-1 cursor-pointer"
+                aria-label="GIFs"
+              >
+                GIF
+              </button>
               <input
                 value={val}
                 onChange={(e) => setVal(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
+                onKeyDown={handleKeyDown}
                 onFocus={() => setEmojiOpen(false)}
                 placeholder={
                   activeChatId === "support"
@@ -1298,6 +1516,35 @@ function ChatRoom() {
                   }
             }
             onClose={() => setProfileOpen(false)}
+          />
+        )}
+        {gifOpen && (
+          <GifPickerModal
+            onClose={() => setGifOpen(false)}
+            onSelect={(gifUrl) => {
+              if (!qbUser) return;
+              const otherUid =
+                recipientUid || (chatId.includes("_") ? legacyOtherUid(chatId, qbUser.uid) : chatId);
+              if (!otherUid) return;
+              const targetCid = activeChatId || friendshipId(qbUser.uid, otherUid);
+              addDoc(collection(db, "chats", targetCid, "messages"), {
+                senderId: qbUser.uid,
+                senderName: userDisplayName(qbUser, qbUser.uid),
+                text: "",
+                imageUrl: gifUrl,
+                timestamp: serverTimestamp(),
+              });
+              setDoc(
+                doc(db, "chatMeta", targetCid),
+                {
+                  members: [qbUser.uid, otherUid],
+                  lastMessage: "GIF",
+                  lastAt: serverTimestamp(),
+                },
+                { merge: true },
+              );
+              recordChatSent();
+            }}
           />
         )}
       </div>

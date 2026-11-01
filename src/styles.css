@@ -19,6 +19,21 @@ html, body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+}
+
+.gpu-smooth,
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: scroll-position, transform;
 }
 
 *, ::before, ::after {

@@ -26,6 +26,7 @@ import {
   writeBatch,
   updateDoc,
   setDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   onSnapshot,
@@ -517,5 +518,127 @@ export function subscribeIncomingRequests(
   return () => {
     unsubRequests();
     unsubInbox();
+  };
+}
+
+export type FriendRequestHistoryItem = {
+  id: string;
+  from: string;
+  to: string;
+  direction: "incoming" | "outgoing";
+  status: "pending" | "accepted" | "rejected" | "removed";
+  createdAt?: unknown;
+  otherUid: string;
+  otherUsername?: string;
+  otherDisplayName?: string;
+  otherAvatar?: AvatarSnapshot;
+  otherPhoto?: string;
+  otherBio?: string;
+};
+
+export async function unfriendUser(myUid: string, otherUid: string): Promise<void> {
+  if (!myUid || !otherUid) return;
+  const fid = friendshipId(myUid, otherUid);
+
+  // Delete friendship document
+  await deleteDoc(doc(db, "friendships", fid)).catch(() => {});
+
+  // Update friendRequests records to "removed"
+  try {
+    const q1 = query(collection(db, "friendRequests"), where("from", "==", myUid));
+    const snap1 = await getDocs(q1).catch(() => null);
+    const batch = writeBatch(db);
+    let dirty = false;
+    snap1?.docs.forEach((d) => {
+      if (d.data().to === otherUid) {
+        batch.update(d.ref, { status: "removed", removedAt: serverTimestamp() });
+        dirty = true;
+      }
+    });
+
+    const q2 = query(collection(db, "friendRequests"), where("to", "==", myUid));
+    const snap2 = await getDocs(q2).catch(() => null);
+    snap2?.docs.forEach((d) => {
+      if (d.data().from === otherUid) {
+        batch.update(d.ref, { status: "removed", removedAt: serverTimestamp() });
+        dirty = true;
+      }
+    });
+    if (dirty) {
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn("Could not mark friend requests removed:", err);
+  }
+
+  // Update cached friends in localStorage
+  const cached = getCachedFriends(myUid);
+  const remaining = cached.filter((f) => f.uid !== otherUid);
+  saveCachedFriends(myUid, remaining);
+
+  // Sync friend count
+  updateDoc(doc(db, "users", myUid), { friendCount: remaining.length }).catch(() => {});
+}
+
+export function subscribeRequestHistory(
+  myUid: string,
+  callback: (history: FriendRequestHistoryItem[]) => void,
+): Unsubscribe {
+  let sentDocs: DocumentData[] = [];
+  let recvDocs: DocumentData[] = [];
+  let historyVersion = 0;
+
+  async function mergeAndEnrich() {
+    const version = ++historyVersion;
+    const all = [
+      ...sentDocs.map((d) => ({ ...d, direction: "outgoing" as const, otherUid: d.to })),
+      ...recvDocs.map((d) => ({ ...d, direction: "incoming" as const, otherUid: d.from })),
+    ];
+
+    const enriched: FriendRequestHistoryItem[] = await Promise.all(
+      all.map(async (item) => {
+        const u = await readUserProfile(item.otherUid);
+        return {
+          id: item.id,
+          from: String(item.from ?? ""),
+          to: String(item.to ?? ""),
+          direction: item.direction,
+          status: (item.status as FriendRequestHistoryItem["status"]) || "pending",
+          createdAt: item.createdAt,
+          otherUid: item.otherUid,
+          otherUsername: (u?.username as string) || "",
+          otherDisplayName: userDisplayName(u, item.otherUid),
+          otherAvatar: normalizeAvatarSnapshot(u) as AvatarSnapshot | undefined,
+          otherPhoto: (u?.profilePhoto as string) || undefined,
+          otherBio: (u?.bio as string) || undefined,
+        };
+      }),
+    );
+
+    if (version !== historyVersion) return;
+    callback(enriched);
+  }
+
+  const unsub1 = onSnapshot(
+    query(collection(db, "friendRequests"), where("from", "==", myUid)),
+    (snap) => {
+      sentDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      void mergeAndEnrich();
+    },
+    () => {},
+  );
+
+  const unsub2 = onSnapshot(
+    query(collection(db, "friendRequests"), where("to", "==", myUid)),
+    (snap) => {
+      recvDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      void mergeAndEnrich();
+    },
+    () => {},
+  );
+
+  return () => {
+    unsub1();
+    unsub2();
   };
 }

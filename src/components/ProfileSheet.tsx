@@ -37,6 +37,7 @@ import {
   acceptFriendRequest,
   getFriendship,
   sendFriendRequest,
+  unfriendUser,
   type FriendStatus,
 } from "@/lib/friends-utils";
 import { db } from "@/lib/firebase";
@@ -311,6 +312,20 @@ export function ProfileSheet({
     } catch (e) {
       setFriendError(e instanceof Error ? e.message : "Couldn’t update friendship.");
       console.error("Could not send friend request", e);
+    } finally {
+      setAddingFriend(false);
+    }
+  }
+
+  async function handleUnfriend() {
+    if (!qbUser || !user.id || addingFriend) return;
+    setAddingFriend(true);
+    try {
+      await unfriendUser(qbUser.uid, user.id);
+      setFriendStatus("none");
+      setFriendRequestId(null);
+    } catch (e) {
+      setFriendError(e instanceof Error ? e.message : "Couldn’t unfriend user.");
     } finally {
       setAddingFriend(false);
     }
@@ -593,27 +608,35 @@ export function ProfileSheet({
               {!isOwnProfile ? (
                 <>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleAddFriend}
-                      disabled={
-                        friendStatus === "friends" ||
-                        friendStatus === "sent" ||
-                        addingFriend ||
-                        Boolean(friendError)
-                      }
-                      className="qb-squircle press relative flex-1 py-3 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none disabled:opacity-60 cursor-pointer"
-                    >
-                      {addingFriend
-                        ? "Sending…"
-                        : friendStatus === "friends"
-                          ? "Friends"
+                    {friendStatus === "friends" ? (
+                      <button
+                        type="button"
+                        onClick={handleUnfriend}
+                        disabled={addingFriend}
+                        className="press px-3.5 py-3 rounded-[13px] font-extrabold text-[12px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                      >
+                        {addingFriend ? "Removing…" : "Unfriend"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleAddFriend}
+                        disabled={
+                          friendStatus === "sent" ||
+                          addingFriend ||
+                          Boolean(friendError)
+                        }
+                        className="qb-squircle press relative flex-1 py-3 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none disabled:opacity-60 cursor-pointer"
+                      >
+                        {addingFriend
+                          ? "Sending…"
                           : friendStatus === "received"
                             ? "Accept request"
                             : friendStatus === "sent"
                               ? "Requested"
                               : "Add friend"}
-                    </button>
+                      </button>
+                    )}
                     {onChat && (
                       <button
                         type="button"
