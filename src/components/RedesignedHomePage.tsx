@@ -30,6 +30,16 @@ export function RedesignedHomePage({
 
   const [showSelfProfile, setShowSelfProfile] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [showBetaBadge, setShowBetaBadge] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const dismissed = localStorage.getItem("qb_beta_badge_dismissed_v2");
+      if (!dismissed) {
+        setShowBetaBadge(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -395,6 +405,31 @@ export function RedesignedHomePage({
           }}
           onClose={() => setShowSelfProfile(false)}
         />
+      )}
+
+      {/* Beta Badge Popup — clean card overlay without embed, disappears on click & saved to localStorage */}
+      {showBetaBadge && (
+        <div
+          className="fixed inset-0 z-[200] grid place-items-center bg-black/60 p-4 select-none cursor-pointer animate-fade-in"
+          onClick={() => {
+            setShowBetaBadge(false);
+            try {
+              localStorage.setItem("qb_beta_badge_dismissed_v2", "true");
+            } catch {}
+          }}
+        >
+          <div className="relative max-w-[320px] w-full flex flex-col items-center justify-center active:scale-95 transition-transform">
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/qblock-beta-badge-alt/2403C62A-326C-4422-B9F1-304485F3998A.png"
+              alt="QBlock Beta Badge"
+              className="w-full h-auto object-contain drop-shadow-2xl pointer-events-none select-none"
+              draggable={false}
+            />
+            <span className="mt-3 text-[11px] font-extrabold text-white/90 bg-black/50 px-3 py-1 rounded-full border border-white/20 shadow-md">
+              Tap anywhere to close
+            </span>
+          </div>
+        </div>
       )}
     </MobileShell>
   );

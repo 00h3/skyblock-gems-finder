@@ -4040,6 +4040,16 @@ export function SandboxGame({
       };
       window.addEventListener(WEATHER_EVENT, onWeather);
 
+      const onWindMode = (e: Event) => {
+        const mode = (e as CustomEvent<string>).detail as Weather;
+        if (mode === "clear" || mode === "windy" || mode === "snow" || mode === "blizzard") {
+          currentWeather = mode;
+          setWeather(mode);
+          applyWeather();
+        }
+      };
+      window.addEventListener("bm-windmode", onWindMode);
+
       const applyAtmosphere = (mode: string) => {
         if (bedwars) {
           sky.setPurpleNight();

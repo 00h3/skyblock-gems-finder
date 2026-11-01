@@ -104,6 +104,33 @@ const ATMOSPHERE_OPTIONS = [
   },
 ];
 
+const WIND_OPTIONS = [
+  {
+    id: "clear",
+    label: "Clear",
+    sub: "Calm & Still",
+    icon: Sun,
+    activeClasses: "bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.25)]",
+    iconColor: "text-amber-400",
+  },
+  {
+    id: "windy",
+    label: "Windy",
+    sub: "Foliage Sway",
+    icon: Waves,
+    activeClasses: "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.25)]",
+    iconColor: "text-cyan-400",
+  },
+  {
+    id: "snow",
+    label: "Snow",
+    sub: "Winter Flurries",
+    icon: Snowflake,
+    activeClasses: "bg-emerald-500/20 border-emerald-400 text-emerald-200 shadow-[0_0_16px_rgba(52,211,153,0.25)]",
+    iconColor: "text-emerald-300",
+  },
+];
+
 /** Full-screen loading spinner used while a world streams in. */
 export function GearboxLoader() {
   return (
@@ -452,6 +479,16 @@ export function GameSettingsModal({
     }
   });
 
+  const [windMode, setWindMode] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem("qb_wind_mode");
+      if (saved) return saved;
+      return "clear";
+    } catch {
+      return "clear";
+    }
+  });
+
   const handleAtmosphereChange = (id: string) => {
     setAtmosphere(id);
     try {
@@ -462,6 +499,14 @@ export function GameSettingsModal({
       else if (!isNightLike && nightMode) onToggleNightMode?.();
     } catch {}
     window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: id }));
+  };
+
+  const handleWindChange = (id: string) => {
+    setWindMode(id);
+    try {
+      localStorage.setItem("qb_wind_mode", id);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("bm-windmode", { detail: id }));
   };
 
   useEffect(() => {
@@ -745,38 +790,72 @@ export function GameSettingsModal({
 
             {/* ── TAB 4: SKY & ATMOSPHERE ───────────────────────────────── */}
             {activeTab === "sky" && (
-              <div className="bf-settings-card">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-black text-[15px] text-white flex items-center gap-2">
-                    <Sun className="w-4 h-4 text-amber-400" />
-                    Atmosphere & Ambience
-                  </span>
-                  <span className="text-[11px] text-amber-300 font-bold">
-                    Active: {ATMOSPHERE_OPTIONS.find((o) => o.id === atmosphere)?.label ?? "Day"}
-                  </span>
+              <div className="flex flex-col gap-3">
+                <div className="bf-settings-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-black text-[15px] text-white flex items-center gap-2">
+                      <Sun className="w-4 h-4 text-amber-400" />
+                      Atmosphere & Ambience
+                    </span>
+                    <span className="text-[11px] text-amber-300 font-bold">
+                      Active: {ATMOSPHERE_OPTIONS.find((o) => o.id === atmosphere)?.label ?? "Day"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ATMOSPHERE_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      const isActive =
+                        atmosphere === opt.id ||
+                        (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
+                        (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleAtmosphereChange(opt.id)}
+                          className={`bf-btn-grey flex flex-col items-center justify-center p-2.5 text-center transition cursor-pointer ${
+                            isActive ? "is-active" : ""
+                          }`}
+                        >
+                          <Icon className={`w-5 h-5 mb-1 ${isActive ? "text-amber-300" : opt.iconColor}`} />
+                          <span className="text-[12px] font-black leading-tight text-white">{opt.label}</span>
+                          <span className="text-[9.5px] text-zinc-300/80 mt-0.5 leading-tight">{opt.sub}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {ATMOSPHERE_OPTIONS.map((opt) => {
-                    const Icon = opt.icon;
-                    const isActive =
-                      atmosphere === opt.id ||
-                      (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
-                      (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => handleAtmosphereChange(opt.id)}
-                        className={`bf-btn-grey flex flex-col items-center justify-center p-2.5 text-center transition cursor-pointer ${
-                          isActive ? "is-active" : ""
-                        }`}
-                      >
-                        <Icon className={`w-5 h-5 mb-1 ${isActive ? "text-amber-300" : opt.iconColor}`} />
-                        <span className="text-[12px] font-black leading-tight text-white">{opt.label}</span>
-                        <span className="text-[9.5px] text-zinc-300/80 mt-0.5 leading-tight">{opt.sub}</span>
-                      </button>
-                    );
-                  })}
+
+                <div className="bf-settings-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-black text-[15px] text-white flex items-center gap-2">
+                      <Waves className="w-4 h-4 text-cyan-400" />
+                      Wind & Weather Switcher
+                    </span>
+                    <span className="text-[11px] text-cyan-300 font-bold">
+                      Active: {WIND_OPTIONS.find((o) => o.id === windMode)?.label ?? "Clear"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {WIND_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      const isActive = windMode === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleWindChange(opt.id)}
+                          className={`bf-btn-grey flex flex-col items-center justify-center p-2.5 text-center transition cursor-pointer ${
+                            isActive ? "is-active" : ""
+                          }`}
+                        >
+                          <Icon className={`w-5 h-5 mb-1 ${isActive ? "text-cyan-300" : opt.iconColor}`} />
+                          <span className="text-[12px] font-black leading-tight text-white">{opt.label}</span>
+                          <span className="text-[9.5px] text-zinc-300/80 mt-0.5 leading-tight">{opt.sub}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
