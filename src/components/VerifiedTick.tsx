@@ -1,6 +1,6 @@
 import React from "react";
 
-export type BadgeType = "verified" | "character" | "event" | "cod" | "youtuber";
+export type BadgeType = "verified" | "character" | "event" | "cod" | "youtuber" | "pink" | "pink-tick";
 
 export function VerifiedTick({
   className = "",
@@ -13,7 +13,7 @@ export function VerifiedTick({
   badgeType?: BadgeType;
   interactive?: boolean;
 }) {
-  const badgeUrls: Record<BadgeType, string> = {
+  const badgeUrls: Record<string, string> = {
     verified: "https://file.garden/alGOOylwpAfCa6qP/IMG_7218.png",
     character: "https://file.garden/alGOOylwpAfCa6qP/IMG_7216.png",
     event: "/assets/ui/icon-events.svg",
@@ -21,7 +21,36 @@ export function VerifiedTick({
     youtuber: "/badges/youtuber-star.png",
   };
 
-  const url = badgeUrls[badgeType] || badgeUrls.verified;
+  if (badgeType === "pink" || badgeType === "pink-tick") {
+    return (
+      <span
+        className={`inline-flex items-center justify-center shrink-0 select-none ${className}`}
+        style={{ width: size, height: size }}
+        title="Verified (Pink)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" className="h-full w-full drop-shadow-[0_2px_5px_rgba(236,72,153,0.45)]">
+          <path
+            d="M12 2l2.3 2.1 3.1-.3 1.2 2.9 3 1.3-.6 3.1 1.7 2.6-2.2 2.2-.1 3.2-3.1.8-1.6 2.7-3-1-3 1-1.6-2.7-3.1-.8-.1-3.2-2.2-2.2 1.7-2.6-.6-3.1 3-1.3 1.2-2.9 3.1.3L12 2z"
+            fill="url(#pinkTickGrad)"
+          />
+          <path
+            d="M8.5 12.2l2.5 2.5 5-5"
+            stroke="#ffffff"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <defs>
+            <linearGradient id="pinkTickGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#f472b6" />
+              <stop offset="0.5" stopColor="#ec4899" />
+              <stop offset="1" stopColor="#db2777" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+    );
+  }
 
   return (
     <span

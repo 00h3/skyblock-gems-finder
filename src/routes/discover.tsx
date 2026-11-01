@@ -61,6 +61,35 @@ const GAMES: DiscoveryGame[] = [
     badge: "NEW",
     popularity: 96,
   },
+  {
+    id: "bedwars",
+    title: "BedWars",
+    subtitle: "Tactical Island Defense",
+    bio: "Protect your team bed and destroy enemy defenses across floating island arenas.",
+    img: "/banners/play-now.jpg",
+    hue: "from-red-500 via-amber-400 to-yellow-300",
+    mode: "PvP",
+    modeColor: "#e11d48",
+    mood: "popular",
+    players: "1.8K",
+    likes: "7.9K",
+    popularity: 92,
+  },
+  {
+    id: "block-fall",
+    title: "Block Fall",
+    subtitle: "Falling Voxel Arena",
+    bio: "Run, jump, and survive as blocks crumble under your feet. Don't fall into the abyss!",
+    img: "/banners/spleef.jpg",
+    hue: "from-purple-500 via-pink-400 to-rose-300",
+    mode: "Arcade",
+    modeColor: "#9333ea",
+    mood: "popular",
+    players: "940",
+    likes: "5.1K",
+    badge: "UPDATED",
+    popularity: 88,
+  },
 ];
 
 const UPLOADED_DISCOVER_TABS = [
@@ -81,12 +110,12 @@ function UploadedDiscoverPage() {
   const games = useMemo(() => {
     const activeTab = UPLOADED_DISCOVER_TABS[tab];
     let list = GAMES;
-    if (activeTab === "PvP" || activeTab === "Arcade" || activeTab === "Action") {
-      list = GAMES.filter((g) => g.id === "block-fall" || g.id === "bedwars");
-    } else if (activeTab === "Building" || activeTab === "Sandbox") {
+    if (activeTab === "Building") {
       list = GAMES.filter((g) => g.id === "skyblock" || g.id === "baseplate");
-    } else if (activeTab === "Fantasy" || activeTab === "Survival") {
-      list = GAMES.filter((g) => g.id === "skyblock");
+    } else if (activeTab === "Sandbox") {
+      list = GAMES.filter((g) => g.id === "baseplate");
+    } else if (activeTab === "Survival") {
+      list = GAMES.filter((g) => g.id === "skyblock" || g.id === "bedwars");
     }
 
     const q = searchQuery.trim().toLowerCase();
@@ -104,7 +133,7 @@ function UploadedDiscoverPage() {
 
   return (
     <MobileShell>
-      <div className="relative min-h-full pb-28 text-foreground overflow-hidden">
+      <div className="relative min-h-full pb-36 text-foreground overflow-y-auto ios-scroll hide-scrollbar">
         {/* Top Aurora Borealis Glow Effect matching Homepage */}
         <div
           className="pointer-events-none absolute top-0 left-0 right-0 h-44 overflow-hidden select-none z-0"
@@ -134,7 +163,7 @@ function UploadedDiscoverPage() {
         </div>
 
         {/* Top Header Bar with Homepage-style Glossy Search Bar & Card/List Switcher */}
-        <div className="relative z-10 px-4 pt-[max(env(safe-area-inset-top),16px)] pb-3 flex items-center gap-2.5">
+        <div className="relative z-10 px-4 pt-[max(env(safe-area-inset-top),16px)] pb-2 flex items-center gap-2.5">
           <label className="liquid-search flex-1 min-w-0 flex h-10 items-center gap-2 px-3.5 cursor-text rounded-[14px]">
             <Search className="relative z-10 h-[15px] w-[15px] shrink-0 text-text-muted" />
             <input
@@ -214,10 +243,33 @@ function UploadedDiscoverPage() {
           </div>
         </div>
 
-        <div className="relative z-10 mt-1 px-4">
+        {/* Categories Tab Pill Bar - placed inline right below header */}
+        <div className="relative z-10 px-4 py-1.5 overflow-x-auto scroll-smooth hide-scrollbar">
+          <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max">
+            {UPLOADED_DISCOVER_TABS.map((label, index) => {
+              const isSelected = index === tab;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setTab(index)}
+                  className={`press relative h-7.5 shrink-0 rounded-full px-3.5 text-[11.5px] transition-all cursor-pointer whitespace-nowrap select-none outline-none ${
+                    isSelected
+                      ? "bg-[#141414] dark:bg-white text-white dark:text-[#141414] font-black shadow-xs"
+                      : "bg-black/5 dark:bg-white/10 font-bold text-foreground/75 hover:text-foreground"
+                  }`}
+                >
+                  <span className="relative z-10">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="relative z-10 mt-2 px-4">
           {viewMode === "card" ? (
-            /* Card Grid View — squary squircle icons */
-            <div className="grid grid-cols-3 gap-x-3 gap-y-3.5">
+            /* Card Grid View — roomy squircle cards */
+            <div className="grid grid-cols-2 gap-3.5">
               {games.map((game) => {
                 const isLiked = liked.has(game.id);
                 return (
@@ -378,43 +430,6 @@ function UploadedDiscoverPage() {
               {searchQuery ? `No worlds found matching "${searchQuery}".` : "No worlds in this category."}
             </div>
           )}
-        </div>
-
-        {/* Bottom Categories Divider — scrollable pill menu above bottom nav bar */}
-        <div className="absolute bottom-[calc(66px+max(env(safe-area-inset-bottom),10px))] left-0 right-0 z-30 flex justify-center px-2 pointer-events-none">
-          <div className="qb-glossy-menu pointer-events-auto max-w-[calc(100%-16px)] w-auto overflow-x-auto scroll-smooth hide-scrollbar rounded-full p-1 shadow-lg touch-pan-x overscroll-x-contain">
-            <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max px-2 py-0.5">
-              {UPLOADED_DISCOVER_TABS.map((label, index) => {
-                const isSelected = index === tab;
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => setTab(index)}
-                    className={`press relative z-10 h-7.5 shrink-0 rounded-full px-3.5 text-[11.5px] transition-all cursor-pointer whitespace-nowrap select-none outline-none ${
-                      isSelected
-                        ? "font-black text-foreground"
-                        : "qb-glossy-chip font-bold text-foreground/75 hover:text-foreground"
-                    }`}
-                  >
-                    {isSelected && (
-                      <motion.div
-                        layoutId="discoverCategoryPill"
-                        transition={{
-                          type: "spring",
-                          stiffness: 450,
-                          damping: 32,
-                          mass: 0.8,
-                        }}
-                        className="absolute inset-0 rounded-full pointer-events-none bg-white/70 dark:bg-white/20 backdrop-blur-md border border-white/80 dark:border-white/25 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.95),0_2px_10px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_2px_12px_rgba(0,0,0,0.4)]"
-                      />
-                    )}
-                    <span className="relative z-10">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
       {open && (

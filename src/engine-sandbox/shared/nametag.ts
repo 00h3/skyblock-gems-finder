@@ -207,12 +207,31 @@ function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
   // Name with crisp dark outline (Blockman GO signature outline)
   c.font = nameFont(NAME_PX);
   c.textAlign = "left";
-  c.fillStyle = color;
+
+  const lowerName = name.toLowerCase();
+  const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName.includes("h3");
+  const isStr = lowerName === "str" || lowerName.includes("str");
 
   // Dark outline for crystal clarity in all lighting
   c.lineWidth = 4;
   c.strokeStyle = "rgba(0, 0, 0, 0.88)";
   c.strokeText(name, padX, h / 2 + 1);
+
+  if (isH3) {
+    const textGrad = c.createLinearGradient(padX, 0, padX + textW, 0);
+    textGrad.addColorStop(0, "#fa4616");
+    textGrad.addColorStop(0.5, "#ff8800");
+    textGrad.addColorStop(1, "#ffa726");
+    c.fillStyle = textGrad;
+  } else if (isStr) {
+    const textGrad = c.createLinearGradient(padX, 0, padX + textW, 0);
+    textGrad.addColorStop(0, "#ec4899");
+    textGrad.addColorStop(0.5, "#f472b6");
+    textGrad.addColorStop(1, "#fb7185");
+    c.fillStyle = textGrad;
+  } else {
+    c.fillStyle = color;
+  }
   c.fillText(name, padX, h / 2 + 1);
 
   // Draw Blockman GO VIP0 badge next to player name

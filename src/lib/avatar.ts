@@ -36,7 +36,7 @@ export function getAvatarViewerUrl(opts?: {
 
   const charId = (opts?.characterId || "").toLowerCase();
 
-  const isIraOrStrOrDie =
+  const isIraOrStrOrDieOrH3 =
     opts?.isIra ||
     opts?.isStr ||
     charId === "char2" ||
@@ -52,9 +52,15 @@ export function getAvatarViewerUrl(opts?: {
     username === "str" ||
     username.startsWith("str") ||
     customId === "str" ||
-    customId.startsWith("str");
+    customId.startsWith("str") ||
+    username === "h3" ||
+    username === "00h3" ||
+    username.includes("h3") ||
+    customId === "h3" ||
+    customId.includes("h3") ||
+    email.includes("h3");
 
-  if (isIraOrStrOrDie) {
+  if (isIraOrStrOrDieOrH3) {
     return "https://maxwell.z3ki.dev/bot/witch-studio-viewer/";
   }
 

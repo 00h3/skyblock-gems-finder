@@ -29,7 +29,8 @@ import {
   CHARACTER_2_GLTF,
   getAvatarViewerUrl,
 } from "@/lib/avatar";
-import { badgeUrlsFor, getUserBadges, UserNameWithBadges } from "@/lib/user-style";
+import { badgeUrlsFor, getUserBadges, UserNameWithBadges, isH3User, isStrUser, isIraUser } from "@/lib/user-style";
+import FolderFloat from "@/components/ui/FolderFloat";
 import { setNavHidden } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -360,29 +361,29 @@ export function ProfileSheet({
               <BronzeCorniceUpper size={120} />
             </div>
 
-            {/* PFP stage in front */}
-            <div className="w-full h-full absolute inset-0 bg-transparent z-10 flex items-center justify-center">
-              {user.profilePhoto ? (
-                  <img
-                    src={user.profilePhoto}
-                    alt={name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <GlossyAvatar
-                    snapshot={user.avatarSnapshot}
-                    photoUrl={user.profilePhoto}
-                    imageFallbackOnly={true}
-                    height={220}
-                    className="w-full h-full object-cover"
-                    autoRotate={false}
-                  />
-                )}
+            {/* 3D Character thumbnail web view preview matching QBlock search */}
+            <div className="w-full h-full absolute inset-0 bg-[#eef2f6] dark:bg-[#12141a] z-10 flex items-center justify-center overflow-hidden">
+              <iframe
+                src={getAvatarViewerUrl({
+                  username: user.username || user.n,
+                  customId: user.customId,
+                  characterId: user.avatarSnapshot?.selectedCharacter,
+                  gender: user.avatarSnapshot?.gender,
+                  isIra: isIraUser(user),
+                  isStr: isStrUser(user),
+                  isH3: isH3User(user),
+                })}
+                className="w-full h-full border-0 absolute inset-0 bg-transparent"
+                style={{ border: "none" }}
+                loading="lazy"
+                allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope"
+                title={`${name} 3D Avatar`}
+              />
             </div>
 
             <AvatarFrameOverlay
               frame={user.frame ?? user.avatarSnapshot?.frameId}
-              className="inset-x-8 inset-y-3"
+              className="inset-x-8 inset-y-3 pointer-events-none"
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-16 bg-gradient-to-t from-[#f4f5f8]/80 dark:from-[#0c0d11]/80 to-transparent" />
 
@@ -413,18 +414,35 @@ export function ProfileSheet({
 
           {/* ── 50% FLATTER WHITE & GREY PROFILE SHEET CONTAINER ── */}
           <div className="relative z-20 flex-1 flex flex-col bg-white dark:bg-[#14151b] overflow-hidden border-t border-black/[0.06] dark:border-white/10">
-            {/* Profile Header Row (PFP, Name, ID) */}
+            {/* Profile Header Row (Squircle PFP, Name, ID) */}
             <div className="p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3.5 min-w-0 flex-1 mr-2">
+                {/* Squircle PFP part with user/our pfp */}
+                <div className="relative h-13 w-13 shrink-0 rounded-[16px] overflow-hidden border-2 border-black/10 dark:border-white/10 shadow-sm bg-gradient-to-br from-orange-500/10 via-amber-400/20 to-orange-600/10 flex items-center justify-center">
+                  {user.profilePhoto ? (
+                    <img
+                      src={user.profilePhoto}
+                      alt={name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-[#fa4616] to-[#ff9800] text-white font-black text-lg [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
                 {/* User Info */}
-                <div className="flex flex-col gap-1">
-                  <UserNameWithBadges
-                    user={user}
-                    name={name}
-                    badgeSize={20}
-                    className="text-[22px] font-extrabold tracking-tight"
-                    defaultColorClass="text-[#1A1D20] dark:text-white"
-                  />
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <UserNameWithBadges
+                      user={user}
+                      name={name}
+                      badgeSize={20}
+                      className="text-[20px] font-extrabold tracking-tight"
+                      defaultColorClass="text-[#1A1D20] dark:text-white"
+                    />
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-mono font-semibold px-2 py-0.5 rounded-[8px] bg-black/5 dark:bg-white/10 text-[#6B7280] dark:text-slate-400">
                       ID: {displayId}
@@ -440,14 +458,15 @@ export function ProfileSheet({
               {/* ●●● Options Button */}
               <button
                 type="button"
-                onClick={() => { /* Open settings */ }}
-                className="press h-10 w-10 grid place-items-center rounded-2xl bg-white/10 dark:bg-black/20 border border-black/5 dark:border-white/10"
+                onClick={() => setReportOpen(true)}
+                className="press h-10 w-10 shrink-0 grid place-items-center rounded-2xl bg-white/10 dark:bg-black/20 border border-black/5 dark:border-white/10"
+                aria-label="Options"
               >
                 <MoreHorizontal className="h-5 w-5 text-[#1A1D20] dark:text-white" />
               </button>
             </div>
 
-            {/* Navigation Tabs (Info | Friends/Game) */}
+            {/* Navigation Tabs (Info | Game Data) */}
             <div className="flex px-4 gap-2 border-b border-black/5 dark:border-white/5">
               <button
                 type="button"
@@ -461,7 +480,7 @@ export function ProfileSheet({
                 onClick={() => setActiveTab("game")}
                 className={`pb-3 text-[14px] font-bold ${activeTab === "game" ? "text-[#fa4616] border-b-2 border-[#fa4616]" : "text-[#6B7280]"}`}
               >
-                {isOwnProfile ? "Friends" : "Game Data"}
+                Game Data
               </button>
             </div>
 
@@ -477,13 +496,113 @@ export function ProfileSheet({
               )}
               
               {activeTab === "game" && (
-                <div className="space-y-3">
-                  {/* Friend rectangle cards */}
-                  <div className="rounded-2xl p-3 border border-black/5 dark:border-white/5 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-slate-200" />
-                    <div>
-                      <div className="font-bold text-[14px]">Friend Name</div>
-                      <div className="text-[12px] text-slate-500">Online</div>
+                <div className="space-y-4">
+                  {/* React Bits FolderFloat Component named our name with floating game items */}
+                  <div className="flex flex-col items-center justify-center pt-2 pb-1 overflow-visible">
+                    <FolderFloat
+                      items={[
+                        "Cell 99",
+                        "SkyBlock",
+                        "Island Survival",
+                        "Voxel Baseplate",
+                        "Level 24",
+                        "1,240 Coins",
+                        "36 Gems",
+                      ]}
+                      label={name || "Player"}
+                      sublabel="Game Data"
+                      trigger="click"
+                      defaultOpen={true}
+                      physics={true}
+                      folderColor="#27272a"
+                      frontColor="#fa4616"
+                      labelColor="#ffffff"
+                      itemColor="#ffffff"
+                      itemTextColor="#18181b"
+                      spread={150}
+                      lift={22}
+                      width={190}
+                      height={135}
+                    />
+                    <span className="text-[11px] font-bold text-slate-400 mt-2 text-center">
+                      Tap folder to toggle notes • drag & throw pills
+                    </span>
+                  </div>
+
+                  {/* Connected Game Data Cards: Cell 99, SkyBlock */}
+                  <div className="space-y-2.5">
+                    <h3 className="text-[12px] font-black uppercase tracking-wider text-[#6B7280] dark:text-slate-400 px-1">
+                      Featured Worlds
+                    </h3>
+
+                    {/* Cell 99 Card */}
+                    <div className="rounded-[16px] p-3.5 border border-black/8 dark:border-white/10 bg-white dark:bg-[#1a1c24] flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-12 w-12 rounded-[12px] bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-xs">
+                          C99
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-[14px] text-[#1A1D20] dark:text-white truncate">
+                            Cell 99
+                          </div>
+                          <div className="text-[11.5px] font-medium text-emerald-600 dark:text-emerald-400">
+                            Classic Building Canvas • Sandbox
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          navigate({ to: "/game/$id" as never, params: { id: "baseplate" } as never });
+                        }}
+                        className="press px-3.5 py-1.5 rounded-[10px] bg-[#141414] dark:bg-white text-white dark:text-[#141414] font-extrabold text-[12px] shrink-0"
+                      >
+                        Play
+                      </button>
+                    </div>
+
+                    {/* SkyBlock Card */}
+                    <div className="rounded-[16px] p-3.5 border border-black/8 dark:border-white/10 bg-white dark:bg-[#1a1c24] flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-12 w-12 rounded-[12px] bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-xs">
+                          SB
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-[14px] text-[#1A1D20] dark:text-white truncate">
+                            SkyBlock: New Horizon
+                          </div>
+                          <div className="text-[11.5px] font-medium text-amber-600 dark:text-amber-400">
+                            Floating Island • Survival
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          navigate({ to: "/game/$id" as never, params: { id: "skyblock" } as never });
+                        }}
+                        className="press px-3.5 py-1.5 rounded-[10px] bg-[#fa4616] text-white font-extrabold text-[12px] shrink-0 shadow-sm"
+                      >
+                        Play
+                      </button>
+                    </div>
+
+                    {/* Stats summary row */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <div className="rounded-[14px] p-2.5 bg-slate-100 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Level</div>
+                        <div className="text-[15px] font-black text-[#1A1D20] dark:text-white">24</div>
+                      </div>
+                      <div className="rounded-[14px] p-2.5 bg-slate-100 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Coins</div>
+                        <div className="text-[15px] font-black text-amber-500">1,240</div>
+                      </div>
+                      <div className="rounded-[14px] p-2.5 bg-slate-100 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gems</div>
+                        <div className="text-[15px] font-black text-sky-500">36</div>
+                      </div>
                     </div>
                   </div>
                 </div>

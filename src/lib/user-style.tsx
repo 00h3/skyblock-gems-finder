@@ -69,11 +69,44 @@ export function isStaffUser(user: UserProfileLike | null | undefined): boolean {
 }
 
 export function isStrUser(user: UserProfileLike | null | undefined): boolean {
-  return false;
+  if (!user) return false;
+  const username = typeof user.username === "string" ? user.username.toLowerCase() : "";
+  const displayName = typeof user.displayName === "string" ? user.displayName.toLowerCase() : "";
+  const name = typeof user.name === "string" ? user.name.toLowerCase() : "";
+  const n = typeof user.n === "string" ? user.n.toLowerCase() : "";
+  const customId = typeof user.customId === "string" ? user.customId.toLowerCase() : "";
+  const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
+  return (
+    username === "str" ||
+    username.startsWith("str") ||
+    displayName === "str" ||
+    name === "str" ||
+    n === "str" ||
+    customId === "str" ||
+    customId.startsWith("str") ||
+    email.includes("str")
+  );
 }
 
 export function isH3User(user: UserProfileLike | null | undefined): boolean {
-  return false;
+  if (!user) return false;
+  const username = typeof user.username === "string" ? user.username.toLowerCase() : "";
+  const displayName = typeof user.displayName === "string" ? user.displayName.toLowerCase() : "";
+  const name = typeof user.name === "string" ? user.name.toLowerCase() : "";
+  const n = typeof user.n === "string" ? user.n.toLowerCase() : "";
+  const customId = typeof user.customId === "string" ? user.customId.toLowerCase() : "";
+  const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
+  return (
+    username === "h3" ||
+    username === "00h3" ||
+    username.startsWith("h3") ||
+    displayName === "h3" ||
+    name === "h3" ||
+    n === "h3" ||
+    customId === "h3" ||
+    customId.startsWith("h3") ||
+    email.includes("h3")
+  );
 }
 
 export function isWoofyUser(user: UserProfileLike | null | undefined): boolean {
@@ -82,29 +115,40 @@ export function isWoofyUser(user: UserProfileLike | null | undefined): boolean {
 
 /** Check if user has an available gradient name style */
 export function userHasGradient(user: UserProfileLike | null | undefined): boolean {
-  return isIraUser(user) || isDieUser(user);
+  return isIraUser(user) || isDieUser(user) || isH3User(user) || isStrUser(user);
 }
 
 /**
  * Returns class string for user's name.
- * Verified staff members (Ira & Die) get a distinctive gradient name.
+ * h3 gets an orange gradient name.
+ * str gets a pink gradient name.
+ * Ira & Die get a blue gradient name.
  */
 export function getUserNameClass(
   user: UserProfileLike | null | undefined,
   defaultClass: string = "text-foreground font-extrabold",
 ): string {
   if (!user) return defaultClass;
-  if (!isIraUser(user) && !isDieUser(user)) return defaultClass;
-
   const outlineClass =
     "[filter:drop-shadow(1px_0_0_#000)_drop-shadow(-1px_0_0_#000)_drop-shadow(0_1px_0_#000)_drop-shadow(0_-1px_0_#000)]";
-  return `bg-gradient-to-r from-[#1769e8] via-[#4b9eff] to-[#1769e8] bg-clip-text text-transparent font-black ${outlineClass}`;
+
+  if (isH3User(user)) {
+    return `bg-gradient-to-r from-[#fa4616] via-[#ff7a00] to-[#ffa726] bg-clip-text text-transparent font-black ${outlineClass}`;
+  }
+  if (isStrUser(user)) {
+    return `bg-gradient-to-r from-[#ec4899] via-[#f472b6] to-[#fb7185] bg-clip-text text-transparent font-black ${outlineClass}`;
+  }
+  if (isIraUser(user) || isDieUser(user)) {
+    return `bg-gradient-to-r from-[#1769e8] via-[#4b9eff] to-[#1769e8] bg-clip-text text-transparent font-black ${outlineClass}`;
+  }
+
+  return defaultClass;
 }
 
 /** Resolves all badges for a user into structured items (icon, name, id) */
 export function getUserBadges(user: UserProfileLike | null | undefined): UserBadgeItem[] {
   if (!user) return [];
-  const isStaff = isStaffUser(user);
+  const isStaff = isStaffUser(user) || isH3User(user) || isStrUser(user);
   if (!isStaff) return [];
 
   const badgesMap = new Map<string, UserBadgeItem>();
@@ -114,7 +158,7 @@ export function getUserBadges(user: UserProfileLike | null | undefined): UserBad
     }
   };
 
-  // Verified staff badge for Ira, Die, and users with staff role
+  // Verified staff badge
   add("verified", "Verified Staff", VERIFIED_BADGE_URL);
 
   return Array.from(badgesMap.values());
@@ -137,11 +181,15 @@ export function UserNameWithBadges({
     name || user?.displayName || user?.username || user?.n || user?.name || "Player";
   const nameStyleClass = getUserNameClass(user, defaultColorClass);
   const badges = getUserBadges(user);
+  const isStr = isStrUser(user);
+  const isH3 = isH3User(user);
 
   return (
     <span className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
       <span className={nameStyleClass}>{displayName}</span>
-      {badges.map((b) => (
+      {isStr && <VerifiedTick badgeType="pink" size={badgeSize} />}
+      {!isStr && isH3 && <VerifiedTick badgeType="verified" size={badgeSize} />}
+      {!isStr && !isH3 && badges.map((b) => (
         <img
           key={b.id}
           src={b.iconUrl}
