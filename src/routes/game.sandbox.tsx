@@ -718,6 +718,73 @@ function buildBaseplateWorld(world: World) {
   world.set(0, 16, -1, 4);
 }
 
+const SKYBLOCK_DECORATION_ASSETS = [
+  { url: "/skyblock/skeleton.glb", position: new THREE.Vector3(366, 13.2, -17), height: 3.8, rotationY: -0.65 },
+  { url: "/skyblock/rusty-submarine.glb", position: new THREE.Vector3(402, 13.2, -17), height: 4.8, rotationY: 0.35 },
+] as const;
+
+async function loadSkyblockDecorations(scene: THREE.Scene, isDisposed: () => boolean) {
+  const loader = new GLTFLoader();
+  await Promise.all(
+    SKYBLOCK_DECORATION_ASSETS.map(async ({ url, position, height, rotationY }) => {
+      try {
+        const gltf = await loader.loadAsync(url);
+        if (isDisposed()) return;
+        const model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const scale = height / Math.max(size.y, 0.01);
+        model.scale.setScalar(scale);
+        const fitted = new THREE.Box3().setFromObject(model);
+        model.position.sub(fitted.getCenter(new THREE.Vector3()));
+        model.position.y = height / 2;
+        model.rotation.y = rotationY;
+        model.traverse((object) => {
+          const mesh = object as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.castShadow = false;
+          mesh.receiveShadow = true;
+          mesh.frustumCulled = true;
+        });
+        const group = new THREE.Group();
+        group.position.copy(position);
+        group.add(model);
+        scene.add(group);
+      } catch (error) {
+        console.warn(`[v0] Optional Skyblock decoration failed: ${url}`, error);
+      }
+    }),
+  );
+}
+
+function createBlockedMiningSign(scene: THREE.Scene) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 192;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.fillStyle = "#5a311c";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = "#e8b45c";
+  context.lineWidth = 12;
+  context.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+  context.fillStyle = "#fff1bd";
+  context.font = "bold 58px sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("MINING AREA", canvas.width / 2, canvas.height / 2 - 30);
+  context.font = "bold 34px sans-serif";
+  context.fillStyle = "#ffcf56";
+  context.fillText("BLOCKED", canvas.width / 2, canvas.height / 2 + 42);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+  sign.position.set(384, 16.2, -34);
+  sign.scale.set(7.5, 2.8, 1);
+  sign.rotation.z = -0.08;
+  scene.add(sign);
+}
+
 async function loadCell99Map(scene: THREE.Scene): Promise<THREE.Group | null> {
   const loader = new GLTFLoader();
   const remoteUrl = "https://file.garden/alGOOylwpAfCA6qP/scene.gltf";
@@ -2092,6 +2159,10 @@ export function SandboxGame({
       // Built after meshAll so its chunks mesh lazily (nearest-first) instead of
       // slowing the island's first frame.
       const mineArea: MiningArea | null = skyblock ? buildMiningArea(world) : null;
+      if (skyblock) {
+        void loadSkyblockDecorations(scene, () => disposed);
+        createBlockedMiningSign(scene);
+      }
 
       const skyEnv = isSkyblockLike
         ? new SkyblockEnvironment(scene, { pond: SKYBLOCK_POND_SURFACE, lowQuality: qualityPref === "low" })
@@ -2981,7 +3052,7 @@ export function SandboxGame({
       }
 
       const bossEnemies: BossEnemy[] = [];
-      // 3 Golden Forger BOSS_001 spawn on mining area only (Deep Mines cavern at x: 384, y: 13, z: 0)
+      // Three Golden Forger mobs spawn in the mining area (not a boss encounter).
       const BOSS_SPAWNS = [
         new THREE.Vector3(394.5, 13, 8.5),
         new THREE.Vector3(374.5, 13, 8.5),
@@ -3053,7 +3124,7 @@ export function SandboxGame({
           boss.group.visible = false;
           boss.bar.sprite.visible = false;
           boss.respawnTimer = 6.0;
-          announce("BOSS_001 Defeated!", "Respawning in 6 seconds...");
+          announce("Golden Forger defeated!", "The mob returns in 6 seconds...");
           bumpMission("forgerKills", 1);
           spawnFireExplosion(bCenter);
         }

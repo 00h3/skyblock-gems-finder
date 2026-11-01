@@ -11,8 +11,8 @@ export const DRAGON_ARENA = { x: MINE_ORIGIN.x + 44, z: MINE_ORIGIN.z, y: MINE_F
 
 const X_MIN = -58;
 const X_MAX = 66;
-const Z_MIN = -56;
-const Z_MAX = 52;
+const Z_MIN = -62;
+const Z_MAX = 58;
 const Y_MAX = 42;
 
 const B = {
@@ -134,7 +134,7 @@ export interface MiningArea {
   contains: (x: number, z: number) => boolean;
 }
 
-type Region = { kind: "hall" | "vault" | "crypt" | "mine" | "arena" | "link"; open: (x: number, z: number, up: number) => boolean };
+type Region = { kind: "hall" | "vault" | "crypt" | "mine" | "arena" | "garden" | "cargo" | "blocked" | "link"; open: (x: number, z: number, up: number) => boolean };
 
 const rect = (x0: number, x1: number, z0: number, z1: number, h: number) => (x: number, z: number, up: number) =>
   x >= x0 && x <= x1 && z >= z0 && z <= z1 && up >= 1 && up <= h;
@@ -159,7 +159,11 @@ const REGIONS: Region[] = [
   { kind: "link", open: rect(-2, 2, 21, 29, 5) },
   { kind: "crypt", open: rect(-15, 15, 28, 46, 7) },
   { kind: "link", open: rect(-2, 2, -42, -11, 4) },
-  { kind: "mine", open: rect(-12, 12, -52, -40, 6) },
+  { kind: "mine", open: rect(-16, 16, -58, -38, 8) },
+  { kind: "link", open: rect(-2, 2, -38, -30, 5) },
+  { kind: "garden", open: rect(-32, -6, -34, -20, 7) },
+  { kind: "cargo", open: rect(6, 32, -34, -20, 7) },
+  { kind: "blocked", open: rect(-2, 2, -28, -18, 7) },
 ];
 
 const regionAt = (x: number, z: number, up: number): Region["kind"] | null => {
