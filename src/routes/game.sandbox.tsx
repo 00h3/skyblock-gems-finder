@@ -2953,7 +2953,7 @@ export function SandboxGame({
         });
       };
 
-      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ─���
+      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ─�����
       interface BossEnemy {
         id: number;
         group: THREE.Group;
@@ -5506,8 +5506,18 @@ export function SandboxGame({
               {/* Chat Button */}
               <button
                 type="button"
-                onClick={() => setChatOpen(true)}
-                className="h-9 w-9 rounded-xl flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 active:scale-95 transition"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  controlsRef.current?.exitLock();
+                  setChatOpen(true);
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setChatOpen(true);
+                }}
+                className="pointer-events-auto h-9 w-9 touch-manipulation rounded-xl flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 active:scale-95 transition"
                 title="Chat"
                 aria-label="Chat"
               >
