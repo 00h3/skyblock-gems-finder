@@ -12,12 +12,12 @@ export function PhoenixLoadingVisual() {
     const container = mountRef.current;
     if (!container) return;
 
-    const width = container.clientWidth || 340;
-    const height = container.clientHeight || 240;
+    let width = container.clientWidth || 360;
+    let height = container.clientHeight || 240;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-    camera.position.set(0, 0.8, 3.4);
+    const camera = new THREE.PerspectiveCamera(44, width / height, 0.1, 100);
+    camera.position.set(0, 0.7, 3.4);
     camera.lookAt(0, 0.2, 0);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
@@ -27,18 +27,18 @@ export function PhoenixLoadingVisual() {
     container.appendChild(renderer.domElement);
 
     // Dynamic fire / amber illumination
-    const ambientLight = new THREE.AmbientLight(0xffeedd, 1.4);
+    const ambientLight = new THREE.AmbientLight(0xffeedd, 1.6);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffa500, 2.5);
+    const dirLight = new THREE.DirectionalLight(0xffaa00, 2.8);
     dirLight.position.set(2, 4, 3);
     scene.add(dirLight);
 
-    const flamePointLight = new THREE.PointLight(0xff5500, 4.0, 12, 1.2);
+    const flamePointLight = new THREE.PointLight(0xff5500, 4.5, 14, 1.2);
     flamePointLight.position.set(0, 0.5, 0);
     scene.add(flamePointLight);
 
-    const blueRimLight = new THREE.PointLight(0x38bdf8, 1.8, 8);
+    const blueRimLight = new THREE.PointLight(0x38bdf8, 2.0, 8);
     blueRimLight.position.set(-2, 1, -1);
     scene.add(blueRimLight);
 
@@ -47,20 +47,79 @@ export function PhoenixLoadingVisual() {
     let animId: number = 0;
     const clock = new THREE.Clock();
 
-    // Subtle floating ember particle sparks
-    const particleCount = 28;
+    // Instant procedural 3D Phoenix (soars immediately on frame 1)
+    const procPhoenix = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0xff6600,
+      emissive: 0xff3300,
+      emissiveIntensity: 0.6,
+      roughness: 0.3,
+      metalness: 0.2,
+    });
+    const wingMat = new THREE.MeshStandardMaterial({
+      color: 0xffaa00,
+      emissive: 0xff5500,
+      emissiveIntensity: 0.8,
+      roughness: 0.25,
+      metalness: 0.3,
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      emissive: 0xff9900,
+      emissiveIntensity: 0.5,
+      metalness: 0.6,
+      roughness: 0.2,
+    });
+
+    // Body core
+    const bodyGeo = new THREE.ConeGeometry(0.24, 0.9, 6);
+    bodyGeo.rotateX(Math.PI / 2);
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    procPhoenix.add(bodyMesh);
+
+    // Head with fire crest
+    const headMesh = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.42, 5), goldMat);
+    headMesh.position.set(0, 0.18, 0.55);
+    headMesh.rotateX(Math.PI / 3);
+    procPhoenix.add(headMesh);
+
+    // Left & Right Flapping Wings
+    const wingL = new THREE.Group();
+    wingL.position.set(-0.16, 0.05, 0.1);
+    const wingLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.04, 0.38), wingMat);
+    wingLMesh.position.set(-0.42, 0, 0);
+    wingL.add(wingLMesh);
+    procPhoenix.add(wingL);
+
+    const wingR = new THREE.Group();
+    wingR.position.set(0.16, 0.05, 0.1);
+    const wingRMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.04, 0.38), wingMat);
+    wingRMesh.position.set(0.42, 0, 0);
+    wingR.add(wingRMesh);
+    procPhoenix.add(wingR);
+
+    // Plumed blazing tail feathers
+    const tailMesh = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.85, 4), goldMat);
+    tailMesh.position.set(0, 0.08, -0.65);
+    tailMesh.rotateX(-Math.PI / 2.5);
+    procPhoenix.add(tailMesh);
+
+    scene.add(procPhoenix);
+
+    // Floating ember particle sparks
+    const particleCount = 36;
     const partGeo = new THREE.BufferGeometry();
     const partPositions = new Float32Array(particleCount * 3);
     const partVelocities: { x: number; y: number; z: number; life: number }[] = [];
 
     for (let i = 0; i < particleCount; i++) {
-      partPositions[i * 3] = (Math.random() - 0.5) * 1.8;
-      partPositions[i * 3 + 1] = Math.random() * 1.2 - 0.3;
-      partPositions[i * 3 + 2] = (Math.random() - 0.5) * 1.4;
+      partPositions[i * 3] = (Math.random() - 0.5) * 2.2;
+      partPositions[i * 3 + 1] = Math.random() * 1.4 - 0.4;
+      partPositions[i * 3 + 2] = (Math.random() - 0.5) * 1.6;
       partVelocities.push({
-        x: (Math.random() - 0.5) * 0.2,
-        y: 0.3 + Math.random() * 0.5,
-        z: (Math.random() - 0.5) * 0.2,
+        x: (Math.random() - 0.5) * 0.25,
+        y: 0.35 + Math.random() * 0.6,
+        z: (Math.random() - 0.5) * 0.25,
         life: Math.random(),
       });
     }
@@ -68,9 +127,9 @@ export function PhoenixLoadingVisual() {
 
     const partMat = new THREE.PointsMaterial({
       color: 0xffaa22,
-      size: 0.055,
+      size: 0.065,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending,
     });
     const emberParticles = new THREE.Points(partGeo, partMat);
@@ -85,7 +144,7 @@ export function PhoenixLoadingVisual() {
         const bounds = new THREE.Box3().setFromObject(phoenixModel);
         const size = bounds.getSize(new THREE.Vector3());
         const largestAxis = Math.max(size.x, size.y, size.z) || 1;
-        phoenixModel.scale.setScalar(2.2 / largestAxis);
+        phoenixModel.scale.setScalar(2.4 / largestAxis);
 
         bounds.setFromObject(phoenixModel);
         const center = bounds.getCenter(new THREE.Vector3());
@@ -102,7 +161,7 @@ export function PhoenixLoadingVisual() {
               mat.roughness = 0.25;
               mat.metalness = 0.4;
               mat.emissive = new THREE.Color(0xff4400);
-              mat.emissiveIntensity = 0.35;
+              mat.emissiveIntensity = 0.45;
               m.material = mat;
             }
           }
@@ -122,14 +181,26 @@ export function PhoenixLoadingVisual() {
           action.play();
         }
 
+        // Hide procedural phoenix once GLTF is ready
+        procPhoenix.visible = false;
         scene.add(phoenixModel);
         setModelLoaded(true);
       },
       undefined,
       (err) => {
-        console.warn("Could not load Phoenix in loading screen:", err);
+        console.warn("Could not load remote Phoenix GLTF; procedural 3D model active:", err);
       },
     );
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (!container) return;
+      const w = container.clientWidth || 360;
+      const h = container.clientHeight || 240;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    });
+    resizeObserver.observe(container);
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
@@ -137,6 +208,14 @@ export function PhoenixLoadingVisual() {
       const time = clock.getElapsedTime();
 
       if (mixer) mixer.update(dt * 1.15);
+
+      if (procPhoenix.visible) {
+        procPhoenix.position.y = Math.sin(time * 2.4) * 0.14;
+        procPhoenix.rotation.y = Math.sin(time * 0.9) * 0.3 - 0.15;
+        procPhoenix.rotation.z = Math.sin(time * 0.9) * -0.12;
+        wingL.rotation.z = Math.sin(time * 6.5) * 0.42;
+        wingR.rotation.z = -Math.sin(time * 6.5) * 0.42;
+      }
 
       if (phoenixModel) {
         // Soaring flight yaw & roll banking
@@ -179,11 +258,16 @@ export function PhoenixLoadingVisual() {
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       cancelAnimationFrame(animId);
       if (mixer) mixer.stopAllAction();
       renderer.dispose();
       partGeo.dispose();
       partMat.dispose();
+      bodyGeo.dispose();
+      bodyMat.dispose();
+      wingMat.dispose();
+      goldMat.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }

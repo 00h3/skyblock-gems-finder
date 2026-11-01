@@ -91,6 +91,7 @@ export function V2GameHud({
   onMenuChange,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [controlsScale, setControlsScale] = useState<number>(() => {
     try {
       const s = localStorage.getItem("qb_controls_scale");
@@ -107,6 +108,19 @@ export function V2GameHud({
     };
     window.addEventListener("bm-controls-scale", handleScale);
     return () => window.removeEventListener("bm-controls-scale", handleScale);
+  }, []);
+
+  useEffect(() => {
+    const handleModalActive = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail && typeof detail.open === "boolean") {
+        setIsModalOpen(detail.open);
+      } else {
+        setIsModalOpen(true);
+      }
+    };
+    window.addEventListener("bm-modal-active", handleModalActive);
+    return () => window.removeEventListener("bm-modal-active", handleModalActive);
   }, []);
 
   const setMenu = (open: boolean) => {
@@ -131,8 +145,8 @@ export function V2GameHud({
       : []),
   ];
 
-  // Scale down controls by 40% across all games per request
-  const effectiveControlsScale = controlsScale * 0.60;
+  // Scale down controls for optimal mobile visibility and ergonomic thumb reach
+  const effectiveControlsScale = controlsScale * 0.95;
 
   return (
     <div
@@ -195,7 +209,7 @@ export function V2GameHud({
         {children}
       </div>
 
-      {isTouch && (
+      {isTouch && !isModalOpen && !menuOpen && (
         <>
           <DPad
             onMove={onMove}
@@ -338,7 +352,7 @@ function DPad({
     <div
       className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] left-[max(2px,calc(env(safe-area-inset-left)+1px))] sm:left-2"
       style={{
-        transform: "scale(1.22)",
+        transform: "scale(1.02)",
         transformOrigin: "bottom left",
       }}
     >
@@ -456,20 +470,20 @@ function ActionCluster({ actions }: { actions: HudAction[] }) {
   const secondary = actions.filter((a) => a !== primary);
   return (
     <div
-      className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] right-[max(4px,calc(env(safe-area-inset-right)+2px))] flex items-end gap-1.5 sm:right-4"
+      className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] right-[max(4px,calc(env(safe-area-inset-right)+2px))] flex items-end gap-2 sm:right-4"
       style={{
-        transform: "scale(1.05)",
+        transform: "scale(1.0)",
         transformOrigin: "bottom right",
       }}
     >
       {secondary.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {secondary.map((a) => (
-            <ActionKey key={a.id} action={a} scale={1.01} />
+            <ActionKey key={a.id} action={a} scale={0.92} />
           ))}
         </div>
       )}
-      {primary && <ActionKey action={primary} scale={1.7} isPrimary />}
+      {primary && <ActionKey action={primary} scale={1.25} isPrimary />}
     </div>
   );
 }

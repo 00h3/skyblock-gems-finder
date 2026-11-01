@@ -136,7 +136,10 @@ export function GlobalSettingsPopup() {
             </div>
 
             {/* Settings body with exact style of the Settings Menu */}
-            <div className="flex-1 w-full overflow-y-auto px-4 py-4 space-y-3 hide-scrollbar">
+            <div
+              className="flex-1 w-full overflow-y-auto px-4 py-4 space-y-3 hide-scrollbar touch-pan-y"
+              style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+            >
               {/* Profile area with Bronze Cornice crowning PFP */}
               {qbUser && (
                 <div className="flex items-center gap-4 px-1 py-1 mb-2">

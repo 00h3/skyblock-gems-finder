@@ -4194,7 +4194,7 @@ html.dark .home-currency-bubble {
   letter-spacing: -0.01em;
   font-feature-settings: "cv11", "ss01", "tnum";
   -webkit-font-smoothing: antialiased;
-  --k: clamp(46px, 11.5vmin, 62px);
+  --k: clamp(40px, 10vmin, 52px);
   --glass: rgba(11, 11, 18, 0.52);
   --glass-strong: rgba(11, 11, 18, 0.78);
   --hairline: rgba(255, 255, 255, 0.12);

@@ -239,7 +239,10 @@ export function FlatSquareSettingsModal({
         </nav>
 
         {/* Content Pane */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-6">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-6 touch-pan-y"
+          style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+        >
           {/* =============================================================== */}
           {/* PART 1: GAME SETTINGS                                           */}
           {/* =============================================================== */}

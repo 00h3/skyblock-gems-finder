@@ -37,15 +37,15 @@ export type PhysicsProfile = {
 export const SANDBOX_PHYSICS: PhysicsProfile = {
   gravity: 28.5,
   fallGravityMul: 1.18,
-  jumpV: 8.5,
-  walk: 4.31,
-  sprint: 5.61,
-  crouch: 2.15,
-  accel: 64,
-  groundDamp: 14.5,
+  jumpV: 8.6,
+  walk: 5.6,
+  sprint: 7.8,
+  crouch: 2.8,
+  accel: 88,
+  groundDamp: 17.0,
   airDamp: 0.55,
-  airControl: 0.3,
-  sprintJumpBoost: 1.22,
+  airControl: 0.45,
+  sprintJumpBoost: 1.18,
 };
 
 /** Smooth, responsive and agile — built for silky Block Fall rounds. */

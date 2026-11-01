@@ -3,18 +3,21 @@ import React, { useEffect, useRef } from "react";
 /**
  * Gameplay-only touch indicator ripple.
  * Strictly limited to 1 single finger during active 3D gameplay canvas drag.
- * Automatically hidden on UI elements, modals (settings, shop, etc.), non-game routes,
+ * NEVER appears on UI elements, modals (settings, shop, etc.), non-game routes,
  * or when touch circle setting is toggled OFF.
+ * Zero interference with native UI scrolling.
  */
 export function TouchFeedbackRipples() {
   const dotRef = useRef<HTMLDivElement>(null);
   const activePointerIdRef = useRef<number | null>(null);
   const isReleasingRef = useRef(false);
   const releaseTimerRef = useRef<number | null>(null);
+  const modalOpenRef = useRef(false);
 
   useEffect(() => {
     const isGameplayActive = (): boolean => {
       if (typeof window === "undefined") return false;
+      if (modalOpenRef.current) return false;
       // Only active on gameplay pages
       if (!window.location.pathname.startsWith("/game")) return false;
       // Check user preference
@@ -23,19 +26,10 @@ export function TouchFeedbackRipples() {
       } catch {}
       // Check if any modal or menu is currently open
       const hasOpenModal = document.querySelector(
-        ".bf-overlay.is-open, .bf-modal, [role='dialog'], .chat-overlay, .settings-modal",
+        ".bf-overlay.is-open, .bf-modal, [role='dialog'], .chat-overlay, .settings-modal, [data-modal='true']",
       );
       if (hasOpenModal) return false;
       return true;
-    };
-
-    const isUiTarget = (target: EventTarget | null): boolean => {
-      if (!target || !(target instanceof HTMLElement)) return false;
-      return Boolean(
-        target.closest(
-          "button, a, input, select, textarea, [role='dialog'], .bf-modal, .bf-overlay, .bf-panel, nav, header, [data-ui='true'], [data-scrollable='true'], .custom-scrollbar",
-        ),
-      );
     };
 
     const hideIndicator = () => {
@@ -52,12 +46,17 @@ export function TouchFeedbackRipples() {
     };
 
     const handlePointerDown = (e: PointerEvent) => {
-      // Must be touch or pen, or primary mouse
+      // Must be touch or primary mouse
       if (e.pointerType === "mouse" && e.button !== 0) return;
       if (!isGameplayActive()) return;
-      if (isUiTarget(e.target)) return;
 
-      // STRICT 1-FINGER LIMIT: If a pointer is already active, ignore all other fingers!
+      // STRICT CHECK: ONLY show on the actual 3D gameplay canvas!
+      // If the target is NOT a canvas, or is within any UI element, ignore!
+      if (!(e.target instanceof HTMLCanvasElement)) {
+        return;
+      }
+
+      // STRICT 1-FINGER LIMIT: If a pointer is already active, ignore all secondary fingers!
       if (activePointerIdRef.current !== null && activePointerIdRef.current !== e.pointerId) {
         return;
       }
@@ -96,23 +95,31 @@ export function TouchFeedbackRipples() {
 
       if (dotRef.current) {
         dotRef.current.style.opacity = "0";
-        dotRef.current.style.transform = "translate(-50%, -50%) scale(1.25)";
+        dotRef.current.style.transform = "translate(-50%, -50%) scale(1.2)";
       }
 
       releaseTimerRef.current = window.setTimeout(() => {
         hideIndicator();
-      }, 160);
+      }, 150);
     };
 
-    // When modal opens, immediately dismiss the touch indicator
-    const handleModalActive = () => hideIndicator();
+    // When any modal opens, immediately dismiss the touch indicator
+    const handleModalActive = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail && typeof detail.open === "boolean") {
+        modalOpenRef.current = detail.open;
+      } else {
+        modalOpenRef.current = true;
+      }
+      hideIndicator();
+    };
 
     window.addEventListener("pointerdown", handlePointerDown, { passive: true });
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     window.addEventListener("pointerup", handlePointerUp, { passive: true });
     window.addEventListener("pointercancel", handlePointerUp, { passive: true });
     window.addEventListener("bm-modal-active", handleModalActive);
-    window.addEventListener("popstate", handleModalActive);
+    window.addEventListener("popstate", () => hideIndicator());
 
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
@@ -120,7 +127,7 @@ export function TouchFeedbackRipples() {
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
       window.removeEventListener("bm-modal-active", handleModalActive);
-      window.removeEventListener("popstate", handleModalActive);
+      window.removeEventListener("popstate", () => hideIndicator());
     };
   }, []);
 
@@ -133,17 +140,17 @@ export function TouchFeedbackRipples() {
         ref={dotRef}
         className="absolute rounded-full pointer-events-none will-change-transform opacity-0"
         style={{
-          width: "44px",
-          height: "44px",
+          width: "40px",
+          height: "40px",
           backgroundColor: "rgba(255, 255, 255, 0.22)",
           border: "2px solid rgba(255, 255, 255, 0.82)",
           boxShadow:
-            "0 0 12px rgba(255, 255, 255, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.25)",
-          backdropFilter: "blur(1.5px)",
-          WebkitBackdropFilter: "blur(1.5px)",
+            "0 0 10px rgba(255, 255, 255, 0.45), inset 0 0 6px rgba(255, 255, 255, 0.25)",
+          backdropFilter: "blur(1px)",
+          WebkitBackdropFilter: "blur(1px)",
           transform: "translate(-50%, -50%) scale(0.7)",
           transition:
-            "opacity 160ms cubic-bezier(0.1, 0.9, 0.2, 1), transform 160ms cubic-bezier(0.1, 0.9, 0.2, 1)",
+            "opacity 140ms cubic-bezier(0.1, 0.9, 0.2, 1), transform 140ms cubic-bezier(0.1, 0.9, 0.2, 1)",
         }}
       />
     </div>

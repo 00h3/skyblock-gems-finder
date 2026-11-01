@@ -27,7 +27,7 @@ export class Controls {
     locked: false,
   };
   touch = { x: 0, y: 0, jump: false, sprint: false, crouch: false };
-  sensitivity = 0.0022;
+  sensitivity = 0.0032;
   onSlot?: (index: number) => void;
   onDrop?: () => void;
   onLockChange?: (locked: boolean) => void;
@@ -40,6 +40,15 @@ export class Controls {
 
   constructor(el: HTMLElement) {
     this.el = el;
+    try {
+      const savedSens = localStorage.getItem("qb_cam_sensitivity") || localStorage.getItem("bm-cam-sensitivity");
+      if (savedSens) {
+        const parsed = Number(savedSens);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          this.sensitivity = 0.0032 * parsed;
+        }
+      }
+    } catch {}
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     document.addEventListener("pointerlockchange", this.onPointerLockChange);
@@ -139,12 +148,17 @@ export class Controls {
     };
   }
 
-  /** Touch look (dragging on the right half of the screen). Smoothed to eliminate touch sampling jitter. */
+  /** Touch look (dragging on the right half of the screen). Highly responsive and agile for PvP. */
   look(dx: number, dy: number) {
-    const sens = this.sensitivity * 2.1;
-    // Apply smooth exponential dampening look updates
-    this.state.yaw -= dx * sens;
-    this.state.pitch -= dy * sens;
+    let invX = 1;
+    let invY = 1;
+    try {
+      if (localStorage.getItem("bm-invert-joy-x") === "true") invX = -1;
+      if (localStorage.getItem("bm-invert-joy-y") === "true") invY = -1;
+    } catch {}
+    const sens = this.sensitivity * 2.8;
+    this.state.yaw -= dx * sens * invX;
+    this.state.pitch -= dy * sens * invY;
     const lim = Math.PI / 2 - 0.001;
     this.state.pitch = Math.max(-lim, Math.min(lim, this.state.pitch));
   }

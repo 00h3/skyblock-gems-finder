@@ -719,17 +719,41 @@ function buildBaseplateWorld(world: World) {
 }
 
 const SKYBLOCK_DECORATION_ASSETS = [
-  { url: "/skeleton.glb", position: new THREE.Vector3(366, 13.2, -17), height: 3.8, rotationY: -0.65 },
-  { url: "/rusty-submarine.glb", position: new THREE.Vector3(402, 13.2, -17), height: 4.8, rotationY: 0.35 }
+  {
+    urls: [
+      "https://file.garden/alGOOylwpAfCa6qP/rusty_submarine_low_poly_and_pixelated.glb",
+      "/rusty-submarine.glb",
+    ],
+    position: new THREE.Vector3(410, 13.5, -44), // Berthed in subterranean fantasy lagoon
+    height: 4.8,
+    rotationY: 0.42,
+  },
+  {
+    urls: [
+      "https://file.garden/alGOOylwpAfCa6qP/skeleton.glb",
+      "/skeleton.glb",
+    ],
+    position: new THREE.Vector3(362, 13.2, -42), // Guiding lantern post in deep fantasy cavern
+    height: 2.2,
+    rotationY: 0.8,
+  },
 ] as const;
 
 async function loadSkyblockDecorations(scene: THREE.Scene, isDisposed: () => boolean) {
   const loader = new GLTFLoader();
   await Promise.all(
-    SKYBLOCK_DECORATION_ASSETS.map(async ({ url, position, height, rotationY }) => {
+    SKYBLOCK_DECORATION_ASSETS.map(async ({ urls, position, height, rotationY }) => {
+      let gltf: any = null;
+      for (const url of urls) {
+        try {
+          gltf = await loader.loadAsync(url);
+          if (gltf) break;
+        } catch {
+          // try next fallback url
+        }
+      }
+      if (!gltf || isDisposed()) return;
       try {
-        const gltf = await loader.loadAsync(url);
-        if (isDisposed()) return;
         const model = gltf.scene;
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
@@ -751,38 +775,10 @@ async function loadSkyblockDecorations(scene: THREE.Scene, isDisposed: () => boo
         group.add(model);
         scene.add(group);
       } catch (error) {
-        console.warn(`[v0] Optional Skyblock decoration failed: ${url}`, error);
+        console.warn("[v0] Optional Skyblock decoration instantiation failed:", error);
       }
     }),
   );
-}
-
-function createBlockedMiningSign(scene: THREE.Scene) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 192;
-  const context = canvas.getContext("2d");
-  if (!context) return;
-  context.fillStyle = "#5a311c";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.strokeStyle = "#e8b45c";
-  context.lineWidth = 12;
-  context.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
-  context.fillStyle = "#fff1bd";
-  context.font = "bold 58px sans-serif";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText("MINING AREA", canvas.width / 2, canvas.height / 2 - 30);
-  context.font = "bold 34px sans-serif";
-  context.fillStyle = "#ffcf56";
-  context.fillText("BLOCKED", canvas.width / 2, canvas.height / 2 + 42);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-  sign.position.set(384, 16.2, -34);
-  sign.scale.set(4.2, 1.55, 1);
-  sign.rotation.z = -0.08;
-  scene.add(sign);
 }
 
 async function loadCell99Map(scene: THREE.Scene): Promise<THREE.Group | null> {
@@ -1979,15 +1975,18 @@ export function SandboxGame({
         );
 
         const isMobileUA = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isChinesePhoneBrand = typeof navigator !== "undefined" && /vivo|realme|xiaomi|redmi|oppo|poco|iqoo|infinix|tecno/i.test(navigator.userAgent);
         const qualityPref = readQualityPref();
         try {
-  renderer = new THREE.WebGLRenderer({
-  // Preserve the crisp render path on mobile while letting the driver choose
-  // the fastest hardware queue available on Samsung/Xiaomi-class devices.
-  antialias: true,
-  powerPreference: "high-performance",
-  precision: "highp",
-  });
+          renderer = new THREE.WebGLRenderer({
+            // Preserve crisp Retina render path while utilizing native 16-bit FP ALU pipelines
+            // on Vivo, Realme, Xiaomi (Mali & mobile Adreno) devices to eliminate shader register stalls.
+            antialias: true,
+            powerPreference: "high-performance",
+            precision: (isMobileUA || isChinesePhoneBrand) ? "mediump" : "highp",
+            depth: true,
+            stencil: false,
+          });
         } catch {
           try {
             renderer = new THREE.WebGLRenderer({
@@ -2002,6 +2001,19 @@ export function SandboxGame({
             return;
           }
         }
+      let isMaliOrMobileGpu = isChinesePhoneBrand || isMobileUA;
+      try {
+        const gl = renderer.getContext();
+        const dbg = gl?.getExtension?.("WEBGL_debug_renderer_info");
+        if (dbg) {
+          const unmasked = ((gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) as string) || "").toLowerCase();
+          if (/mali|powervr|adreno 5|adreno 61|adreno 62|adreno 63|ge8320|img bx|rogue/.test(unmasked)) {
+            isMaliOrMobileGpu = true;
+          }
+        }
+      } catch {
+        // Fallback to UA detection
+      }
       renderer.setPixelRatio(getTargetDpr(qualityPref));
       renderer.setSize(mount.clientWidth, mount.clientHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -2015,9 +2027,9 @@ export function SandboxGame({
       renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
 
-      // Anisotropic filtering capped at 2x on mobile to avoid texture sampler bottlenecks
+      // Anisotropic filtering capped at 2x on mobile/Mali to prevent memory bus saturation on UMA architectures
       const maxAniso = renderer.capabilities.getMaxAnisotropy();
-      atlas.texture.anisotropy = isMobileUA ? Math.min(maxAniso, 2) : maxAniso;
+      atlas.texture.anisotropy = (isMobileUA || isMaliOrMobileGpu) ? Math.min(maxAniso, 2) : maxAniso;
       atlas.texture.magFilter = THREE.NearestFilter;
       atlas.texture.minFilter = THREE.NearestMipmapLinearFilter;
       atlas.texture.generateMipmaps = true;
@@ -2161,7 +2173,6 @@ export function SandboxGame({
       const mineArea: MiningArea | null = skyblock ? buildMiningArea(world) : null;
       if (skyblock) {
         void loadSkyblockDecorations(scene, () => disposed);
-        createBlockedMiningSign(scene);
       }
 
       const skyEnv = isSkyblockLike
@@ -2181,9 +2192,9 @@ export function SandboxGame({
           : null;
       if (grassField) scene.add(grassField.mesh);
       // High-performance rendering: use direct GPU rendering by default for 60fps responsiveness;
-      // post-processing only if high quality is explicitly requested
+      // post-processing only if high quality is explicitly requested and on non-mobile GPUs
       const cinematicPost =
-        (isSkyblockLike || blockFall || bedwars) && qualityPref === "high"
+        (isSkyblockLike || blockFall || bedwars) && qualityPref === "high" && !isMaliOrMobileGpu
           ? new CinematicPost(renderer, scene, camera, 0.12)
           : null;
       const applyGraphicsV2 = (on: boolean) => {
@@ -3036,6 +3047,7 @@ export function SandboxGame({
       // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ─���������
       interface BossEnemy {
         id: number;
+        name: string;
         group: THREE.Group;
         home: THREE.Vector3;
         pos: THREE.Vector3;
@@ -3052,11 +3064,13 @@ export function SandboxGame({
       }
 
       const bossEnemies: BossEnemy[] = [];
-      // Three Golden Forger mobs spawn in the mining area (not a boss encounter).
-      const BOSS_SPAWNS = [
-        new THREE.Vector3(394.5, 13, 8.5),
-        new THREE.Vector3(374.5, 13, 8.5),
-        new THREE.Vector3(384.5, 13, 16.5),
+      // Skeletons guarding the ancient crypt and vast fantasy mining cavern
+      const SKELETON_SPAWN_DEFS = [
+        { pos: new THREE.Vector3(394.5, 13, 8.5), name: "Crypt Skeleton Guard", hp: 35 },
+        { pos: new THREE.Vector3(374.5, 13, 8.5), name: "Skeleton Warrior", hp: 35 },
+        { pos: new THREE.Vector3(384.5, 13, 16.5), name: "Crypt Archer", hp: 30 },
+        { pos: new THREE.Vector3(366.5, 13, -38.5), name: "Cavern Skeleton Miner", hp: 40 },
+        { pos: new THREE.Vector3(406.5, 13, -36.5), name: "Lagoon Sentry", hp: 40 },
       ];
 
       interface BossLaser {
@@ -3124,7 +3138,7 @@ export function SandboxGame({
           boss.group.visible = false;
           boss.bar.sprite.visible = false;
           boss.respawnTimer = 6.0;
-          announce("Golden Forger defeated!", "The mob returns in 6 seconds...");
+          announce(`${boss.name} Defeated!`, "The crypt guardian returns in 6 seconds...");
           bumpMission("forgerKills", 1);
           spawnFireExplosion(bCenter);
         }
@@ -3181,76 +3195,89 @@ export function SandboxGame({
           })
         : null;
 
-      // The three mining-area mobs use the skeleton model; the dragon has its own loader below.
-      const bossLoader = new GLTFLoader();
-      bossLoader.load(
+      // Skeletons in the crypt and vast mining cavern
+      const skeletonUrls = [
+        "https://file.garden/alGOOylwpAfCa6qP/skeleton.glb",
         "/skeleton.glb",
-        (gltf) => {
-          if (disposed) return;
-          const templateScene = gltf.scene;
-          normalizeShowcaseModel(templateScene, 2.0);
+      ];
+      const bossLoader = new GLTFLoader();
+      const loadSkeletons = async () => {
+        let gltf: any = null;
+        for (const url of skeletonUrls) {
+          try {
+            gltf = await bossLoader.loadAsync(url);
+            if (gltf) break;
+          } catch {
+            // try fallback
+          }
+        }
+        if (!gltf || disposed) return;
+        const templateScene = gltf.scene;
+        normalizeShowcaseModel(templateScene, 2.0);
 
-          BOSS_SPAWNS.forEach((homePos, idx) => {
-            const bossGrp = new THREE.Group();
-            const clonedModel = cloneSkinnedModel(templateScene);
-            clonedModel.position.set(0, 0, 0);
-            bossGrp.add(clonedModel);
-            bossGrp.position.copy(homePos);
-            scene.add(bossGrp);
+        SKELETON_SPAWN_DEFS.forEach((spawnDef, idx) => {
+          const homePos = spawnDef.pos;
+          const bossGrp = new THREE.Group();
+          const clonedModel = cloneSkinnedModel(templateScene);
+          clonedModel.position.set(0, 0, 0);
+          bossGrp.add(clonedModel);
+          bossGrp.position.copy(homePos);
+          scene.add(bossGrp);
 
-            let mixer: THREE.AnimationMixer | null = null;
-            if (gltf.animations && gltf.animations.length > 0) {
-              mixer = new THREE.AnimationMixer(clonedModel);
-              gltf.animations.forEach((clip) => {
-                const act = mixer!.clipAction(clip);
-                act.play();
-                act.time = idx * 0.7;
+          let mixer: THREE.AnimationMixer | null = null;
+          if (gltf.animations && gltf.animations.length > 0) {
+            mixer = new THREE.AnimationMixer(clonedModel);
+            gltf.animations.forEach((clip: any) => {
+              const act = mixer!.clipAction(clip);
+              act.play();
+              act.time = idx * 0.7;
+            });
+          }
+
+          const bar = createHpBar(spawnDef.name, spawnDef.hp);
+          bar.sprite.position.set(homePos.x, homePos.y + 2.7, homePos.z);
+          scene.add(bar.sprite);
+
+          const tintMats: { mat: THREE.MeshStandardMaterial; color: THREE.Color; emissive: THREE.Color }[] = [];
+          clonedModel.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (mesh.isMesh) {
+              const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+              mats.forEach((m) => {
+                const mat = m as THREE.MeshStandardMaterial;
+                if (mat && mat.color) {
+                  tintMats.push({
+                    mat,
+                    color: mat.color.clone(),
+                    emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
+                  });
+                }
               });
             }
-
-            const bar = createHpBar("首领 BOSS_001", 30);
-            bar.sprite.position.set(homePos.x, homePos.y + 2.7, homePos.z);
-            scene.add(bar.sprite);
-
-            const tintMats: { mat: THREE.MeshStandardMaterial; color: THREE.Color; emissive: THREE.Color }[] = [];
-            clonedModel.traverse((o) => {
-              const mesh = o as THREE.Mesh;
-              if (mesh.isMesh) {
-                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-                mats.forEach((m) => {
-                  const mat = m as THREE.MeshStandardMaterial;
-                  if (mat && mat.color) {
-                    tintMats.push({
-                      mat,
-                      color: mat.color.clone(),
-                      emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0),
-                    });
-                  }
-                });
-              }
-            });
-
-            bossEnemies.push({
-              id: idx,
-              group: bossGrp,
-              home: homePos.clone(),
-              pos: homePos.clone(),
-              vel: new THREE.Vector3(),
-              hp: 30,
-              maxHp: 30,
-              bar,
-              mixer,
-              redT: 0,
-              shootTimer: 2.0 + idx * 1.3,
-              respawnTimer: 0,
-              alive: true,
-              tintMats,
-            });
           });
-        },
-        undefined,
-        (err) => console.warn("Failed to load golden_forger.glb:", err),
-      );
+
+          bossEnemies.push({
+            id: idx,
+            name: spawnDef.name,
+            group: bossGrp,
+            home: homePos.clone(),
+            pos: homePos.clone(),
+            vel: new THREE.Vector3(),
+            hp: spawnDef.hp,
+            maxHp: spawnDef.hp,
+            bar,
+            mixer,
+            redT: 0,
+            shootTimer: 2.0 + idx * 1.3,
+            respawnTimer: 0,
+            alive: true,
+            tintMats,
+          });
+        });
+      };
+      if (skyblock) {
+        void loadSkeletons();
+      }
 
       const updateBossSystem = (dt: number) => {
         if (playerInMine) redDragon?.update(dt);
@@ -4705,11 +4732,12 @@ export function SandboxGame({
           }
         }
 
-        // Refresh shadow map smoothly: at ~12fps while moving and periodically when stationary.
+        // Refresh shadow map smoothly: at ~8-12fps while moving and periodically when stationary.
         // Prevents heavy GPU depth-pass stalls that cause lag spikes while preserving crisp full-resolution shadows.
         shadowAcc += dt;
         const isMoving = player.velocity.lengthSq() > 0.04;
-        if ((isMoving && shadowAcc >= 0.08) || shadowAcc >= 0.4) {
+        const shadowInterval = isMaliOrMobileGpu ? 0.12 : 0.08;
+        if ((isMoving && shadowAcc >= shadowInterval) || shadowAcc >= 0.45) {
           shadowAcc = 0;
           if (renderer) renderer.shadowMap.needsUpdate = true;
         }
@@ -5277,16 +5305,29 @@ export function SandboxGame({
     const onSens = (e: Event) => {
       const v = Number((e as CustomEvent).detail);
       if (controlsRef.current && Number.isFinite(v))
-        controlsRef.current.sensitivity = 0.0022 * (v / 50);
+        controlsRef.current.sensitivity = 0.0032 * (v / 50);
+    };
+    const onCamSens = (e: Event) => {
+      const v = Number((e as CustomEvent).detail);
+      if (controlsRef.current && Number.isFinite(v) && v > 0)
+        controlsRef.current.sensitivity = 0.0032 * v;
     };
     const onHud = (e: Event) => setShowHud(Boolean((e as CustomEvent).detail));
     window.addEventListener("bm-sensitivity", onSens);
+    window.addEventListener("bm-cam-sensitivity", onCamSens);
     window.addEventListener("bm-hud", onHud);
     return () => {
       window.removeEventListener("bm-sensitivity", onSens);
+      window.removeEventListener("bm-cam-sensitivity", onCamSens);
       window.removeEventListener("bm-hud", onHud);
     };
   }, []);
+
+  // Broadcast modal active state so D-pad and ActionCluster automatically hide
+  useEffect(() => {
+    const anyOpen = inventoryOpen || settingsOpen || chatOpen || chestOpen || wheelOpen || quickBuyOpen || showQuitDialog;
+    window.dispatchEvent(new CustomEvent("bm-modal-active", { detail: { open: anyOpen } }));
+  }, [inventoryOpen, settingsOpen, chatOpen, chestOpen, wheelOpen, quickBuyOpen, showQuitDialog]);
 
   // touch: tap to place, hold to mine, drag to look
   const holdTimer = useRef<number | null>(null);

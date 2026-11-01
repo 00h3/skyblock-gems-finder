@@ -217,11 +217,122 @@ const ICONS: Record<string, Draw> = {
     r(14, 6, 1, 1, "#70e5ff");
     r(8, 5, 1, 1, "#b388ff");
   },
+  short_sword: (r) => {
+    // Wooden / Training Sword
+    r(2, 13, 2, 2, "#3e2723");
+    r(3, 11, 2, 3, "#5d4037");
+    r(5, 9, 2, 3, "#8d6e63");
+    // Crossguard
+    r(3, 9, 6, 1, "#4e342e");
+    r(4, 8, 1, 3, "#4e342e");
+    r(7, 8, 1, 3, "#4e342e");
+    // Blade
+    r(6, 7, 2, 2, "#a1887f");
+    r(8, 5, 2, 3, "#bcaaa4");
+    r(10, 3, 2, 3, "#d7ccc8");
+    r(12, 1, 2, 3, "#efebe9");
+    r(13, 1, 2, 1, "#ffffff");
+  },
+  gold_sword: (r) => {
+    // Gold Sword
+    r(2, 13, 2, 2, "#5d4037");
+    r(3, 11, 2, 3, "#795548");
+    r(3, 9, 6, 1, "#e65100");
+    r(4, 8, 1, 3, "#f57c00");
+    r(7, 8, 1, 3, "#f57c00");
+    r(6, 7, 2, 2, "#fbc02d");
+    r(8, 5, 2, 3, "#fdd835");
+    r(10, 3, 2, 3, "#ffeb3b");
+    r(12, 1, 2, 3, "#fff59d");
+    r(13, 1, 2, 1, "#ffffff");
+  },
+  iron_sword: (r) => {
+    // Iron Sword
+    r(2, 13, 2, 2, "#37474f");
+    r(3, 11, 2, 3, "#455a64");
+    r(3, 9, 6, 1, "#546e7a");
+    r(4, 8, 1, 3, "#78909c");
+    r(7, 8, 1, 3, "#78909c");
+    r(6, 7, 2, 2, "#b0bec5");
+    r(8, 5, 2, 3, "#cfd8dc");
+    r(10, 3, 2, 3, "#eceff1");
+    r(12, 1, 2, 3, "#ffffff");
+    r(13, 1, 2, 1, "#ffffff");
+  },
+  diamond_sword: (r) => {
+    // Diamond Sword
+    r(2, 13, 2, 2, "#263238");
+    r(3, 11, 2, 3, "#37474f");
+    r(3, 9, 6, 1, "#00838f");
+    r(4, 8, 1, 3, "#0097a7");
+    r(7, 8, 1, 3, "#0097a7");
+    r(6, 7, 2, 2, "#00e5ff");
+    r(8, 5, 2, 3, "#18ffff");
+    r(10, 3, 2, 3, "#84ffff");
+    r(12, 1, 2, 3, "#e0f7fa");
+    r(13, 1, 2, 1, "#ffffff");
+  },
+  netherite_sword: (r) => {
+    // Netherite Sword
+    r(2, 13, 2, 2, "#1a1618");
+    r(3, 11, 2, 3, "#2d282a");
+    r(3, 9, 6, 1, "#3c3538");
+    r(4, 8, 1, 3, "#4d4549");
+    r(7, 8, 1, 3, "#4d4549");
+    r(6, 7, 2, 2, "#5e5459");
+    r(8, 5, 2, 3, "#6f6469");
+    r(10, 3, 2, 3, "#80747a");
+    r(12, 1, 2, 3, "#91848b");
+    r(13, 1, 2, 1, "#a89da3");
+  },
+  diamond_pickaxe: (r) => {
+    r(2, 13, 2, 2, "#4e342e");
+    r(4, 11, 2, 2, "#6d4c41");
+    r(6, 9, 2, 2, "#8d6e63");
+    r(8, 7, 2, 2, "#a1887f");
+    // Pickaxe head
+    r(7, 1, 8, 3, "#00e5ff");
+    r(13, 4, 3, 4, "#00bcd4");
+    r(4, 4, 3, 4, "#00bcd4");
+    r(8, 2, 6, 1, "#84ffff");
+    r(9, 2, 4, 1, "#ffffff");
+  },
+  iron_pickaxe: (r) => {
+    r(2, 13, 2, 2, "#4e342e");
+    r(4, 11, 2, 2, "#6d4c41");
+    r(6, 9, 2, 2, "#8d6e63");
+    r(8, 7, 2, 2, "#a1887f");
+    r(7, 1, 8, 3, "#cfd8dc");
+    r(13, 4, 3, 4, "#90a4ae");
+    r(4, 4, 3, 4, "#90a4ae");
+    r(8, 2, 6, 1, "#eceff1");
+  },
+  arrow: (r) => {
+    r(2, 13, 3, 2, "#90a4ae");
+    r(4, 11, 2, 2, "#78909c");
+    r(5, 9, 3, 3, "#5d4037");
+    r(8, 6, 3, 3, "#5d4037");
+    r(11, 3, 3, 3, "#78909c");
+    r(13, 1, 2, 2, "#cfd8dc");
+  },
+};
+
+const STATIC_ITEM_PATHS: Record<string, string> = {
+  bow: "/items/bow.png",
+  bread: "/items/bread.png",
+  diamond_axe: "/items/diamond_axe.png",
+  diamond_shovel: "/items/diamond_shovel.png",
+  golden_shovel: "/items/golden_shovel.png",
+  iron_shovel: "/items/iron_shovel.png",
+  netherite_axe: "/items/netherite_axe.png",
+  stone_shovel: "/items/stone_shovel.png",
+  wooden_shovel: "/items/wooden_shovel.png",
 };
 
 const cache = new Map<string, string>();
 
 export function utilityIconUrl(id: string): string {
+  if (STATIC_ITEM_PATHS[id]) return STATIC_ITEM_PATHS[id];
   const cached = cache.get(id);
   if (cached) return cached;
   const draw = ICONS[id];
@@ -241,5 +352,5 @@ export function utilityIconUrl(id: string): string {
 }
 
 export function hasUtilityIcon(id: string) {
-  return id in ICONS;
+  return Boolean(ICONS[id] || STATIC_ITEM_PATHS[id]);
 }

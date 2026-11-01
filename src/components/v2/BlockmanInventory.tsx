@@ -3,6 +3,7 @@ import { Backpack, Hammer, Heart, Minus, Plus, Shield, Sword, X } from "lucide-r
 import { cn } from "@/lib/utils";
 import { BLOCKS } from "@/engine-sandbox/shared/world";
 import { UTILITY_INFO } from "@/engine-sandbox/shared/features";
+import { utilityIconUrl } from "@/engine-sandbox/shared/item-icons";
 
 type ItemId = number | string;
 
@@ -106,8 +107,14 @@ export function BlockmanInventory({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const iconOf = (id: ItemId | undefined) =>
-    id === undefined ? "" : tileUrls[id] || (blockUrl ? blockUrl(id) : "");
+  const iconOf = (id: ItemId | undefined) => {
+    if (id === undefined || id === 0) return "";
+    if (typeof id === "string") {
+      const u = utilityIconUrl(id);
+      if (u) return u;
+    }
+    return tileUrls[id] || (blockUrl ? blockUrl(id) : "");
+  };
 
   const getCount = (id: ItemId | undefined) => {
     if (id === undefined || id === 0) return 0;

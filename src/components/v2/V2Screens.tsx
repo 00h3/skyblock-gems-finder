@@ -18,7 +18,11 @@ export function V2LoadingScreen({
   onFinished?: () => void;
   showPhoenix?: boolean;
 }) {
-  const isSkyblock = title === "Skyblock" || showPhoenix;
+  const isSkyblock =
+    title?.toLowerCase().includes("skyblock") ||
+    subtitle?.toLowerCase().includes("skyblock") ||
+    subtitle?.toLowerCase().includes("island") ||
+    Boolean(showPhoenix);
   const startTimeRef = useRef<number>(Date.now());
   const [actualProgress, setActualProgress] = useState(0);
   const [videoReady, setVideoReady] = useState(false);
