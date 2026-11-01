@@ -4365,6 +4365,7 @@ export function SandboxGame({
       let statusAcc = 0;
       let presenceAcc = 0;
       let shadowAcc = 0;
+      let visualAcc = 0;
       let frames = 0;
       let footstepT = 0.12;
       let smoothDt = 1 / 60;
@@ -4765,15 +4766,20 @@ export function SandboxGame({
         // sky (owns fog + lighting)
         sky!.follow(camera.position);
         particles.update(dt, camera.position);
-        sky!.update(dt);
+        visualAcc += dt;
+        const updateVisualSystems = visualAcc >= 1 / 30;
+        if (updateVisualSystems) visualAcc = 0;
+        if (updateVisualSystems) sky!.update(dt);
         if (playerInMine) {
           sky!.sunLight.intensity *= 0.12;
           sky!.hemi.intensity *= 0.28;
           sky!.ambient.intensity *= 0.5;
           (scene.fog as THREE.Fog | null)?.color.copy(caveFogColor);
         }
-        skyEnv?.update(dt, camera, sky!, scene);
-        cosmicSky?.update(dt, camera);
+        if (updateVisualSystems) {
+          skyEnv?.update(dt, camera, sky!, scene);
+          cosmicSky?.update(dt, camera);
+        }
 
         // ── SkyBlock / Baseplate: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
         if (isSkyblockLike) {
@@ -4971,14 +4977,14 @@ export function SandboxGame({
         gravity.tick(dt);
         world!.update(blockFall ? 2 : 3, player.position, camera);
         WIND.uTime.value += dt;
-        grassField?.update(dt);
+        if (updateVisualSystems) grassField?.update(dt);
         if (matchmaker && matchmakerTag) {
           const toPlayer = Math.atan2(player.position.x - matchmakerPos.x, player.position.z - matchmakerPos.z);
           matchmaker.update(dt, matchmakerPos, toPlayer, 0, true, false);
           matchmakerTag.update(camera.position);
         }
         combatFx.update(dt);
-        nature.update(dt, clock.elapsedTime);
+        if (updateVisualSystems) nature.update(dt, clock.elapsedTime);
         const shaking = combatFx.beginShake(camera);
         if (cinematicPost) cinematicPost.render(dt);
         else renderer!.render(scene, camera);
