@@ -2370,11 +2370,9 @@ function EngineGame({
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = isMobileUA ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      // ACES's filmic curve crushes saturation (that's what it's for in film/
-      // photoreal work) — wrong call for a bright, punchy voxel game. Linear
-      // tone mapping just scales by exposure, keeping colors vivid.
+      // ACES's filmic curve crushes saturation — Linear tone mapping scales by exposure.
       renderer.toneMapping = THREE.LinearToneMapping;
       renderer.toneMappingExposure = isSpleef ? 1.25 : isSkyblock ? 1.08 : 1.22;
       renderer.domElement.style.touchAction = "none";
@@ -2388,25 +2386,13 @@ function EngineGame({
       renderer.domElement.style.filter = "none";
 
       // ── Post-processing: SSAO + Bloom ────────────────────────────────────────
-      // Bloom:  UnrealBloomPass adds HDR glow on bright/emissive surfaces
-      //         (glowstone, lava, diamonds, coins) — the highest-impact single
-      //         visual change toward an "RTX ON" look. Threshold 0.72 only
-      //         catches truly bright pixels; strength 0.35 is subtle enough
-      //         that normal blocks stay crisp, but emissive ones glow.
-      // SSAO:   contact shadows in corners between blocks — gated to high+desktop
-      //         because it requires a full depth/normal prepass.
-      // Both passes run together when quality is high + desktop; only bloom
-      // runs on medium + desktop/mobile for broader RTX feel without the SSAO
-      // cost. Low quality skips the composer entirely (direct render).
-      // EggWars is a generated, compact arena. Keep the match path conservative
-      // even when the global quality preference is high: post-processing creates
-      // extra render targets and is a common source of mobile WebGL loss during
-      // match entry, while it adds little to this small arena.
-      const bloomEnabled = qualityPref !== "low" && !isEggwars && !conservative3D;
+      // Mobile GPUs render direct-to-screen to eliminate offscreen framebuffer copies
+      // and maintain smooth 60 FPS without thermal throttling.
+      const bloomEnabled = qualityPref !== "low" && !isEggwars && !conservative3D && !isMobileUA;
       const ssaoEnabled = qualityPref === "high" && !isMobileUA && !isEggwars && !conservative3D;
       const motionBlurStored = localStorage.getItem("bm-motion-blur");
       const motionBlurEnabled =
-        (motionBlurStored === null || motionBlurStored === "true") && !isEggwars && !conservative3D;
+        (motionBlurStored === null || motionBlurStored === "true") && !isEggwars && !conservative3D && !isMobileUA;
       let composer: EffectComposer | null = null;
       let ssaoPass: SSAOPass | null = null;
       let motionBlurPass: ShaderPass | null = null;

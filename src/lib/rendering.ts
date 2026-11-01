@@ -31,9 +31,11 @@ export const getTargetDpr = (quality?: RenderQuality): number => {
     return Math.min(rawDpr, 2.0);
   }
 
-  // Slight supersampling above native Retina for sharper block edges.
+  // Cap mobile DPR at 2.0 max to preserve native Retina sharpness without supersampling fill-rate lag
   if (isMobile) {
-    return Math.min(rawDpr * 1.1, 3.0);
+    if (quality === "low") return Math.min(rawDpr, 1.25);
+    if (quality === "medium") return Math.min(rawDpr, 1.5);
+    return Math.min(rawDpr, 2.0);
   }
 
   return Math.min(rawDpr * 1.15, 3.25);
