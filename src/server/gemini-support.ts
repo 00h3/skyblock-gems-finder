@@ -1,5 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
-
 export interface SupportChatMessage {
   role: "user" | "model";
   content: string;
@@ -34,78 +32,50 @@ export async function handleSupportChat(
   userPrompt: string,
   history: SupportChatMessage[] = []
 ): Promise<SupportResponsePayload> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return {
       thinkingSteps: [
         "Verifying connection to QBLOCK Official Support node...",
-        "QBLOCK system offline: GEMINI_API_KEY is not configured.",
+        "QBLOCK system offline: GROQ_API_KEY is not configured.",
       ],
       actionLabel: "Support Offline",
-      actionDetail: "env/GEMINI_API_KEY",
+      actionDetail: "env/GROQ_API_KEY",
       message:
         "Official Support is currently offline (API key not configured in environment). Please check back shortly!",
     };
   }
 
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
-      },
-    },
-  });
-
-  // Prepare contents with context
-  const contents: any[] = [];
-  for (const h of history.slice(-6)) {
-    contents.push({
-      role: h.role,
-      parts: [{ text: h.content }],
-    });
-  }
-  contents.push({
-    role: "user",
-    parts: [{ text: userPrompt }],
-  });
-
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            thinkingSteps: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description:
-                "2 to 4 realistic, analytical thinking sentences regarding QBLOCK gameplay, mechanics, or policy validation.",
-            },
-            actionLabel: {
-              type: Type.STRING,
-              description:
-                "Short action chip, e.g. 'Search game mechanics', 'Check security permissions', 'Inspect Skyblock wiki'",
-            },
-            actionDetail: {
-              type: Type.STRING,
-              description: "Brief file or index queried, e.g. 'kb/skyblock-guide.md'",
-            },
-            message: {
-              type: Type.STRING,
-              description: "The clean, formatted reply for the player.",
-            },
-          },
-          required: ["thinkingSteps", "actionLabel", "actionDetail", "message"],
-        },
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.35,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_INSTRUCTION },
+          ...history.slice(-6).map((h) => ({
+            role: h.role === "model" ? "assistant" : "user",
+            content: h.content,
+          })),
+          { role: "user", content: userPrompt },
+        ],
+      }),
     });
 
-    const text = response.text?.trim() || "{}";
+    if (!response.ok) {
+      throw new Error(`Groq request failed with status ${response.status}`);
+    }
+
+    const payload = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const text = payload.choices?.[0]?.message?.content?.trim() || "{}";
     const parsed = JSON.parse(text) as Partial<SupportResponsePayload>;
 
     return {

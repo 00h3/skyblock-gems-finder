@@ -123,20 +123,6 @@ export function RedesignedHomePage({
               Free
             </button>
 
-            {/* Chat (header) */}
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/chat" as never })}
-              className="qb-squircle press relative grid h-9 w-9 shrink-0 place-items-center active:scale-95 transition-transform select-none cursor-pointer"
-              aria-label="Open Chat"
-            >
-              <img
-                src="/ui/chat-icon.png"
-                alt="Chat"
-                className="h-[18px] w-[18px] object-contain dark:invert"
-              />
-            </button>
-
             {/* Notifications */}
             <button
               type="button"
