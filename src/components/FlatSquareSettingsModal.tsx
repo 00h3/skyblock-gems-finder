@@ -1,28 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import {
-  Sun,
-  Sunset,
-  Moon,
-  Sparkles,
-  Sliders,
-  Gauge,
-  Eye,
-  Volume2,
-  VolumeX,
-  X,
-  Check,
-  Zap,
-  CloudLightning,
-  Snowflake,
-  Flame,
-  Waves,
-  CircleDot,
-} from "lucide-react";
-import { readQualityPref, RenderQuality } from "@/lib/rendering";
-import { WeatherSettingsSection } from "@/components/SkyblockExtras";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
@@ -31,473 +12,718 @@ interface FlatSquareSettingsModalProps {
   showWeather?: boolean;
 }
 
-export type AtmosphereMode =
-  | "normal"
-  | "day"
-  | "evening"
-  | "tramonto"
-  | "night"
-  | "cinematic"
-  | "tempesta"
-  | "christmas"
-  | "blood_moon"
-  | "aurora"
-  | "solar_eclipse";
-
-interface AtmosphereOption {
-  id: AtmosphereMode;
-  label: string;
-  sub: string;
-  icon: React.ComponentType<{ className?: string }>;
-  activeClasses: string;
-  iconColor: string;
-}
-
-const ATMOSPHERE_OPTIONS: AtmosphereOption[] = [
-  {
-    id: "normal",
-    label: "Day",
-    sub: "Golden Sunlight",
-    icon: Sun,
-    activeClasses: "bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.25)]",
-    iconColor: "text-amber-400",
-  },
-  {
-    id: "evening",
-    label: "Tramonto",
-    sub: "Warm Sunset",
-    icon: Sunset,
-    activeClasses: "bg-orange-500/20 border-orange-400 text-orange-300 shadow-[0_0_16px_rgba(249,115,22,0.25)]",
-    iconColor: "text-orange-400",
-  },
-  {
-    id: "night",
-    label: "Night",
-    sub: "Moon & Stars",
-    icon: Moon,
-    activeClasses: "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.25)]",
-    iconColor: "text-cyan-400",
-  },
-];
+type ModalTab = "game" | "graphics" | "account";
 
 export function FlatSquareSettingsModal({
   onClose,
-  controlsScale,
+  controlsScale: initialScale,
   onControlsScaleChange,
-  showWeather = false,
 }: FlatSquareSettingsModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const { qbUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<ModalTab>("game");
 
-  // Graphics Quality ("normal" | "high")
-  const [quality, setQuality] = useState<RenderQuality>(() => readQualityPref());
-
-  // Atmosphere / Time of Day
-  const [atmosphere, setAtmosphere] = useState<AtmosphereMode>(() => {
+  // ── Game Settings State ───────────────────────────────────────────────────
+  const [camSens, setCamSens] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem("qb_atmosphere") || "day";
-      if (saved === "golden" || saved === "evening" || saved === "tramonto") return "evening";
-      if (saved === "night") return "night";
-      if (saved === "cinematic" || saved === "mystic") return "cinematic";
-      if (saved === "tempesta" || saved === "storm") return "tempesta";
-      if (saved === "christmas" || saved === "striking_christmas" || saved === "natale") return "christmas";
-      if (saved === "blood_moon" || saved === "bloodmoon") return "blood_moon";
-      if (saved === "aurora" || saved === "aurora_borealis") return "aurora";
-      if (saved === "solar_eclipse" || saved === "eclipse") return "solar_eclipse";
-      return "normal";
+      const v = localStorage.getItem("qb_cam_sensitivity");
+      return v ? Number(v) : 1.0;
     } catch {
-      return "normal";
+      return 1.0;
     }
   });
 
-  // Camera Field of View
   const [fov, setFov] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem("qb_camera_fov");
-      return saved ? Math.max(50, Math.min(100, Number(saved))) : 72;
+      const v = localStorage.getItem("bm-fov");
+      return v ? Number(v) : 75;
     } catch {
-      return 72;
+      return 75;
     }
   });
 
-  // Look Sensitivity
-  const [sensitivity, setSensitivity] = useState<number>(() => {
+  const [scale, setScale] = useState<number>(() => {
+    if (typeof initialScale === "number") return initialScale;
     try {
-      const saved = localStorage.getItem("qb_sensitivity");
-      return saved ? Math.max(10, Math.min(100, Number(saved))) : 50;
+      const saved = localStorage.getItem("qb_controls_scale");
+      return saved ? Number(saved) : 1.0;
     } catch {
-      return 50;
+      return 1.0;
     }
   });
 
-  // Volume
-  const [volume, setVolume] = useState<number>(() => {
+  const [invertY, setInvertY] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem("qb_master_volume");
-      return saved !== null ? Math.max(0, Math.min(100, Number(saved))) : 80;
-    } catch {
-      return 80;
-    }
-  });
-  const [muted, setMuted] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("qb_muted") === "true";
+      return localStorage.getItem("bm-invert-joy-y") === "true";
     } catch {
       return false;
     }
   });
 
+  const [invertX, setInvertX] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("bm-invert-joy-x") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [autoJump, setAutoJump] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_auto_jump") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [touchCircle, setTouchCircle] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_touch_circle") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [nametags, setNametags] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_show_nametags") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [crosshairStyle, setCrosshairStyle] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_crosshair_style") || "cross";
+    } catch {
+      return "cross";
+    }
+  });
+
+  // ── Graphics & Audio State ────────────────────────────────────────────────
+  const [fpsTarget, setFpsTarget] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_fps_target") || "60";
+    } catch {
+      return "60";
+    }
+  });
+
+  const [renderDistance, setRenderDistance] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_render_distance") || "medium";
+    } catch {
+      return "medium";
+    }
+  });
+
+  const [masterVol, setMasterVol] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-master-vol");
+      return v ? Number(v) : 90;
+    } catch {
+      return 90;
+    }
+  });
+
+  const [sfxVol, setSfxVol] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-sfx-vol");
+      return v ? Number(v) : 85;
+    } catch {
+      return 85;
+    }
+  });
+
+  const [musicVol, setMusicVol] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-music-vol");
+      return v ? Number(v) : 70;
+    } catch {
+      return 70;
+    }
+  });
+
+  const [ambientAudio, setAmbientAudio] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("bm-ambient-audio") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  // Close on Escape
   useEffect(() => {
-    setMounted(true);
-    const onKeyDown = (e: KeyboardEvent) => {
+    const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  // Handle Graphics Quality change
-  const handleQualityChange = useCallback((newQ: RenderQuality) => {
-    setQuality(newQ);
+  const updateSetting = (key: string, val: string | number | boolean, eventName?: string) => {
     try {
-      localStorage.setItem("bm-quality", newQ);
+      localStorage.setItem(key, String(val));
     } catch {}
-    window.dispatchEvent(new CustomEvent("bm-quality", { detail: newQ }));
-  }, []);
+    if (eventName) {
+      window.dispatchEvent(new CustomEvent(eventName, { detail: val }));
+    }
+  };
 
-  // Handle Atmosphere change
-  const handleAtmosphereChange = useCallback((newAtm: AtmosphereMode) => {
-    setAtmosphere(newAtm);
-    const storageVal = newAtm === "normal" ? "day" : newAtm;
-    try {
-      localStorage.setItem("qb_atmosphere", storageVal);
-    } catch {}
-    window.dispatchEvent(new CustomEvent("bm-atmosphere", { detail: newAtm }));
-  }, []);
-
-  // Handle FOV change
-  const handleFovChange = useCallback((val: number) => {
-    setFov(val);
-    try {
-      localStorage.setItem("qb_camera_fov", String(val));
-    } catch {}
-    window.dispatchEvent(new CustomEvent("bm-fov", { detail: val }));
-  }, []);
-
-  // Handle Sensitivity change
-  const handleSensitivityChange = useCallback((val: number) => {
-    setSensitivity(val);
-    try {
-      localStorage.setItem("qb_sensitivity", String(val));
-    } catch {}
-    window.dispatchEvent(new CustomEvent("bm-sensitivity", { detail: val }));
-  }, []);
-
-  // Handle Volume change
-  const handleVolumeChange = useCallback((val: number) => {
-    setVolume(val);
-    try {
-      localStorage.setItem("qb_master_volume", String(val));
-    } catch {}
-    window.dispatchEvent(new CustomEvent("bm-volume", { detail: val }));
-  }, []);
-
-  const handleToggleMute = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("qb_muted", String(next));
-      } catch {}
-      window.dispatchEvent(new CustomEvent("bm-mute", { detail: next }));
-      return next;
-    });
-  }, []);
-
-  if (!mounted || typeof document === "undefined") return null;
-
-  return createPortal(
+  const content = (
     <div
-      id="flat-square-settings-fullscreen"
-      className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center bg-transparent p-3 sm:p-5 backdrop-blur-none select-none animate-in fade-in duration-150"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Game Settings"
+      className="fixed inset-0 z-[9999] bg-[#0f1115] text-[#f2f4f8] flex flex-col font-sans select-none animate-in fade-in duration-100"
     >
-      <div
-        className="square-user-card bg-[#14161b] border border-white/15 w-full max-w-2xl max-h-[90vh] rounded-2xl p-5 sm:p-6 text-white shadow-2xl flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center pb-4 mb-4 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Sliders className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black tracking-tight text-white">Game Settings</h2>
-              <p className="text-xs text-white/50">
-                Switch graphics quality, celestial atmosphere & controls
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close Settings"
-            className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer border border-white/10"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      {/* ── Top Header Bar (No icons, pure typography) ── */}
+      <header className="shrink-0 h-14 border-b border-white/10 bg-[#161920] px-4 sm:px-8 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-[17px] sm:text-[19px] font-extrabold tracking-tight text-white">
+            Game Settings
+          </span>
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10.5px] font-bold uppercase tracking-wider bg-white/10 text-white/70">
+            Realtime Configuration
+          </span>
         </div>
-
-        {/* Content list (Scrollable with GPU hardware acceleration & zero jitter) */}
-        <div
-          className="space-y-6 overflow-y-auto pr-1 flex-1 custom-scrollbar transition-all duration-150"
-          style={{
-            willChange: "scroll-position",
-            WebkitOverflowScrolling: "touch",
-            contain: "layout style",
-          }}
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-1.5 rounded-lg bg-[#fa4616] hover:bg-[#ff5524] active:scale-95 text-white font-bold text-[13px] transition cursor-pointer shadow-sm"
         >
-          {/* SECTION 1: GRAPHICS QUALITY */}
-          <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Gauge className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Graphics Quality
-                </span>
-              </div>
-              <span className="text-[11px] font-semibold text-white/50">
-                {quality === "high" ? "Ultra Cinematic Mode" : "Optimized 60 FPS Mode"}
-              </span>
-            </div>
+          Close
+        </button>
+      </header>
 
-            {/* Quality switch buttons */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              {/* Normal Button */}
-              <button
-                type="button"
-                onClick={() => handleQualityChange("normal")}
-                className={`flex flex-col p-3 rounded-xl border text-left transition cursor-pointer relative overflow-hidden ${
-                  quality === "normal" || quality === "medium"
-                    ? "bg-emerald-500/15 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.25)] text-white"
-                    : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <span className="font-black text-sm flex items-center gap-1.5">
-                    <Zap className="w-4 h-4 text-emerald-400" />
-                    Normal (New)
-                  </span>
-                  {(quality === "normal" || quality === "medium") && (
-                    <span className="text-[10px] uppercase font-black tracking-wider bg-emerald-500 text-black px-1.5 py-0.5 rounded">
-                      Active
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] leading-relaxed text-white/60">
-                  New high-efficiency profile. Smooth 60–120 FPS, soft ambient bloom & zero stutter.
+      {/* ── 3 Clickable Menus + Content Layout ── */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+        {/* Navigation Rail with 3 Distinct Clickable Menus */}
+        <nav
+          aria-label="Settings Categories"
+          className="shrink-0 border-b md:border-b-0 md:border-r border-white/10 bg-[#12141a] flex md:flex-col md:w-60 p-2 md:p-3 gap-1 overflow-x-auto md:overflow-y-auto hide-scrollbar z-10"
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab("game")}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-[13px] md:text-[14px] text-left transition-colors cursor-pointer ${
+              activeTab === "game"
+                ? "bg-[#fa4616] text-white shadow-sm"
+                : "text-white/70 hover:bg-white/5"
+            }`}
+          >
+            Game Settings
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("graphics")}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-[13px] md:text-[14px] text-left transition-colors cursor-pointer ${
+              activeTab === "graphics"
+                ? "bg-[#fa4616] text-white shadow-sm"
+                : "text-white/70 hover:bg-white/5"
+            }`}
+          >
+            Graphics & Audio
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("account")}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-[13px] md:text-[14px] text-left transition-colors cursor-pointer ${
+              activeTab === "account"
+                ? "bg-[#fa4616] text-white shadow-sm"
+                : "text-white/70 hover:bg-white/5"
+            }`}
+          >
+            Account & System
+          </button>
+        </nav>
+
+        {/* Content Pane */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-6">
+          {/* =============================================================== */}
+          {/* PART 1: GAME SETTINGS                                           */}
+          {/* =============================================================== */}
+          {activeTab === "game" && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-[16px] font-extrabold text-white">Controls, Motion & Reticle</h3>
+                <p className="text-[12px] text-white/55 mt-0.5">
+                  Adjust sensitivity, field of view, controls scale, and axis preferences.
                 </p>
-              </button>
-
-              {/* High Button */}
-              <button
-                type="button"
-                onClick={() => handleQualityChange("high")}
-                className={`flex flex-col p-3 rounded-xl border text-left transition cursor-pointer relative overflow-hidden ${
-                  quality === "high"
-                    ? "bg-amber-500/15 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)] text-white"
-                    : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <span className="font-black text-sm flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    High (Ultra)
-                  </span>
-                  {quality === "high" && (
-                    <span className="text-[10px] uppercase font-black tracking-wider bg-amber-400 text-black px-1.5 py-0.5 rounded">
-                      Active
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] leading-relaxed text-white/60">
-                  Restores the old ultra-high quality. Native Retina DPR, full bloom resolution & dynamic shadows.
-                </p>
-              </button>
-            </div>
-          </div>
-
-          {showWeather && <WeatherSettingsSection />}
-
-          {/* SECTION 2: ATMOSPHERE & TIME OF DAY */}
-          <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sun className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Atmosphere & Ambient
-                </span>
               </div>
-              <span className="text-[11px] font-semibold text-white/50">
-                {ATMOSPHERE_OPTIONS.find((o) =>
-                  o.id === atmosphere ||
-                  (o.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
-                  (o.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"))
-                )?.label ?? "Day"}
-              </span>
-            </div>
 
-            {/* Atmosphere Presets Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-              {ATMOSPHERE_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const active =
-                  atmosphere === opt.id ||
-                  (opt.id === "normal" && (atmosphere === "day" || atmosphere === "normal")) ||
-                  (opt.id === "evening" && (atmosphere === "tramonto" || atmosphere === "evening"));
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => handleAtmosphereChange(opt.id)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer relative overflow-hidden ${
-                      active
-                        ? `${opt.activeClasses} font-black`
-                        : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
-                    }`}
-                  >
-                    <Icon className={`w-6 h-6 mb-1 ${active ? "" : opt.iconColor}`} />
-                    <span className="text-xs font-bold leading-tight">{opt.label}</span>
-                    <span className="text-[10px] text-white/50 mt-0.5 leading-tight">{opt.sub}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* SECTION 3: CAMERA & FOV */}
-          <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-sky-400" />
-                <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Field of View (FOV)
-                </span>
-              </div>
-              <span className="text-xs font-mono font-bold text-sky-300 bg-white/10 px-2 py-0.5 rounded border border-white/10">
-                {fov}°
-              </span>
-            </div>
-            <input
-              type="range"
-              min={60}
-              max={95}
-              step={5}
-              value={fov}
-              onChange={(e) => handleFovChange(Number(e.target.value))}
-              className="w-full h-2 bg-white/15 accent-sky-400 rounded-lg cursor-pointer"
-            />
-            <div className="flex justify-between text-[10px] font-mono text-white/40">
-              <span>Narrow (60°)</span>
-              <span>Standard (72°)</span>
-              <span>Wide (95°)</span>
-            </div>
-          </div>
-
-          {/* SECTION 4: CONTROLS & SENSITIVITY */}
-          <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-white uppercase tracking-wider">
-                  Look Sensitivity
-                </span>
-                <span className="text-xs font-mono font-bold text-amber-300 bg-white/10 px-2 py-0.5 rounded border border-white/10">
-                  {sensitivity}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min={20}
-                max={100}
-                step={5}
-                value={sensitivity}
-                onChange={(e) => handleSensitivityChange(Number(e.target.value))}
-                className="w-full h-2 bg-white/15 accent-amber-400 rounded-lg cursor-pointer"
-              />
-            </div>
-
-            {/* Controls Size Slider (if handler available or standalone) */}
-            {onControlsScaleChange && controlsScale !== undefined && (
-              <div className="space-y-2 pt-2 border-t border-white/10">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-white uppercase tracking-wider">
-                    Touch Controls Scale
-                  </span>
-                  <span className="text-xs font-mono font-bold text-emerald-300 bg-white/10 px-2 py-0.5 rounded border border-white/10">
-                    {Math.round(controlsScale * 100)}%
+              {/* Camera Sensitivity */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="font-extrabold text-[13.5px] text-white">Camera Sensitivity</div>
+                    <div className="text-[11.5px] text-white/55">Touch swipe and mouse turn rate</div>
+                  </div>
+                  <span className="font-mono font-bold text-[13px] px-2 py-0.5 rounded bg-white/10 text-white">
+                    {camSens.toFixed(1)}x
                   </span>
                 </div>
                 <input
                   type="range"
-                  min={70}
-                  max={150}
-                  step={5}
-                  value={Math.round(controlsScale * 100)}
-                  onChange={(e) => onControlsScaleChange(Number(e.target.value) / 100)}
-                  className="w-full h-2 bg-white/15 accent-emerald-400 rounded-lg cursor-pointer"
+                  min="0.5"
+                  max="3.0"
+                  step="0.1"
+                  value={camSens}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setCamSens(v);
+                    updateSetting("qb_cam_sensitivity", v, "bm-cam-sensitivity");
+                  }}
+                  className="w-full accent-[#fa4616] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-white/40 font-bold">
+                  <span>0.5x Slow</span>
+                  <span>1.0x Default</span>
+                  <span>3.0x Fast</span>
+                </div>
+              </div>
+
+              {/* Field of View (FOV) */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="font-extrabold text-[13.5px] text-white">Field of View (FOV)</div>
+                    <div className="text-[11.5px] text-white/55">Camera viewing angle</div>
+                  </div>
+                  <span className="font-mono font-bold text-[13px] px-2 py-0.5 rounded bg-white/10 text-white">
+                    {fov}°
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="60"
+                  max="100"
+                  step="1"
+                  value={fov}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setFov(v);
+                    updateSetting("bm-fov", v, "bm-fov");
+                  }}
+                  className="w-full accent-[#fa4616] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-white/40 font-bold">
+                  <span>60° Tight</span>
+                  <span>75° Standard</span>
+                  <span>100° Wide</span>
+                </div>
+              </div>
+
+              {/* Controls Scale Slider */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="font-extrabold text-[13.5px] text-white">On-Screen Controls Size</div>
+                    <div className="text-[11.5px] text-white/55">Scale D-pad, joystick and action buttons</div>
+                  </div>
+                  <span className="font-mono font-bold text-[13px] px-2 py-0.5 rounded bg-white/10 text-white">
+                    {Math.round(scale * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.7"
+                  max="1.5"
+                  step="0.05"
+                  value={scale}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setScale(v);
+                    onControlsScaleChange?.(v);
+                    updateSetting("qb_controls_scale", v, "bm-controls-scale");
+                  }}
+                  className="w-full accent-[#fa4616] cursor-pointer"
                 />
               </div>
-            )}
-          </div>
 
-          {/* SECTION 5: AUDIO */}
-          <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {muted ? (
-                  <VolumeX className="w-4 h-4 text-red-400" />
-                ) : (
-                  <Volume2 className="w-4 h-4 text-indigo-400" />
-                )}
-                <span className="text-xs font-black text-white uppercase tracking-wider">
-                  Master Volume
-                </span>
+              {/* Toggles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px] text-white">Invert Y-Axis (Pitch)</div>
+                    <div className="text-[11px] text-white/50">Push forward to look down</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !invertY;
+                      setInvertY(next);
+                      updateSetting("bm-invert-joy-y", next);
+                    }}
+                    className={`px-3 py-1 rounded text-[12px] font-bold cursor-pointer ${
+                      invertY ? "bg-[#fa4616] text-white" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {invertY ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px] text-white">Invert X-Axis (Yaw)</div>
+                    <div className="text-[11px] text-white/50">Reverse horizontal look</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !invertX;
+                      setInvertX(next);
+                      updateSetting("bm-invert-joy-x", next);
+                    }}
+                    className={`px-3 py-1 rounded text-[12px] font-bold cursor-pointer ${
+                      invertX ? "bg-[#fa4616] text-white" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {invertX ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px] text-white">Auto-Jump</div>
+                    <div className="text-[11px] text-white/50">Automatically step up blocks</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !autoJump;
+                      setAutoJump(next);
+                      updateSetting("qb_auto_jump", next);
+                    }}
+                    className={`px-3 py-1 rounded text-[12px] font-bold cursor-pointer ${
+                      autoJump ? "bg-[#fa4616] text-white" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {autoJump ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px] text-white">Held Touch Circle</div>
+                    <div className="text-[11px] text-white/50">Translucent circle while holding screen</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !touchCircle;
+                      setTouchCircle(next);
+                      updateSetting("qb_touch_circle", next);
+                    }}
+                    className={`px-3 py-1 rounded text-[12px] font-bold cursor-pointer ${
+                      touchCircle ? "bg-[#fa4616] text-white" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {touchCircle ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px] text-white">Player Nametags</div>
+                    <div className="text-[11px] text-white/50">Show names above players</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !nametags;
+                      setNametags(next);
+                      updateSetting("qb_show_nametags", next);
+                    }}
+                    className={`px-3 py-1 rounded text-[12px] font-bold cursor-pointer ${
+                      nametags ? "bg-[#fa4616] text-white" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {nametags ? "ON" : "OFF"}
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleToggleMute}
-                className="text-[11px] font-bold text-white/70 hover:text-white px-2 py-0.5 rounded bg-white/10 hover:bg-white/15 transition cursor-pointer"
-              >
-                {muted ? "Unmute" : "Mute"}
-              </button>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              disabled={muted}
-              value={muted ? 0 : volume}
-              onChange={(e) => handleVolumeChange(Number(e.target.value))}
-              className={`w-full h-2 bg-white/15 accent-indigo-400 rounded-lg cursor-pointer ${
-                muted ? "opacity-40 pointer-events-none" : ""
-              }`}
-            />
-          </div>
-        </div>
 
-        {/* Footer */}
-        <div className="pt-4 mt-2 border-t border-white/10 flex justify-end shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black text-sm shadow-lg active:scale-95 transition cursor-pointer"
-          >
-            Done
-          </button>
+              {/* Crosshair Selection */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="font-extrabold text-[13.5px] text-white">Crosshair Style</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {[
+                    { id: "cross", label: "Classic Cross" },
+                    { id: "dot", label: "Minimal Dot" },
+                    { id: "diamond", label: "Diamond Box" },
+                    { id: "hidden", label: "Hidden" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setCrosshairStyle(item.id);
+                        updateSetting("qb_crosshair_style", item.id);
+                      }}
+                      className={`py-2 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                        crosshairStyle === item.id
+                          ? "bg-[#fa4616] text-white border-[#fa4616]"
+                          : "bg-white/5 text-white/70 border-transparent hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================================== */}
+          {/* PART 2: GRAPHICS & AUDIO                                        */}
+          {/* =============================================================== */}
+          {activeTab === "graphics" && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-[16px] font-extrabold text-white">Display & Acoustics</h3>
+                <p className="text-[12px] text-white/55 mt-0.5">
+                  Frame pacing, render distance, audio sliders, and ambient effects.
+                </p>
+              </div>
+
+              {/* Frame Rate Target */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="font-extrabold text-[13.5px] text-white">Target Frame Rate</div>
+                <div className="text-[11.5px] text-white/55">Pace rendering to prevent device heat and lag spikes</div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {[
+                    { id: "30", label: "30 FPS" },
+                    { id: "60", label: "60 FPS" },
+                    { id: "uncapped", label: "Max / Native" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setFpsTarget(item.id);
+                        updateSetting("qb_fps_target", item.id);
+                      }}
+                      className={`py-2 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                        fpsTarget === item.id
+                          ? "bg-[#fa4616] text-white border-[#fa4616]"
+                          : "bg-white/5 text-white/70 border-transparent hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Render Distance */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="font-extrabold text-[13.5px] text-white">Render Distance</div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {[
+                    { id: "near", label: "Near (4 Chunks)" },
+                    { id: "medium", label: "Medium (8 Chunks)" },
+                    { id: "far", label: "Far (12 Chunks)" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setRenderDistance(item.id);
+                        updateSetting("qb_render_distance", item.id);
+                      }}
+                      className={`py-2 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                        renderDistance === item.id
+                          ? "bg-[#fa4616] text-white border-[#fa4616]"
+                          : "bg-white/5 text-white/70 border-transparent hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Volume Sliders */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-4">
+                <div className="font-extrabold text-[13.5px] text-white">Audio Levels</div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[12px] font-bold text-white">
+                    <span>Master Output Volume</span>
+                    <span className="font-mono">{masterVol}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={masterVol}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setMasterVol(v);
+                      updateSetting("bm-master-vol", v);
+                    }}
+                    className="w-full accent-[#fa4616] cursor-pointer"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[12px] font-bold text-white">
+                    <span>Sound Effects (Blocks, Steps, Hits)</span>
+                    <span className="font-mono">{sfxVol}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={sfxVol}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setSfxVol(v);
+                      updateSetting("bm-sfx-vol", v);
+                    }}
+                    className="w-full accent-[#fa4616] cursor-pointer"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[12px] font-bold text-white">
+                    <span>Background Soundtracks</span>
+                    <span className="font-mono">{musicVol}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={musicVol}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setMusicVol(v);
+                      updateSetting("bm-music-vol", v);
+                    }}
+                    className="w-full accent-[#fa4616] cursor-pointer"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px] text-white">Weather & Ambience</div>
+                    <div className="text-[11px] text-white/50">Skyblock breeze and ambient sounds</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !ambientAudio;
+                      setAmbientAudio(next);
+                      updateSetting("bm-ambient-audio", next);
+                    }}
+                    className={`px-3 py-1 rounded text-[12px] font-bold cursor-pointer ${
+                      ambientAudio ? "bg-[#fa4616] text-white" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {ambientAudio ? "ON" : "OFF"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================================== */}
+          {/* PART 3: ACCOUNT & SYSTEM                                        */}
+          {/* =============================================================== */}
+          {activeTab === "account" && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-[16px] font-extrabold text-white">Profile, Cache & State</h3>
+                <p className="text-[12px] text-white/55 mt-0.5">
+                  Player identity, offline synchronization cache, and session controls.
+                </p>
+              </div>
+
+              {/* Player Identity */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">
+                <div className="font-extrabold text-[13.5px] text-white">Player Session</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px] pt-1">
+                  <div className="p-2.5 rounded bg-white/5">
+                    <span className="text-[10px] uppercase font-bold text-white/50">Display Name</span>
+                    <div className="font-extrabold text-[13.5px] text-white mt-0.5">
+                      {qbUser?.displayName || "Player"}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded bg-white/5">
+                    <span className="text-[10px] uppercase font-bold text-white/50">Username</span>
+                    <div className="font-extrabold text-[13.5px] text-white mt-0.5">
+                      @{qbUser?.username || "adventurer"}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded bg-white/5">
+                    <span className="text-[10px] uppercase font-bold text-white/50">Player Custom ID</span>
+                    <div className="font-mono font-extrabold text-[13px] text-white mt-0.5">
+                      {qbUser?.customId || "QB-001"}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded bg-white/5">
+                    <span className="text-[10px] uppercase font-bold text-white/50">Session Status</span>
+                    <div className="font-extrabold text-[13px] text-emerald-400 mt-0.5">
+                      Connected Live
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Offline Cache Sync */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px] text-white">Offline Cache Storage</div>
+                    <div className="text-[11.5px] text-white/55">
+                      Friends list, islands, and inventory are saved locally for instant app loading
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-400">
+                    Active
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const keys = Object.keys(localStorage).filter(
+                        (k) => k.startsWith("qb_friends_cache_") || k.startsWith("qb_cache_")
+                      );
+                      keys.forEach((k) => localStorage.removeItem(k));
+                      toast.success("Offline friends and world cache cleared");
+                    } catch {
+                      toast.error("Failed to clear cache");
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white font-bold text-[12px] transition cursor-pointer"
+                >
+                  Clear Offline Cache
+                </button>
+              </div>
+
+              {/* Leave Game Action */}
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    window.location.href = "/";
+                  }}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 font-bold text-[13px] border border-rose-500/30 transition cursor-pointer text-center"
+                >
+                  Exit to Lobby
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : null;
 }

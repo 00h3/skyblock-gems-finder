@@ -332,10 +332,39 @@ export async function areFriends(myUid: string, otherUid: string): Promise<boole
   return friendship.status === "friends";
 }
 
+const FRIENDS_CACHE_PREFIX = "qb_friends_cache_";
+
+export function getCachedFriends(myUid: string): Friend[] {
+  if (!myUid || typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`${FRIENDS_CACHE_PREFIX}${myUid}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export function saveCachedFriends(myUid: string, friends: Friend[]): void {
+  if (!myUid || typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`${FRIENDS_CACHE_PREFIX}${myUid}`, JSON.stringify(friends));
+  } catch {}
+}
+
 export function subscribeFriends(
   myUid: string,
   callback: (friends: Friend[]) => void,
 ): Unsubscribe {
+  // Immediately emit cached friends so they display instantaneously
+  const cached = getCachedFriends(myUid);
+  if (cached.length > 0) {
+    try {
+      callback(cached);
+    } catch {}
+  }
+
   let sentDocs: DocumentData[] = [];
   let recvDocs: DocumentData[] = [];
   let mergeVersion = 0;
@@ -384,6 +413,7 @@ export function subscribeFriends(
       }
     }
     if (version !== mergeVersion) return;
+    saveCachedFriends(myUid, friends);
     callback(friends);
     updateDoc(doc(db, "users", myUid), { friendCount: friends.length }).catch(() => {});
   }

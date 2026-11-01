@@ -8658,6 +8658,8 @@ function EngineGame({
       // allocation every tick which triggers GC on low-memory devices mid-game.
       const _botToPlayer = new THREE.Vector3();
       const _botKbDir = new THREE.Vector3();
+      const _scratchColorA = new THREE.Color();
+      const _scratchColorB = new THREE.Color();
       // Frame-budget guard: skip rendering when ahead of the target FPS.
       // 0 = unlimited (no cap). fpsPrefInit drives the initial value; the
       // bm-fpscap event updates it at runtime from the settings panel.
@@ -8806,8 +8808,8 @@ function EngineGame({
               skyMat.uniforms.mid.value.setHex(0x141f33);
               skyMat.uniforms.bottom.value.setHex(0x223048);
               if (lightningFlash > 0.05) {
-                skyMat.uniforms.mid.value.lerp(new THREE.Color(0xa5cbf7), lightningFlash * 0.85);
-                skyMat.uniforms.bottom.value.lerp(new THREE.Color(0x60a5fa), lightningFlash * 0.7);
+                skyMat.uniforms.mid.value.lerp(_scratchColorA.setHex(0xa5cbf7), lightningFlash * 0.85);
+                skyMat.uniforms.bottom.value.lerp(_scratchColorB.setHex(0x60a5fa), lightningFlash * 0.7);
               }
               sun.intensity = 0.45 + lightningFlash * 3.2;
               sun.color.setHex(lightningFlash > 0.1 ? 0xc7e0ff : 0x60a5fa);
@@ -12538,15 +12540,24 @@ function EngineGame({
       )}
 
       {/* Floating grey chat popup bubble with 3D avatar */}
+      {/* Floating grey chat popup bubble with 3D avatar - clickable rectangle to open chat */}
       {chatBubble && !chatOpen && (
         <div
-          className="pointer-events-none fixed top-[max(64px,calc(env(safe-area-inset-top)+54px))] left-1/2 -translate-x-1/2 z-40 animate-fade-in flex items-center gap-2.5 px-3.5 py-2.5 rounded-[18px]"
+          role="button"
+          tabIndex={0}
+          aria-label="Open chat"
+          onClick={() => setChatOpen(true)}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            setChatOpen(true);
+          }}
+          className="pointer-events-auto cursor-pointer fixed top-[max(64px,calc(env(safe-area-inset-top)+54px))] left-1/2 -translate-x-1/2 z-40 animate-fade-in flex items-center gap-2.5 px-3.5 py-2.5 rounded-[18px] active:scale-95 transition-transform select-none"
           style={{
             background: "linear-gradient(145deg, rgba(38,44,56,0.94) 0%, rgba(24,28,36,0.96) 100%)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.16)",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18)",
+            border: "1px solid rgba(255,255,255,0.22)",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.2)",
             maxWidth: "min(380px, calc(100vw - 32px))",
           }}
         >
@@ -12556,8 +12567,8 @@ function EngineGame({
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-black text-[#fa4616] tracking-wide flex items-center gap-1.5">
               <span>{chatBubble.sender}</span>
-              <span className="text-[8px] text-slate-400 font-bold px-1.5 py-0.5 rounded bg-white/10">
-                CHAT
+              <span className="text-[8px] text-slate-300 font-bold px-1.5 py-0.5 rounded bg-white/15">
+                TAP TO CHAT
               </span>
             </div>
             <div className="text-[13px] font-semibold text-white/95 leading-snug truncate mt-0.5">

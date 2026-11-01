@@ -1,49 +1,108 @@
 import React, { useEffect, useState } from "react";
 
-interface Ripple {
+interface ActiveTouch {
   id: number;
   x: number;
   y: number;
+  releasing: boolean;
 }
 
 export function TouchFeedbackRipples() {
-  const [ripples, setRipples] = useState<Ripple[]>([]);
+  const [touches, setTouches] = useState<Map<number, ActiveTouch>>(new Map());
 
   useEffect(() => {
-    let nextId = 0;
     const handlePointerDown = (e: PointerEvent) => {
-      // Ignore right clicks or non-primary pointers if desired
+      // Primary touch / mouse button only
       if (e.button !== 0 && e.pointerType === "mouse") return;
-      const ripple = { id: ++nextId, x: e.clientX, y: e.clientY };
-      setRipples((prev) => [...prev.slice(-12), ripple]);
 
-      // Remove after animation finishes
+      setTouches((prev) => {
+        const next = new Map(prev);
+        next.set(e.pointerId, {
+          id: e.pointerId,
+          x: e.clientX,
+          y: e.clientY,
+          releasing: false,
+        });
+        return next;
+      });
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      setTouches((prev) => {
+        if (!prev.has(e.pointerId)) return prev;
+        const current = prev.get(e.pointerId)!;
+        if (current.releasing) return prev;
+        const next = new Map(prev);
+        next.set(e.pointerId, {
+          ...current,
+          x: e.clientX,
+          y: e.clientY,
+        });
+        return next;
+      });
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      setTouches((prev) => {
+        if (!prev.has(e.pointerId)) return prev;
+        const next = new Map(prev);
+        const item = next.get(e.pointerId)!;
+        next.set(e.pointerId, { ...item, releasing: true });
+        return next;
+      });
+
+      // Remove after smooth fade-out
       setTimeout(() => {
-        setRipples((prev) => prev.filter((r) => r.id !== ripple.id));
-      }, 350);
+        setTouches((prev) => {
+          if (!prev.has(e.pointerId)) return prev;
+          const next = new Map(prev);
+          next.delete(e.pointerId);
+          return next;
+        });
+      }, 160);
     };
 
     window.addEventListener("pointerdown", handlePointerDown, { passive: true });
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerup", handlePointerUp, { passive: true });
+    window.addEventListener("pointercancel", handlePointerUp, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
   }, []);
 
-  if (ripples.length === 0) return null;
+  if (touches.size === 0) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[999999] overflow-hidden select-none">
-      {ripples.map((r) => (
+      {Array.from(touches.values()).map((t) => (
         <div
-          key={r.id}
-          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300/80 bg-cyan-400/20 shadow-[0_0_12px_rgba(56,189,248,0.7)] animate-touch-ripple"
+          key={t.id}
+          className="absolute rounded-full pointer-events-none will-change-transform"
           style={{
-            left: `${r.x}px`,
-            top: `${r.y}px`,
-            width: "44px",
-            height: "44px",
+            left: `${t.x}px`,
+            top: `${t.y}px`,
+            width: "46px",
+            height: "46px",
+            backgroundColor: "rgba(255, 255, 255, 0.22)",
+            border: "2px solid rgba(255, 255, 255, 0.82)",
+            boxShadow:
+              "0 0 12px rgba(255, 255, 255, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.25)",
+            backdropFilter: "blur(1.5px)",
+            WebkitBackdropFilter: "blur(1.5px)",
+            transform: t.releasing
+              ? "translate(-50%, -50%) scale(1.28)"
+              : "translate(-50%, -50%) scale(1.0)",
+            opacity: t.releasing ? 0 : 0.95,
+            transition: t.releasing
+              ? "opacity 160ms cubic-bezier(0.1, 0.9, 0.2, 1), transform 160ms cubic-bezier(0.1, 0.9, 0.2, 1)"
+              : "transform 80ms ease-out",
           }}
-        >
-          <div className="absolute inset-1 rounded-full border border-white/60 animate-ping opacity-75" />
-        </div>
+        />
       ))}
     </div>
   );

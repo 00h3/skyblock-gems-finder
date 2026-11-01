@@ -270,8 +270,8 @@ export function FlatSquareGameControls({
         <button
           id="btn-flat-top-chat"
           type="button"
+          onClick={() => setChatOpen(true)}
           onPointerDown={(e) => {
-            e.preventDefault();
             e.stopPropagation();
             setChatOpen(true);
           }}

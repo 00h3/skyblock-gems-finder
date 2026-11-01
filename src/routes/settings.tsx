@@ -1,150 +1,246 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import {
-  Bell,
-  HelpCircle,
-  ChevronRight,
-  Volume2,
-  Smartphone,
-  LogOut,
-  Search,
-  Moon,
-  X,
-  MessageSquare,
-  User,
-  Pencil,
-  Check,
-  RefreshCw,
-  Star,
-  Download,
-  FileText,
-  Info,
-  type LucideIcon,
-} from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { setDark, useDark } from "@/lib/ui-bus";
 import { useAuth } from "@/lib/auth-context";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { CurrencyPills, PINK_GEM_ICON, GOLDEN_COINS_ICON } from "@/components/CurrencyPills";
-import { MobileShell } from "@/components/MobileShell";
-import { GlossyAvatar, isIraAccount } from "@/components/GlossyAvatar";
-import { BronzeCorniceAvatar } from "@/components/BronzeCornice";
 import { LegalBody, APP_VERSION } from "@/components/LegalDocs";
 import { saveAccount } from "@/lib/saved-accounts";
-import { BetaFeatures } from "@/components/BetaFeatures";
-import { useCurrency } from "@/lib/currency";
-
-import { FirstTimeSectionLoader } from "@/components/ui/FirstTimeSectionLoader";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — QBlock" }] }),
-  component: () => (
-    <FirstTimeSectionLoader id="settings">
-      <SettingsPage />
-    </FirstTimeSectionLoader>
-  ),
+  component: SettingsPage,
 });
 
-function SettingsPage() {
+type SettingsTab = "game" | "graphics" | "account";
+
+export function SettingsPage() {
   const nav = useNavigate();
-  const { qbUser } = useAuth();
-  const gems = useCurrency("gems");
-  const gold = useCurrency("gold");
-
-  return (
-    <MobileShell>
-      <div className="min-h-full bg-[#f8f9fa] dark:bg-[#121316] px-4 pb-8 pt-6">
-        {/* Profile area with Bronze Cornice crowning PFP */}
-        {qbUser && (
-          <div className="flex items-center gap-4 px-1 py-1 mb-5 mt-2">
-            <BronzeCorniceAvatar
-              size={62}
-              onClick={() => nav({ to: "/avatar" as never })}
-              title="Edit Avatar"
-            >
-              <GlossyAvatar
-                snapshot={qbUser.avatarSnapshot}
-                photoUrl={qbUser.profilePhoto}
-                frame={qbUser.avatarSnapshot?.frameId}
-                height={62}
-                className="h-full w-full object-cover"
-                autoRotate={false}
-                focusZone="head"
-              />
-            </BronzeCorniceAvatar>
-
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[17px] font-black text-[#141414] dark:text-white tracking-tight leading-tight truncate">
-                {qbUser.displayName || "Player"}
-              </h3>
-              <div className="text-[11.5px] font-semibold text-[#8b929d] dark:text-[#8e95a0] mt-0.5 truncate leading-tight">
-                Username:{" "}
-                <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
-                  @{qbUser.username || "player"}
-                </span>
-              </div>
-              <div className="text-[11px] font-semibold text-[#8b929d] dark:text-[#8e95a0] leading-tight">
-                ID:{" "}
-                <span className="font-bold text-[#555d68] dark:text-[#bcc3cd]">
-                  {qbUser.customId || "QB-001"}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 mt-1.5 text-[12px] font-black text-[#17181b] dark:text-white">
-                <div className="flex items-center gap-1">
-                  <img
-                    src={PINK_GEM_ICON}
-                    alt="Gems"
-                    className="h-4 w-4 object-contain shrink-0"
-                    draggable={false}
-                  />
-                  <span className="tabular-nums">{(gems ?? 0).toLocaleString()}</span>
-                </div>
-                <span className="text-black/25 dark:text-white/20 font-normal select-none">
-                  |
-                </span>
-                <div className="flex items-center gap-1">
-                  <img
-                    src={GOLDEN_COINS_ICON}
-                    alt="Coins"
-                    className="h-4 w-4 object-contain shrink-0"
-                    draggable={false}
-                  />
-                  <span className="tabular-nums">{(gold ?? 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <SettingsBody />
-      </div>
-    </MobileShell>
-  );
-}
-
-// ─── Shared settings body ──────────────────────────────────────────────────
-export function SettingsBody() {
   const dark = useDark();
-  const nav = useNavigate();
   const { qbUser, signOut } = useAuth();
-  const isIra = isIraAccount(qbUser);
-  const [push, setPush] = useState(true);
-  const [sound, setSound] = useState(true);
-  const [haptics, setHaptics] = useState(true);
-  const [expanded, setExpanded] = useState<"account" | "help" | "download" | "terms" | null>(null);
-  const [badgeSaving, setBadgeSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>("game");
 
-  useEffect(() => {
-    const s = JSON.parse(localStorage.getItem("bm-settings") || "{}");
-    if (typeof s.push === "boolean") setPush(s.push);
-    if (typeof s.sound === "boolean") setSound(s.sound);
-    if (typeof s.haptics === "boolean") setHaptics(s.haptics);
-  }, []);
+  // ── Game Settings State ───────────────────────────────────────────────────
+  const [camSens, setCamSens] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("qb_cam_sensitivity");
+      return v ? Number(v) : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
 
-  useEffect(() => {
-    localStorage.setItem("bm-settings", JSON.stringify({ push, sound, haptics }));
-  }, [push, sound, haptics]);
+  const [fov, setFov] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-fov");
+      return v ? Number(v) : 75;
+    } catch {
+      return 75;
+    }
+  });
+
+  const [invertY, setInvertY] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("bm-invert-joy-y") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [invertX, setInvertX] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("bm-invert-joy-x") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [controlsScale, setControlsScale] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("qb_controls_scale");
+      return v ? Number(v) : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
+
+  const [autoJump, setAutoJump] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_auto_jump") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [touchCircle, setTouchCircle] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_touch_circle") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [nametags, setNametags] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_show_nametags") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [crosshairStyle, setCrosshairStyle] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_crosshair_style") || "cross";
+    } catch {
+      return "cross";
+    }
+  });
+
+  const [joystickMode, setJoystickMode] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_joystick_mode") || "dynamic";
+    } catch {
+      return "dynamic";
+    }
+  });
+
+  // ── Graphics & Audio State ────────────────────────────────────────────────
+  const [fpsTarget, setFpsTarget] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_fps_target") || "60";
+    } catch {
+      return "60";
+    }
+  });
+
+  const [renderDistance, setRenderDistance] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_render_distance") || "medium";
+    } catch {
+      return "medium";
+    }
+  });
+
+  const [qualityMode, setQualityMode] = useState<string>(() => {
+    try {
+      return localStorage.getItem("bm-quality") || "balanced";
+    } catch {
+      return "balanced";
+    }
+  });
+
+  const [masterVol, setMasterVol] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-master-vol");
+      return v ? Number(v) : 90;
+    } catch {
+      return 90;
+    }
+  });
+
+  const [sfxVol, setSfxVol] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-sfx-vol");
+      return v ? Number(v) : 85;
+    } catch {
+      return 85;
+    }
+  });
+
+  const [musicVol, setMusicVol] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem("bm-music-vol");
+      return v ? Number(v) : 70;
+    } catch {
+      return 70;
+    }
+  });
+
+  const [ambientAudio, setAmbientAudio] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("bm-ambient-audio") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  // ── Account & System State ────────────────────────────────────────────────
+  const [streamerMode, setStreamerMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_streamer_mode") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [showLegal, setShowLegal] = useState<boolean>(false);
+  const [cacheClearedNotice, setCacheClearedNotice] = useState<boolean>(false);
+
+  // Persistence helpers
+  const updateGamePref = (key: string, val: string | number | boolean, eventKey?: string) => {
+    try {
+      localStorage.setItem(key, String(val));
+    } catch {}
+    if (eventKey) {
+      window.dispatchEvent(new CustomEvent(eventKey, { detail: val }));
+    }
+  };
+
+  const handleClearCache = () => {
+    try {
+      if (typeof window !== "undefined") {
+        const keysToRemove = Object.keys(localStorage).filter(
+          (k) =>
+            k.startsWith("qb_friends_cache_") ||
+            k.startsWith("qb_cache_") ||
+            k.startsWith("bm-games-")
+        );
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
+      }
+      setCacheClearedNotice(true);
+      toast.success("Offline friends and world cache cleared");
+      setTimeout(() => setCacheClearedNotice(false), 2500);
+    } catch {
+      toast.error("Failed to clear offline cache");
+    }
+  };
+
+  const handleResetDefaults = () => {
+    setCamSens(1.0);
+    updateGamePref("qb_cam_sensitivity", 1.0, "bm-cam-sensitivity");
+    setFov(75);
+    updateGamePref("bm-fov", 75, "bm-fov");
+    setInvertY(false);
+    updateGamePref("bm-invert-joy-y", false);
+    setInvertX(false);
+    updateGamePref("bm-invert-joy-x", false);
+    setControlsScale(1.0);
+    updateGamePref("qb_controls_scale", 1.0, "bm-controls-scale");
+    setAutoJump(true);
+    updateGamePref("qb_auto_jump", true);
+    setTouchCircle(true);
+    updateGamePref("qb_touch_circle", true);
+    setNametags(true);
+    updateGamePref("qb_show_nametags", true);
+    setCrosshairStyle("cross");
+    updateGamePref("qb_crosshair_style", "cross");
+    setJoystickMode("dynamic");
+    updateGamePref("qb_joystick_mode", "dynamic");
+    setFpsTarget("60");
+    updateGamePref("qb_fps_target", "60");
+    setRenderDistance("medium");
+    updateGamePref("qb_render_distance", "medium");
+    setMasterVol(90);
+    updateGamePref("bm-master-vol", 90);
+    setSfxVol(85);
+    updateGamePref("bm-sfx-vol", 85);
+    setMusicVol(70);
+    updateGamePref("bm-music-vol", 70);
+    setAmbientAudio(true);
+    updateGamePref("bm-ambient-audio", true);
+    setStreamerMode(false);
+    updateGamePref("qb_streamer_mode", false);
+    toast.success("All preferences reset to defaults");
+  };
 
   async function handleSignOut() {
     if (qbUser) {
@@ -163,674 +259,708 @@ export function SettingsBody() {
     nav({ to: "/accounts" as never });
   }
 
-  async function toggleBadge(v: boolean) {
-    if (!qbUser || badgeSaving) return;
-    setBadgeSaving(true);
-    try {
-      await updateDoc(doc(db, "users", qbUser.uid), { badgeEquipped: v });
-    } finally {
-      setBadgeSaving(false);
-    }
-  }
-
-  function toggle(key: "account" | "help" | "download" | "terms") {
-    setExpanded((e) => (e === key ? null : key));
-  }
-
   return (
-    <div className="flex flex-col gap-3">
-      {/* About & policies — kept up top so they're easy to find */}
-      <section className="qb-squircle p-3">
-        <div className="mb-2.5 flex items-center justify-between px-0.5">
-          <div className="app-eyebrow">ABOUT &amp; POLICIES</div>
-          <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10.5px] font-extrabold text-text-secondary dark:border-white/10">
-            {APP_VERSION}
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#f5f6f8] dark:bg-[#0e1014] text-[#14151a] dark:text-[#f2f4f8] overflow-hidden select-none font-sans">
+      {/* ── Top App Bar (Pure typography, no AI slop icons) ── */}
+      <header className="shrink-0 h-14 border-b border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#14171d]/95 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between z-10">
+        <div className="flex items-center gap-3">
+          <h1 className="text-[19px] font-extrabold tracking-tight">Settings</h1>
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-black/5 dark:bg-white/10 text-black/60 dark:text-white/60">
+            System Preferences
           </span>
         </div>
-        <div className="flex flex-col gap-2.5">
-          {/* Version */}
-          <SubscriptionCard
-            Icon={Info}
-            iconColor="#22c55e"
-            title="Version"
-            content={
-              <div className="flex items-center gap-2 text-[13px] text-text-secondary">
-                <Info className="h-4 w-4" /> QBLOCK {APP_VERSION}
-              </div>
-            }
-            status={`Version ${APP_VERSION}`}
-            statusColor="#22c55e"
-          />
-
-          {/* Download Project ZIP */}
-          <SubscriptionCard
-            Icon={Download}
-            iconColor="#fa4616"
-            title="Download Project ZIP"
-            right={
-              <a
-                href="/QBLOCK-project.zip"
-                download="QBLOCK-project.zip"
-                onClick={(e) => e.stopPropagation()}
-                className="press flex items-center gap-1.5 rounded-full bg-[#fa4616] px-3 py-1.5 text-[11px] font-black text-white shadow-sm"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download
-              </a>
-            }
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
             onClick={() => {
-              const link = document.createElement("a");
-              link.href = "/QBLOCK-project.zip";
-              link.download = "QBLOCK-project.zip";
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                window.history.back();
+              } else {
+                nav({ to: "/" as never });
+              }
             }}
-            content={
-              <div className="text-[12px] leading-relaxed text-text-secondary">
-                Download the complete current project package (TS/TSX, components, screens, assets,
-                routes, and configs) as <strong>QBLOCK-project.zip</strong>.
-              </div>
-            }
-            status="Complete codebase (64 MB)"
-            statusColor="#fa4616"
-          />
-
-          {/* Download Policy */}
-          <SubscriptionCard
-            Icon={Download}
-            iconColor="#0ea5e9"
-            title="Download Policy"
-            right={
-              <ChevronRight
-                className={`h-4 w-4 text-text-muted transition-transform ${expanded === "download" ? "rotate-90" : ""}`}
-              />
-            }
-            onClick={() => toggle("download")}
-            content={expanded === "download" ? <LegalBody /> : null}
-            status="Updated Aug 29, 2026"
-            statusColor="#0ea5e9"
-          />
-
-          {/* Terms of Service */}
-          <SubscriptionCard
-            Icon={FileText}
-            iconColor="#64748b"
-            title="Terms of Service"
-            right={
-              <ChevronRight
-                className={`h-4 w-4 text-text-muted transition-transform ${expanded === "terms" ? "rotate-90" : ""}`}
-              />
-            }
-            onClick={() => toggle("terms")}
-            content={expanded === "terms" ? <LegalBody /> : null}
-            status="Updated Aug 29, 2026"
-            statusColor="#64748b"
-          />
-        </div>
-      </section>
-
-      <BetaFeatures />
-
-      {/* Wallet Card */}
-      <SubscriptionCard
-        Icon={Star}
-        iconColor="#f59e0b"
-        title="Wallet"
-        right={<ChevronRight className="h-4 w-4 text-text-muted" />}
-        content={<CurrencyPills maxItems={2} />}
-        status="Active"
-        statusColor="#64748b"
-      />
-
-      {/* Account Info */}
-      <SubscriptionCard
-        Icon={User}
-        iconColor="#64748b"
-        title="Account Info"
-        right={
-          <ChevronRight
-            className={`h-4 w-4 text-text-muted transition-transform ${expanded === "account" ? "rotate-90" : ""}`}
-          />
-        }
-        onClick={() => toggle("account")}
-        content={expanded === "account" ? <AccountInfoSection /> : null}
-        status="Verified"
-        statusColor="#22c55e"
-      />
-
-      {/* Push Notifications */}
-      <SubscriptionCard
-        Icon={Bell}
-        iconColor="#3b82f6"
-        title="Push notifications"
-        content={
-          <div className="text-[13px] text-text-secondary flex items-center gap-2">
-            <Smartphone className="h-4 w-4" /> Applies to this device
-          </div>
-        }
-        status={push ? "Active" : "Disabled"}
-        statusColor={push ? "#16a34a" : "#9ca3af"}
-        right={<Switch value={push} onChange={setPush} />}
-      />
-
-      {/* Sound */}
-      <SubscriptionCard
-        Icon={Volume2}
-        iconColor="#10b981"
-        title="Sound effects"
-        content={
-          <div className="text-[13px] text-text-secondary flex items-center gap-2">
-            <Volume2 className="h-4 w-4" /> In-game and UI sounds
-          </div>
-        }
-        status={sound ? "Active" : "Disabled"}
-        statusColor={sound ? "#16a34a" : "#9ca3af"}
-        right={<Switch value={sound} onChange={setSound} />}
-      />
-
-      {/* Dark Mode */}
-      <SubscriptionCard
-        Icon={Moon}
-        iconColor="#6366f1"
-        title="Dark mode"
-        content={
-          <div className="text-[13px] text-text-secondary flex items-center gap-2">
-            <Moon className="h-4 w-4" /> App theme
-          </div>
-        }
-        status={dark ? "On" : "Off"}
-        statusColor={dark ? "#16a34a" : "#9ca3af"}
-        right={<Switch value={dark} onChange={setDark} />}
-      />
-
-      {/* Help */}
-      <SubscriptionCard
-        Icon={HelpCircle}
-        iconColor="#8b5cf6"
-        title="Help & support"
-        right={
-          <ChevronRight
-            className={`h-4 w-4 text-text-muted transition-transform ${expanded === "help" ? "rotate-90" : ""}`}
-          />
-        }
-        onClick={() => toggle("help")}
-        content={expanded === "help" ? <HelpSection /> : null}
-        status="Online"
-        statusColor="#22c55e"
-      />
-
-      {/* Level 10 Badge */}
-      {qbUser && qbUser.level >= 10 && (
-        <SubscriptionCard
-          Icon={Star}
-          iconColor="#f59e0b"
-          title="Level 10 Badge"
-          content={
-            <div className="text-[13px] text-text-secondary flex items-center gap-2">
-              <User className="h-4 w-4" /> Show on profile
-            </div>
-          }
-          status={qbUser.badgeEquipped ? "Equipped" : "Hidden"}
-          statusColor={qbUser.badgeEquipped ? "#16a34a" : "#9ca3af"}
-          right={
-            <Switch
-              value={qbUser.badgeEquipped}
-              onChange={() => toggleBadge(!qbUser.badgeEquipped)}
-              disabled={badgeSaving}
-            />
-          }
-        />
-      )}
-
-      <button
-        onClick={handleSignOut}
-        className="press qb-squircle mt-2 inline-flex h-[52px] w-full items-center justify-center gap-2 text-[14.5px] font-bold text-danger"
-      >
-        <img
-          src="/icons/login-3-svgrepo-com.svg"
-          alt=""
-          className="h-[18px] w-[18px] dark:invert"
-        />{" "}
-        Sign out
-      </button>
-    </div>
-  );
-}
-
-function getCardGradient(color?: string) {
-  return "bg-white border border-black/[0.07] dark:bg-[#17191e] dark:border-white/[0.10]";
-}
-
-// ─── Subscription Card Component (New UI) ──────────────────────────────────
-function SubscriptionCard({
-  Icon,
-  title,
-  iconColor,
-  right,
-  content,
-  status,
-  statusColor,
-  onClick,
-}: {
-  Icon: LucideIcon;
-  title: string;
-  iconColor?: string;
-  right?: React.ReactNode;
-  content?: React.ReactNode;
-  status: string;
-  statusColor: string;
-  onClick?: () => void;
-}) {
-  return (
-    <div className="qb-squircle flex flex-col p-4">
-      <div className="mb-4 flex cursor-pointer items-center justify-between" onClick={onClick}>
-        <div className="flex items-center gap-3">
-          <div
-            className={`grid h-9 w-9 place-items-center rounded-[10px] ${getCardGradient(iconColor)} shadow-none`}
+            className="px-4 py-1.5 rounded-lg bg-[#fa4616] text-white font-bold text-[13px] shadow-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer"
           >
-            <Icon
-              className="h-4.5 w-4.5"
-              style={{ color: iconColor || "#59616d" }}
-              strokeWidth={2.2}
-            />
-          </div>
-          <span className="text-[15px] font-extrabold tracking-tight text-foreground">{title}</span>
+            Done
+          </button>
         </div>
-        {right && <div>{right}</div>}
-      </div>
+      </header>
 
-      {content && <div className="mb-4">{content}</div>}
-
-      <div className="mb-3 h-px w-full bg-black/8 dark:bg-white/10" />
-      <div className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColor }} />
-        <span className="text-[13px] font-semibold text-foreground">{status}</span>
-      </div>
-    </div>
-  );
-}
-
-function Switch({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onChange(!value);
-      }}
-      disabled={disabled}
-      className={`relative h-[26px] w-[44px] rounded-full transition-colors duration-200 disabled:opacity-50 ${value ? "bg-black" : "bg-gray-200"}`}
-      aria-pressed={value}
-    >
-      <span
-        className={`absolute top-[2px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-all duration-200 ${value ? "left-[20px]" : "left-[2px]"}`}
-      />
-    </button>
-  );
-}
-
-// ─── Account Info — inline section ─────────────────────────────────────────
-function AccountInfoSection() {
-  const { qbUser } = useAuth();
-  const nav = useNavigate();
-  const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState(qbUser?.displayName ?? "");
-  const [savingName, setSavingName] = useState(false);
-  const [savedName, setSavedName] = useState(false);
-
-  const [editingBio, setEditingBio] = useState(false);
-  const [bioDraft, setBioDraft] = useState(qbUser?.bio ?? "");
-  const [savingBio, setSavingBio] = useState(false);
-  const [savedBio, setSavedBio] = useState(false);
-
-  const joinedDate = qbUser?.createdAt
-    ? new Date(qbUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-    : "—";
-
-  async function saveName() {
-    if (!qbUser || !nameDraft.trim()) return;
-    setSavingName(true);
-    try {
-      await updateDoc(doc(db, "users", qbUser.uid), { displayName: nameDraft.trim() });
-      setSavedName(true);
-      setEditingName(false);
-      setTimeout(() => setSavedName(false), 2000);
-    } finally {
-      setSavingName(false);
-    }
-  }
-
-  async function saveBio() {
-    if (!qbUser) return;
-    setSavingBio(true);
-    try {
-      await updateDoc(doc(db, "users", qbUser.uid), { bio: bioDraft.trim() });
-      setSavedBio(true);
-      setEditingBio(false);
-      setTimeout(() => setSavedBio(false), 2000);
-    } finally {
-      setSavingBio(false);
-    }
-  }
-
-  return (
-    <div className="px-3.5 pt-1 pb-4 space-y-4">
-      {/* ── Display Name ── */}
-      <div>
-        <SectionLabel>Display Name</SectionLabel>
-        {savedName && <SavedBanner text="Name saved!" />}
-        {editingName ? (
-          <div className="flex items-center gap-2">
-            <input
-              className="flex-1 h-9 px-3 rounded-[11px] text-[13px] font-semibold outline-none"
-              style={{ background: "rgba(0,0,0,0.05)", border: "1.5px solid rgba(15,23,42,0.12)" }}
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") saveName();
-                if (e.key === "Escape") setEditingName(false);
-              }}
-              autoFocus
-              maxLength={24}
-              placeholder="New display name…"
-            />
-            <button
-              onClick={saveName}
-              disabled={savingName}
-              className="press bg-slate-200 text-slate-800 shadow-sm border border-slate-300 h-9 px-3.5 rounded-[11px] text-[12px] font-extrabold shrink-0 disabled:opacity-60"
-            >
-              {savingName ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Save"}
-            </button>
-            <button
-              onClick={() => setEditingName(false)}
-              className="press close-button h-9 w-9 grid place-items-center shrink-0"
-              style={{ background: "rgba(0,0,0,0.06)" }}
-            >
-              <X className="h-4 w-4 text-foreground/50" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[14.5px] font-extrabold tracking-tight">
-              {qbUser?.displayName ?? "—"}
-            </span>
-            <button
-              onClick={() => {
-                setNameDraft(qbUser?.displayName ?? "");
-                setEditingName(true);
-              }}
-              className="press liquid-button liquid-button-ghost flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-bold shrink-0"
-            >
-              <Pencil className="h-3 w-3" /> Edit
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Bio ── */}
-      <div>
-        <SectionLabel>Bio</SectionLabel>
-        {savedBio && <SavedBanner text="Bio saved!" />}
-        {editingBio ? (
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={bioDraft}
-              onChange={(e) => setBioDraft(e.target.value)}
-              maxLength={180}
-              rows={3}
-              className="w-full px-3 py-2.5 rounded-[11px] text-[13px] outline-none resize-none"
-              style={{ background: "rgba(0,0,0,0.05)", border: "1.5px solid rgba(15,23,42,0.12)" }}
-              placeholder="Tell the world about yourself…"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={saveBio}
-                disabled={savingBio}
-                className="press flex-1 h-8 rounded-full text-white text-[12px] font-extrabold flex items-center justify-center gap-1.5 disabled:opacity-60"
-                style={{ background: "#1e293b" }}
-              >
-                {savingBio ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                )}
-                Save
-              </button>
-              <button
-                onClick={() => setEditingBio(false)}
-                className="press close-button h-8 w-8 grid place-items-center"
-                style={{ background: "rgba(0,0,0,0.06)" }}
-              >
-                <X className="h-4 w-4 text-foreground/50" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-[13px] text-text-secondary leading-relaxed whitespace-pre-line flex-1">
-              {qbUser?.bio ? (
-                qbUser.bio
-              ) : (
-                <span className="text-text-muted/60 italic text-[12.5px]">No bio yet…</span>
-              )}
-            </p>
-            <button
-              onClick={() => {
-                setBioDraft(qbUser?.bio ?? "");
-                setEditingBio(true);
-              }}
-              className="press flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-bold shrink-0"
-              style={{ background: "rgba(0,0,0,0.06)", color: "#374151" }}
-            >
-              <Pencil className="h-3 w-3" /> Edit
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Account Details ── */}
-      <div>
-        <SectionLabel>Account Details</SectionLabel>
-        <div className="rounded-[12px] overflow-hidden" style={{ background: "rgba(0,0,0,0.03)" }}>
-          {[
-            { label: "QBlock ID", value: qbUser?.customId ?? "—" },
-            { label: "Username", value: `@${qbUser?.username ?? "—"}` },
-            { label: "Member since", value: joinedDate },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="flex items-center justify-between px-3 py-2.5 border-b border-black/[0.04] last:border-0"
-            >
-              <span className="text-[12.5px] text-text-muted">{label}</span>
-              <span className="text-[12.5px] font-semibold truncate max-w-[55%] text-right">
-                {value}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={() => nav({ to: "/profile" as never })}
-        className="press liquid-button liquid-button-ghost flex h-10 w-full items-center justify-center gap-1.5 rounded-[12px] text-[12.5px] font-extrabold"
-      >
-        View full profile
-        <ChevronRight className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
-// ─── Help — inline section ──────────────────────────────────────────────────
-function HelpSection() {
-  return (
-    <div className="px-3.5 pt-1 pb-4">
-      <div className="flex items-start gap-3 mb-3">
-        <div
-          className="h-8 w-8 rounded-full grid place-items-center shrink-0"
-          style={{ background: "#16a34a1a" }}
+      {/* ── Main Full-Page Layout with Side Navigation (or Mobile Segment Bar) ── */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+        {/* ── 3 Clickable Menus (Side rail on tablets/desktop, sticky bar on mobile) ── */}
+        <nav
+          aria-label="Settings Categories"
+          className="shrink-0 border-b md:border-b-0 md:border-r border-black/10 dark:border-white/10 bg-white dark:bg-[#14171d] flex md:flex-col md:w-64 p-2 md:p-3 gap-1 overflow-x-auto md:overflow-y-auto hide-scrollbar z-10"
         >
-          <MessageSquare
-            className="h-[15px] w-[15px]"
-            strokeWidth={2.2}
-            style={{ color: "#16a34a" }}
-          />
-        </div>
-        <p className="text-[13px] text-text-secondary leading-relaxed pt-0.5">
-          Join our Discord server — our team is there for bugs, feedback, and questions.
-        </p>
+          <button
+            type="button"
+            onClick={() => setActiveTab("game")}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-[13px] md:text-[14px] text-left transition-colors cursor-pointer ${
+              activeTab === "game"
+                ? "bg-[#fa4616] text-white shadow-sm"
+                : "text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            Game Settings
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("graphics")}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-[13px] md:text-[14px] text-left transition-colors cursor-pointer ${
+              activeTab === "graphics"
+                ? "bg-[#fa4616] text-white shadow-sm"
+                : "text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            Graphics & Audio
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("account")}
+            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-[13px] md:text-[14px] text-left transition-colors cursor-pointer ${
+              activeTab === "account"
+                ? "bg-[#fa4616] text-white shadow-sm"
+                : "text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            Account & System
+          </button>
+        </nav>
+
+        {/* ── Active Section Content Pane ── */}
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+          {/* ================================================================= */}
+          {/* PART 1: GAME SETTINGS                                             */}
+          {/* ================================================================= */}
+          {activeTab === "game" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-[17px] font-extrabold tracking-tight">Gameplay Controls & Camera</h2>
+                <p className="text-[12.5px] text-black/60 dark:text-white/60 mt-0.5">
+                  Fine-tune look sensitivity, field of view, touch responsiveness, and axis controls.
+                </p>
+              </div>
+
+              {/* Camera Sensitivity Slider */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[14px]">Camera Sensitivity</div>
+                    <div className="text-[12px] text-black/55 dark:text-white/55">Touch and mouse rotation speed multiplier</div>
+                  </div>
+                  <span className="font-mono font-bold text-[13px] px-2 py-0.5 rounded bg-black/5 dark:bg-white/10">
+                    {camSens.toFixed(1)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3.0"
+                  step="0.1"
+                  value={camSens}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setCamSens(v);
+                    updateGamePref("qb_cam_sensitivity", v, "bm-cam-sensitivity");
+                  }}
+                  className="w-full accent-[#fa4616] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-black/40 dark:text-white/40 font-bold">
+                  <span>0.5x Slow</span>
+                  <span>1.0x Default</span>
+                  <span>3.0x Fast</span>
+                </div>
+              </div>
+
+              {/* Field of View (FOV) Slider */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[14px]">Field of View (FOV)</div>
+                    <div className="text-[12px] text-black/55 dark:text-white/55">Adjust horizontal camera aperture in degrees</div>
+                  </div>
+                  <span className="font-mono font-bold text-[13px] px-2 py-0.5 rounded bg-black/5 dark:bg-white/10">
+                    {fov}°
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="60"
+                  max="100"
+                  step="1"
+                  value={fov}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setFov(v);
+                    updateGamePref("bm-fov", v, "bm-fov");
+                  }}
+                  className="w-full accent-[#fa4616] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-black/40 dark:text-white/40 font-bold">
+                  <span>60° Tight</span>
+                  <span>75° Standard</span>
+                  <span>100° Wide</span>
+                </div>
+              </div>
+
+              {/* Touch Controls Scale Slider */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[14px]">Touch Controls Size</div>
+                    <div className="text-[12px] text-black/55 dark:text-white/55">Scale on-screen joystick and jump button</div>
+                  </div>
+                  <span className="font-mono font-bold text-[13px] px-2 py-0.5 rounded bg-black/5 dark:bg-white/10">
+                    {Math.round(controlsScale * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.7"
+                  max="1.5"
+                  step="0.05"
+                  value={controlsScale}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setControlsScale(v);
+                    updateGamePref("qb_controls_scale", v, "bm-controls-scale");
+                  }}
+                  className="w-full accent-[#fa4616] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-black/40 dark:text-white/40 font-bold">
+                  <span>70% Compact</span>
+                  <span>100% Normal</span>
+                  <span>150% Large</span>
+                </div>
+              </div>
+
+              {/* Axis Inversions & Auto Jump Toggles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Invert Pitch Y */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Invert Pitch (Y-Axis)</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Push up to look down</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !invertY;
+                      setInvertY(next);
+                      updateGamePref("bm-invert-joy-y", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      invertY ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {invertY ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                {/* Invert Yaw X */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Invert Yaw (X-Axis)</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Reverse horizontal camera drag</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !invertX;
+                      setInvertX(next);
+                      updateGamePref("bm-invert-joy-x", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      invertX ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {invertX ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                {/* Auto Jump */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Auto-Jump</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Step over single block elevations</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !autoJump;
+                      setAutoJump(next);
+                      updateGamePref("qb_auto_jump", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      autoJump ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {autoJump ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                {/* Translucent Hold Circle */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Held Touch Indicator</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">White translucent circle while holding</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !touchCircle;
+                      setTouchCircle(next);
+                      updateGamePref("qb_touch_circle", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      touchCircle ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {touchCircle ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                {/* Player Nametags */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Player Nametags</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Render nameplates above adventurers</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !nametags;
+                      setNametags(next);
+                      updateGamePref("qb_show_nametags", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      nametags ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {nametags ? "ON" : "OFF"}
+                  </button>
+                </div>
+
+                {/* Joystick Positioning Mode */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Joystick Anchor</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Position on touch screen</div>
+                  </div>
+                  <div className="flex gap-1 bg-black/5 dark:bg-white/10 p-0.5 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJoystickMode("dynamic");
+                        updateGamePref("qb_joystick_mode", "dynamic");
+                      }}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        joystickMode === "dynamic" ? "bg-[#fa4616] text-white" : "text-black/60 dark:text-white/60"
+                      }`}
+                    >
+                      Dynamic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJoystickMode("fixed");
+                        updateGamePref("qb_joystick_mode", "fixed");
+                      }}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        joystickMode === "fixed" ? "bg-[#fa4616] text-white" : "text-black/60 dark:text-white/60"
+                      }`}
+                    >
+                      Fixed
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Crosshair Style Segmented Picker */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="font-extrabold text-[14px]">Aiming Crosshair Reticle</div>
+                <div className="text-[12px] text-black/55 dark:text-white/55">Choose center screen targeting glyph</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {[
+                    { id: "cross", label: "Classic Cross" },
+                    { id: "dot", label: "Minimal Dot" },
+                    { id: "diamond", label: "Diamond Box" },
+                    { id: "hidden", label: "Hidden" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setCrosshairStyle(item.id);
+                        updateGamePref("qb_crosshair_style", item.id);
+                      }}
+                      className={`py-2 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                        crosshairStyle === item.id
+                          ? "bg-[#fa4616] text-white border-[#fa4616] shadow-sm"
+                          : "bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* PART 2: GRAPHICS & AUDIO                                          */}
+          {/* ================================================================= */}
+          {activeTab === "graphics" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-[17px] font-extrabold tracking-tight">Display & Acoustic Performance</h2>
+                <p className="text-[12.5px] text-black/60 dark:text-white/60 mt-0.5">
+                  Optimize frame pacing, render distance, audio balance, and application theme.
+                </p>
+              </div>
+
+              {/* Frame Rate Target */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="font-extrabold text-[14px]">Frame Rate Pacing</div>
+                <div className="text-[12px] text-black/55 dark:text-white/55">
+                  Cap render refresh cycle to conserve battery and eliminate thermal lag spikes
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {[
+                    { id: "30", label: "30 FPS (Battery Saver)" },
+                    { id: "60", label: "60 FPS (Balanced)" },
+                    { id: "uncapped", label: "Max / Native (High Refresh)" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setFpsTarget(item.id);
+                        updateGamePref("qb_fps_target", item.id);
+                      }}
+                      className={`py-2.5 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                        fpsTarget === item.id
+                          ? "bg-[#fa4616] text-white border-[#fa4616] shadow-sm"
+                          : "bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Render Distance */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="font-extrabold text-[14px]">Chunk Render Distance</div>
+                <div className="text-[12px] text-black/55 dark:text-white/55">
+                  Horizontal chunk loading radius around player
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {[
+                    { id: "near", label: "Near (4 Chunks)" },
+                    { id: "medium", label: "Medium (8 Chunks)" },
+                    { id: "far", label: "Far (12 Chunks)" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setRenderDistance(item.id);
+                        updateGamePref("qb_render_distance", item.id);
+                      }}
+                      className={`py-2.5 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                        renderDistance === item.id
+                          ? "bg-[#fa4616] text-white border-[#fa4616] shadow-sm"
+                          : "bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border-transparent hover:bg-black/10 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Audio Controls */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-4">
+                <div className="font-extrabold text-[14px]">Audio Levels</div>
+
+                {/* Master Volume */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[12.5px] font-bold">
+                    <span>Master Output Volume</span>
+                    <span className="font-mono">{masterVol}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={masterVol}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setMasterVol(v);
+                      updateGamePref("bm-master-vol", v);
+                    }}
+                    className="w-full accent-[#fa4616] cursor-pointer"
+                  />
+                </div>
+
+                {/* SFX Volume */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[12.5px] font-bold">
+                    <span>Game Sound Effects (Blocks, Steps, Hits)</span>
+                    <span className="font-mono">{sfxVol}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={sfxVol}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setSfxVol(v);
+                      updateGamePref("bm-sfx-vol", v);
+                    }}
+                    className="w-full accent-[#fa4616] cursor-pointer"
+                  />
+                </div>
+
+                {/* Music Volume */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[12.5px] font-bold">
+                    <span>Background Soundtracks & Stems</span>
+                    <span className="font-mono">{musicVol}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={musicVol}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setMusicVol(v);
+                      updateGamePref("bm-music-vol", v);
+                    }}
+                    className="w-full accent-[#fa4616] cursor-pointer"
+                  />
+                </div>
+
+                {/* Ambient Weather Sound Toggle */}
+                <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13px]">Weather & Wind Ambience</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Skyblock breeze, thunder, and rain audio</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !ambientAudio;
+                      setAmbientAudio(next);
+                      updateGamePref("bm-ambient-audio", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      ambientAudio ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {ambientAudio ? "ON" : "OFF"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Interface Theme */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="font-extrabold text-[14px]">App Interface Theme</div>
+                <div className="text-[12px] text-black/55 dark:text-white/55">Adjust menu color contrast</div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setDark(false)}
+                    className={`py-2 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                      !dark
+                        ? "bg-[#fa4616] text-white border-[#fa4616] shadow-sm"
+                        : "bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border-transparent hover:bg-black/10"
+                    }`}
+                  >
+                    Light Theme
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDark(true)}
+                    className={`py-2 px-3 rounded-lg font-bold text-[12px] text-center transition cursor-pointer border ${
+                      dark
+                        ? "bg-[#fa4616] text-white border-[#fa4616] shadow-sm"
+                        : "bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border-transparent hover:bg-black/10"
+                    }`}
+                  >
+                    Pitch Dark Theme
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* PART 3: ACCOUNT & SYSTEM                                          */}
+          {/* ================================================================= */}
+          {activeTab === "account" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-[17px] font-extrabold tracking-tight">Account, Cache & Platform</h2>
+                <p className="text-[12.5px] text-black/60 dark:text-white/60 mt-0.5">
+                  Manage profile credentials, offline cache, download backups, and platform policies.
+                </p>
+              </div>
+
+              {/* Player Profile Details */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-3">
+                <div className="font-extrabold text-[14px]">Player Identity</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12.5px]">
+                  <div className="p-2.5 rounded-lg bg-black/5 dark:bg-white/5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Display Name</div>
+                    <div className="font-extrabold text-[14px] mt-0.5">{qbUser?.displayName || "Player"}</div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-black/5 dark:bg-white/5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Username</div>
+                    <div className="font-extrabold text-[14px] mt-0.5">@{qbUser?.username || "adventurer"}</div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-black/5 dark:bg-white/5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Player Custom ID</div>
+                    <div className="font-mono font-extrabold text-[13px] mt-0.5">
+                      {streamerMode ? "QB-••••••" : qbUser?.customId || "QB-001"}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-black/5 dark:bg-white/5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Registered Email</div>
+                    <div className="font-mono text-[12px] truncate mt-0.5">
+                      {streamerMode ? "••••••••@••••.com" : qbUser?.email || "Guest Session"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Streamer Mode Toggle */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                <div>
+                  <div className="font-extrabold text-[13.5px]">Streamer Privacy Mode</div>
+                  <div className="text-[11.5px] text-black/55 dark:text-white/55">Hides private IDs and email addresses across views</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !streamerMode;
+                    setStreamerMode(next);
+                    updateGamePref("qb_streamer_mode", next);
+                  }}
+                  className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                    streamerMode ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                  }`}
+                >
+                  {streamerMode ? "ON" : "OFF"}
+                </button>
+              </div>
+
+              {/* Cache Management */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[14px]">Offline Application Cache</div>
+                    <div className="text-[12px] text-black/55 dark:text-white/55">
+                      Caches friends list, island progress, and assets for instant app loading
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    Active
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleClearCache}
+                    className="px-4 py-2 rounded-lg bg-black/8 dark:bg-white/10 text-black/85 dark:text-white/85 font-bold text-[12.5px] hover:bg-black/15 dark:hover:bg-white/15 transition cursor-pointer"
+                  >
+                    Clear Offline Cache
+                  </button>
+                  {cacheClearedNotice && (
+                    <span className="text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      Cache cleared. Instant sync refreshed.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Download Codebase Package */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">
+                <div className="font-extrabold text-[14px]">Project Codebase Package</div>
+                <div className="text-[12px] text-black/55 dark:text-white/55">
+                  Download the current project code package (TS/TSX routes, assets, voxel world, configurations).
+                </div>
+                <div className="pt-1">
+                  <a
+                    href="/QBLOCK-project.zip"
+                    download="QBLOCK-project.zip"
+                    className="inline-block px-4 py-2 rounded-lg bg-[#fa4616] text-white font-bold text-[12.5px] shadow-sm hover:brightness-105 active:scale-95 transition cursor-pointer"
+                  >
+                    Download Project ZIP
+                  </a>
+                </div>
+              </div>
+
+              {/* Version & Legal Docs */}
+              <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[14px]">Platform Version</div>
+                    <div className="text-[12px] text-black/55 dark:text-white/55">QBLOCK V2 Client</div>
+                  </div>
+                  <span className="font-mono font-bold text-[12px] px-2 py-0.5 rounded bg-black/5 dark:bg-white/10">
+                    v{APP_VERSION}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setShowLegal(!showLegal)}
+                    className="text-[12.5px] font-bold text-[#fa4616] hover:underline cursor-pointer"
+                  >
+                    {showLegal ? "Hide Terms of Service & Privacy Policy" : "View Terms of Service & Privacy Policy"}
+                  </button>
+                  {showLegal && (
+                    <div className="mt-3 p-3 rounded-lg bg-black/5 dark:bg-white/5 text-[12px] max-h-60 overflow-y-auto">
+                      <LegalBody />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reset All & Sign Out Actions */}
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetDefaults}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-black/15 dark:border-white/15 bg-white dark:bg-[#161a22] font-bold text-[13px] text-black/75 dark:text-white/75 hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer"
+                >
+                  Reset All Settings to Defaults
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-[13px] transition cursor-pointer border border-rose-500/20"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
-      <button className="press-flat w-full h-10 rounded-[12px] bg-slate-200 text-slate-800 border border-slate-300 shadow-sm font-bold text-[13px]">
-        Join Discord
-      </button>
     </div>
   );
 }
 
-// ─── ExpandRow — chevron row that toggles an inline section ─────────────────
-function ExpandRow({
-  I,
-  title,
-  tint,
-  open,
-  onToggle,
-  hasBorderBottom,
-}: {
-  I: LucideIcon;
-  title: string;
-  tint: string;
-  open: boolean;
-  onToggle: () => void;
-  hasBorderBottom?: boolean;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`press-flat w-full min-h-[52px] flex items-center gap-3 px-3.5 py-3 text-left ${hasBorderBottom ? "border-b border-border-soft" : ""}`}
-    >
-      <IconTile I={I} tint={tint} />
-      <div className="flex-1 min-w-0">
-        <div className="text-[14.5px] font-semibold leading-tight">{title}</div>
-      </div>
-      <ChevronRight
-        className="h-[18px] w-[18px] text-text-muted transition-transform duration-200"
-        style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
-      />
-    </button>
-  );
-}
-
-// ─── Sub-section label ───────────────────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10.5px] font-extrabold text-text-muted uppercase tracking-[0.12em] mb-1.5">
-      {children}
-    </div>
-  );
-}
-
-// ─── Saved confirmation banner ───────────────────────────────────────────────
-function SavedBanner({ text }: { text: string }) {
-  return (
-    <div
-      className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] mb-2"
-      style={{ background: "rgba(34,197,94,0.08)" }}
-    >
-      <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "#16a34a" }} strokeWidth={2.5} />
-      <span className="text-[12px] font-semibold" style={{ color: "#16a34a" }}>
-        {text}
-      </span>
-    </div>
-  );
-}
-
-// ─── Shared UI components ──────────────────────────────────────────────────
-export function Group({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="qb-gloss-panel rounded-[20px] overflow-hidden"
-      style={{
-        border: "1.5px solid rgba(20,28,38,0.12)",
-        background: "#ffffff",
-        boxShadow: "none",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function Row({
-  I,
-  title,
-  sub,
-  tint,
-  onClick,
-}: {
-  I: LucideIcon;
-  title: string;
-  sub?: string;
-  tint: string;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="press-flat w-full min-h-[52px] flex items-center gap-3 px-3.5 py-3 text-left border-b border-border-soft last:border-0"
-    >
-      <IconTile I={I} tint={tint} />
-      <div className="flex-1 min-w-0">
-        <div className="text-[14.5px] font-semibold leading-tight">{title}</div>
-        {sub && <div className="text-[11px] text-text-muted leading-tight mt-0.5">{sub}</div>}
-      </div>
-      <ChevronRight className="h-[18px] w-[18px] text-text-muted" />
-    </button>
-  );
-}
-
-export function Toggle({
-  I,
-  title,
-  tint,
-  value,
-  onChange,
-}: {
-  I: LucideIcon;
-  title: string;
-  tint: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="w-full min-h-[52px] flex items-center gap-3 px-3.5 py-3 border-b border-border-soft last:border-0">
-      <IconTile I={I} tint={tint} />
-      <div className="flex-1 min-w-0 text-[14.5px] font-semibold">{title}</div>
-      <button
-        onClick={() => onChange(!value)}
-        className={`relative h-[30px] w-[50px] rounded-full transition-colors duration-200 ${value ? "bg-primary" : "bg-surface-2"}`}
-        aria-pressed={value}
-      >
-        <span
-          className={`absolute top-[3px] h-[24px] w-[24px] rounded-full bg-white shadow-md transition-all duration-200 ${value ? "left-[23px]" : "left-[3px]"}`}
-        />
-      </button>
-    </div>
-  );
-}
-
-function IconTile({ I, tint }: { I: LucideIcon; tint: string }) {
-  return (
-    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-black/[0.07] bg-white text-[#59616d] shadow-none dark:border-white/[0.10] dark:bg-[#17191e]">
-      <I className="h-4.5 w-4.5" style={{ color: tint || "#59616d" }} strokeWidth={2.2} />
-    </div>
-  );
-}
+export const SettingsBody = SettingsPage;
+export default SettingsPage;

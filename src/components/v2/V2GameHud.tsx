@@ -168,14 +168,19 @@ export function V2GameHud({
             </button>
           ))}
           {isSkyblock && (
-            <div className="hidden sm:flex items-center gap-1.5 ml-1 p-1 rounded-lg bg-black/35 backdrop-blur-md border border-white/10 shadow-lg text-[11px]">
+            <button
+              type="button"
+              onClick={onOpenChat}
+              title="Click to open Skyblock chat"
+              className="pointer-events-auto flex items-center gap-1.5 ml-1 px-2.5 py-1 rounded-lg bg-black/45 hover:bg-black/60 backdrop-blur-md border border-white/20 shadow-lg text-[11px] cursor-pointer active:scale-95 transition-all text-left"
+            >
               <span className="font-bold text-[#ff80bf] [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
                 [Skyblock Team]
               </span>
               <span className="font-bold text-white [text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000]">
                 Welcome to skyblock!
               </span>
-            </div>
+            </button>
           )}
         </nav>
         {topCenter && (

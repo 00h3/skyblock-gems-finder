@@ -43,8 +43,9 @@ export function MobileShell({
           onScrollCapture={handleScroll}
         >
           <div
-            key={pathname}
-            className={`min-h-full ${pathname === "/events" ? "page-enter-static" : "page-enter"}`}
+            className={`min-h-full transition-opacity duration-150 ease-out will-change-transform ${
+              pathname === "/events" ? "page-enter-static" : "page-enter"
+            }`}
           >
             {children}
           </div>

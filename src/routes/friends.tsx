@@ -14,6 +14,7 @@ import {
   sendFriendRequest,
   areFriends,
   ensureChatMeta,
+  getCachedFriends,
   type Friend,
   type FriendRequest,
 } from "@/lib/friends-utils";
@@ -30,7 +31,9 @@ function FriendsPage() {
   const { qbUser } = useAuth();
   const [tab, setTab] = useState<number>(0);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
-  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friends, setFriends] = useState<Friend[]>(() =>
+    qbUser ? getCachedFriends(qbUser.uid) : []
+  );
   const [requestModal, setRequestModal] = useState<FriendRequest | null>(null);
   const [accepting, setAccepting] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState<Set<string>>(new Set());
@@ -42,6 +45,10 @@ function FriendsPage() {
 
   useEffect(() => {
     if (!qbUser) return;
+    const cached = getCachedFriends(qbUser.uid);
+    if (cached.length > 0) {
+      setFriends(cached);
+    }
     const unsubReq = subscribeIncomingRequests(qbUser.uid, (realRequests) => {
       if (realRequests.length === 0) {
         setRequests([

@@ -4591,11 +4591,11 @@ export function SandboxGame({
           }
         }
 
-        // Keep shadow detail at full resolution. Refresh at full frame rate
-        // while the player moves; when still, the slowly moving sun only needs
-        // periodic updates. This matches the renderer's manual shadow schedule.
+        // Refresh shadow map smoothly: at ~12fps while moving and periodically when stationary.
+        // Prevents heavy GPU depth-pass stalls that cause lag spikes while preserving crisp full-resolution shadows.
         shadowAcc += dt;
-        if (shadowAcc >= 0.35 || player.velocity.lengthSq() > 0.04) {
+        const isMoving = player.velocity.lengthSq() > 0.04;
+        if ((isMoving && shadowAcc >= 0.08) || shadowAcc >= 0.4) {
           shadowAcc = 0;
           if (renderer) renderer.shadowMap.needsUpdate = true;
         }
