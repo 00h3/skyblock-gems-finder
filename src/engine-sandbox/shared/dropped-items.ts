@@ -135,17 +135,20 @@ export class DroppedItemManager {
     origin: THREE.Vector3,
     direction: THREE.Vector3,
   ): DroppedItemEntity {
+    if (!Number.isFinite(count) || count <= 0) count = 1;
+    const safeOrigin = origin.isFinite() ? origin : new THREE.Vector3();
+    const safeDirection = direction.isFinite() ? direction : new THREE.Vector3(0, 0, -1);
     const mesh = this.createItemMesh(itemId);
-    const pos = origin.clone();
+    const pos = safeOrigin.clone();
     // Offset forward so it spawns right outside the player's eyes
-    pos.addScaledVector(direction, 0.45);
+    pos.addScaledVector(safeDirection, 0.45);
 
     mesh.position.copy(pos);
     mesh.rotation.y = Math.random() * Math.PI * 2;
     this.group.add(mesh);
 
     // Initial toss velocity: forward + slight upward arc + tiny random jitter
-    const vel = direction.clone().multiplyScalar(4.2);
+    const vel = safeDirection.clone().multiplyScalar(4.2);
     vel.y = 2.4;
     vel.x += (Math.random() - 0.5) * 0.8;
     vel.z += (Math.random() - 0.5) * 0.8;
