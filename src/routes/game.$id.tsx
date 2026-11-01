@@ -2253,7 +2253,7 @@ function EngineGame({
       bwToastTimerRef.current = null;
     }, ms);
   }
-  // ── EggWars-only state ─────────────────────────────────────����─────────────
+  // ── EggWars-only state ─────────────────��───────────────────����─────────────
   const EGG_TEAMS: EggwarsTeam[] = [
     { id: "ruby", label: "Ruby", color: "#ef4444", eggAlive: true, playerAlive: true },
     { id: "azure", label: "Azure", color: "#38bdf8", eggAlive: true, playerAlive: true },
@@ -5944,6 +5944,53 @@ function EngineGame({
         put(-5, grandMineFloor + 9, entranceZ, 46);
         put(5, grandMineFloor + 9, entranceZ, 46);
 
+        // Live Skyblock decorations. These are additive props in the active
+        // game.$id renderer; the dragon remains on its separate boss path.
+        const loadSkyblockProp = (
+          url: string,
+          position: THREE.Vector3,
+          targetHeight: number,
+          rotationY = 0,
+        ) => {
+          new GLTFLoader().load(
+            url,
+            (gltf) => {
+              if (disposed) return;
+              const prop = skeletonClone(gltf.scene) as THREE.Group;
+              const bounds = new THREE.Box3().setFromObject(prop);
+              const size = bounds.getSize(new THREE.Vector3());
+              prop.scale.setScalar(targetHeight / Math.max(size.y, 0.001));
+              prop.position.copy(position);
+              prop.rotation.y = rotationY;
+              prop.traverse((object) => {
+                const mesh = object as THREE.Mesh;
+                if (!mesh.isMesh) return;
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.frustumCulled = true;
+              });
+              scene.add(prop);
+            },
+            undefined,
+            (error) => console.warn(`[v0] Skyblock prop unavailable: ${url}`, error),
+          );
+        };
+
+        // The skeleton replaces the regular mining-area mob only. Do not touch
+        // the dragon, which is loaded and controlled independently.
+        loadSkyblockProp(
+          "/skeleton.glb",
+          new THREE.Vector3(8, grandMineFloor + 1, -10),
+          2.2,
+          Math.PI,
+        );
+        loadSkyblockProp(
+          "/rusty-submarine.glb",
+          new THREE.Vector3(18, grandMineFloor + 1, 24),
+          5.4,
+          -0.35,
+        );
+
         // Cavern lighting - warm atmospheric mining lamps & ore glows
         for (const [x, y, z, intensity, distance, color] of [
           [0, grandMineFloor + 6, entranceZ + 5, 2.8, 30, 0xffb86c],
@@ -7730,7 +7777,7 @@ function EngineGame({
         } catch {}
       }
 
-      // ── Tree Physics & Falling Blocks System ──────────────────────────────
+      // ─��� Tree Physics & Falling Blocks System ──────────────────────────────
       const TREE_LOG_TYPES = new Set([3, 18, 23, 24, 25, 26]);
       const TREE_LEAF_TYPES = new Set([5, 200, 201, 202, 203]);
 
