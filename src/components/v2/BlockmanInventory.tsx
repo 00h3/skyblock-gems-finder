@@ -15,6 +15,7 @@ export const ITEM_INFO: Record<string, { name: string; damage: number; rarity: R
   iron_sword: { name: "Iron Sword", damage: 6, rarity: "epic", desc: "Balanced weight and a heavy hit." },
   diamond_sword: { name: "Diamond Sword", damage: 7, rarity: "legend", desc: "The strongest blade on the islands." },
   dark_magic_staff: { name: "Dark Magic Sickle Staff", damage: 8, rarity: "legend", desc: "Fires glowing pixellated fireballs with bursting flame." },
+  magic_stick: { name: "Magic Building Stick", damage: 2, rarity: "legend", desc: "Enchanted wand inspired by Minecraft building sticks: cast instant bridges, walls, platforms, and fills!" },
 };
 
 for (const [id, info] of Object.entries(UTILITY_INFO)) {
@@ -47,6 +48,7 @@ export const RECIPES: Recipe[] = [
   { id: "gold_sword", count: 1, grid: [0, 19, 0, 0, 19, 0, 0, 7, 0], minLevel: 1, desc: "Forged from gold blocks. Quick and bright." },
   { id: "iron_sword", count: 1, grid: [0, 4, 0, 0, 4, 0, 0, 7, 0], minLevel: 2, desc: "Hardened cobblestone iron on an oak grip." },
   { id: "diamond_sword", count: 1, grid: [0, 20, 0, 0, 20, 0, 0, 7, 0], minLevel: 5, desc: "Diamond edge. Maximum damage and knockback." },
+  { id: "magic_stick", count: 1, grid: [0, 20, 0, 0, 7, 0, 0, 7, 0], minLevel: 1, desc: "Diamond core atop oak rods. Channel enchanted building magic." },
   { id: 13, count: 4, grid: [0, 0, 0, 0, 7, 0, 0, 0, 0], minLevel: 1, desc: "Split an oak log into building planks." },
   { id: 5, count: 4, grid: [0, 0, 0, 3, 3, 0, 3, 3, 0], minLevel: 1, desc: "Four stone cut into sturdy bricks." },
   { id: 10, count: 2, grid: [0, 0, 0, 0, 6, 0, 0, 6, 0], minLevel: 2, desc: "Smelted sand, perfect for windows." },
@@ -58,7 +60,7 @@ const nameOf = (id: ItemId) =>
 export function defaultItemCount(id: ItemId | undefined): number {
   if (id === undefined || id === 0) return 0;
   if (typeof id === "number") return 64; // Block stack
-  if (id.includes("sword") || id.includes("staff") || id === "shield") return 1;
+  if (id.includes("sword") || id.includes("staff") || id === "shield" || id === "magic_stick") return 1;
   if (id === "water_bucket" || id === "lava_bucket" || id === "flint_steel") return 1;
   if (id === "ender_pearl" || id === "wind_charge" || id === "fire_charge" || id === "slime_ball") return 16;
   if (id === "speed_potion" || id === "golden_apple") return 8;

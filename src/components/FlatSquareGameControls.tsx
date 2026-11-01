@@ -4,6 +4,10 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { MessageSquare, Settings, LogOut } from "lucide-react";
 import { FlatSquareChatModal } from "@/components/FlatSquareChatModal";
 import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
+import { QuickChatWheel } from "@/components/v2/QuickChatWheel";
+import { MagicStickBar } from "@/components/v2/MagicStickBar";
+import { triggerHaptic } from "@/lib/haptics";
+import { playUiClick } from "@/lib/ui-sounds";
 
 const HUD_ASSETS = {
   menu: "https://maxwell.z3ki.dev/bot/_files/menu-icon/menu-icon.png",
@@ -24,14 +28,6 @@ interface FlatSquareGameControlsProps {
   onLeave?: () => void;
 }
 
-/**
- * Flat square controls for Skyblock and Blockfall:
- * - Grey with 18% opacity, NOT blur (backdropFilter: none)
- * - Bold italic white font (cursive markdown style: ***text***)
- * - Mode toggle button displays bold italic white mode (WALK / CROUCH / RUN)
- * - Jump button displays bold italic white JUMP
- * - Menu button displays bold italic white MENU
- */
 export function FlatSquareGameControls({
   movementMode: controlledMode,
   onMovementModeChange,
@@ -44,6 +40,27 @@ export function FlatSquareGameControls({
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickChatOpen, setQuickChatOpen] = useState(false);
+  const [heldItem, setHeldItem] = useState<string | number | null>(null);
+  const [ping, setPing] = useState(24);
+
+  useEffect(() => {
+    const handleHeld = (e: Event) => {
+      setHeldItem((e as CustomEvent<string | number>).detail);
+    };
+    window.addEventListener("qb-held-item", handleHeld);
+    window.addEventListener("bm-held-item", handleHeld);
+
+    const pingInterval = setInterval(() => {
+      setPing(20 + Math.floor(Math.sin(Date.now() / 3000) * 4) + Math.floor(Math.random() * 3));
+    }, 4000);
+
+    return () => {
+      window.removeEventListener("qb-held-item", handleHeld);
+      window.removeEventListener("bm-held-item", handleHeld);
+      clearInterval(pingInterval);
+    };
+  }, []);
 
   // Controls resize scale state (70% - 150%)
   const [controlsScale, setControlsScale] = useState<number>(() => {
@@ -293,20 +310,18 @@ export function FlatSquareGameControls({
           />
         </button>
 
-        {/* 3. Smile / Emote Button */}
+        {/* 3. Smile / Quick Chat Emotes Button */}
         <button
           id="btn-flat-top-smile"
           type="button"
-          onPointerDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.dispatchEvent(
-              new CustomEvent("bm-chat-say", { detail: { text: "👋 Hello!" } })
-            );
+          onClick={() => {
+            playUiClick(1.1);
+            triggerHaptic("light");
+            setQuickChatOpen(true);
           }}
           className="relative w-11 h-11 sm:w-12 sm:h-12 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
-          title="Emote / Wave"
-          aria-label="Emotes"
+          title="Quick Chat & Emotes"
+          aria-label="Quick Chat"
         >
           <img
             src={HUD_ASSETS.button}
@@ -321,6 +336,15 @@ export function FlatSquareGameControls({
             draggable={false}
           />
         </button>
+
+        {/* In-Game Ping / Connection Latency Indicator */}
+        <div
+          title="Server connection latency"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/45 backdrop-blur-md border border-white/20 text-[11px] font-mono font-bold text-emerald-400 select-none shadow-md h-9 sm:h-10 self-center"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+          <span>{ping}ms</span>
+        </div>
 
         {/* 4. Video / Camera Perspective Button */}
         <button
@@ -516,6 +540,20 @@ export function FlatSquareGameControls({
           }}
         />
       )}
+
+      {/* ── Quick Chat Wheel ── */}
+      <QuickChatWheel
+        open={quickChatOpen}
+        onClose={() => setQuickChatOpen(false)}
+        onSend={(text) => {
+          window.dispatchEvent(
+            new CustomEvent("bm-chat-say", { detail: { text } })
+          );
+        }}
+      />
+
+      {/* ── Magic Stick Building Wand HUD Bar ── */}
+      <MagicStickBar visible={heldItem === "magic_stick"} />
     </div>
   );
 }

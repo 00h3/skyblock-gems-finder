@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { SkyDialEditor } from "@/components/v2/SkyDialEditor";
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
@@ -482,9 +483,12 @@ export function FlatSquareSettingsModal({
               <div>
                 <h3 className="text-[16px] font-extrabold text-white">Display & Acoustics</h3>
                 <p className="text-[12px] text-white/55 mt-0.5">
-                  Frame pacing, render distance, audio sliders, and ambient effects.
+                  Dial in sky atmosphere, frame pacing, render distance, and audio balance.
                 </p>
               </div>
+
+              {/* React Bits CometDial Sky Editor */}
+              <SkyDialEditor />
 
               {/* Frame Rate Target */}
               <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-2">

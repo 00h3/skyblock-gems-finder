@@ -5,6 +5,9 @@ import { useAuth } from "@/lib/auth-context";
 import { LegalBody, APP_VERSION } from "@/components/LegalDocs";
 import { saveAccount } from "@/lib/saved-accounts";
 import { toast } from "sonner";
+import { SkyDialEditor } from "@/components/v2/SkyDialEditor";
+import { triggerHaptic } from "@/lib/haptics";
+import { playUiClick } from "@/lib/ui-sounds";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — QBlock" }] }),
@@ -172,11 +175,21 @@ export function SettingsPage() {
     }
   });
 
+  const [haptics, setHaptics] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("qb_haptics") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
   const [showLegal, setShowLegal] = useState<boolean>(false);
   const [cacheClearedNotice, setCacheClearedNotice] = useState<boolean>(false);
 
-  // Persistence helpers
+  // Persistence helpers with tactile haptic and audio click feedback
   const updateGamePref = (key: string, val: string | number | boolean, eventKey?: string) => {
+    playUiClick(1.0);
+    triggerHaptic("tap");
     try {
       localStorage.setItem(key, String(val));
     } catch {}
@@ -542,6 +555,27 @@ export function SettingsPage() {
                   </button>
                 </div>
 
+                {/* Mobile Haptic Feedback Toggle */}
+                <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[13.5px]">Tactile Haptic Feedback</div>
+                    <div className="text-[11.5px] text-black/55 dark:text-white/55">Vibrate on block breaks, placement, and taps</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !haptics;
+                      setHaptics(next);
+                      updateGamePref("qb_haptics", next);
+                    }}
+                    className={`px-3 py-1 rounded-md text-[12px] font-bold transition cursor-pointer ${
+                      haptics ? "bg-[#fa4616] text-white" : "bg-black/8 dark:bg-white/10 text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {haptics ? "ON" : "OFF"}
+                  </button>
+                </div>
+
                 {/* Joystick Positioning Mode */}
                 <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm flex items-center justify-between">
                   <div>
@@ -617,9 +651,12 @@ export function SettingsPage() {
               <div>
                 <h2 className="text-[17px] font-extrabold tracking-tight">Display & Acoustic Performance</h2>
                 <p className="text-[12.5px] text-black/60 dark:text-white/60 mt-0.5">
-                  Optimize frame pacing, render distance, audio balance, and application theme.
+                  Dial in celestial atmosphere, frame pacing, render distance, and audio balance.
                 </p>
               </div>
+
+              {/* React Bits CometDial Sky Editor */}
+              <SkyDialEditor />
 
               {/* Frame Rate Target */}
               <div className="p-4 rounded-xl bg-white dark:bg-[#161a22] border border-black/8 dark:border-white/10 shadow-sm space-y-2">

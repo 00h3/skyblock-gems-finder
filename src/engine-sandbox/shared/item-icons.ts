@@ -193,6 +193,30 @@ const ICONS: Record<string, Draw> = {
     r(9, 5, 3, 3, "#ff5500");
     r(10, 6, 1, 1, "#ffcc00");
   },
+  magic_stick: (r) => {
+    // Enchanted golden wand shaft
+    r(2, 13, 2, 2, "#4a2d0b");
+    r(3, 11, 2, 3, "#855118");
+    r(5, 9, 2, 3, "#a66822");
+    r(7, 7, 2, 3, "#c68634");
+    r(9, 5, 2, 3, "#e6ab4a");
+    // Gold filigree rings & rune highlights
+    r(4, 10, 1, 1, "#ffd700");
+    r(6, 8, 1, 1, "#ffe066");
+    r(8, 6, 1, 1, "#fff3b0");
+    // Luminous crystal prism star head
+    r(10, 2, 4, 4, "#00c3ff");
+    r(11, 1, 2, 6, "#38d9ff");
+    r(9, 3, 6, 2, "#38d9ff");
+    // Bright starlight core
+    r(11, 3, 2, 2, "#ffffff");
+    r(10, 2, 1, 1, "#ffffff");
+    // Magic sparkles orbiting tip
+    r(8, 1, 1, 1, "#ffe57f");
+    r(14, 2, 1, 1, "#ffe57f");
+    r(14, 6, 1, 1, "#70e5ff");
+    r(8, 5, 1, 1, "#b388ff");
+  },
 };
 
 const cache = new Map<string, string>();

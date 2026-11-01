@@ -43,6 +43,7 @@ import { GameChatIcon } from "@/components/game-icons";
 import { BedwarsHud, type MovementMode } from "@/components/BedwarsHud";
 import { GameControls } from "@/components/GameControls";
 import { AdvancedInventoryModal } from "@/components/AdvancedInventoryModal";
+import { triggerHaptic } from "@/lib/haptics";
 import { ChestModal, type ChestItem } from "@/components/ChestModal";
 import { Backpack, Loader2, Users, Clock, Volume2, VolumeX, Home, LogIn, UserPlus, MessageSquare, Settings } from "lucide-react";
 import { playFootstep, playSound } from "@/lib/sfx";
@@ -2021,6 +2022,19 @@ export function SandboxGame({
 
       applyFogMode(initialFogMode);
 
+      const onAtmosphereChange = (e: Event) => {
+        const atm = (e as CustomEvent<string>).detail;
+        if (sky && atm) {
+          sky.setPreset(atm);
+          if (cosmicSkyRef.current) {
+            cosmicSkyRef.current.setNight(atm === "night" || atm === "aurora" || atm === "blood_moon");
+          }
+          if (renderer) renderer.shadowMap.needsUpdate = true;
+        }
+      };
+      window.addEventListener("bm-atmosphere-change", onAtmosphereChange);
+      window.addEventListener("bm-sky-time", onAtmosphereChange);
+
       if (blockFall) {
         sky.paused = true;
         sky.setCloudCover(0.35);
@@ -2606,6 +2620,9 @@ export function SandboxGame({
       const setHeldTile = (id: number | string) => {
         if (!atlas) return;
         heldItemId = id;
+        try {
+          window.dispatchEvent(new CustomEvent("qb-held-item", { detail: id }));
+        } catch {}
         avatarInstanceRef.current?.setHeldItem(id);
         featuresRef.current?.setHeld(id);
         heldSwords.forEach((m) => (m.visible = false));
@@ -2668,6 +2685,15 @@ export function SandboxGame({
         }
       };
       setHeldTile(hotbarRef.current[0] ?? 0);
+
+      const onMagicUndo = () => {
+        import("@/engine-sandbox/shared/magic-stick").then(({ undoMagicStick }) => {
+          if (world) {
+            undoMagicStick({ world, setBlock: setBlockSynced, announce });
+          }
+        });
+      };
+      window.addEventListener("qb-magic-stick-trigger-undo", onMagicUndo);
 
       // block-breaking crack overlay
       const crackTex = atlas.crack.clone();

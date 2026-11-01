@@ -16,6 +16,7 @@ export const UTILITY_ITEMS = [
   "wind_charge",
   "speed_potion",
   "slime_ball",
+  "magic_stick",
 ] as const;
 
 export const UTILITY_INFO: Record<string, { name: string; desc: string }> = {
@@ -29,6 +30,7 @@ export const UTILITY_INFO: Record<string, { name: string; desc: string }> = {
   wind_charge: { name: "Wind Charge", desc: "Launch compressed air! Propels you high into the sky on impact." },
   speed_potion: { name: "Swiftness Potion", desc: "Drink for an agile +50% speed boost and bouncy strides for 15s." },
   slime_ball: { name: "Slime Ball", desc: "Bouncy gel blob. Throw to launch yourself or trigger a mega-bounce." },
+  magic_stick: { name: "Magic Building Stick", desc: "Enchanted builder's wand inspired by Minecraft: cast bridges, walls, platforms, and fills!" },
 };
 
 export const NEW_BLOCK_IDS: number[] = [
@@ -435,6 +437,21 @@ export class Features {
       case "shield":
         this.raiseShield();
         return true;
+      case "magic_stick": {
+        if (!this.ready(id, 0.25)) return true;
+        const aimInfo = this.ctx.aim();
+        import("./magic-stick").then(({ castMagicStick }) => {
+          castMagicStick({
+            world,
+            hit,
+            playerPos: player.position,
+            aimDir: aimInfo.dir,
+            setBlock: this.ctx.setBlock,
+            announce: this.ctx.announce,
+          });
+        });
+        return true;
+      }
       default:
         return false;
     }

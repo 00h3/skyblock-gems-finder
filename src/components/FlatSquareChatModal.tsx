@@ -14,6 +14,8 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 
+import { triggerHaptic } from "@/lib/haptics";
+
 interface FlatSquareChatModalProps {
   onClose: () => void;
 }
@@ -35,6 +37,22 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
   const [mounted, setMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const onTouchStartHeader = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const onTouchEndHeader = (e: React.TouchEvent) => {
+    if (touchStartY.current !== null) {
+      const diff = e.changedTouches[0].clientY - touchStartY.current;
+      if (diff > 55) {
+        triggerHaptic("light");
+        onClose();
+      }
+    }
+    touchStartY.current = null;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -191,9 +209,11 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      {/* ── Top Header: Flat, Square, Grey ── */}
+      {/* ── Top Header: Flat, Square, Grey (Swipe down to close) ── */}
       <div
-        className="h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-[#636363] border-b-2 border-[#505050] select-none"
+        onTouchStart={onTouchStartHeader}
+        onTouchEnd={onTouchEndHeader}
+        className="h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-[#636363] border-b-2 border-[#505050] select-none cursor-grab active:cursor-grabbing"
         style={{ borderRadius: 0 }}
       >
         <div className="flex items-center gap-3">
