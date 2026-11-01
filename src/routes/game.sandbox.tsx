@@ -1917,6 +1917,7 @@ export function SandboxGame({
           ) as Record<number | string, string>,
         );
 
+        const isMobileUA = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const qualityPref = readQualityPref();
         try {
           renderer = new THREE.WebGLRenderer({
