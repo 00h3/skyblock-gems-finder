@@ -129,6 +129,14 @@ const WIND_OPTIONS = [
     activeClasses: "bg-emerald-500/20 border-emerald-400 text-emerald-200 shadow-[0_0_16px_rgba(52,211,153,0.25)]",
     iconColor: "text-emerald-300",
   },
+  {
+    id: "blizzard",
+    label: "Blizzard",
+    sub: "Heavy Gales",
+    icon: CloudLightning,
+    activeClasses: "bg-indigo-500/20 border-indigo-400 text-indigo-200 shadow-[0_0_16px_rgba(99,102,241,0.25)]",
+    iconColor: "text-indigo-300",
+  },
 ];
 
 /** Full-screen loading spinner used while a world streams in. */
@@ -439,7 +447,7 @@ export function GameSettingsModal({
   motionBlur?: boolean;
   onToggleMotionBlur?: () => void;
 }) {
-  type SettingsTab = "camera" | "controls" | "graphics" | "sky" | "server";
+  type SettingsTab = "camera" | "controls" | "graphics" | "sky" | "weather" | "server";
   const [activeTab, setActiveTab] = useState<SettingsTab>("camera");
 
   const [bfFit, setBfFit] = useState(1);
@@ -573,6 +581,13 @@ export function GameSettingsModal({
               onClick={() => setActiveTab("sky")}
             >
               Sky
+            </button>
+            <button
+              type="button"
+              className={`bf-tab bf-tab--grey ${activeTab === "weather" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("weather")}
+            >
+              Weather
             </button>
             <button
               type="button"
@@ -860,7 +875,42 @@ export function GameSettingsModal({
               </div>
             )}
 
-            {/* ── TAB 5: SERVER ─────────────────────────────────────────── */}
+            {/* ── TAB 5: WEATHER ─────────────────────────────────────────── */}
+            {activeTab === "weather" && (
+              <div className="bf-settings-card">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-black text-[15px] text-white flex items-center gap-2">
+                    <Waves className="w-4 h-4 text-cyan-400" />
+                    Weather & Wind Effects
+                  </span>
+                  <span className="text-[11px] text-cyan-300 font-bold">
+                    Active: {WIND_OPTIONS.find((o) => o.id === windMode)?.label ?? "Clear"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {WIND_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const isActive = windMode === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleWindChange(opt.id)}
+                        className={`bf-btn-grey flex flex-col items-center justify-center p-3 text-center transition cursor-pointer ${
+                          isActive ? "is-active" : ""
+                        }`}
+                      >
+                        <Icon className={`w-6 h-6 mb-1 ${isActive ? "text-cyan-300" : opt.iconColor}`} />
+                        <span className="text-[13px] font-black leading-tight text-white">{opt.label}</span>
+                        <span className="text-[10px] text-zinc-300/80 mt-0.5 leading-tight">{opt.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 6: SERVER ─────────────────────────────────────────── */}
             {activeTab === "server" && (
               <div className="flex flex-col gap-3">
                 <div className="bf-settings-card flex flex-col gap-2.5">
