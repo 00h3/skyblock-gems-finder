@@ -719,8 +719,8 @@ function buildBaseplateWorld(world: World) {
 }
 
 const SKYBLOCK_DECORATION_ASSETS = [
-  { url: "/skyblock/skeleton.glb", position: new THREE.Vector3(366, 13.2, -17), height: 3.8, rotationY: -0.65 },
-  { url: "/skyblock/rusty-submarine.glb", position: new THREE.Vector3(402, 13.2, -17), height: 4.8, rotationY: 0.35 },
+  { url: "/skeleton.glb", position: new THREE.Vector3(366, 13.2, -17), height: 3.8, rotationY: -0.65 },
+  { url: "/rusty-submarine.glb", position: new THREE.Vector3(402, 13.2, -17), height: 4.8, rotationY: 0.35 }
 ] as const;
 
 async function loadSkyblockDecorations(scene: THREE.Scene, isDisposed: () => boolean) {
@@ -780,7 +780,7 @@ function createBlockedMiningSign(scene: THREE.Scene) {
   texture.colorSpace = THREE.SRGBColorSpace;
   const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
   sign.position.set(384, 16.2, -34);
-  sign.scale.set(7.5, 2.8, 1);
+  sign.scale.set(4.2, 1.55, 1);
   sign.rotation.z = -0.08;
   scene.add(sign);
 }
@@ -3779,11 +3779,7 @@ export function SandboxGame({
           if (!boss.alive) continue;
           const bDist = features.rayHitsPlayer(eye, dir, boss.group.position, stats.reach + 0.6);
           if (bDist >= 0) {
-            setInspectUser({
-              name: "首领 BOSS_001",
-              isNpc: true,
-              photo: "https://file.garden/alGOOylwpAfCa6qP/Qblock2/golden_forger.glb",
-            });
+            announce("Golden Forger hit", `${Math.max(0, Math.round(boss.hp))} HP remaining`);
             const damage = landDamage();
             const kb = features.knockback(hitDir, stats.knockback, sprinting, chargeMul);
             bossDamage(boss, damage, kb.normalize());
