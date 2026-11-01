@@ -3,7 +3,6 @@ import { Backpack, Hammer, Heart, Minus, Plus, Shield, Sword, X } from "lucide-r
 import { cn } from "@/lib/utils";
 import { BLOCKS } from "@/engine-sandbox/shared/world";
 import { UTILITY_INFO } from "@/engine-sandbox/shared/features";
-import { GlbAvatar } from "@/components/GlbAvatar";
 
 type ItemId = number | string;
 
@@ -173,8 +172,13 @@ export function BlockmanInventory({
             <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5 sm:flex-row sm:p-2">
               <div className="wood-inset flex shrink-0 flex-col items-center gap-1 p-1.5 sm:w-[32%]">
                 <p className="font-lilita text-[13px] text-amber-300 [text-shadow:0_1px_0_rgba(0,0,0,.6)]">{playerName}</p>
-                <div className="h-[110px] w-full sm:h-[140px]">
-                  <GlbAvatar height="100%" width="100%" autoRotate interactive />
+                <div className="relative grid h-[110px] w-full place-items-center overflow-hidden rounded-md bg-[radial-gradient(circle_at_50%_35%,rgba(255,221,145,.35),transparent_48%),linear-gradient(160deg,#2b1a16,#120c0d)] sm:h-[140px]">
+                  <div className="relative h-20 w-14 rounded-[42%_42%_28%_28%] bg-gradient-to-b from-amber-200 via-orange-300 to-orange-700 shadow-[0_8px_18px_rgba(0,0,0,.45)] sm:h-24 sm:w-16" aria-hidden="true">
+                    <span className="absolute left-1/2 top-[34%] h-2 w-2 -translate-x-[9px] rounded-full bg-slate-900" />
+                    <span className="absolute left-1/2 top-[34%] h-2 w-2 translate-x-[5px] rounded-full bg-slate-900" />
+                    <span className="absolute bottom-[26%] left-1/2 h-1 w-7 -translate-x-1/2 rounded-full bg-red-950/70" />
+                  </div>
+                  <span className="sr-only">Player preview</span>
                 </div>
                 <div className="wood-slot flex w-full items-center justify-around rounded-[4px] px-1.5 py-0.5 font-lilita text-[12px] text-white">
                   <span className="flex items-center gap-0.5">
