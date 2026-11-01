@@ -3,7 +3,6 @@ import { MobileShell } from "@/components/MobileShell";
 import {
   ChevronLeft,
   Send,
-  Smile,
   MoreHorizontal,
   X,
   BadgeCheck,
@@ -1434,7 +1433,12 @@ function ChatRoom() {
                 }`}
                 aria-label="Emoji"
               >
-                <Smile className="h-4 w-4" />
+                <img
+                  src="https://cdn.hugeicons.com/icons/outline/24/smile.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                />
               </button>
               <button
                 type="button"
@@ -1442,7 +1446,12 @@ function ChatRoom() {
                 className="press px-2 h-7 rounded-full flex items-center justify-center shrink-0 text-[10.5px] font-extrabold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 transition-colors mr-1 cursor-pointer"
                 aria-label="GIFs"
               >
-                GIF
+                <img
+                  src="https://cdn.hugeicons.com/icons/outline/24/gif-02.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                />
               </button>
               <input
                 value={val}

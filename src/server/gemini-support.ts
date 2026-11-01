@@ -47,29 +47,38 @@ export async function handleSupportChat(
   }
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.35,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_INSTRUCTION },
-          ...history.slice(-6).map((h) => ({
-            role: h.role === "model" ? "assistant" : "user",
-            content: h.content,
-          })),
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    const requestBody = {
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.35,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SYSTEM_INSTRUCTION },
+        ...history.slice(-6).map((h) => ({
+          role: h.role === "model" ? "assistant" : "user",
+          content: h.content,
+        })),
+        { role: "user", content: userPrompt },
+      ],
+    };
+    let response: Response | undefined;
+    let lastStatus = 0;
 
-    if (!response.ok) {
-      throw new Error(`Groq request failed with status ${response.status}`);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+      lastStatus = response.status;
+      if (response.ok || (response.status < 500 && response.status !== 429)) break;
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+
+    if (!response?.ok) {
+      throw new Error(`Groq request failed with status ${lastStatus}`);
     }
 
     const payload = (await response.json()) as {

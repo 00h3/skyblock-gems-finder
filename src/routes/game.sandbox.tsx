@@ -1920,10 +1920,13 @@ export function SandboxGame({
         const isMobileUA = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const qualityPref = readQualityPref();
         try {
-          renderer = new THREE.WebGLRenderer({
-            antialias: qualityPref !== "low",
-            powerPreference: "high-performance",
-          });
+  renderer = new THREE.WebGLRenderer({
+  // Preserve the crisp render path on mobile while letting the driver choose
+  // the fastest hardware queue available on Samsung/Xiaomi-class devices.
+  antialias: true,
+  powerPreference: "high-performance",
+  precision: "highp",
+  });
         } catch {
           try {
             renderer = new THREE.WebGLRenderer({
@@ -2953,7 +2956,7 @@ export function SandboxGame({
         });
       };
 
-      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ─�������
+      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ─���������
       interface BossEnemy {
         id: number;
         group: THREE.Group;
