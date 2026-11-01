@@ -631,6 +631,102 @@ export function getShovelIcon(tint: string): string {
   }
 }
 
+const _swordIconCache: Record<string, string> = {};
+export function getSwordIcon(tint: string): string {
+  if (typeof document === "undefined") return "";
+  const cached = _swordIconCache[tint];
+  if (cached) return cached;
+  try {
+    const S = 48;
+    const c = document.createElement("canvas");
+    if (!c) return "";
+    c.width = c.height = S;
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    ctx.clearRect(0, 0, S, S);
+    ctx.save();
+    ctx.translate(S / 2, S / 2);
+    ctx.rotate(-0.785);
+    // Blade
+    ctx.fillStyle = tint;
+    ctx.beginPath();
+    ctx.moveTo(-4, -18);
+    ctx.lineTo(0, -22);
+    ctx.lineTo(4, -18);
+    ctx.lineTo(4, 5);
+    ctx.lineTo(-4, 5);
+    ctx.closePath();
+    ctx.fill();
+    // Specular highlight edge
+    ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.fillRect(-3, -18, 2, 22);
+    // Guard
+    ctx.fillStyle = "#473c2e";
+    ctx.fillRect(-9, 5, 18, 4);
+    ctx.fillStyle = "#a88b5a";
+    ctx.fillRect(-8, 6, 16, 2);
+    // Grip
+    ctx.fillStyle = "#654321";
+    ctx.fillRect(-2, 9, 4, 8);
+    // Pommel
+    ctx.fillStyle = tint;
+    ctx.beginPath();
+    ctx.arc(0, 18, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    const url = c.toDataURL();
+    _swordIconCache[tint] = url;
+    return url;
+  } catch {
+    return "";
+  }
+}
+
+const _pickaxeIconCache: Record<string, string> = {};
+export function getPickaxeIcon(tint: string): string {
+  if (typeof document === "undefined") return "";
+  const cached = _pickaxeIconCache[tint];
+  if (cached) return cached;
+  try {
+    const S = 48;
+    const c = document.createElement("canvas");
+    if (!c) return "";
+    c.width = c.height = S;
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    ctx.clearRect(0, 0, S, S);
+    ctx.save();
+    ctx.translate(S / 2, S / 2);
+    ctx.rotate(-0.785);
+    // Wood shaft
+    ctx.fillStyle = "#8b6a3f";
+    ctx.fillRect(-2, -8, 4, 26);
+    // Pick head curved arc
+    ctx.fillStyle = tint;
+    ctx.beginPath();
+    ctx.moveTo(-16, -5);
+    ctx.quadraticCurveTo(0, -18, 16, -5);
+    ctx.quadraticCurveTo(0, -13, -16, -5);
+    ctx.closePath();
+    ctx.fill();
+    // Pick tip sheen
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.beginPath();
+    ctx.moveTo(-14, -6);
+    ctx.quadraticCurveTo(0, -17, 14, -6);
+    ctx.lineTo(14, -5);
+    ctx.quadraticCurveTo(0, -15, -14, -5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    const url = c.toDataURL();
+    _pickaxeIconCache[tint] = url;
+    return url;
+  } catch {
+    return "";
+  }
+}
+
 // Procedural progressive break crack textures (10 distinct stages)
 // Generated directly into CanvasTextures so Three.js renders realistic breaking fractures.
 export function generateCrackTextures(): THREE.CanvasTexture[] {

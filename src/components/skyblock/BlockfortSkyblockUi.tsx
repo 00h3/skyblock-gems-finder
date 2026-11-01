@@ -251,6 +251,13 @@ export function BlockfortSkyblockUi({
     setFriendsOpen(false);
   }, []);
 
+  const isAnyModalOpen = manorOpen || shopOpen || dailyOpen || questsOpen || friendsOpen;
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("bm-modal-active", { detail: { open: isAnyModalOpen } }),
+    );
+  }, [isAnyModalOpen]);
+
   // Responsive modal fit scaling so windows always fit viewport compactly
   const [bfFit, setBfFit] = useState<number>(1);
   useEffect(() => {
@@ -758,47 +765,47 @@ export function BlockfortSkyblockUi({
                 <motion.button
                   whileTap={{ scale: 0.93 }}
                   type="button"
-                  className="bf-btn bf-btn--build bf-btn--mini"
+                  className="bf-btn bf-btn--build !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm"
                   onClick={() => setManorOpen(true)}
                   title="Island Upgrades"
                 >
-                  <span className="bf-btn__label">Upgrades</span>
+                  <span className="bf-btn__label !px-2 !py-0 !pl-5">Upgrades</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.93 }}
                   type="button"
-                  className="bf-btn bf-btn--build bf-btn--mini"
+                  className="bf-btn bf-btn--build !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm"
                   onClick={() => setShopOpen(true)}
                   title="Island Store"
                 >
-                  <span className="bf-btn__label">Shop</span>
+                  <span className="bf-btn__label !px-2 !py-0 !pl-5">Shop</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.93 }}
                   type="button"
-                  className="bf-btn bf-btn--mail bf-btn--mini"
+                  className="bf-btn bf-btn--mail !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm"
                   onClick={() => setDailyOpen(true)}
                   title="Daily Rewards"
                 >
-                  <span className="bf-btn__label">Rewards</span>
+                  <span className="bf-btn__label !px-2 !py-0 !pl-5">Rewards</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.93 }}
                   type="button"
-                  className="bf-btn bf-btn--home bf-btn--mini"
+                  className="bf-btn bf-btn--home !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm"
                   onClick={() => setFriendsOpen(true)}
                   title="Friends & Online Islands"
                 >
-                  <span className="bf-btn__label">Friends</span>
+                  <span className="bf-btn__label !px-2 !py-0 !pl-5">Friends</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.93 }}
                   type="button"
-                  className="bf-btn bf-btn--plain bf-btn--mini !min-w-[96px] !min-h-[30px] cursor-pointer touch-manipulation active:scale-95"
+                  className="bf-btn bf-btn--plain !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm active:scale-95"
                   onClick={() => setQuestsOpen(true)}
                   title="Daily Quests"
                 >
-                  <span className="bf-btn__label">Quests</span>
+                  <span className="bf-btn__label !px-2 !py-0 !pl-5">Quests</span>
                 </motion.button>
               </motion.div>
             )}

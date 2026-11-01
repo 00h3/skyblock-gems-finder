@@ -17,7 +17,15 @@ import {
 } from "lucide-react";
 import { QblockCharacter } from "./QblockCharacter";
 import { GameAudio } from "@/lib/game-audio";
-import { BLOCKS, SHOVEL_TIERS, getBlockIcon, type InvItem } from "@/routes/game.$id";
+import {
+  BLOCKS,
+  SHOVEL_TIERS,
+  getBlockIcon,
+  getShovelIcon,
+  getSwordIcon,
+  getPickaxeIcon,
+  type InvItem,
+} from "@/routes/game.$id";
 import { useCurrency, spendCurrency } from "@/lib/currency";
 
 export interface AdvancedInventoryModalProps {

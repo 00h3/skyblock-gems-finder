@@ -518,6 +518,13 @@ export function GameSettingsModal({
   };
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("bm-modal-active", { detail: { open: true } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("bm-modal-active", { detail: { open: false } }));
+    };
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -544,6 +551,10 @@ export function GameSettingsModal({
           aria-modal="true"
           aria-labelledby="settings-title"
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          style={{ touchAction: "pan-y" }}
         >
           {/* Title plate matching Shop */}
           <div className="bf-panel__title">

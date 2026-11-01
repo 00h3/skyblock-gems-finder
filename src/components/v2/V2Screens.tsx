@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import WetPaintButton from "@/components/ui/wet-paint-button";
 import { V2Button } from "./primitives";
+import { PhoenixLoadingVisual } from "@/components/skyblock/PhoenixLoadingVisual";
 
 export function V2LoadingScreen({
   title,
@@ -8,13 +9,16 @@ export function V2LoadingScreen({
   progress = 0,
   isAssetsLoaded = false,
   onFinished,
+  showPhoenix,
 }: {
   title: string;
   subtitle: string;
   progress?: number;
   isAssetsLoaded?: boolean;
   onFinished?: () => void;
+  showPhoenix?: boolean;
 }) {
+  const isSkyblock = title === "Skyblock" || showPhoenix;
   const startTimeRef = useRef<number>(Date.now());
   const [actualProgress, setActualProgress] = useState(0);
   const [videoReady, setVideoReady] = useState(false);
@@ -65,28 +69,46 @@ export function V2LoadingScreen({
       className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#090b10]"
       style={{ touchAction: "none" }}
     >
-      {/* Fallback stylized voxel backdrop so screen is NEVER black while video streams */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#141a24] via-[#0d1017] to-[#06080b] flex items-center justify-center">
-        <div className="relative flex flex-col items-center gap-3">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-1 shadow-[0_0_40px_rgba(250,70,22,0.45)] animate-pulse flex items-center justify-center">
-            <span className="font-lilita text-[32px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
+      {/* Background: For Skyblock, show atmospheric dusk sky with phoenix; for others, voxel backdrop */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#18131d] via-[#0f121a] to-[#07090e] flex items-center justify-center">
+        {isSkyblock ? (
+          <div className="relative flex flex-col items-center justify-center z-10 w-full max-w-[500px] px-4 -mt-16 sm:-mt-20">
+            {/* The 3D Soaring Animated Phoenix */}
+            <PhoenixLoadingVisual />
+
+            <div className="text-center -mt-2">
+              <h2 className="font-lilita text-[26px] sm:text-[32px] tracking-wider text-amber-300 drop-shadow-[0_2px_12px_rgba(255,140,0,0.85)]">
+                SKYBLOCK
+              </h2>
+              <p className="text-[12px] sm:text-[13px] font-bold text-orange-200/80 tracking-wide mt-0.5">
+                {subtitle || "Building your island…"}
+              </p>
+            </div>
           </div>
-          <span className="font-lilita text-[18px] tracking-wider text-white/80">QBLOCK</span>
-        </div>
+        ) : (
+          <div className="relative flex flex-col items-center gap-3">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-1 shadow-[0_0_40px_rgba(250,70,22,0.45)] animate-pulse flex items-center justify-center">
+              <span className="font-lilita text-[32px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
+            </div>
+            <span className="font-lilita text-[18px] tracking-wider text-white/80">QBLOCK</span>
+          </div>
+        )}
       </div>
 
-      {/* Background MP4 Animation with smooth opacity fade-in once buffered */}
-      <video
-        src="https://maxwell.z3ki.dev/bot/_files/qblock-animation/qblock_animation.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        onCanPlay={() => setVideoReady(true)}
-        onLoadedData={() => setVideoReady(true)}
-        className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${videoReady ? "opacity-100" : "opacity-0"}`}
-      />
+      {/* Background MP4 Animation for non-Skyblock worlds */}
+      {!isSkyblock && (
+        <video
+          src="https://maxwell.z3ki.dev/bot/_files/qblock-animation/qblock_animation.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          onCanPlay={() => setVideoReady(true)}
+          onLoadedData={() => setVideoReady(true)}
+          className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${videoReady ? "opacity-100" : "opacity-0"}`}
+        />
+      )}
 
       {/* Dark overlay for contrast */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px] pointer-events-none" />
