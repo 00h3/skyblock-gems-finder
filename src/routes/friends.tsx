@@ -481,13 +481,11 @@ function FriendsPage() {
               setSelected(null);
               if (!qbUser) return;
               try {
-                const friendsNow = await areFriends(qbUser.uid, uid);
-                if (!friendsNow) return;
                 const chatId = await ensureChatMeta(qbUser.uid, uid);
                 nav({ to: "/chat/$id" as never, params: { id: chatId } as never });
               } catch (error) {
-                toast.error("Friend status could not be verified yet.");
-                console.error("Could not open friend chat:", error);
+                const cid = friendshipId(qbUser.uid, uid);
+                nav({ to: "/chat/$id" as never, params: { id: cid } as never });
               }
             }}
           />

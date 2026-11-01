@@ -331,6 +331,23 @@ export function ProfileSheet({
     }
   }
 
+  async function handleMessageClick() {
+    if (onChat) {
+      onChat();
+      return;
+    }
+    if (!qbUser || !user.id) return;
+    try {
+      const chatId = await ensureChatMeta(qbUser.uid, user.id);
+      onClose();
+      navigate({ to: "/chat/$id" as never, params: { id: chatId } as never });
+    } catch (err) {
+      console.error("Could not open chat from profile sheet:", err);
+      onClose();
+      navigate({ to: "/chat/$id" as never, params: { id: user.id } as never });
+    }
+  }
+
   const name = getCleanName(user);
   const displayId =
     typeof user.customId === "string" && user.customId.trim()
@@ -637,26 +654,15 @@ export function ProfileSheet({
                               : "Add friend"}
                       </button>
                     )}
-                    {onChat && (
-                      <button
-                        type="button"
-                        onClick={onChat}
-                        disabled={friendStatus !== "friends" || Boolean(friendError)}
-                        title={
-                          friendStatus === "friends"
-                            ? "Open conversation"
-                            : "Accept the friend request before messaging"
-                        }
-                        className={`press flex-1 py-3 rounded-[13px] font-extrabold text-[12.5px] flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer shadow-none ${
-                          friendStatus === "friends"
-                            ? "bg-[#141414] dark:bg-[#22242c] text-white"
-                            : "cursor-not-allowed bg-[#eef0f3] dark:bg-white/5 text-[#9aa1ab]"
-                        }`}
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        {friendStatus === "friends" ? "Message" : "Message locked"}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={handleMessageClick}
+                      className="press flex-1 py-3 rounded-[13px] font-extrabold text-[12.5px] flex items-center justify-center gap-1.5 bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white active:scale-[0.98] cursor-pointer shadow-none transition-all"
+                      title="Open conversation"
+                    >
+                      <MessageSquare className="h-4 w-4 text-amber-400" />
+                      <span>Message</span>
+                    </button>
                   </div>
                   {(friendError || profileError) && (
                     <p
