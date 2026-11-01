@@ -1954,8 +1954,8 @@ export function SandboxGame({
       // Anisotropic filtering capped at 2x on mobile to avoid texture sampler bottlenecks
       const maxAniso = renderer.capabilities.getMaxAnisotropy();
       atlas.texture.anisotropy = isMobileUA ? Math.min(maxAniso, 2) : maxAniso;
-      atlas.texture.magFilter = THREE.LinearFilter;
-      atlas.texture.minFilter = THREE.LinearMipmapLinearFilter;
+      atlas.texture.magFilter = THREE.NearestFilter;
+      atlas.texture.minFilter = THREE.NearestMipmapLinearFilter;
       atlas.texture.generateMipmaps = true;
       atlas.texture.needsUpdate = true;
 

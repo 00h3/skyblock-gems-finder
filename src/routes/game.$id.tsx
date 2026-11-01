@@ -827,12 +827,9 @@ function buildProceduralAssets(renderer: THREE.WebGLRenderer) {
   const _hdLoader = new THREE.TextureLoader();
   function loadHD(url: string) {
     const t = _hdLoader.load(url);
-    // LinearFilter smooths textures — no visible pixels.
-    // A 0.4 px CSS blur on the renderer canvas (set below) barely softens
-    // the hard pixel edges globally — imperceptible as blur, but removes
-    // the "jagged web game" look without going blurry.
-    t.magFilter = THREE.LinearFilter;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
+    // NearestFilter keeps all block textures in crisp, ultra-clear pixel mode ("clear mode").
+    t.magFilter = THREE.NearestFilter;
+    t.minFilter = THREE.NearestMipmapLinearFilter;
     t.generateMipmaps = true;
     t.anisotropy = _hdAniso;
     t.colorSpace = THREE.SRGBColorSpace;
