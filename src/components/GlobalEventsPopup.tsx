@@ -49,13 +49,7 @@ export function GlobalEventsPopup() {
                 closeEvents();
               }
             }}
-            className="relative w-full max-w-[440px] h-[85dvh] flex flex-col overflow-hidden rounded-t-[28px] border-t border-x border-black/[0.08] shadow-[0_16px_40px_rgba(15,23,42,0.14),inset_0_1px_0_rgba(255,255,255,0.98)] z-10 will-change-transform"
-            style={{
-              background: "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 243, 247, 0.95))",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              transform: "translateZ(0)",
-            }}
+            className="relative w-full max-w-[440px] h-[85dvh] flex flex-col overflow-hidden rounded-t-[28px] bg-white border-t border-x border-black/[0.08] shadow-[0_16px_40px_rgba(15,23,42,0.18)] z-10 transform-gpu"
           >
             {/* iOS Drag Handle */}
             <div className="pt-3 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none">

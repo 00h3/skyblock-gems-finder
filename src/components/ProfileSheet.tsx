@@ -344,14 +344,14 @@ export function ProfileSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-center bg-black/40 backdrop-blur-xs">
+    <div className="fixed inset-0 z-[100] flex justify-center bg-black/60">
       <motion.section
-        initial={{ y: "100%", opacity: 0.8, scale: 0.96 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: "100%", opacity: 0, scale: 0.96 }}
-        transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.8 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 340, mass: 0.7 }}
         aria-label={`${name} profile`}
-        className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f4f5f8] dark:bg-[#0c0d11]"
+        className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden bg-[#f4f5f8] dark:bg-[#0c0d11] transform-gpu"
       >
         <div className="flex-1 w-full overflow-y-auto ios-scroll hide-scrollbar flex flex-col relative">
           {/* ── PROFILE HEADER (PFP + NAME) ── */}

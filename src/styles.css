@@ -1531,7 +1531,6 @@ body,
 
 @utility page-enter {
   animation: page-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
 }
 
 @keyframes page-enter {
@@ -4702,4 +4701,33 @@ html.dark .home-currency-bubble {
   -webkit-text-fill-color: transparent;
   color: #94a3b8;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* ── ANDROID & VIVO / SAMSUNG MOBILE GPU LAYER PRESERVATION & ZERO-FLICKER ── */
+@media (max-width: 768px), (pointer: coarse) {
+  /* Prevent layer dumping and flickering on Android Chrome / Samsung / Vivo WebViews */
+  .mobile-shell,
+  [role="dialog"],
+  .qb-glossy-menu,
+  .liquid-search,
+  .press {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    will-change: auto !important;
+  }
+
+  /* Isolate iframe rendering contexts (e.g. 3D avatar preview) */
+  iframe {
+    contain: paint layout;
+    isolation: isolate;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* Completely bypass expensive backdrop blur compositing on mobile WebViews to eliminate frame dropping */
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 }

@@ -31,7 +31,7 @@ export function GlobalShopPopup() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            className="absolute inset-0 bg-black/60 cursor-pointer"
             onClick={closeShop}
           />
 
@@ -50,7 +50,7 @@ export function GlobalShopPopup() {
                 closeShop();
               }
             }}
-            className="relative w-full max-w-[440px] h-[88dvh] flex flex-col overflow-hidden rounded-t-[32px] bg-white border-t border-x border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.25)] z-10 will-change-transform"
+            className="relative w-full max-w-[440px] h-[88dvh] flex flex-col overflow-hidden rounded-t-[32px] bg-white border-t border-x border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.25)] z-10 transform-gpu"
           >
             {/* iOS Drag Handle */}
             <div className="pt-2.5 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none shrink-0 bg-white">

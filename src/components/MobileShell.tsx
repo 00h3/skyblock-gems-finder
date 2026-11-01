@@ -43,7 +43,7 @@ export function MobileShell({
           onScrollCapture={handleScroll}
         >
           <div
-            className={`min-h-full transition-opacity duration-150 ease-out will-change-transform ${
+            className={`min-h-full transition-opacity duration-150 ease-out transform-gpu ${
               pathname === "/events" ? "page-enter-static" : "page-enter"
             }`}
           >
