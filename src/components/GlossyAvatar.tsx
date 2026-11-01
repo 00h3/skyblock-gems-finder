@@ -84,12 +84,12 @@ export function AvatarFrameOverlay({
   if (!asset) return null;
   return (
     <div
-      className={`absolute inset-0 pointer-events-none z-20 flex items-center justify-center ${className}`}
+      className={`absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-visible ${className}`}
     >
       <img
         src={asset}
         alt="Avatar Frame"
-        className="w-[124%] h-[124%] max-w-none max-h-none object-contain pointer-events-none select-none drop-shadow-md"
+        className="w-[128%] h-[128%] max-w-none max-h-none object-contain pointer-events-none select-none drop-shadow-md shrink-0"
       />
     </div>
   );
@@ -118,9 +118,9 @@ export function GlossyAvatar({
   imageFallbackOnly?: boolean;
   blank?: boolean;
 }) {
-  // Underlying system preserved; frame rendering disabled for this version
   const _storedFrame = useEquippedFrame();
-  const _activeFrame = normalizeAvatarFrameId(frame ?? snapshot?.frameId ?? _storedFrame) ?? "none";
+  const _rawFrame = frame ?? snapshot?.frameId ?? (snapshot as any)?.equippedFrame ?? (snapshot as any)?.frame ?? _storedFrame;
+  const _activeFrame = normalizeAvatarFrameId(_rawFrame) ?? "none";
 
   const containerStyle = height
     ? { width: height, height, minHeight: height, aspectRatio: "1 / 1" }

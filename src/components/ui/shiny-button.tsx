@@ -8,7 +8,7 @@ export interface ShinyButtonProps extends React.ButtonHTMLAttributes<HTMLButtonE
   onClick?: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   className?: string;
   loading?: boolean;
-  variant?: "orange" | "white" | "dark";
+  variant?: "orange" | "white" | "dark" | "red" | "glass";
 }
 
 export function ShinyButton({
@@ -22,6 +22,8 @@ export function ShinyButton({
   ...props
 }: ShinyButtonProps) {
   const isWhite = variant === "white";
+  const isRed = variant === "red";
+  const isGlass = variant === "glass";
 
   return (
     <>
@@ -112,6 +114,67 @@ export function ShinyButton({
                       inset 0 -1px 2px rgba(0, 0, 0, 0.08),
                       0 6px 20px -3px rgba(0, 0, 0, 0.12),
                       0 2px 6px -1px rgba(250, 70, 22, 0.15);
+        }
+
+        .shiny-cta.shiny-cta-red {
+          --shiny-cta-bg: #9f1239;
+          --shiny-cta-bg-subtle: #be123c;
+          --shiny-cta-fg: #ffffff;
+          --shiny-cta-highlight: #f43f5e;
+          --shiny-cta-highlight-subtle: #fb7185;
+          background: linear-gradient(180deg, #e11d48 0%, #9f1239 100%) padding-box,
+            conic-gradient(
+              from calc(var(--gradient-angle) - var(--gradient-angle-offset)),
+              transparent,
+              rgba(244, 63, 94, 0.8) var(--gradient-percent),
+              #ffffff calc(var(--gradient-percent) * 2),
+              rgba(244, 63, 94, 0.8) calc(var(--gradient-percent) * 3),
+              transparent calc(var(--gradient-percent) * 4)
+            ) border-box;
+          box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4),
+                      inset 0 -1px 2px rgba(0, 0, 0, 0.2),
+                      0 6px 20px -3px rgba(225, 29, 72, 0.35),
+                      0 2px 6px -1px rgba(225, 29, 72, 0.2);
+        }
+
+        .shiny-cta.shiny-cta-glass {
+          --shiny-cta-bg: rgba(255, 255, 255, 0.9);
+          --shiny-cta-bg-subtle: #e2e8f0;
+          --shiny-cta-fg: #0f172a;
+          --shiny-cta-highlight: #fa4616;
+          --shiny-cta-highlight-subtle: #ff8560;
+          background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(241,245,249,0.9) 100%) padding-box,
+            conic-gradient(
+              from calc(var(--gradient-angle) - var(--gradient-angle-offset)),
+              transparent,
+              rgba(250, 70, 22, 0.6) var(--gradient-percent),
+              #ffffff calc(var(--gradient-percent) * 2),
+              rgba(250, 70, 22, 0.6) calc(var(--gradient-percent) * 3),
+              transparent calc(var(--gradient-percent) * 4)
+            ) border-box;
+          box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1),
+                      inset 0 -1px 2px rgba(0, 0, 0, 0.08),
+                      0 4px 16px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .shiny-cta.shiny-cta-glass {
+          --shiny-cta-bg: rgba(26, 28, 36, 0.9);
+          --shiny-cta-bg-subtle: #242938;
+          --shiny-cta-fg: #ffffff;
+          --shiny-cta-highlight: #fa4616;
+          --shiny-cta-highlight-subtle: #ff8560;
+          background: linear-gradient(180deg, rgba(32,35,46,0.95) 0%, rgba(20,22,28,0.9) 100%) padding-box,
+            conic-gradient(
+              from calc(var(--gradient-angle) - var(--gradient-angle-offset)),
+              transparent,
+              rgba(250, 70, 22, 0.6) var(--gradient-percent),
+              #ffffff calc(var(--gradient-percent) * 2),
+              rgba(250, 70, 22, 0.6) calc(var(--gradient-percent) * 3),
+              transparent calc(var(--gradient-percent) * 4)
+            ) border-box;
+          box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25),
+                      inset 0 -1px 1px rgba(0, 0, 0, 0.4),
+                      0 4px 16px -2px rgba(0, 0, 0, 0.35);
         }
 
         .shiny-cta:disabled {
@@ -324,7 +387,7 @@ export function ShinyButton({
 
       <button
         type={type}
-        className={`shiny-cta ${isWhite ? "shiny-cta-white" : ""} ${className}`}
+        className={`shiny-cta ${isWhite ? "shiny-cta-white" : isRed ? "shiny-cta-red" : isGlass ? "shiny-cta-glass" : ""} ${className}`}
         onClick={onClick}
         disabled={disabled || loading}
         {...props}

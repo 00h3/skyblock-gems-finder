@@ -716,13 +716,13 @@ function ChatList() {
             ) : null}
 
             {filtered.map((t) => (
-              <button
+              <div
                 key={t.chatId}
                 onClick={() => openOrCreateChat(t.uid, t.chatId)}
-                className="w-full text-left px-1 py-2.5 flex items-center gap-2.5 border-b border-black/[0.05] active:bg-black/[0.02]"
+                className="w-full text-left px-1 py-2.5 flex items-center gap-2.5 border-b border-black/[0.05] hover:bg-black/[0.03] active:bg-black/[0.05] cursor-pointer transition-colors"
               >
                 <div
-                  className="w-10 h-10 shrink-0 rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 press cursor-pointer"
+                  className="w-10 h-10 shrink-0 rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 press cursor-pointer relative"
                   onClick={(e) => {
                     e.stopPropagation();
                     openProfile(
@@ -772,18 +772,18 @@ function ChatList() {
                     {t.unread}
                   </span>
                 ) : null}
-              </button>
+              </div>
             ))}
 
             {tab === "friends" &&
               visibleFriends.map((f) => (
-                <button
+                <div
                   key={f.uid}
                   onClick={() => openOrCreateChat(f.uid)}
-                  className="w-full text-left px-1 py-2.5 flex items-center gap-2.5 border-b border-black/[0.05] active:bg-black/[0.02]"
+                  className="w-full text-left px-1 py-2.5 flex items-center gap-2.5 border-b border-black/[0.05] hover:bg-black/[0.03] active:bg-black/[0.05] cursor-pointer transition-colors"
                 >
                   <div
-                    className="w-10 h-10 shrink-0 rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 press cursor-pointer"
+                    className="w-10 h-10 shrink-0 rounded-[12px] overflow-hidden bg-slate-100 dark:bg-slate-800 press cursor-pointer relative"
                     onClick={(e) => {
                       e.stopPropagation();
                       openProfile({
@@ -817,7 +817,7 @@ function ChatList() {
                     </div>
                     <div className="text-[11px] text-text-muted">Tap to message</div>
                   </div>
-                </button>
+                </div>
               ))}
           </div>
         ) : tab === "tribes" ? (

@@ -449,15 +449,16 @@ export function NicknameStyleView({
 export function SubScreenHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <header className="flex items-center gap-3 px-4 pt-[max(env(safe-area-inset-top),14px)] pb-3 border-b border-black/[0.04] dark:border-white/[0.05] bg-[#f8f9fa] dark:bg-[#0c0d11]">
-      <button
+      <ShinyButton
         type="button"
+        variant="glass"
         onClick={onBack}
-        className="press flex items-center gap-1 px-3 py-1.5 rounded-[12px] bg-white dark:bg-[#15171c] border border-black/[0.06] dark:border-white/[0.08] text-foreground shadow-sm text-[13px] font-bold cursor-pointer"
+        className="h-9 px-3.5 text-[12.5px] py-0 gap-1"
         aria-label="Go Back"
       >
-        <ChevronLeft className="h-4 w-4 text-foreground" />
+        <ChevronLeft className="h-4 w-4 shrink-0" />
         <span>Go Back</span>
-      </button>
+      </ShinyButton>
       <h1 className="text-[17.5px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
         {title}
       </h1>

@@ -497,6 +497,7 @@ function ProfilePage() {
                   <BronzeCorniceAvatar size={64}>
                     <GlossyAvatar
                       snapshot={qbUser?.avatarSnapshot}
+                      frame={qbUser?.avatarSnapshot?.frameId || (qbUser as any)?.equippedFrame || (qbUser as any)?.frameId}
                       photoUrl={qbUser?.profilePhoto}
                       height={64}
                       className="w-full h-full object-cover"

@@ -46,6 +46,7 @@ import { getRecentlyPlayedGameIds } from "@/lib/games-cache";
 import baseplateIcon from "@/assets/game-baseplate.jpg";
 import { useNavigate } from "@tanstack/react-router";
 import { ClapIcon } from "@/components/QbIcons";
+import { ShinyButton } from "@/components/ui/shiny-button";
 
 import { ProfileIcon } from "@/components/icons";
 export function getCleanName(
@@ -452,18 +453,24 @@ export function ProfileSheet({
             <div className="p-5 flex items-center justify-between">
               <div className="flex items-center gap-3.5 min-w-0 flex-1 mr-2">
                 {/* Squircle PFP part with user/our pfp */}
-                <div className="relative h-13 w-13 shrink-0 rounded-[16px] overflow-hidden border-2 border-black/10 dark:border-white/10 shadow-sm bg-gradient-to-br from-orange-500/10 via-amber-400/20 to-orange-600/10 flex items-center justify-center">
-                  {user.profilePhoto ? (
-                    <img
-                      src={user.profilePhoto}
-                      alt={name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-[#fa4616] to-[#ff9800] text-white font-black text-lg [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">
-                      {name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                <div className="relative h-13 w-13 shrink-0 flex items-center justify-center overflow-visible">
+                  <div className="h-13 w-13 rounded-[16px] overflow-hidden border-2 border-black/10 dark:border-white/10 shadow-sm bg-gradient-to-br from-orange-500/10 via-amber-400/20 to-orange-600/10 flex items-center justify-center">
+                    {user.profilePhoto ? (
+                      <img
+                        src={user.profilePhoto}
+                        alt={name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-[#fa4616] to-[#ff9800] text-white font-black text-lg [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <AvatarFrameOverlay
+                    frame={user.frame ?? user.avatarSnapshot?.frameId}
+                    className="scale-[1.22]"
+                  />
                 </div>
 
                 {/* User Info */}
@@ -626,24 +633,26 @@ export function ProfileSheet({
                 <>
                   <div className="flex items-center gap-2">
                     {friendStatus === "friends" ? (
-                      <button
+                      <ShinyButton
                         type="button"
+                        variant="red"
                         onClick={handleUnfriend}
                         disabled={addingFriend}
-                        className="press px-3.5 py-3 rounded-[13px] font-extrabold text-[12px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                        className="h-11 px-4 text-[13px] shrink-0"
                       >
                         {addingFriend ? "Removing…" : "Unfriend"}
-                      </button>
+                      </ShinyButton>
                     ) : (
-                      <button
+                      <ShinyButton
                         type="button"
+                        variant="orange"
                         onClick={handleAddFriend}
                         disabled={
                           friendStatus === "sent" ||
                           addingFriend ||
                           Boolean(friendError)
                         }
-                        className="qb-squircle press relative flex-1 py-3 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none disabled:opacity-60 cursor-pointer"
+                        className="h-11 flex-1 text-[13px]"
                       >
                         {addingFriend
                           ? "Sending…"
@@ -652,17 +661,18 @@ export function ProfileSheet({
                             : friendStatus === "sent"
                               ? "Requested"
                               : "Add friend"}
-                      </button>
+                      </ShinyButton>
                     )}
-                    <button
+                    <ShinyButton
                       type="button"
+                      variant="orange"
                       onClick={handleMessageClick}
-                      className="press flex-1 py-3 rounded-[13px] font-extrabold text-[12.5px] flex items-center justify-center gap-1.5 bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white active:scale-[0.98] cursor-pointer shadow-none transition-all"
+                      className="h-11 flex-1 text-[13px]"
                       title="Open conversation"
                     >
-                      <MessageSquare className="h-4 w-4 text-amber-400" />
+                      <MessageSquare className="h-4 w-4 text-white shrink-0" />
                       <span>Message</span>
-                    </button>
+                    </ShinyButton>
                   </div>
                   {(friendError || profileError) && (
                     <p
@@ -675,37 +685,29 @@ export function ProfileSheet({
                 </>
               ) : (
                 <div className="flex flex-col gap-2 w-full">
-                  <button
+                  <ShinyButton
                     type="button"
+                    variant="orange"
                     onClick={() => {
                       onClose();
                       navigate({ to: "/profile" as never });
                     }}
-                    className="press w-full py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-extrabold text-[13px] flex items-center justify-center gap-2 shadow-none active:scale-[0.98] cursor-pointer"
+                    className="h-11 w-full text-[13.5px]"
                   >
                     <ProfileIcon className="h-4 w-4" filled />
-                    Edit Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="press w-full py-2.5 rounded-[13px] bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span>Go Back</span>
-                  </button>
+                    <span>Edit Profile</span>
+                  </ShinyButton>
                 </div>
               )}
-              {!isOwnProfile && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="press w-full py-2.5 rounded-[13px] bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer mt-2"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span>Go Back</span>
-                </button>
-              )}
+              <ShinyButton
+                type="button"
+                variant="glass"
+                onClick={onClose}
+                className="h-11 w-full text-[13.5px] mt-1"
+              >
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span>Go Back</span>
+              </ShinyButton>
             </div>
           </div>
         </div>
