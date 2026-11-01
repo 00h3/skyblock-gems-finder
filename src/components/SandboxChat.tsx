@@ -191,7 +191,7 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex flex-col bg-[#0e1116]/70 backdrop-blur-md">
+    <div className="fixed inset-0 z-[1000] flex flex-col bg-[#0e1116]/70 backdrop-blur-md">
       <div className="flex min-h-0 flex-1 flex-col bg-white/95 pt-[max(8px,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
           <span className="flex items-center gap-1.5 text-[14px] font-extrabold tracking-tight text-[#16181d]">
