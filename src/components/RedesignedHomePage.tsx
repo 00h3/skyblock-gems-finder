@@ -12,6 +12,7 @@ import { DiscoveryPopup } from "@/components/DiscoveryPopup";
 import { getRecentlyPlayedGameIds } from "@/lib/games-cache";
 import { openFragments } from "@/lib/fragments-ui";
 import { openEvents } from "@/lib/events-ui";
+import { openShop } from "@/lib/shop-ui";
 import { ThreeDTestimonials } from "@/components/ui/3d-testimonials";
 
 export function RedesignedHomePage({
@@ -164,10 +165,12 @@ export function RedesignedHomePage({
 
         {/* Quick Entries: Shop, Events (rectangle in middle), Fragments — blank glossy squircles */}
         <div className="px-4 flex items-center gap-2.5">
-          {/* Shop */}
+          {/* Shop - opens 3D Avatar Customization sheet */}
           <button
             type="button"
-            onClick={() => navigate({ to: "/shop" as never })}
+            onClick={() => {
+              openShop();
+            }}
             className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
             aria-label="Shop"
           />
@@ -197,82 +200,78 @@ export function RedesignedHomePage({
           />
         </div>
 
-        {/* Switching Promotional Banner */}
+        {/* Switching Promotional Banner: Welcome to beta! (Orange ver <-> Orange-Red Gradient ver) */}
         <div className="px-4 mt-2.5">
           <div
             onClick={() => {
-              if (activeSlide === 0) {
-                navigate({ to: "/game/sandbox" as never });
-              } else {
-                navigate({ to: "/avatar" as never });
-              }
+              navigate({ to: "/game/sandbox" as never });
             }}
             className="qb-squircle press relative h-[108px] w-full overflow-hidden cursor-pointer select-none rounded-[14px] bg-[#1a1c22] text-white shadow-md transition-all duration-300"
           >
             {/* Top gloss curve */}
             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 dark:from-white/15 to-transparent pointer-events-none rounded-t-[14px] z-10" />
 
-            {/* Slide 0: Horizon / Skyblock */}
+            {/* Slide 0: Orange version */}
             <div
-              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-500 ease-out ${
+              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-700 ease-out ${
                 activeSlide === 0
                   ? "opacity-100 translate-x-0 pointer-events-auto"
                   : "opacity-0 -translate-x-4 pointer-events-none"
               }`}
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(250, 70, 22, 0.95) 0%, rgba(220, 45, 10, 0.9) 100%)",
+                  "linear-gradient(135deg, #fa4616 0%, #ff7a00 50%, #ff8800 100%)",
               }}
             >
-              <div className="relative z-20 flex flex-col justify-center max-w-[68%]">
-                <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-200 bg-black/25 px-2 py-0.5 rounded-full w-fit">
-                  Untitled Banner
+              <div className="relative z-20 flex flex-col justify-center max-w-[80%]">
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-100 bg-black/20 px-2 py-0.5 rounded-full w-fit">
+                  QBLOCK
                 </span>
-                <h3 className="mt-1 text-[16px] font-black tracking-tight text-white leading-tight">
-                  Skyblock Horizons
+                <h3 className="mt-1 text-[19px] sm:text-[21px] font-black tracking-tight text-white leading-tight drop-shadow-xs">
+                  Welcome to beta!
                 </h3>
-                <p className="text-[11px] font-semibold text-orange-100/90 mt-0.5 line-clamp-1">
-                  Mine rare ores, expand islands & build worlds
+                <p className="text-[11.5px] font-semibold text-orange-100/95 mt-0.5 line-clamp-1">
+                  Explore, build & play together in early access
                 </p>
               </div>
-              <div className="relative z-20 shrink-0 w-16 h-16 rounded-xl bg-black/20 backdrop-blur-md border border-white/20 grid place-items-center shadow-inner overflow-hidden p-1">
+              <div className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 grid place-items-center shadow-inner overflow-hidden p-2">
                 <img
-                  src="https://file.garden/alGOOylwpAfCa6qP/IMG_7240.png"
-                  alt="Skyblock"
-                  className="w-full h-full object-contain"
+                  src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
+                  alt="Beta Mascot"
+                  className="w-full h-full object-contain drop-shadow"
                   draggable={false}
                 />
               </div>
             </div>
 
-            {/* Slide 1: Avatar Studio */}
+            {/* Slide 1: Orange-Red gradient version */}
             <div
-              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-500 ease-out ${
+              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-700 ease-out ${
                 activeSlide === 1
                   ? "opacity-100 translate-x-0 pointer-events-auto"
                   : "opacity-0 translate-x-4 pointer-events-none"
               }`}
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)",
+                  "linear-gradient(135deg, #ea2b0c 0%, #fa4616 50%, #dc2626 100%)",
               }}
             >
-              <div className="relative z-20 flex flex-col justify-center max-w-[68%]">
-                <span className="text-[9.5px] font-black uppercase tracking-wider text-sky-300 bg-white/10 px-2 py-0.5 rounded-full w-fit">
-                  Creator Lab
+              <div className="relative z-20 flex flex-col justify-center max-w-[80%]">
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-rose-100 bg-black/20 px-2 py-0.5 rounded-full w-fit">
+                  QBLOCK
                 </span>
-                <h3 className="mt-1 text-[16px] font-black tracking-tight text-white leading-tight">
-                  Avatar Studio 3D
+                <h3 className="mt-1 text-[19px] sm:text-[21px] font-black tracking-tight text-white leading-tight drop-shadow-xs">
+                  Welcome to beta!
                 </h3>
-                <p className="text-[11px] font-semibold text-slate-300 mt-0.5 line-clamp-1">
-                  Customize skins, badges & collectible wearables
+                <p className="text-[11.5px] font-semibold text-white/95 mt-0.5 line-clamp-1">
+                  Explore, build & play together in early access
                 </p>
               </div>
-              <div className="relative z-20 shrink-0 w-16 h-16 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 grid place-items-center shadow-inner overflow-hidden p-1">
+              <div className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 grid place-items-center shadow-inner overflow-hidden p-2">
                 <img
                   src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
-                  alt="Avatar"
-                  className="w-full h-full object-contain"
+                  alt="Beta Mascot"
+                  className="w-full h-full object-contain drop-shadow"
                   draggable={false}
                 />
               </div>
@@ -290,10 +289,10 @@ export function RedesignedHomePage({
                   }}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     activeSlide === idx
-                      ? "w-4 bg-white"
+                      ? "w-4 bg-white shadow-xs"
                       : "w-1.5 bg-white/40 hover:bg-white/70"
                   }`}
-                  aria-label={`Go to slide ${idx + 1}`}
+                  aria-label={`Go to style ${idx + 1}`}
                 />
               ))}
             </div>

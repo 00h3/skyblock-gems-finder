@@ -113,15 +113,47 @@ export function isWoofyUser(user: UserProfileLike | null | undefined): boolean {
   return false;
 }
 
+export function isCatUser(user: UserProfileLike | null | undefined): boolean {
+  if (!user) return false;
+  const username = typeof user.username === "string" ? user.username.toLowerCase() : "";
+  const displayName = typeof user.displayName === "string" ? user.displayName.toLowerCase() : "";
+  const name = typeof user.name === "string" ? user.name.toLowerCase() : "";
+  const n = typeof user.n === "string" ? user.n.toLowerCase() : "";
+  const customId = typeof user.customId === "string" ? user.customId.toLowerCase() : "";
+  const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
+
+  return (
+    username === "cat" ||
+    username === "@cat" ||
+    displayName === "cat" ||
+    displayName === "@cat" ||
+    name === "cat" ||
+    name === "@cat" ||
+    n === "cat" ||
+    n === "@cat" ||
+    customId === "cat" ||
+    customId === "@cat" ||
+    email === "cat" ||
+    email.startsWith("cat@")
+  );
+}
+
 /** Check if user has an available gradient name style */
 export function userHasGradient(user: UserProfileLike | null | undefined): boolean {
-  return isIraUser(user) || isDieUser(user) || isH3User(user) || isStrUser(user);
+  return (
+    isIraUser(user) ||
+    isDieUser(user) ||
+    isH3User(user) ||
+    isStrUser(user) ||
+    isCatUser(user)
+  );
 }
 
 /**
  * Returns class string for user's name.
  * h3 gets an orange gradient name.
  * str gets a pink gradient name.
+ * cat / @cat gets a violet gradient name.
  * Ira & Die get a blue gradient name.
  */
 export function getUserNameClass(
@@ -137,6 +169,9 @@ export function getUserNameClass(
   }
   if (isStrUser(user)) {
     return `bg-gradient-to-r from-[#ec4899] via-[#f472b6] to-[#fb7185] bg-clip-text text-transparent font-black ${outlineClass}`;
+  }
+  if (isCatUser(user)) {
+    return `bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#d946ef] bg-clip-text text-transparent font-black ${outlineClass}`;
   }
   if (isIraUser(user) || isDieUser(user)) {
     return `bg-gradient-to-r from-[#1769e8] via-[#4b9eff] to-[#1769e8] bg-clip-text text-transparent font-black ${outlineClass}`;

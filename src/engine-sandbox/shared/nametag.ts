@@ -211,6 +211,7 @@ function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
   const lowerName = name.toLowerCase();
   const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName.includes("h3");
   const isStr = lowerName === "str" || lowerName.includes("str");
+  const isCat = lowerName === "cat" || lowerName === "@cat" || lowerName.includes("cat");
 
   // Dark outline for crystal clarity in all lighting
   c.lineWidth = 4;
@@ -228,6 +229,12 @@ function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
     textGrad.addColorStop(0, "#ec4899");
     textGrad.addColorStop(0.5, "#f472b6");
     textGrad.addColorStop(1, "#fb7185");
+    c.fillStyle = textGrad;
+  } else if (isCat) {
+    const textGrad = c.createLinearGradient(padX, 0, padX + textW, 0);
+    textGrad.addColorStop(0, "#8b5cf6");
+    textGrad.addColorStop(0.5, "#a855f7");
+    textGrad.addColorStop(1, "#d946ef");
     c.fillStyle = textGrad;
   } else {
     c.fillStyle = color;

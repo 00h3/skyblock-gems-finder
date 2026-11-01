@@ -27,7 +27,15 @@ import { HtmlSpinner } from "./ui/HtmlLoadingScreen";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "shop" } = {}) {
+export function AvatarShowcase({
+  initialMode,
+  isPopup = false,
+  onClose,
+}: {
+  initialMode?: "wardrobe" | "shop";
+  isPopup?: boolean;
+  onClose?: () => void;
+} = {}) {
   const navigate = useNavigate();
   const { qbUser } = useAuth();
   const gems = useCurrency("gems");
@@ -264,11 +272,23 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
     },
   ];
 
-  return (
-    <MobileShell hideNav={false} scroll={true}>
-      <div className="min-h-dvh flex flex-col bg-[#ffffff] text-[#17191d] pb-24 select-none">
-        {/* Top Header with Currencies directly placed */}
-        <header className="flex items-center justify-center gap-2 px-3 pt-2 pb-1.5 bg-white sticky top-0 z-30">
+  const content = (
+    <div className={`flex flex-col bg-[#ffffff] text-[#17191d] select-none ${isPopup ? "h-full overflow-y-auto pb-10" : "min-h-dvh pb-24"}`}>
+      {/* Top Header with Currencies directly placed */}
+      <header className="flex items-center justify-between gap-2 px-3 pt-2 pb-1.5 bg-white sticky top-0 z-30 border-b border-black/[0.04]">
+        {isPopup ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="press px-3 py-1 rounded-full bg-slate-100 text-[#17191d] font-bold text-xs hover:bg-slate-200"
+            aria-label="Close"
+          >
+            Close
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
+        <div className="flex items-center gap-2">
           {/* Gem Currency Pill */}
           <button
             type="button"
@@ -310,7 +330,8 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
               {gold.toLocaleString("de-DE")}
             </span>
           </button>
-        </header>
+        </div>
+      </header>
 
         {/* 3D Character Stage Section - Way smaller & compact per user request */}
         <div className="relative w-full h-[225px] sm:h-[250px] bg-gradient-to-b from-[#ffffff] via-[#f8fafc] to-[#eef2f6] overflow-hidden">
@@ -882,6 +903,15 @@ export function AvatarShowcase({ initialMode }: { initialMode?: "wardrobe" | "sh
         {/* Currency Top-Up Modal when user taps currency pills */}
         {buyModal && <BuyModal type={buyModal} onClose={() => setBuyModal(null)} />}
       </div>
+  );
+
+  if (isPopup) {
+    return content;
+  }
+
+  return (
+    <MobileShell hideNav={false} scroll={true}>
+      {content}
     </MobileShell>
   );
 }

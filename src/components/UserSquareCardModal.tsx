@@ -24,6 +24,7 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
   const lowerName = user.name.toLowerCase();
   const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName.includes("h3");
   const isStr = lowerName === "str" || lowerName.includes("str");
+  const isCat = lowerName === "cat" || lowerName === "@cat" || lowerName.includes("cat");
 
   return (
     <div
@@ -119,11 +120,13 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
                   ? "bg-gradient-to-r from-[#fa4616] via-[#ff7a00] to-[#ffa726] bg-clip-text text-transparent"
                   : isStr
                     ? "bg-gradient-to-r from-[#ec4899] via-[#f472b6] to-[#fb7185] bg-clip-text text-transparent"
-                    : "text-white"
+                    : isCat
+                      ? "bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#d946ef] bg-clip-text text-transparent"
+                      : "text-white"
               }`}
               style={{
                 textShadow:
-                  isH3 || isStr
+                  isH3 || isStr || isCat
                     ? "none"
                     : "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)",
               }}

@@ -48,6 +48,7 @@ import { incrementOnlineTime } from "../lib/daily-events";
 import { GlobalFragmentsPopup } from "@/components/GlobalFragmentsPopup";
 import { GlobalEventsPopup } from "@/components/GlobalEventsPopup";
 import { GlobalSettingsPopup } from "@/components/GlobalSettingsPopup";
+import { GlobalShopPopup } from "@/components/GlobalShopPopup";
 import { TouchFeedbackRipples } from "@/components/TouchFeedbackRipples";
 import { GlobalLoader } from "@/components/GlobalLoader";
 import { QBlockLoadingMenu } from "@/components/QBlockLoadingMenu";
@@ -698,6 +699,7 @@ function RootComponent() {
         <GlobalFragmentsPopup />
         <GlobalEventsPopup />
         <GlobalSettingsPopup />
+        <GlobalShopPopup />
         <TouchFeedbackRipples />
         <Toaster position="top-center" richColors />
       </AuthProvider>
