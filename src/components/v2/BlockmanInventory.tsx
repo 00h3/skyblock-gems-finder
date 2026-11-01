@@ -109,6 +109,9 @@ export function BlockmanInventory({
 
   const iconOf = (id: ItemId | undefined) => {
     if (id === undefined || id === 0) return "";
+    if (id === 19 || id === "19" || id === "gold_block") {
+      return "https://file.garden/alGOOylwpAfCa6qP/Sounds/jin_right.png";
+    }
     if (typeof id === "string") {
       const u = utilityIconUrl(id);
       if (u) return u;

@@ -1,19 +1,24 @@
 import type { World } from "@/engine-sandbox/shared/world";
 
 /**
- * Deep Dungeon: a stone-brick dungeon far from the island, reached by teleport.
- * Rooms: entrance hall (Golden Forgers), west treasure vault, south crypt,
- * north ore mine, and the east Dragon Arena.
+ * Deep Dungeon: A vast, handcrafted ancient fantasy subterranean kingdom.
+ * Architectural zones:
+ * - Grand Colonnade Antechamber (entrance hall, central pillars, arched vaults)
+ * - The Ancient Crypt of Fallen Kings (south catacombs, sarcophagi, skeleton guardians)
+ * - The Royal Gilded Treasury (west vault, golden dais, emerald pilasters)
+ * - The Grand Crystal Chasm & Great Mine (north-west quarry, catwalks, towering geodes, rich veins)
+ * - The Subterranean Sunken Lagoon (north-east flooded cavern, mooring wharves, berthed submarine)
+ * - The Dragon Arena (east volcanic amphitheater)
  */
 export const MINE_ORIGIN = { x: 384, z: 0 };
 export const MINE_FLOOR = 12;
 export const DRAGON_ARENA = { x: MINE_ORIGIN.x + 44, z: MINE_ORIGIN.z, y: MINE_FLOOR, radius: 19, height: 26 };
 
-const X_MIN = -62;
-const X_MAX = 70;
-const Z_MIN = -74;
-const Z_MAX = 60;
-const Y_MAX = 42;
+const X_MIN = -84;
+const X_MAX = 84;
+const Z_MIN = -92;
+const Z_MAX = 70;
+const Y_MAX = 44;
 
 const B = {
   stone: 3,
@@ -23,8 +28,10 @@ const B = {
   gravel: 15,
   glowstone: 18,
   gold: 19,
+  diamondBlock: 20,
   emerald: 21,
   lapis: 22,
+  amethyst: 23,
   terracotta: 34,
   netherBricks: 35,
   coal: 36,
@@ -84,6 +91,7 @@ const WALL_PALETTE = [
   [B.stone, 8],
   [B.netherBricks, 4],
 ] as const;
+
 const CEIL_PALETTE = [
   [B.bricks, 40],
   [B.cobble, 26],
@@ -91,42 +99,48 @@ const CEIL_PALETTE = [
   [B.mossy, 10],
   [B.smooth, 6],
 ] as const;
+
 const HALL_FLOOR = [
-  [B.bricks, 30],
-  [B.cobble, 26],
-  [B.stone, 18],
+  [B.bricks, 32],
+  [B.cobble, 24],
+  [B.stone, 20],
   [B.mossy, 14],
-  [B.gravel, 8],
-  [B.stone, 4],
+  [B.gravel, 6],
+  [B.smooth, 4],
 ] as const;
+
 const VAULT_FLOOR = [
-  [B.stone, 34],
-  [B.darkOak, 22],
+  [B.stone, 32],
+  [B.darkOak, 24],
   [B.bricks, 24],
+  [B.gold, 10],
   [B.terracotta, 10],
-  [B.cobble, 6],
 ] as const;
+
 const CRYPT_FLOOR = [
   [B.cobble, 36],
-  [B.mossy, 28],
-  [B.gravel, 16],
-  [B.bricks, 14],
+  [B.mossy, 30],
+  [B.gravel, 18],
+  [B.bricks, 10],
   [B.stone, 6],
 ] as const;
+
 const MINE_FLOOR_PALETTE = [
   [B.stone, 35],
   [B.cobble, 25],
-  [B.mossy, 20],
-  [B.gravel, 12],
+  [B.mossy, 18],
+  [B.gravel, 14],
   [B.lapis, 4],
   [B.glowstone, 4],
 ] as const;
+
 const LAGOON_FLOOR_PALETTE = [
   [B.cobble, 30],
   [B.mossy, 30],
   [B.gravel, 25],
   [B.darkOak, 15],
 ] as const;
+
 const ARENA_WALL = [
   [B.obsidian, 36],
   [B.netherBricks, 34],
@@ -154,14 +168,19 @@ const rect = (x0: number, x1: number, z0: number, z1: number, h: number) => (x: 
 const ARENA_CX = 44;
 
 const REGIONS: Region[] = [
-  // Grand central hall
-  { kind: "hall", open: rect(-18, 18, -12, 22, 9) },
-  // West link to vault
-  { kind: "link", open: rect(-26, -17, -2, 2, 4) },
-  // Treasure vault
-  { kind: "vault", open: rect(-46, -25, -10, 10, 7) },
-  // East link to dragon arena
-  { kind: "link", open: rect(17, 26, -3, 3, 5) },
+  // 1. Grand Colonnade Antechamber (entrance hub with towering double colonnade)
+  { kind: "hall", open: rect(-18, 18, -14, 24, 10) },
+
+  // 2. West arched corridor to the Royal Treasury
+  { kind: "link", open: rect(-28, -17, -3, 3, 5) },
+  // 3. Royal Gilded Treasury & Alchemical Sanctuary
+  { kind: "vault", open: rect(-64, -26, -14, 14, 8) },
+  // Hidden Treasury Vault alcove
+  { kind: "vault", open: rect(-76, -63, -6, 6, 6) },
+
+  // 4. East corridor to the Dragon Arena
+  { kind: "link", open: rect(17, 28, -3, 3, 6) },
+  // 5. Dragon Gate & Arena
   {
     kind: "arena",
     open: (x, z, up) => {
@@ -172,22 +191,32 @@ const REGIONS: Region[] = [
       return dx * dx + dy * dy < 1;
     },
   },
-  // South link to crypt
-  { kind: "link", open: rect(-2, 2, 21, 29, 5) },
-  // Ancient crypt
-  { kind: "crypt", open: rect(-15, 15, 28, 46, 7) },
-  // Broad North gateway into vast fantasy mining cavern (previously blocked corridor)
-  { kind: "link", open: rect(-4, 4, -22, -11, 6) },
-  // Vast West/Central Fantasy Ore Cavern with towering vaulted ceilings
-  { kind: "mine", open: rect(-48, 6, -70, -22, 11) },
-  // East Subterranean Fantasy Lagoon with underwater berth for the rusty submarine
-  { kind: "lagoon", open: rect(6, 48, -70, -22, 12) },
-  // Archway connecting cavern to lagoon
-  { kind: "link", open: rect(2, 8, -52, -36, 8) },
-  // Luminous crystal alcove
-  { kind: "garden", open: rect(-58, -42, -54, -30, 8) },
-  // Underground cargo staging dock
-  { kind: "cargo", open: rect(10, 36, -32, -22, 8) },
+
+  // 6. South portcullis passage to the Ancient Crypt
+  { kind: "link", open: rect(-3, 3, 23, 29, 6) },
+  // 7. Ancient Crypt of the Fallen Kings (expansive catacombs)
+  { kind: "crypt", open: rect(-20, 20, 28, 64, 8) },
+  // Deep crypt burial chambers (East & West wings)
+  { kind: "crypt", open: rect(-34, -19, 36, 56, 7) },
+  { kind: "crypt", open: rect(19, 34, 36, 56, 7) },
+
+  // 8. Broad North gateway into vast fantasy mining cavern
+  { kind: "link", open: rect(-6, 6, -24, -13, 7) },
+
+  // 9. Vast Grand Crystal Chasm & Ore Cavern (multi-tiered quarry)
+  { kind: "mine", open: rect(-76, 4, -88, -22, 15) },
+
+  // 10. Subterranean Sunken Lagoon & Submarine Drydock
+  { kind: "lagoon", open: rect(6, 64, -88, -20, 14) },
+
+  // 11. Grand natural archway connecting Mine to Lagoon
+  { kind: "link", open: rect(0, 10, -60, -32, 9) },
+
+  // 12. Hidden Luminous Geode Grotto (glowing crystals, rare ores)
+  { kind: "garden", open: rect(-80, -56, -60, -32, 9) },
+
+  // 13. Lagoon Wharf, Timber Boardwalks & Cargo Staging
+  { kind: "cargo", open: rect(8, 44, -34, -20, 9) },
 ];
 
 const regionAt = (x: number, z: number, up: number): Region["kind"] | null => {
@@ -195,7 +224,7 @@ const regionAt = (x: number, z: number, up: number): Region["kind"] | null => {
   return null;
 };
 
-/** Writes the full dungeon into the world with raw (non-simulated) block writes. */
+/** Handcrafts the full ancient fantasy dungeon with raw block writes. */
 export function buildMiningArea(world: World): MiningArea {
   const OX = MINE_ORIGIN.x;
   const OZ = MINE_ORIGIN.z;
@@ -217,13 +246,21 @@ export function buildMiningArea(world: World): MiningArea {
     x >= X_MIN && x <= X_MAX && z >= Z_MIN && z <= Z_MAX && y >= 0 && y <= Y_MAX && open[idx(x, y, z)] === 1;
 
   const kindNear = (x: number, y: number, z: number): Region["kind"] => {
-    const probes: [number, number, number][] = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]];
+    const probes: [number, number, number][] = [
+      [1, 0, 0],
+      [-1, 0, 0],
+      [0, 0, 1],
+      [0, 0, -1],
+      [0, 1, 0],
+      [0, -1, 0],
+    ];
     for (const [dx, dy, dz] of probes) {
       if (isOpen(x + dx, y + dy, z + dz)) return regionAt(x + dx, z + dz, y + dy - F) ?? "hall";
     }
     return "hall";
   };
 
+  // 1. Carve and voxelize dungeon structure
   for (let y = 0; y <= Y_MAX + 1; y++) {
     for (let z = Z_MIN; z <= Z_MAX; z++) {
       for (let x = X_MIN; x <= X_MAX; x++) {
@@ -243,7 +280,7 @@ export function buildMiningArea(world: World): MiningArea {
         if (exposed) {
           const kind = kindNear(x, y, z);
           if (above) {
-            // Dungeon floors, each room with its own mix.
+            // Distinct thematic flooring per room
             if (kind === "arena") {
               const d = Math.hypot(x - ARENA_CX, z);
               if (d < 5) id = B.obsidian;
@@ -263,102 +300,204 @@ export function buildMiningArea(world: World): MiningArea {
             else id = (x + z) % 2 === 0 ? B.cobble : pick(HALL_FLOOR, roll);
           } else if (below) {
             id = kind === "arena" ? pick(ARENA_WALL, roll) : pick(CEIL_PALETTE, roll);
-            // Glowing stalactites and crystal ceiling clusters in fantasy mine
-            if ((kind === "mine" || kind === "lagoon") && roll > 0.88) {
+            // Glowing stalactites and crystal ceiling clusters
+            if ((kind === "mine" || kind === "lagoon") && roll > 0.86) {
               id = roll > 0.95 ? B.glowstone : roll > 0.91 ? B.lapis : B.diamond;
             }
           } else {
             id = kind === "arena" ? pick(ARENA_WALL, roll) : pick(WALL_PALETTE, roll);
-            const rich = kind === "mine" ? 0.32 : kind === "lagoon" ? 0.22 : kind === "vault" ? 0.08 : 0.025;
+            const rich = kind === "mine" ? 0.36 : kind === "lagoon" ? 0.24 : kind === "vault" ? 0.12 : 0.03;
             if (kind !== "arena" && roll > 1 - rich) {
               const o = hash3(x, y, z, 77);
-              id = o < 0.14 ? B.diamond : o < 0.26 ? B.gold : o < 0.40 ? B.lapis : o < 0.52 ? B.redstone : o < 0.62 ? B.emerald : o < 0.82 ? B.iron : B.coal;
+              id = o < 0.14 ? B.diamond : o < 0.28 ? B.gold : o < 0.42 ? B.lapis : o < 0.54 ? B.redstone : o < 0.65 ? B.emerald : o < 0.82 ? B.iron : B.coal;
             }
-            // Wall braziers / glowing crystal clusters in the stone
+            // Torches and stone lantern sconces along corridors
             if (y === F + 4 && (x + z) % 6 === 0 && roll > 0.22 && kind !== "link") {
-              id = kind === "lagoon" ? B.lapis : kind === "mine" ? B.glowstone : B.glowstone;
+              id = kind === "lagoon" ? B.lapis : B.glowstone;
             }
           }
         } else {
+          // Solid underground rock strata with rich veins
           const tone = valueNoise(x / 6, y / 5, z / 6, 5);
           if (tone > 0.66) id = B.cobble;
           else if (tone < 0.24) id = B.smooth;
           else if (tone > 0.5 && roll > 0.8) id = B.mossy;
           const vein = valueNoise(x / 3, y / 3, z / 3, 21);
-          if (vein > 0.78) {
-            if (roll < 0.08) id = B.diamond;
-            else if (roll < 0.16 && y < 24) id = B.redstone;
-            else if (roll < 0.24) id = B.lapis;
-            else if (roll < 0.32 && y < 20) id = B.emerald;
-            else if (roll < 0.42) id = B.gold;
-            else if (roll < 0.65) id = B.iron;
+          if (vein > 0.76) {
+            if (roll < 0.10) id = B.diamond;
+            else if (roll < 0.20 && y < 24) id = B.redstone;
+            else if (roll < 0.30) id = B.lapis;
+            else if (roll < 0.38 && y < 20) id = B.emerald;
+            else if (roll < 0.50) id = B.gold;
+            else if (roll < 0.72) id = B.iron;
             else id = B.coal;
-          } else if (roll < 0.035) id = B.coal;
-          else if (roll < 0.045) id = B.iron;
+          } else if (roll < 0.04) id = B.coal;
+          else if (roll < 0.05) id = B.iron;
         }
         set(x, y, z, id);
       }
     }
   }
 
-  // ── Subterranean Fantasy Lagoon Basin & Dock (berthed submarine) ──
-  // Dig water basin into floor and lay down timber docks
-  for (let z = -64; z <= -28; z++) {
-    for (let x = 14; x <= 42; x++) {
-      // Basin water body
-      set(x, F, z, (x + z) % 3 === 0 ? B.gravel : B.cobble);
+  // 2. Handcrafted Architectural Monolithic Columns in Grand Antechamber
+  // Symmetrical double colonnade at x = ±10, z = -8, 0, 8, 16
+  const pillarZs = [-8, 0, 8, 16];
+  for (const pz of pillarZs) {
+    for (const px of [-10, 10]) {
+      for (let py = F + 1; py <= F + 9; py++) {
+        if (py === F + 1 || py === F + 8) {
+          set(px, py, pz, B.bricks);
+        } else if (py === F + 7) {
+          set(px, py, pz, B.glowstone); // Integrated warm pillar sconce
+        } else {
+          set(px, py, pz, B.smooth);
+        }
+      }
+      // Vaulted cross-rib arches connecting pillars
+      for (let ax = -9; ax <= 9; ax++) {
+        set(ax, F + 10, pz, B.bricks);
+      }
+    }
+  }
+
+  // 3. Ancient Crypt of Kings: Carved Sarcophagi & Relic Altars
+  const sarcophagi = [
+    [-12, 34], [12, 34],
+    [-12, 44], [12, 44],
+    [-12, 54], [12, 54],
+    [0, 58], // Royal King Sarcophagus at the crypt terminus
+  ];
+  for (const [sx, sz] of sarcophagi) {
+    set(sx, F + 1, sz, B.bricks);
+    set(sx, F + 1, sz + 1, B.bricks);
+    set(sx, F + 2, sz, sx === 0 ? B.gold : B.smooth);
+    set(sx, F + 2, sz + 1, sx === 0 ? B.gold : B.smooth);
+    // Torches/Braziers flanking tombs
+    set(sx - 1, F + 1, sz, B.cobble);
+    set(sx - 1, F + 2, sz, B.glowstone);
+    set(sx + 1, F + 1, sz, B.cobble);
+    set(sx + 1, F + 2, sz, B.glowstone);
+  }
+
+  // 4. Royal Gilded Treasury: Stepped Gold Dais with Emerald Columns
+  // Raised altar at x = -56..-46, z = -5..5
+  for (let vx = -58; vx <= -44; vx++) {
+    for (let vz = -6; vz <= 6; vz++) {
+      set(vx, F + 1, vz, B.bricks);
+      if (vx >= -56 && vx <= -46 && vz >= -4 && vz <= 4) {
+        set(vx, F + 2, vz, B.smooth);
+      }
+      if (vx >= -54 && vx <= -48 && vz >= -2 && vz <= 2) {
+        set(vx, F + 3, vz, B.gold); // New gold block texture on the royal altar!
+      }
+    }
+  }
+  // Gilded vault corner pillars
+  for (const vx of [-58, -44]) {
+    for (const vz of [-6, 6]) {
+      set(vx, F + 1, vz, B.emerald);
+      set(vx, F + 2, vz, B.emerald);
+      set(vx, F + 3, vz, B.glowstone);
+    }
+  }
+
+  // 5. Subterranean Sunken Lagoon: Deep Basin & Mooring Boardwalks
+  // Submarine berthed at (x: 26, z: -44)
+  for (let z = -78; z <= -26; z++) {
+    for (let x = 12; x <= 56; x++) {
+      // Clear lagoon water basin: depth 2 blocks (F and F-1)
+      set(x, F - 1, z, (x + z) % 3 === 0 ? B.gravel : B.cobble);
+      set(x, F, z, B.water);
       set(x, F + 1, z, B.water);
-      // Perimeter wooden mooring boardwalks & docking platforms
-      if (x === 14 || x === 42 || z === -28 || z === -64) {
+
+      // Perimeter timber mooring docks
+      if (x === 12 || x === 56 || z === -26 || z === -78) {
         set(x, F + 1, z, B.darkOak);
       }
-      // Glowing mooring pillars
-      if ((x === 14 || x === 42) && z % 8 === 0) {
+      // Glowing mooring lanterns along the edges
+      if ((x === 12 || x === 56) && z % 8 === 0) {
         set(x, F + 2, z, B.darkOak);
         set(x, F + 3, z, B.glowstone);
       }
     }
   }
 
-  // Fantasy crystal clusters in the mining cavern
-  for (let z = -68; z <= -24; z += 12) {
-    for (let x = -44; x <= 0; x += 14) {
-      set(x, F + 1, z, B.obsidian);
-      set(x, F + 2, z, (x + z) % 2 === 0 ? B.diamond : B.lapis);
-      set(x, F + 3, z, B.glowstone);
+  // Main docking pier extending out to the berthed rusty submarine at (26, -44)
+  for (let px = 12; px <= 32; px++) {
+    for (let pz = -46; pz <= -42; pz++) {
+      set(px, F + 1, pz, B.darkOak);
+      set(px, F + 2, pz, (px === 32 || pz === -46 || pz === -42) && px % 4 === 0 ? B.glowstone : 0);
     }
   }
 
+  // 6. Grand Crystal Cavern: Towering Geode Spires & Suspended Catwalks
+  const geodes = [
+    [-24, -40],
+    [-48, -60],
+    [-18, -72],
+    [-58, -34],
+    [-68, -50],
+  ];
+  for (const [gx, gz] of geodes) {
+    set(gx, F + 1, gz, B.obsidian);
+    set(gx + 1, F + 1, gz, B.obsidian);
+    set(gx, F + 1, gz + 1, B.obsidian);
+    set(gx + 1, F + 1, gz + 1, B.obsidian);
+
+    set(gx, F + 2, gz, B.amethyst);
+    set(gx + 1, F + 2, gz, B.diamondBlock);
+    set(gx, F + 2, gz + 1, B.gold); // Rich gold block node
+    set(gx + 1, F + 2, gz + 1, B.lapis);
+
+    set(gx, F + 3, gz, B.glowstone);
+    set(gx + 1, F + 3, gz, B.amethyst);
+    set(gx, F + 4, gz, B.diamondBlock);
+    set(gx, F + 5, gz, B.glowstone);
+  }
+
+  // Suspended Timber Catwalk in Great Cavern (y = F + 5)
+  for (let bx = -50; bx <= 2; bx++) {
+    set(bx, F + 5, -50, B.darkOak);
+    if (bx % 6 === 0) {
+      set(bx, F + 6, -50, B.glowstone); // Hanging lanterns along the bridge
+    }
+  }
+
+  // Chest treasure spots distributed intentionally across districts
   const chestSpots = [
     { x: OX + 21.5, y: F + 1, z: OZ + 2.5 },
     { x: OX + 14.5, y: F + 1, z: OZ - 9.5 },
-    { x: OX + -14.5, y: F + 1, z: OZ + 19.5 },
-    { x: OX + -43.5, y: F + 1, z: OZ + 0.5 },
-    { x: OX + -39.5, y: F + 1, z: OZ + -7.5 },
-    { x: OX + 0.5, y: F + 1, z: OZ + 44.5 },
-    { x: OX + 0.5, y: F + 1, z: OZ + -50.5 },
-    { x: OX + 34.5, y: F + 2, z: OZ - 30.5 }, // Subterranean lagoon treasure dock
-    { x: OX - 36.5, y: F + 1, z: OZ - 52.5 }, // Deep cavern crystal vein chest
+    { x: OX - 14.5, y: F + 1, z: OZ + 19.5 },
+    { x: OX - 51.5, y: F + 4, z: OZ + 0.5 }, // Altar Dais in Treasury
+    { x: OX - 68.5, y: F + 1, z: OZ + 0.5 }, // Secret Treasury Vault
+    { x: OX + 0.5, y: F + 2, z: OZ + 60.5 }, // Royal Crypt Sarcophagus
+    { x: OX + 28.5, y: F + 2, z: OZ - 44.5 }, // Submarine Pier Chest
+    { x: OX - 42.5, y: F + 1, z: OZ - 56.5 }, // Crystal Cavern Deep Vein
+    { x: OX - 68.5, y: F + 1, z: OZ - 46.5 }, // Luminous Geode Grotto
   ];
 
   return {
     spawn: { x: OX + 24.5, y: F + 1.2, z: OZ + 0.5 },
     contains: (x: number, z: number) =>
-      x >= OX + X_MIN - 8 && x <= OX + X_MAX + 8 && z >= OZ + Z_MIN - 8 && z <= OZ + Z_MAX + 8,
+      x >= OX + X_MIN - 6 && x <= OX + X_MAX + 6 && z >= OZ + Z_MIN - 6 && z <= OZ + Z_MAX + 6,
     chestSpots,
     lights: [
-      { x: OX + 0.5, y: F + 6, z: OZ + 0.5, color: 0xffe4a0, intensity: 3.4, distance: 30 },
-      { x: OX, y: F + 6, z: OZ + 14, color: 0xffd270, intensity: 3.0, distance: 28 },
-      { x: OX - 36, y: F + 5, z: OZ, color: 0xffc860, intensity: 3.0, distance: 28 },
-      { x: OX + 44, y: F + 10, z: OZ, color: 0xff5a2a, intensity: 5.0, distance: 46 },
-      { x: OX, y: F + 5, z: OZ + 37, color: 0x8fc8a0, intensity: 2.6, distance: 24 },
-      { x: OX, y: F + 4, z: OZ - 46, color: 0xffd8a0, intensity: 2.6, distance: 24 },
-      // Subterranean fantasy lagoon cyan bioluminescence
-      { x: OX + 28, y: F + 6, z: OZ - 46, color: 0x38bdf8, intensity: 4.5, distance: 42 },
-      // Vast mining cavern crystal gold & emerald glow
-      { x: OX - 24, y: F + 7, z: OZ - 48, color: 0xfbbf24, intensity: 4.0, distance: 36 },
-      { x: OX, y: F + 5, z: OZ - 18, color: 0x34d399, intensity: 3.6, distance: 28 },
-      { x: OX - 46, y: F + 6, z: OZ - 40, color: 0xa855f7, intensity: 3.8, distance: 32 },
+      // Grand Antechamber warm ambient glow
+      { x: OX + 0.5, y: F + 7, z: OZ + 0.5, color: 0xffe4a0, intensity: 3.5, distance: 32 },
+      { x: OX, y: F + 7, z: OZ + 14, color: 0xffd270, intensity: 3.2, distance: 30 },
+      // Royal Treasury golden amber
+      { x: OX - 50, y: F + 6, z: OZ, color: 0xfbbf24, intensity: 3.8, distance: 34 },
+      // Ancient Crypt emerald-teal mystical glow
+      { x: OX, y: F + 6, z: OZ + 42, color: 0x6ee7b7, intensity: 3.2, distance: 30 },
+      { x: OX, y: F + 6, z: OZ + 58, color: 0x34d399, intensity: 3.4, distance: 28 },
+      // Subterranean Lagoon deep cyan bioluminescence
+      { x: OX + 26, y: F + 7, z: OZ - 44, color: 0x38bdf8, intensity: 4.8, distance: 44 },
+      { x: OX + 44, y: F + 7, z: OZ - 60, color: 0x0284c7, intensity: 4.2, distance: 38 },
+      // Vast Mining Cavern crystal radiance
+      { x: OX - 32, y: F + 8, z: OZ - 48, color: 0xffeedd, intensity: 4.2, distance: 40 },
+      { x: OX - 60, y: F + 7, z: OZ - 44, color: 0xc084fc, intensity: 3.8, distance: 32 },
+      // Dragon Arena volcanic fire
+      { x: OX + 44, y: F + 10, z: OZ, color: 0xff5a2a, intensity: 5.2, distance: 48 },
     ],
   };
 }

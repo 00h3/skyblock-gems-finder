@@ -223,14 +223,23 @@ export async function buildAtlas(
 
   // The supplied cartoon resource pack is the only canonical source. Missing
   // tiles stay visibly magenta instead of silently bringing back an old pack.
+  const GOLD_BLOCK_CUSTOM_URL = "https://file.garden/alGOOylwpAfCa6qP/Sounds/jin_right.png";
+
   const images = await Promise.all(
     TILE_NAMES.map(async (name) => {
-      const source = `${TEXTURE_BASE}${name}.png`;
+      const source = name === "gold_block" ? GOLD_BLOCK_CUSTOM_URL : `${TEXTURE_BASE}${name}.png`;
       try {
         const img = await loadImage(source);
         sourceUrls.set(name, source);
         return img;
       } catch {
+        if (name === "gold_block") {
+          try {
+            const fallbackImg = await loadImage(`${TEXTURE_BASE}${name}.png`);
+            sourceUrls.set(name, `${TEXTURE_BASE}${name}.png`);
+            return fallbackImg;
+          } catch {}
+        }
         const painted = paintTile(name);
         if (painted) {
           sourceUrls.set(name, painted.toDataURL());

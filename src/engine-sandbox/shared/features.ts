@@ -518,10 +518,18 @@ export class Features {
         this.prime(hit.x, hit.y, hit.z, 0.9, 2);
         return true;
       case BLOCK_ID.bed:
-      case BLOCK_ID.anchor:
         player.setSpawnPoint(hit.x + 0.5, hit.y + 1, hit.z + 0.5);
-        this.ctx.announce("Spawn point set", hit.id === BLOCK_ID.bed ? "You will respawn at this bed" : "Respawn anchor charged");
+        this.ctx.announce("Spawn point set", "You will respawn at this bed");
         this.ctx.sound("pop");
+        return true;
+      case BLOCK_ID.anchor:
+      case 23: // Amethyst / Island Crystal Core
+        player.setSpawnPoint(hit.x + 0.5, hit.y + 1, hit.z + 0.5);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("qb-open-island"));
+          this.ctx.announce("Island Core", "Opening Island Manor & Upgrades");
+          this.ctx.sound("pop");
+        }
         return true;
       default:
         return false;

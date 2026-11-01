@@ -22,15 +22,29 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
           {e.active.xpMultiplier > 1 && <span className="text-amber-400">{`x${e.active.xpMultiplier} XP`}</span>}
         </span>
       )}
-      {/* Wooden Hood-Style Progress Panel */}
+      {/* Wooden Hood-Style Progress Panel - Clickable to open Island Interface */}
       <div
-        className="wood-panel relative flex min-w-[210px] flex-col gap-1.5 !rounded-[4px] px-3 py-2"
-        aria-label={`Island level ${p.level}, ${pct} percent to next level`}
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          window.dispatchEvent(new Event("qb-open-island"));
+          window.dispatchEvent(new Event("bm-open-island"));
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            window.dispatchEvent(new Event("qb-open-island"));
+          }
+        }}
+        className="wood-panel relative flex min-w-[210px] flex-col gap-1.5 !rounded-[4px] px-3 py-2 cursor-pointer transition-all duration-150 active:scale-95 hover:brightness-110 hover:border-amber-400/50 shadow-md group"
+        aria-label={`Island level ${p.level}, ${pct} percent to next level. Click to open island interface`}
+        title="Click to open Island Manor & Upgrades"
       >
-
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-lilita text-[14px] tracking-wide text-amber-100">
+          <span className="font-lilita text-[14px] tracking-wide text-amber-100 flex items-center gap-1.5">
             Island <span className="tabular-nums text-amber-300">{p.level}</span>
+            <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400/30 text-amber-200 group-hover:bg-amber-500/40 transition">
+              Manage
+            </span>
           </span>
           <span className="text-[11px] font-bold text-amber-200/70">{p.title}</span>
         </div>

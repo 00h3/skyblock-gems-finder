@@ -320,6 +320,8 @@ const ICONS: Record<string, Draw> = {
 const STATIC_ITEM_PATHS: Record<string, string> = {
   bow: "/items/bow.png",
   bread: "/items/bread.png",
+  gold_block: "https://file.garden/alGOOylwpAfCa6qP/Sounds/jin_right.png",
+  "19": "https://file.garden/alGOOylwpAfCa6qP/Sounds/jin_right.png",
   diamond_axe: "/items/diamond_axe.png",
   diamond_shovel: "/items/diamond_shovel.png",
   golden_shovel: "/items/golden_shovel.png",

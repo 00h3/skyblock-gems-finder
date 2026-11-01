@@ -284,6 +284,23 @@ export function BlockfortSkyblockUi({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeAllModals]);
 
+  // Open Island Manor / Island Upgrade interface when clicking the island or island badge
+  useEffect(() => {
+    const handleOpenIsland = () => {
+      closeAllModals();
+      setManorOpen(true);
+      GameAudio.playPop?.();
+    };
+    window.addEventListener("qb-open-island", handleOpenIsland);
+    window.addEventListener("bm-open-island", handleOpenIsland);
+    window.addEventListener("qb-open-manor", handleOpenIsland);
+    return () => {
+      window.removeEventListener("qb-open-island", handleOpenIsland);
+      window.removeEventListener("bm-open-island", handleOpenIsland);
+      window.removeEventListener("qb-open-manor", handleOpenIsland);
+    };
+  }, [closeAllModals]);
+
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);
     setTimeout(() => {
