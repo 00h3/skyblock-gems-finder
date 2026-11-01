@@ -658,23 +658,6 @@ function ArchiveHomePage() {
           )}
         </label>
 
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/chat" as never, search: { find: "1" } as never })}
-          className="press mx-4 mt-3 flex w-[calc(100%-2rem)] items-center gap-3 rounded-[18px] border border-[#f0d26a] bg-[#fff9df] p-3.5 text-left shadow-[0_4px_14px_rgb(180_119_0_/_0.08)]"
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] bg-[#fa4616] text-white">
-            <Users className="h-[18px] w-[18px]" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-extrabold">Find friends</span>
-            <span className="mt-0.5 block truncate text-[10.5px] text-[#806719]">
-              Search by username or QB-ID and start a chat
-            </span>
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-[#9b7b10]" />
-        </button>
-
         {sections.map((section) => {
           const games = section.games.filter(matches);
           if (!games.length) return null;
@@ -804,7 +787,7 @@ function GameLoadingOverlay() {
   return <QBlockLoadingMenu fadeOutOnDone={false} speedMs={20} />;
 }
 
-// ── Canvas drawn inside loading overlay ───────────────────────────────────────
+// ── Canvas drawn inside loading overlay ────────────────────────���──────────────
 function GameLoadCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {

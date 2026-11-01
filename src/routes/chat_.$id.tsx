@@ -148,36 +148,36 @@ function GifPickerModal({
 
   return (
     <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-[420px] rounded-[24px] bg-[#14161b] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div className="w-full max-w-[420px] rounded-[24px] bg-white border border-white shadow-[0_18px_60px_rgba(15,23,42,0.28)] overflow-hidden flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <span className="text-xl">🎬</span>
-            <h3 className="text-[16px] font-bold text-white tracking-tight">GIF Library</h3>
+            <h3 className="text-[16px] font-bold text-slate-900 tracking-tight">GIF Library</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Search Bar */}
-        <div className="p-3 border-b border-white/5 bg-white/[0.02]">
+        <div className="p-3 border-b border-slate-200 bg-slate-50">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search GIFs (e.g. dance, gg, laugh)..."
-            className="w-full h-10 px-3.5 rounded-xl bg-white/10 text-white placeholder-white/40 text-[13px] outline-none border border-white/10 focus:border-amber-400/60 transition-colors"
+            className="w-full h-10 px-3.5 rounded-xl bg-slate-100 text-slate-900 placeholder-slate-400 text-[13px] outline-none border border-slate-200 focus:border-amber-400/60 transition-colors"
             autoFocus
           />
         </div>
 
         {/* Quick Tag Pills */}
-        <div className="flex gap-1.5 px-3 py-2 overflow-x-auto hide-scrollbar border-b border-white/5 bg-black/20">
+        <div className="flex gap-1.5 px-3 py-2 overflow-x-auto hide-scrollbar border-b border-slate-200 bg-slate-50">
           {["Trending", "GG", "Dance", "Laugh", "Bye", "Hyped", "Victory", "Flex"].map((tag) => (
             <button
               key={tag}
@@ -186,7 +186,7 @@ function GifPickerModal({
               className={`px-3 py-1 rounded-full text-[11px] font-bold shrink-0 transition-colors cursor-pointer ${
                 query.toLowerCase() === tag.toLowerCase()
                   ? "bg-amber-500 text-black"
-                  : "bg-white/10 text-white/80 hover:bg-white/20"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {tag}
@@ -201,7 +201,7 @@ function GifPickerModal({
               <HtmlSpinner size={24} />
             </div>
           ) : gifs.length === 0 ? (
-            <div className="h-48 grid place-items-center text-center p-4 text-white/50 text-[13px]">
+            <div className="h-48 grid place-items-center text-center p-4 text-slate-500 text-[13px]">
               No GIFs found. Try searching something else!
             </div>
           ) : (
@@ -214,15 +214,16 @@ function GifPickerModal({
                     onSelect(g.url);
                     onClose();
                   }}
-                  className="group relative rounded-xl overflow-hidden bg-black/40 aspect-video border border-white/10 hover:border-amber-400 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                  className="group relative rounded-xl overflow-hidden bg-white aspect-video border border-slate-200 hover:border-amber-400 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-[0_3px_10px_rgba(15,23,42,0.12)]"
                 >
                   <img
-                    src={g.preview || g.url}
+                    src={g.url}
                     alt={g.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/45 via-transparent to-transparent opacity-90" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                 </button>
               ))}
             </div>
