@@ -147,8 +147,8 @@ function GifPickerModal({
   }, [query]);
 
   return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-[420px] rounded-[24px] bg-white border border-white shadow-[0_18px_60px_rgba(15,23,42,0.28)] overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/55 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-[420px] rounded-t-[28px] bg-white border border-white shadow-[0_-18px_60px_rgba(15,23,42,0.28)] overflow-hidden flex flex-col max-h-[88vh] animate-slide-up">
         {/* Header */}
         <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
