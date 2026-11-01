@@ -718,9 +718,9 @@ function buildBaseplateWorld(world: World) {
   world.set(0, 16, -1, 4);
 }
 
-async function loadCell99Map(scene: THREE.Scene, atlas: Atlas) {
+async function loadCell99Map(scene: THREE.Scene): Promise<THREE.Group | null> {
   const loader = new GLTFLoader();
-  const remoteUrl = "https://file.garden/alGOOylwpAfCa6qP/scene.gltf";
+  const remoteUrl = "https://file.garden/alGOOylwpAfCA6qP/scene.gltf";
   let gltf;
   try {
     gltf = await loader.loadAsync(remoteUrl);
@@ -730,11 +730,11 @@ async function loadCell99Map(scene: THREE.Scene, atlas: Atlas) {
       gltf = await loader.loadAsync("/maps/shrine-island/scene.gltf");
     } catch (err) {
       console.error("Map GLTF load failed:", err);
-      return;
+      return null;
     }
   }
 
-  if (!gltf || !gltf.scene) return;
+  if (!gltf?.scene) return null;
   const model = gltf.scene;
 
   const box = new THREE.Box3().setFromObject(model);
@@ -750,27 +750,20 @@ async function loadCell99Map(scene: THREE.Scene, atlas: Atlas) {
   model.traverse((node) => {
     if ((node as THREE.Mesh).isMesh) {
       const mesh = node as THREE.Mesh;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      if (mesh.material) {
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        mats.forEach((m) => {
-          if (
-            m instanceof THREE.MeshStandardMaterial ||
-            m instanceof THREE.MeshLambertMaterial ||
-            m instanceof THREE.MeshBasicMaterial
-          ) {
-            if (atlas && atlas.texture) {
-              m.map = atlas.texture;
-              m.needsUpdate = true;
-            }
-          }
-        });
-      }
+      // Keep the GLTF's authored materials and textures. The voxel atlas uses
+      // different UVs; replacing the map here is what caused black/mis-sampled
+      // surfaces on Cell 99.
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((material) => {
+        material.needsUpdate = true;
+      });
     }
   });
 
   scene.add(model);
+  return model;
 }
 
 export type VerityCharacterHandle = {
@@ -1868,6 +1861,7 @@ export function SandboxGame({
     let sky: Sky | null = null;
     let avatar: Avatar | null = null;
     let bedDecorations: THREE.Group | null = null;
+    let cell99Model: THREE.Group | null = null;
     let ownBedIndicator: THREE.Sprite | null = null;
     let runesSource: THREE.Object3D | null = null;
     let runesModels: THREE.Object3D[] = [];
@@ -2070,7 +2064,19 @@ export function SandboxGame({
         buildForestArena(world);
       } else if (baseplate) {
         buildBaseplateWorld(world);
-        void loadCell99Map(scene, atlas).catch((err) => console.warn("Cell 99 GLTF map load:", err));
+        void loadCell99Map(scene).then((model) => {
+          if (disposed || !model) {
+            model?.traverse((object) => {
+              const mesh = object as THREE.Mesh;
+              if (!mesh.isMesh) return;
+              mesh.geometry?.dispose();
+              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+              materials.forEach((material) => material.dispose());
+            });
+            return;
+          }
+          cell99Model = model;
+        }).catch((err) => console.warn("Cell 99 GLTF map load:", err));
         void loadVerityCharacter(scene).then((v) => {
           if (!disposed) verityChar = v;
         });
@@ -5081,6 +5087,17 @@ export function SandboxGame({
           }
         });
         candyCruiser = null;
+      }
+      if (cell99Model) {
+        scene.remove(cell99Model);
+        cell99Model.traverse((object) => {
+          const mesh = object as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.geometry?.dispose();
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          materials.forEach((material) => material.dispose());
+        });
+        cell99Model = null;
       }
       world?.dispose();
       BmgoAudio.stopBgm();
