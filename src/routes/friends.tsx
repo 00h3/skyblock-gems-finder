@@ -200,7 +200,7 @@ function FriendsPage() {
                         type="button"
                         onClick={() => setRequestModal(r)}
                         disabled={accepting.has(r.id) || rejecting.has(r.id)}
-                        className="press px-3.5 h-8 rounded-[11px] bg-black text-white dark:bg-white dark:text-black text-[12px] font-normal flex items-center shadow-xs cursor-pointer"
+                        className="qb-squircle press relative px-3.5 h-8.5 shrink-0 flex items-center justify-center font-extrabold text-[12px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer"
                       >
                         Respond
                       </button>
@@ -286,7 +286,7 @@ function FriendsPage() {
                 type="button"
                 onClick={handleSendRequest}
                 disabled={!targetQuery.trim() || sendingFriend}
-                className="press w-full h-10 rounded-[12px] bg-black text-white dark:bg-white dark:text-black text-[13px] font-normal flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-xs"
+                className="qb-squircle press relative w-full h-10 flex items-center justify-center font-extrabold text-[13px] text-[#17191d] dark:text-white disabled:opacity-50 cursor-pointer active:scale-95 transition-transform select-none"
               >
                 {sendingFriend ? "Sending…" : "Add Friend"}
               </button>
@@ -356,19 +356,36 @@ function FriendsPage() {
             onClick={() => setRequestModal(null)}
           >
             <div
-              className="w-full max-w-sm rounded-[22px] bg-white dark:bg-neutral-950 p-5 shadow-2xl border border-black/10 dark:border-white/15 text-black dark:text-white relative animate-in zoom-in-95 duration-200 text-left"
+              className="w-full max-w-sm rounded-[24px] bg-white dark:bg-neutral-950 p-5 shadow-2xl border border-black/10 dark:border-white/15 text-black dark:text-white relative animate-in zoom-in-95 duration-200 text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-3">
-                <span className="inline-block rounded-full bg-neutral-100 dark:bg-neutral-900 px-3 py-0.5 text-[10px] font-normal text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                  Friend Request
-                </span>
-                <h2 className="mt-2 text-[18px] font-medium leading-tight">
-                  {requestModal.fromDisplayName ?? requestModal.from}
-                </h2>
-                {requestModal.fromUsername && (
-                  <p className="text-[12px] font-normal text-neutral-500">@{requestModal.fromUsername}</p>
-                )}
+              {/* Profile Picture (PFP) Header */}
+              <div className="flex items-center gap-3.5 mb-3.5">
+                <div
+                  className="relative h-14 w-14 shrink-0 rounded-[16px] overflow-hidden border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center"
+                  style={{ background: requestModal.fromColor ?? "#fa4616" }}
+                >
+                  <GlossyAvatar
+                    snapshot={requestModal.fromAvatar}
+                    frame={requestModal.fromAvatar?.frameId}
+                    portrait={requestModal.fromUsername?.toLowerCase() === "ira"}
+                    height={56}
+                    className="h-full w-full"
+                    autoRotate={false}
+                    focusZone="head"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block rounded-full bg-neutral-100 dark:bg-neutral-900 px-2.5 py-0.5 text-[9.5px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
+                    Friend Request
+                  </span>
+                  <h2 className="mt-1 text-[17px] font-black leading-tight text-[#17191d] dark:text-white truncate">
+                    {requestModal.fromDisplayName ?? requestModal.from}
+                  </h2>
+                  {requestModal.fromUsername && (
+                    <p className="text-[12px] font-bold text-neutral-500 truncate">@{requestModal.fromUsername}</p>
+                  )}
+                </div>
               </div>
 
               {requestModal.fromBio && (
@@ -377,12 +394,12 @@ function FriendsPage() {
                 </div>
               )}
 
-              <p className="text-[12.5px] font-normal leading-relaxed text-neutral-600 dark:text-neutral-300 mb-5">
+              <p className="text-[12.5px] font-medium leading-relaxed text-neutral-600 dark:text-neutral-300 mb-5">
                 Would you like to accept this friend request from{" "}
-                {requestModal.fromDisplayName ?? requestModal.from}?
+                <span className="font-bold text-[#17191d] dark:text-white">{requestModal.fromDisplayName ?? requestModal.from}</span>?
               </p>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-black/10 dark:border-white/10">
+              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-black/10 dark:border-white/10">
                 <button
                   type="button"
                   disabled={accepting.has(requestModal.id) || rejecting.has(requestModal.id)}
@@ -391,7 +408,7 @@ function FriendsPage() {
                     setRequestModal(null);
                     await handleReject(req);
                   }}
-                  className="press h-10 rounded-[12px] bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-normal text-[12.5px] flex items-center justify-center transition disabled:opacity-50 cursor-pointer"
+                  className="qb-squircle press relative h-10 px-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#5f646d] dark:text-[#9ea7b3] active:scale-95 transition-transform select-none cursor-pointer disabled:opacity-50"
                 >
                   Decline
                 </button>
@@ -404,7 +421,7 @@ function FriendsPage() {
                     setRequestModal(null);
                     await handleAccept(req);
                   }}
-                  className="press h-10 rounded-[12px] bg-black text-white dark:bg-white dark:text-black font-normal text-[12.5px] flex items-center justify-center transition disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="qb-squircle press relative h-10 px-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   Accept
                 </button>

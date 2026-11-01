@@ -623,7 +623,7 @@ export function ProfileSheet({
                         addingFriend ||
                         Boolean(friendError)
                       }
-                      className="press flex-1 py-3 rounded-[13px] bg-[#141414] hover:bg-[#252525] dark:bg-[#22242c] dark:hover:bg-[#2c2f38] text-white font-medium text-[12.5px] flex items-center justify-center shadow-none active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                      className="qb-squircle press relative flex-1 py-3 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none disabled:opacity-60 cursor-pointer"
                     >
                       {addingFriend
                         ? "Sending…"

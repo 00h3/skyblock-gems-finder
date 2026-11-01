@@ -41,11 +41,8 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
 
   const games = useMemo(() => {
     const activeTab = UPLOADED_DISCOVER_TABS[tab];
-    if (activeTab === "Party") return DISCOVERY_GAMES;
-    if (activeTab === "PvP")
-      return DISCOVERY_GAMES.filter((g) => g.id === "block-fall" || g.id === "bedwars");
-    if (activeTab === "Building") return DISCOVERY_GAMES.filter((g) => g.id === "skyblock");
-    if (activeTab === "Fantasy") return DISCOVERY_GAMES.filter((g) => g.id === "skyblock");
+    if (activeTab === "Sandbox") return DISCOVERY_GAMES.filter((g) => g.id === "baseplate");
+    if (activeTab === "Survival") return DISCOVERY_GAMES.filter((g) => g.id === "skyblock");
     return DISCOVERY_GAMES;
   }, [tab]);
 
@@ -209,82 +206,50 @@ export function DiscoveryPopup({ open, onClose, onSelectGame }: DiscoveryPopupPr
                   })}
                 </div>
               ) : (
-                /* List View — rectangles with game pfp & bio */
+                /* List View — rectangles with game pfp & bio, and glossy Play button */
                 <div className="flex flex-col gap-2.5">
-                  {games.map((game) => {
-                    const isLiked = liked.has(game.id);
-                    return (
-                      <div
-                        key={game.id}
-                        onClick={() => handleGameSelect(game)}
-                        className="press group relative flex items-center gap-3 p-2.5 rounded-[12px] bg-white border border-black/[0.08] shadow-[0_2px_6px_rgba(0,0,0,0.03)] active:scale-[0.99] transition-all cursor-pointer overflow-hidden select-none"
-                      >
-                        {/* Game pfp thumbnail */}
-                        <div className="relative h-[62px] w-[62px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] bg-slate-100">
-                          <img
-                            src={game.img}
-                            alt={game.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            draggable={false}
-                          />
-                          <div className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-20`} />
-                        </div>
+                  {games.map((game) => (
+                    <div
+                      key={game.id}
+                      onClick={() => handleGameSelect(game)}
+                      className="press group relative flex items-center gap-3 p-2.5 rounded-[12px] bg-white border border-black/[0.08] shadow-[0_2px_6px_rgba(0,0,0,0.03)] active:scale-[0.99] transition-all cursor-pointer overflow-hidden select-none"
+                    >
+                      {/* Game pfp thumbnail */}
+                      <div className="relative h-[60px] w-[60px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] bg-slate-100">
+                        <img
+                          src={game.img}
+                          alt={game.title}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          draggable={false}
+                        />
+                      </div>
 
-                        {/* Info: title, bio, stats */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <h3 className="truncate text-[13px] font-extrabold tracking-tight text-[#141414] leading-tight">
-                              {game.title}
-                            </h3>
-                          </div>
+                      {/* Info: title & bio only */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-center pr-1">
+                        <h3 className="truncate text-[13px] font-extrabold tracking-tight text-[#141414] leading-tight">
+                          {game.title}
+                        </h3>
+                        <p className="mt-0.5 text-[10.5px] font-medium text-[#6B7280] leading-snug line-clamp-2">
+                          {game.bio}
+                        </p>
+                      </div>
 
-                          {/* Bio */}
-                          <p className="mt-0.5 text-[10.5px] font-medium text-[#6B7280] leading-snug line-clamp-2">
-                            {game.bio}
-                          </p>
-
-                          {/* Online stats + likes */}
-                          <div className="mt-1 flex items-center gap-2.5 text-[9.5px] font-semibold text-[#8b929d]">
-                            <span className="flex items-center gap-1 text-emerald-600">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span className="font-extrabold">{game.players || "Online"}</span>
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <OrangeHeartIcon className="h-2.5 w-2.5 text-[#fa4616]" />
-                              <span>{game.likes}</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Like button */}
+                      {/* Play button with same glossiness as free */}
+                      <div className="shrink-0 flex items-center pl-1">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setLiked((current) => {
-                              const next = new Set(current);
-                              if (next.has(game.id)) {
-                                next.delete(game.id);
-                              } else {
-                                next.add(game.id);
-                              }
-                              return next;
-                            });
+                            handleGameSelect(game);
                           }}
-                          className="press grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-black/[0.05] active:scale-90 transition-transform"
-                          aria-label="Like game"
+                          className="qb-squircle press relative h-9 px-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] active:scale-95 transition-transform select-none cursor-pointer"
+                          aria-label={`Play ${game.title}`}
                         >
-                          <OrangeHeartIcon
-                            className={
-                              isLiked
-                                ? "h-[15px] w-[15px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
-                                : "h-[15px] w-[15px] opacity-30 grayscale"
-                            }
-                          />
+                          Play
                         </button>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
 

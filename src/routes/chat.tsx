@@ -290,8 +290,7 @@ function UserSearchCard({
             <button
               onClick={handleAdd}
               disabled={busy}
-              className="press flex-1 h-9 rounded-full text-[12px] font-extrabold flex items-center justify-center gap-1.5"
-              style={{ background: "linear-gradient(135deg,#4ECDC4,#45B7D1)", color: "#fff" }}
+              className="qb-squircle press relative flex-1 h-9 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center gap-1.5 text-[#17191d] dark:text-white cursor-pointer active:scale-95 transition-transform select-none"
             >
               <UserCheck className="h-3.5 w-3.5" />
               Accept
@@ -300,8 +299,7 @@ function UserSearchCard({
             <button
               onClick={handleAdd}
               disabled={busy}
-              className="press flex-1 h-9 rounded-full text-[12px] font-medium flex items-center justify-center disabled:opacity-60 cursor-pointer"
-              style={{ background: "linear-gradient(135deg,#ff8a68,#fa4616)", color: "#ffffff" }}
+              className="qb-squircle press relative flex-1 h-9 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center text-[#17191d] dark:text-white disabled:opacity-60 cursor-pointer active:scale-95 transition-transform select-none"
             >
               {busy ? "Sending…" : "Add Friend"}
             </button>

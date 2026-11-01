@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { GameSheet } from "@/components/GameSheet";
 import { MobileShell } from "@/components/MobileShell";
+import baseplateIcon from "@/assets/game-baseplate.jpg";
 
 export const Route = createFileRoute("/discover")({
   head: () => ({ meta: [{ title: "Discover — QBlock" }] }),
@@ -36,7 +37,7 @@ const GAMES: DiscoveryGame[] = [
     title: "SkyBlock",
     subtitle: "Classic floating island",
     bio: "Build and expand your floating island in the sky starting with just a tree and a chest.",
-    img: "https://file.garden/alGOOylwpAfCa6qP/D6BC2B36-05E8-4848-A785-5ED829AE5DF4.png",
+    img: baseplateIcon,
     hue: "from-sky-400 via-emerald-300 to-emerald-200",
     mode: "SkyBlock",
     modeColor: "#0284c7",
@@ -51,7 +52,7 @@ const GAMES: DiscoveryGame[] = [
     title: "Cell 99",
     subtitle: "Classic building canvas",
     bio: "Endless flat voxel terrain powered by the SkyBlock engine. Build, test, and explore freely in Cell 99.",
-    img: "https://file.garden/alGOOylwpAfCa6qP/4D6E015F-2895-4690-B88E-3C4DF82BCA7B.png",
+    img: baseplateIcon,
     hue: "from-emerald-400 via-teal-400 to-sky-300",
     mode: "Sandbox",
     modeColor: "#059669",
@@ -60,35 +61,6 @@ const GAMES: DiscoveryGame[] = [
     likes: "8.7K",
     badge: "NEW",
     popularity: 96,
-  },
-  {
-    id: "bedwars",
-    title: "BedWars",
-    subtitle: "Tactical Island Defense",
-    bio: "Protect your team bed and destroy enemy defenses across floating island arenas.",
-    img: "/banners/play-now.jpg",
-    hue: "from-red-500 via-amber-400 to-yellow-300",
-    mode: "PvP",
-    modeColor: "#e11d48",
-    mood: "popular",
-    players: "1.8K",
-    likes: "7.9K",
-    popularity: 92,
-  },
-  {
-    id: "block-fall",
-    title: "Block Fall",
-    subtitle: "Falling Voxel Arena",
-    bio: "Run, jump, and survive as blocks crumble under your feet. Don't fall into the abyss!",
-    img: "/banners/spleef.jpg",
-    hue: "from-purple-500 via-pink-400 to-rose-300",
-    mode: "Arcade",
-    modeColor: "#9333ea",
-    mood: "popular",
-    players: "940",
-    likes: "5.1K",
-    badge: "UPDATED",
-    popularity: 88,
   },
 ];
 
@@ -110,12 +82,10 @@ function UploadedDiscoverPage() {
   const games = useMemo(() => {
     const activeTab = UPLOADED_DISCOVER_TABS[tab];
     let list = GAMES;
-    if (activeTab === "Building") {
-      list = GAMES.filter((g) => g.id === "skyblock" || g.id === "baseplate");
-    } else if (activeTab === "Sandbox") {
+    if (activeTab === "Sandbox") {
       list = GAMES.filter((g) => g.id === "baseplate");
     } else if (activeTab === "Survival") {
-      list = GAMES.filter((g) => g.id === "skyblock" || g.id === "bedwars");
+      list = GAMES.filter((g) => g.id === "skyblock");
     }
 
     const q = searchQuery.trim().toLowerCase();
@@ -339,89 +309,54 @@ function UploadedDiscoverPage() {
               })}
             </div>
           ) : (
-            /* List View — horizontal sleek rectangle cards with game pfp & bio */
+            /* List View — horizontal sleek rectangle cards with game pfp & bio, and glossy Play button */
             <div className="flex flex-col gap-2.5">
-              {games.map((game) => {
-                const isLiked = liked.has(game.id);
-                return (
-                  <div
-                    key={game.id}
-                    onClick={() => setOpen(game)}
-                    className="press group relative flex items-center gap-3.5 p-3 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.99] transition-all cursor-pointer overflow-hidden select-none"
-                  >
-                    {/* Game pfp thumbnail — squary squircle */}
-                    <div className="relative h-[68px] w-[68px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] dark:border-white/10 bg-slate-900/5 dark:bg-white/5">
-                      <img
-                        src={game.img}
-                        alt={game.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        draggable={false}
-                      />
-                      <div className={`absolute inset-0 bg-gradient-to-br ${game.hue} opacity-15 pointer-events-none`} />
-                      {game.badge && (
-                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-[5px] bg-[#fa4616] text-white text-[8px] font-black uppercase tracking-wider leading-none shadow-xs">
-                          {game.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Game Details: Title, Bio & Stats */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="truncate text-[13.5px] font-extrabold tracking-tight text-[#1A1D20] dark:text-white leading-tight">
-                          {game.title}
-                        </h3>
-                      </div>
-
-                      {/* Bio */}
-                      <p className="mt-1 text-[11px] font-medium text-[#6B7280] dark:text-[#9ea7b3] leading-snug line-clamp-2">
-                        {game.bio}
-                      </p>
-
-                      {/* Online stats + likes */}
-                      <div className="mt-1.5 flex items-center gap-3 text-[10px] font-semibold text-[#8b929d]">
-                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="font-extrabold">{game.players} online</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <OrangeHeartIcon className="h-3 w-3 text-[#fa4616]" />
-                          <span>{game.likes}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Like button */}
-                    <div className="shrink-0 flex items-center gap-1 pl-1">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLiked((current) => {
-                            const next = new Set(current);
-                            if (next.has(game.id)) {
-                              next.delete(game.id);
-                            } else {
-                              next.add(game.id);
-                            }
-                            return next;
-                          });
-                        }}
-                        className="press grid h-8 w-8 place-items-center rounded-full hover:bg-black/[0.05] dark:hover:bg-white/10 active:scale-90 transition-transform"
-                        aria-label="Like game"
-                      >
-                        <OrangeHeartIcon
-                          className={
-                            isLiked
-                              ? "h-[16px] w-[16px] filter drop-shadow-[0_1px_3px_rgba(250,70,22,0.4)]"
-                              : "h-[16px] w-[16px] opacity-30 grayscale"
-                          }
-                        />
-                      </button>
-                    </div>
+              {games.map((game) => (
+                <div
+                  key={game.id}
+                  onClick={() => setOpen(game)}
+                  className="press group relative flex items-center gap-3.5 p-3 rounded-[14px] bg-white dark:bg-[#15171c] border border-black/[0.08] dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.99] transition-all cursor-pointer overflow-hidden select-none"
+                >
+                  {/* Game pfp thumbnail — squary squircle */}
+                  <div className="relative h-[64px] w-[64px] shrink-0 rounded-[10px] overflow-hidden border border-black/[0.08] dark:border-white/10 bg-slate-900/5 dark:bg-white/5">
+                    <img
+                      src={game.img}
+                      alt={game.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      draggable={false}
+                    />
                   </div>
-                );
-              })}
+
+                  {/* Game Details: Title & Bio only */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center pr-1">
+                    <h3 className="truncate text-[13.5px] font-extrabold tracking-tight text-[#1A1D20] dark:text-white leading-tight">
+                      {game.title}
+                    </h3>
+                    <p className="mt-1 text-[11px] font-medium text-[#6B7280] dark:text-[#9ea7b3] leading-snug line-clamp-2">
+                      {game.bio}
+                    </p>
+                  </div>
+
+                  {/* Play button with the exact same glossiness as Free */}
+                  <div className="shrink-0 flex items-center pl-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (game.id === "skyblock") {
+                          navigate({ to: "/game/sandbox", search: { mode: "skyblock" } as never });
+                        } else {
+                          navigate({ to: "/game/sandbox", search: { mode: "baseplate" } as never });
+                        }
+                      }}
+                      className="qb-squircle press relative h-9 px-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer"
+                      aria-label={`Play ${game.title}`}
+                    >
+                      Play
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

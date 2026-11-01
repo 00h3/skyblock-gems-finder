@@ -11,6 +11,7 @@ import {
   subscribeIncomingRequests,
   type FriendRequest,
 } from "@/lib/friends-utils";
+import { GlossyAvatar } from "@/components/GlossyAvatar";
 import { collection, query, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -226,29 +227,46 @@ function NotificationsPage() {
                 {requests.map((request) => (
                   <div
                     key={request.id}
-                    className="p-3 rounded-[15px] border border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#16181f] flex items-center justify-between gap-2.5 shadow-xs"
+                    className="p-3 rounded-[16px] border border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#16181f] flex items-center justify-between gap-3 shadow-xs"
                   >
+                    {/* Squircle PFP */}
+                    <div
+                      className="relative h-11 w-11 shrink-0 rounded-[12px] overflow-hidden border border-black/10 dark:border-white/10 shadow-xs flex items-center justify-center bg-slate-100"
+                      style={{ background: request.fromColor ?? "#fa4616" }}
+                    >
+                      <GlossyAvatar
+                        snapshot={request.fromAvatar}
+                        frame={request.fromAvatar?.frameId}
+                        portrait={request.fromUsername?.toLowerCase() === "ira"}
+                        height={44}
+                        className="h-full w-full"
+                        autoRotate={false}
+                        focusZone="head"
+                      />
+                    </div>
+
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-black text-slate-900 dark:text-white truncate">
                         {request.fromDisplayName || request.fromUsername || "Player"}
                       </div>
                       <div className="text-[11px] font-medium text-slate-500 truncate">
-                        @{request.fromUsername || "user"} • Sent you a friend request
+                        @{request.fromUsername || "user"} • Friend request
                       </div>
                     </div>
 
+                    {/* Action buttons with same glossiness as Free */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => updateRequest(request.id, "accept")}
                         disabled={busyId === request.id}
-                        className="press h-8 px-3 rounded-[10px] bg-[#fa4616] text-white flex items-center gap-1 text-[11.5px] font-black shadow-xs active:scale-95 disabled:opacity-50"
+                        className="qb-squircle press relative h-8 px-3 shrink-0 flex items-center gap-1 font-extrabold text-[12px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer disabled:opacity-50"
                       >
                         {busyId === request.id ? (
                           <RefreshCw className="h-3 w-3 animate-spin" />
                         ) : (
                           <>
-                            <Check className="h-3.5 w-3.5 stroke-[3]" />
+                            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
                             <span>Accept</span>
                           </>
                         )}
@@ -257,7 +275,7 @@ function NotificationsPage() {
                         type="button"
                         onClick={() => updateRequest(request.id, "reject")}
                         disabled={busyId === request.id}
-                        className="press h-8 w-8 rounded-[10px] bg-slate-100 dark:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 grid place-items-center disabled:opacity-50"
+                        className="qb-squircle press relative h-8 w-8 shrink-0 grid place-items-center text-[#5f646d] dark:text-[#9ea7b3] active:scale-95 transition-transform select-none cursor-pointer disabled:opacity-50"
                         aria-label="Decline request"
                       >
                         <X className="h-3.5 w-3.5" />
