@@ -3181,10 +3181,10 @@ export function SandboxGame({
           })
         : null;
 
-      // Load Golden Forger model for the 3 bosses
+      // The three mining-area mobs use the skeleton model; the dragon has its own loader below.
       const bossLoader = new GLTFLoader();
       bossLoader.load(
-        "https://file.garden/alGOOylwpAfCa6qP/Qblock2/golden_forger.glb",
+        "/skeleton.glb",
         (gltf) => {
           if (disposed) return;
           const templateScene = gltf.scene;
@@ -4577,7 +4577,7 @@ export function SandboxGame({
           setNearChest(false);
         }
 
-        // ── Block Fall Mechanics ───────────────────────────────────────────
+        // ── Block Fall Mechanics ────────────────────��──────────────────────
         if (blockFall && world) {
           if (match.canMove) {
             // 1. Detect player foot on platform blocks
