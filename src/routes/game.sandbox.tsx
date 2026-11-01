@@ -2953,7 +2953,7 @@ export function SandboxGame({
         });
       };
 
-      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ──
+      // ── 3 Golden Forger Boss NPCs (BOSS_001 首领) ─���
       interface BossEnemy {
         id: number;
         group: THREE.Group;
@@ -5489,7 +5489,7 @@ export function SandboxGame({
 
       {/* ── FLOATING TOP BAR (Filled Icons + Translucent Login / Sign Up) ── */}
       {ready && !skyblock && !blockFall && !bedwars && !baseplate && (
-        <header className="fixed top-[max(12px,calc(env(safe-area-inset-top)+8px))] inset-x-3 z-[95] pointer-events-none flex items-center justify-between">
+        <header className="fixed top-[max(12px,calc(env(safe-area-inset-top)+8px))] inset-x-3 z-[200] pointer-events-none flex items-center justify-between">
           {/* Top-Left: Sleek Translucent Controls with Filled Icons */}
           <div className="pointer-events-auto flex items-center gap-2">
             <div className="flex items-center gap-1 p-1 rounded-2xl bg-black/45 backdrop-blur-xl border border-white/15 shadow-[0_6px_24px_rgba(0,0,0,0.35)] text-white">

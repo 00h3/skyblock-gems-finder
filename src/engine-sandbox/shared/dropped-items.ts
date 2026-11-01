@@ -264,7 +264,8 @@ export class DroppedItemManager {
     item.mesh.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const m = child as THREE.Mesh;
-        m.geometry?.dispose();
+        // cubeGeo and itemGeo are shared static geometries. Disposing them here
+        // breaks every later drop because Three.js meshes reuse the same buffers.
         if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
         else m.material?.dispose();
       }
