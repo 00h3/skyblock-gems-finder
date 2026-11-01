@@ -96,8 +96,15 @@ const REWARD_TEXTURE_MAP: Record<string, string> = {
   "gold-bracelet": "/textures/blocks/gold_block.png",
 };
 
+const RARITY: Record<string, { label: string; color: string }> = {
+  common: { label: "Common", color: "#6b7280" },
+  rare: { label: "Rare", color: "#2563eb" },
+  epic: { label: "Epic", color: "#9333ea" },
+  legend: { label: "Legendary", color: "#eab308" },
+};
+
 export function ChestRewardModal({ reward, onClose }: { reward: Reward; onClose: () => void }) {
-  const rarity = RARITY[reward.rarity];
+  const rarity = (reward && reward.rarity && RARITY[reward.rarity]) || RARITY.common;
   const itemTexture =
     reward.kind === "weapon"
       ? "/items/diamond_axe.png"

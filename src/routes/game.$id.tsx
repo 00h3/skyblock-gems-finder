@@ -371,11 +371,14 @@ export function getBlockIcon(name: string, color: number): string {
   if (typeof document === "undefined") return "";
   const cached = _blockIconCache[name];
   if (cached) return cached;
-  const S = 64;
-  const c = document.createElement("canvas");
-  c.width = c.height = S;
-  const ctx = c.getContext("2d")!;
-  const hex = `#${color.toString(16).padStart(6, "0")}`;
+  try {
+    const S = 64;
+    const c = document.createElement("canvas");
+    if (!c) return "";
+    c.width = c.height = S;
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    const hex = `#${color.toString(16).padStart(6, "0")}`;
 
   const shade = (h: string, amt: number) => {
     const n = parseInt(h.slice(1), 16);
@@ -584,39 +587,48 @@ export function getBlockIcon(name: string, color: number): string {
   const url = c.toDataURL();
   _blockIconCache[name] = url;
   return url;
+  } catch {
+    return "";
+  }
 }
 
 export function getShovelIcon(tint: string): string {
   if (typeof document === "undefined") return "";
   const cached = _shovelIconCache[tint];
   if (cached) return cached;
-  const S = 32;
-  const c = document.createElement("canvas");
-  c.width = c.height = S;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, S, S);
-  ctx.save();
-  ctx.translate(S / 2, S / 2);
-  ctx.rotate(-0.55);
-  // Handle
-  ctx.fillStyle = "#8b6a3f";
-  ctx.fillRect(-2, -13, 4, 18);
-  // Blade
-  ctx.fillStyle = tint;
-  ctx.beginPath();
-  ctx.moveTo(-6, 3);
-  ctx.lineTo(6, 3);
-  ctx.lineTo(4, 13);
-  ctx.lineTo(-4, 13);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.restore();
-  const url = c.toDataURL();
-  _shovelIconCache[tint] = url;
-  return url;
+  try {
+    const S = 32;
+    const c = document.createElement("canvas");
+    if (!c) return "";
+    c.width = c.height = S;
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    ctx.clearRect(0, 0, S, S);
+    ctx.save();
+    ctx.translate(S / 2, S / 2);
+    ctx.rotate(-0.55);
+    // Handle
+    ctx.fillStyle = "#8b6a3f";
+    ctx.fillRect(-2, -13, 4, 18);
+    // Blade
+    ctx.fillStyle = tint;
+    ctx.beginPath();
+    ctx.moveTo(-6, 3);
+    ctx.lineTo(6, 3);
+    ctx.lineTo(4, 13);
+    ctx.lineTo(-4, 13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    const url = c.toDataURL();
+    _shovelIconCache[tint] = url;
+    return url;
+  } catch {
+    return "";
+  }
 }
 
 // Procedural progressive break crack textures (10 distinct stages)

@@ -15,83 +15,85 @@ export interface ChestItem {
   isTool?: boolean;
 }
 
-const DEFAULT_CHEST_ITEMS: (ChestItem | null)[] = [
-  {
-    id: "water_bucket",
-    name: "Water Bucket",
-    count: 2,
-    icon: getBlockIcon("water", 0x2288ff),
-    blockType: 6,
-  },
-  {
-    id: "lava_bucket",
-    name: "Lava Bucket",
-    count: 1,
-    icon: getBlockIcon("lava", 0xff4500),
-    blockType: 20,
-  },
-  {
-    id: "oak_sapling",
-    name: "Oak Sapling",
-    count: 6,
-    icon: getBlockIcon("oak leaves", 0x3f8f3a),
-    blockType: 5,
-  },
-  {
-    id: "ice_block",
-    name: "Packed Ice",
-    count: 4,
-    icon: getBlockIcon("ice", 0xbde4f5),
-    blockType: 17,
-  },
-  { id: "bone_meal", name: "Bone Meal", count: 16, icon: getBlockIcon("white wool", 0xeeeeee) },
-  { id: "sugar_cane", name: "Sugar Cane", count: 3, icon: getBlockIcon("slime block", 0x7bd63a) },
-  {
-    id: "diamond_shovel",
-    name: "Diamond Shovel",
-    count: 1,
-    icon: getShovelIcon("#5be6e0"),
-    isTool: true,
-  },
-  {
-    id: "bread",
-    name: "Fresh Bread",
-    count: 12,
-    icon: getBlockIcon("hay block", 0xd4b820),
-    blockType: 48,
-  },
-  {
-    id: "iron_ingot",
-    name: "Iron Ingot",
-    count: 8,
-    icon: getBlockIcon("iron block", 0xd8dde0),
-    blockType: 32,
-  },
-  {
-    id: "cobble",
-    name: "Cobblestone",
-    count: 64,
-    icon: getBlockIcon("cobblestone", 0x9a9aa0),
-    blockType: 15,
-  },
-  { id: "oak_log", name: "Oak Log", count: 32, icon: getBlockIcon("wood", 0x8b5a2b), blockType: 3 },
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-];
+function getDefaultChestItems(): (ChestItem | null)[] {
+  return [
+    {
+      id: "water_bucket",
+      name: "Water Bucket",
+      count: 2,
+      icon: getBlockIcon("water", 0x2288ff) || "/textures/blocks/water_still.png",
+      blockType: 6,
+    },
+    {
+      id: "lava_bucket",
+      name: "Lava Bucket",
+      count: 1,
+      icon: getBlockIcon("lava", 0xff4500) || "/textures/blocks/lava_still.png",
+      blockType: 20,
+    },
+    {
+      id: "oak_sapling",
+      name: "Oak Sapling",
+      count: 6,
+      icon: getBlockIcon("oak leaves", 0x3f8f3a) || "/textures/blocks/oak_leaves.png",
+      blockType: 5,
+    },
+    {
+      id: "ice_block",
+      name: "Packed Ice",
+      count: 4,
+      icon: getBlockIcon("ice", 0xbde4f5) || "/textures/blocks/packed_ice.png",
+      blockType: 17,
+    },
+    { id: "bone_meal", name: "Bone Meal", count: 16, icon: getBlockIcon("white wool", 0xeeeeee) || "/textures/blocks/white_wool.png" },
+    { id: "sugar_cane", name: "Sugar Cane", count: 3, icon: getBlockIcon("slime block", 0x7bd63a) || "/textures/blocks/slime_block.png" },
+    {
+      id: "diamond_shovel",
+      name: "Diamond Shovel",
+      count: 1,
+      icon: getShovelIcon("#5be6e0") || "/short-sword.svg",
+      isTool: true,
+    },
+    {
+      id: "bread",
+      name: "Fresh Bread",
+      count: 12,
+      icon: getBlockIcon("hay block", 0xd4b820) || "/textures/blocks/hay_block_top.png",
+      blockType: 48,
+    },
+    {
+      id: "iron_ingot",
+      name: "Iron Ingot",
+      count: 8,
+      icon: getBlockIcon("iron block", 0xd8dde0) || "/textures/blocks/iron_block.png",
+      blockType: 32,
+    },
+    {
+      id: "cobble",
+      name: "Cobblestone",
+      count: 64,
+      icon: getBlockIcon("cobblestone", 0x9a9aa0) || "/textures/blocks/cobblestone.png",
+      blockType: 15,
+    },
+    { id: "oak_log", name: "Oak Log", count: 32, icon: getBlockIcon("wood", 0x8b5a2b) || "/textures/blocks/oak_log.png", blockType: 3 },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ];
+}
 
 export function ChestModal({
   onClose,
@@ -100,7 +102,7 @@ export function ChestModal({
   onClose: () => void;
   onTakeItem?: (item: ChestItem) => void;
 }) {
-  const [chestSlots, setChestSlots] = useState<(ChestItem | null)[]>(DEFAULT_CHEST_ITEMS);
+  const [chestSlots, setChestSlots] = useState<(ChestItem | null)[]>(() => getDefaultChestItems());
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
