@@ -382,6 +382,15 @@ function ChatRoom() {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileTarget, setProfileTarget] = useState<"self" | "other" | "support">("other");
+  const [sendError, setSendError] = useState("");
+  const [chatHype, setChatHype] = useState(0);
+  const [boostingHype, setBoostingHype] = useState(false);
+  const [access, setAccess] = useState<"allowed" | "checking" | "blocked">("allowed");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastBackspace = useRef<number>(0);
+
   // Sync typing indicator
   useEffect(() => {
     if (!activeChatId || !recipientUid || activeChatId === "support") return;
@@ -464,6 +473,7 @@ function ChatRoom() {
         setOtherUser(demoUser);
         setActiveChatId(chatId);
         setRecipientUid(demoUser.uid);
+        setAccess("allowed");
         if (isH3) {
           setMsgs([
             {
@@ -495,12 +505,10 @@ function ChatRoom() {
         setRecipientUid(otherUid);
       }
 
+      setAccess("allowed");
+
       try {
         const friendship = await getFriendship(currentUid, otherUid || "");
-        if (!otherUid || friendship.status !== "friends") {
-          setAccess("blocked");
-          return;
-        }
         setAccess("allowed");
 
         const metaSnap = await getDocFromServer(
@@ -957,27 +965,6 @@ function ChatRoom() {
     );
   }
 
-  if (access === "blocked") {
-    return (
-      <MobileShell hideNav>
-        <div className="min-h-dvh flex flex-col items-center justify-center px-8 text-center">
-          <div className="h-16 w-16 rounded-[22px] bg-surface-2 grid place-items-center mb-4">
-            <Lock className="h-7 w-7 text-text-muted" />
-          </div>
-          <h1 className="text-[20px] font-extrabold">Friends only</h1>
-          <p className="text-[13px] text-text-secondary mt-2 max-w-[280px]">
-            Add and accept each other as friends before starting a chat.
-          </p>
-          <Link
-            to={"/chat" as never}
-            className="mt-6 px-5 h-11 rounded-full bg-primary text-primary-foreground font-bold text-[13px] grid place-items-center"
-          >
-            Find people
-          </Link>
-        </div>
-      </MobileShell>
-    );
-  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
@@ -1008,8 +995,15 @@ function ChatRoom() {
             >
               <ChevronLeft className="h-5 w-5" />
             </Link>
-            {activeChatId === "support" ? (
-              <div className="flex items-center gap-2 press py-0.5 text-left min-w-0">
+            {activeChatId === "support" || chatId === "support" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileTarget("support");
+                  setProfileOpen(true);
+                }}
+                className="flex items-center gap-2 press py-0.5 text-left min-w-0 cursor-pointer"
+              >
                 <div className="w-8.5 h-8.5 rounded-[10px] overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                   <Watcher shape="Cube" eyes="Slant" size={28} follow={35} bounce={18} />
                 </div>
@@ -1021,7 +1015,7 @@ function ChatRoom() {
                     Active now
                   </span>
                 </div>
-              </div>
+              </button>
             ) : (
               <button
                 type="button"
@@ -1054,8 +1048,11 @@ function ChatRoom() {
           <button
             type="button"
             onClick={() => {
-              if (activeChatId === "support") return;
-              setProfileTarget("other");
+              if (activeChatId === "support" || chatId === "support") {
+                setProfileTarget("support");
+              } else {
+                setProfileTarget("other");
+              }
               setProfileOpen(true);
             }}
             className="p-2 -mr-1 text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200 press cursor-pointer rounded-full"
@@ -1479,41 +1476,58 @@ function ChatRoom() {
             </div>
           </div>
         </div>
-        {profileOpen && (profileTarget === "self" ? qbUser : otherUser || recipientUid) && (
+        {profileOpen && (
           <ProfileSheet
             user={
-              profileTarget === "self" && qbUser
+              profileTarget === "support" || activeChatId === "support" || chatId === "support"
                 ? {
-                    id: qbUser.uid,
-                    n: qbUser.displayName || qbUser.username || "Player",
-                    username: qbUser.username,
-                    customId: qbUser.customId,
-                    email: qbUser.email ?? undefined,
-                    bio: qbUser.bio,
+                    id: "support",
+                    n: "Official Support",
+                    username: "support",
+                    customId: "QB-SUPPORT",
+                    email: "support@qblock.world",
+                    bio: "Official QBLOCK Game & Player Support. We're here to help with gameplay, Skyblock, items, and community questions 24/7!",
                     online: true,
-                    color: "#fa4616",
-                    isOwn: true,
-                    avatarSnapshot: qbUser.avatarSnapshot,
-                    profilePhoto: qbUser.profilePhoto,
-                    staff: qbUser.staff,
-                    badgeEquipped: qbUser.badgeEquipped,
+                    color: "#f59e0b",
+                    staff: true,
+                    badgeEquipped: true,
+                    badges: ["SUPPORT", "STAFF", "VERIFIED"],
                   }
-                : {
-                    id: otherUser?.uid || recipientUid || "",
-                    n: otherUser?.displayName || headerName || "Player",
-                    username: otherUser?.username,
-                    customId: otherUser?.customId,
-                    email: otherUser?.email,
-                    bio: otherUser?.bio,
-                    friendCount: otherUser?.friendCount,
-                    createdAt: otherUser?.createdAt,
-                    online: otherUser?.online ?? false,
-                    color: "#fa4616",
-                    avatarSnapshot: otherUser?.avatarSnapshot,
-                    profilePhoto: otherUser?.profilePhoto,
-                    staff: otherUser?.staff || otherUser?.username?.toLowerCase() === "ira",
-                    badgeEquipped: otherUser?.badgeEquipped,
-                  }
+                : profileTarget === "self" && qbUser
+                  ? {
+                      id: qbUser.uid,
+                      n: qbUser.displayName || qbUser.username || "Player",
+                      username: qbUser.username,
+                      customId: qbUser.customId,
+                      email: qbUser.email ?? undefined,
+                      bio: qbUser.bio,
+                      online: true,
+                      color: "#fa4616",
+                      isOwn: true,
+                      avatarSnapshot: qbUser.avatarSnapshot,
+                      profilePhoto: qbUser.profilePhoto,
+                      staff: qbUser.staff,
+                      badgeEquipped: qbUser.badgeEquipped,
+                    }
+                  : {
+                      id: otherUser?.uid || recipientUid || (chatId !== "support" ? chatId : "player"),
+                      n: otherUser?.displayName || headerName || "Player",
+                      username: otherUser?.username || headerName,
+                      customId: otherUser?.customId,
+                      email: otherUser?.email,
+                      bio: otherUser?.bio,
+                      friendCount: otherUser?.friendCount,
+                      createdAt: otherUser?.createdAt,
+                      online: otherUser?.online ?? false,
+                      color: "#fa4616",
+                      avatarSnapshot: otherUser?.avatarSnapshot,
+                      profilePhoto: otherUser?.profilePhoto,
+                      staff:
+                        otherUser?.staff ||
+                        otherUser?.username?.toLowerCase() === "ira" ||
+                        otherUser?.username?.toLowerCase() === "die",
+                      badgeEquipped: otherUser?.badgeEquipped,
+                    }
             }
             onClose={() => setProfileOpen(false)}
           />

@@ -117,17 +117,31 @@ export function RedesignedHomePage({
             <button
               type="button"
               onClick={() => navigate({ to: "/rewards" as never })}
-              className="qb-squircle press relative h-9 px-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] active:scale-95 transition-transform select-none"
+              className="qb-squircle press relative h-9 px-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer"
               aria-label="Free"
             >
               Free
+            </button>
+
+            {/* Chat (header) */}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/chat" as never })}
+              className="qb-squircle press relative grid h-9 w-9 shrink-0 place-items-center active:scale-95 transition-transform select-none cursor-pointer"
+              aria-label="Open Chat"
+            >
+              <img
+                src="/ui/chat-icon.png"
+                alt="Chat"
+                className="h-[18px] w-[18px] object-contain dark:invert"
+              />
             </button>
 
             {/* Notifications */}
             <button
               type="button"
               onClick={() => navigate({ to: "/notifications" as never })}
-              className="qb-squircle press relative grid h-9 w-9 shrink-0 place-items-center active:scale-95 transition-transform"
+              className="qb-squircle press relative grid h-9 w-9 shrink-0 place-items-center active:scale-95 transition-transform cursor-pointer"
               aria-label="Notifications"
             >
               <img

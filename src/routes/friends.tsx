@@ -287,7 +287,7 @@ function FriendsPage() {
                           type="button"
                           onClick={() => handleUnfriend(targetUid, f.displayName || f.username)}
                           disabled={isRemoving}
-                          className="px-2.5 py-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-[10px] press transition-colors cursor-pointer disabled:opacity-50"
+                          className="qb-squircle press relative h-8 px-3 shrink-0 flex items-center justify-center font-extrabold text-[11.5px] text-[#e11d48] active:scale-95 transition-transform select-none cursor-pointer disabled:opacity-50"
                         >
                           {isRemoving ? "Removing…" : "Unfriend"}
                         </button>

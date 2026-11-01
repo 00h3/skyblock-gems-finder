@@ -276,23 +276,20 @@ function UserSearchCard({
           {isFriend ? (
             <button
               onClick={onMessage}
-              className="press flex-1 h-9 rounded-full bg-primary text-primary-foreground text-[12px] font-extrabold flex items-center justify-center gap-1.5"
+              className="qb-squircle press relative flex-1 h-9 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center text-[#17191d] dark:text-white cursor-pointer active:scale-95 transition-transform select-none"
             >
-              <MessageCircle className="h-3.5 w-3.5" />
               Message
             </button>
           ) : isSent ? (
-            <div className="flex-1 h-9 rounded-full bg-surface-2 border border-border-soft text-[12px] font-semibold text-text-muted flex items-center justify-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
+            <div className="qb-squircle relative flex-1 h-9 rounded-[14px] text-[12px] font-semibold text-text-muted flex items-center justify-center select-none">
               Request sent
             </div>
           ) : isReceived ? (
             <button
               onClick={handleAdd}
               disabled={busy}
-              className="qb-squircle press relative flex-1 h-9 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center gap-1.5 text-[#17191d] dark:text-white cursor-pointer active:scale-95 transition-transform select-none"
+              className="qb-squircle press relative flex-1 h-9 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center text-[#17191d] dark:text-white cursor-pointer active:scale-95 transition-transform select-none"
             >
-              <UserCheck className="h-3.5 w-3.5" />
               Accept
             </button>
           ) : (
@@ -591,14 +588,20 @@ function ChatList() {
       nav({ to: "/chat/$id" as never, params: { id: chatId } as never });
       return;
     }
-    if (!qbUser) return;
+    if (!qbUser) {
+      closeSearch();
+      nav({ to: "/chat/$id" as never, params: { id: otherUid || "support" } as never });
+      return;
+    }
     try {
       const cid = await ensureChatMeta(qbUser.uid, otherUid);
       closeSearch();
       nav({ to: "/chat/$id" as never, params: { id: cid } as never });
     } catch (err) {
-      console.error("Could not open chat:", err);
-      showToast("Couldn’t open chat yet — accept each other as friends first.");
+      console.warn("Using direct friendshipId route fallback:", err);
+      const fallbackCid = friendshipId(qbUser.uid, otherUid);
+      closeSearch();
+      nav({ to: "/chat/$id" as never, params: { id: fallbackCid } as never });
     }
   }
 

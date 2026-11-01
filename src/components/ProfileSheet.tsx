@@ -337,15 +337,26 @@ export function ProfileSheet({
       onChat();
       return;
     }
-    if (!qbUser || !user.id) return;
+    if (user.id === "support" || user.id?.toLowerCase() === "support") {
+      onClose();
+      navigate({ to: "/chat_/$id" as never, params: { id: "support" } as never });
+      return;
+    }
+    if (!qbUser) {
+      onClose();
+      navigate({ to: "/chat_/$id" as never, params: { id: user.id || "support" } as never });
+      return;
+    }
+    if (!user.id) return;
     try {
       const chatId = await ensureChatMeta(qbUser.uid, user.id);
       onClose();
-      navigate({ to: "/chat/$id" as never, params: { id: chatId } as never });
+      navigate({ to: "/chat_/$id" as never, params: { id: chatId } as never });
     } catch (err) {
-      console.error("Could not open chat from profile sheet:", err);
+      console.warn("Could not ensureChatMeta from profile sheet, falling back to direct chat:", err);
       onClose();
-      navigate({ to: "/chat/$id" as never, params: { id: user.id } as never });
+      const fallbackChatId = friendshipId(qbUser.uid, user.id);
+      navigate({ to: "/chat_/$id" as never, params: { id: fallbackChatId } as never });
     }
   }
 
@@ -633,26 +644,24 @@ export function ProfileSheet({
                 <>
                   <div className="flex items-center gap-2">
                     {friendStatus === "friends" ? (
-                      <ShinyButton
+                      <button
                         type="button"
-                        variant="red"
                         onClick={handleUnfriend}
                         disabled={addingFriend}
-                        className="h-11 px-4 text-[13px] shrink-0"
+                        className="qb-squircle press relative h-10 px-4 shrink-0 flex items-center justify-center font-extrabold text-[12.5px] text-[#e11d48] active:scale-95 transition-transform select-none cursor-pointer disabled:opacity-50"
                       >
                         {addingFriend ? "Removing…" : "Unfriend"}
-                      </ShinyButton>
+                      </button>
                     ) : (
-                      <ShinyButton
+                      <button
                         type="button"
-                        variant="orange"
                         onClick={handleAddFriend}
                         disabled={
                           friendStatus === "sent" ||
                           addingFriend ||
                           Boolean(friendError)
                         }
-                        className="h-11 flex-1 text-[13px]"
+                        className="qb-squircle press relative h-10 px-4 flex-1 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer disabled:opacity-50"
                       >
                         {addingFriend
                           ? "Sending…"
@@ -661,18 +670,16 @@ export function ProfileSheet({
                             : friendStatus === "sent"
                               ? "Requested"
                               : "Add friend"}
-                      </ShinyButton>
+                      </button>
                     )}
-                    <ShinyButton
+                    <button
                       type="button"
-                      variant="orange"
                       onClick={handleMessageClick}
-                      className="h-11 flex-1 text-[13px]"
+                      className="qb-squircle press relative h-10 px-4 flex-1 flex items-center justify-center font-extrabold text-[12.5px] text-[#17191d] dark:text-white active:scale-95 transition-transform select-none cursor-pointer"
                       title="Open conversation"
                     >
-                      <MessageSquare className="h-4 w-4 text-white shrink-0" />
-                      <span>Message</span>
-                    </ShinyButton>
+                      Message
+                    </button>
                   </div>
                   {(friendError || profileError) && (
                     <p
