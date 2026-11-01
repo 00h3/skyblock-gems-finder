@@ -372,6 +372,8 @@ export function ProfileSheet({
                   isIra: isIraUser(user),
                   isStr: isStrUser(user),
                   isH3: isH3User(user),
+                  shirt: user.avatarSnapshot?.shopEquipped?.shirt,
+                  pants: user.avatarSnapshot?.shopEquipped?.pants,
                 })}
                 className="w-full h-full border-0 absolute inset-0 bg-transparent"
                 style={{ border: "none" }}
@@ -505,9 +507,6 @@ export function ProfileSheet({
                         "SkyBlock",
                         "Island Survival",
                         "Voxel Baseplate",
-                        "Level 24",
-                        "1,240 Coins",
-                        "36 Gems",
                       ]}
                       label={name || "Player"}
                       sublabel="Game Data"
@@ -531,10 +530,6 @@ export function ProfileSheet({
 
                   {/* Connected Game Data Cards: Cell 99, SkyBlock */}
                   <div className="space-y-2.5">
-                    <h3 className="text-[12px] font-black uppercase tracking-wider text-[#6B7280] dark:text-slate-400 px-1">
-                      Featured Worlds
-                    </h3>
-
                     {/* Cell 99 Card */}
                     <div className="rounded-[16px] p-3.5 border border-black/8 dark:border-white/10 bg-white dark:bg-[#1a1c24] flex items-center justify-between gap-3 shadow-xs">
                       <div className="flex items-center gap-3 min-w-0">
@@ -587,22 +582,6 @@ export function ProfileSheet({
                       >
                         Play
                       </button>
-                    </div>
-
-                    {/* Stats summary row */}
-                    <div className="grid grid-cols-3 gap-2 pt-1">
-                      <div className="rounded-[14px] p-2.5 bg-slate-100 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Level</div>
-                        <div className="text-[15px] font-black text-[#1A1D20] dark:text-white">24</div>
-                      </div>
-                      <div className="rounded-[14px] p-2.5 bg-slate-100 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Coins</div>
-                        <div className="text-[15px] font-black text-amber-500">1,240</div>
-                      </div>
-                      <div className="rounded-[14px] p-2.5 bg-slate-100 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gems</div>
-                        <div className="text-[15px] font-black text-sky-500">36</div>
-                      </div>
                     </div>
                   </div>
                 </div>

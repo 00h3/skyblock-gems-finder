@@ -143,13 +143,25 @@ export function AvatarShowcase({
     }
   }, [qbUser?.avatarSnapshot?.selectedCharacter]);
 
-  const handleSelectChar = (id: AvatarCharacterId) => {
+  const handleSelectChar = async (id: AvatarCharacterId) => {
     if (id === selectedChar) return;
     setSelectedChar(id);
     const isFemale = id === "char2";
     setGender(isFemale ? "female" : "male");
     setBaseCharacter(id);
     const charObj = AVATAR_CHARACTERS.find((c) => c.id === id);
+    if (qbUser?.uid) {
+      try {
+        await updateDoc(doc(db, "users", qbUser.uid), {
+          "avatarSnapshot.selectedCharacter": id,
+          "avatarSnapshot.baseCharacter": id,
+          "avatarSnapshot.gender": isFemale ? "female" : "male",
+          "avatarSnapshot.modelUrl": charObj?.modelUrl,
+        });
+      } catch (err) {
+        console.error("Failed to sync character selection online:", err);
+      }
+    }
     toast.info(`Switched to ${charObj?.name || id}`);
   };
 
