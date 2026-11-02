@@ -34,7 +34,7 @@ import { Avatar } from "@/engine-sandbox/shared/avatar";
 import { DroppedItemManager } from "@/engine-sandbox/shared/dropped-items";
 import { CRACK_STAGES } from "@/engine-sandbox/shared/textures";
 import { Link } from "@tanstack/react-router";
-import { SandboxChat } from "@/components/SandboxChat";
+import { SandboxChat, ChatPreview } from "@/components/SandboxChat";
 import { openFragments } from "@/lib/fragments-ui";
 import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
 import { UserSquareCardModal, type UserSquareCardData } from "@/components/UserSquareCardModal";
@@ -6152,11 +6152,16 @@ export function SandboxGame({
           </div>
         </div>
       )}
+      {!chatOpen && showHud && (
+        <div className="pointer-events-auto fixed left-4 bottom-24 sm:bottom-28 z-[90]">
+          <ChatPreview onOpen={() => setChatOpen(true)} />
+        </div>
+      )}
       {chatOpen && (
-    <div className="pointer-events-auto fixed inset-0 z-[100001]">
-      <SandboxChat onClose={() => setChatOpen(false)} />
-    </div>
-  )}
+        <div className="pointer-events-auto fixed inset-0 z-[100001]">
+          <SandboxChat onClose={() => setChatOpen(false)} />
+        </div>
+      )}
       {inspectUser && (
         <UserSquareCardModal
           user={inspectUser}

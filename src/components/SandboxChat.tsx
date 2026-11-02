@@ -13,8 +13,9 @@ import { useAuth } from "@/lib/auth-context";
 import { GameChatIcon } from "@/components/game-icons";
 import { badgeUrlsFor } from "@/lib/user-style";
 import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
+import Cubes from "@/components/ui/Cubes";
 
-type ChatMsg = {
+export type ChatMsg = {
   id: string;
   from: string;
   uid?: string;
@@ -32,6 +33,28 @@ const FRAME_RING: Record<string, string> = {
   staff: "#22c55e",
   "early-beta": "#a855f7",
 };
+
+const USER_COLORS = [
+  "#fa4616", // QBlock Orange
+  "#38bdf8", // Sky Blue
+  "#34d399", // Emerald Green
+  "#f59e0b", // Amber Gold
+  "#a855f7", // Purple
+  "#ec4899", // Pink
+  "#60a5fa", // Bright Blue
+  "#10b981", // Teal
+  "#f43f5e", // Rose Red
+  "#fbbf24", // Yellow Gold
+];
+
+export function getUserColor(name: string) {
+  if (!name) return USER_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+}
 
 const CUSTOM_EMOJIS = [
   "drunk",
@@ -81,8 +104,82 @@ function renderTextWithEmojis(text: string) {
 }
 
 /**
- * Realtime sandbox chat — same Firestore backend and visual language as the
- * Skyblock chat overlay, scoped to its own `sandboxChat` room.
+ * Chat Preview Component — displays on the left side of the screen during gameplay.
+ * Features Username [user] in different colors and message preview text.
+ */
+export function ChatPreview({ onOpen }: { onOpen: () => void }) {
+  const [recentMsgs, setRecentMsgs] = useState<ChatMsg[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, "sandboxChat"), orderBy("at"), limitToLast(6));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setRecentMsgs(
+          snap.docs.map((d) => {
+            const data = d.data() as {
+              from?: string;
+              uid?: string;
+              text?: string;
+              photo?: string;
+              frame?: string;
+              badges?: string[];
+              at?: { toMillis?: () => number };
+            };
+            return {
+              id: d.id,
+              from: data.from || "Player",
+              uid: data.uid,
+              text: data.text || "",
+              photo: data.photo,
+              frame: data.frame,
+              badges: data.badges ?? [],
+              at: data.at?.toMillis?.() ?? 0,
+            };
+          }),
+        );
+      },
+      () => {},
+    );
+    return unsub;
+  }, []);
+
+  return (
+    <div
+      onClick={onOpen}
+      className="pointer-events-auto cursor-pointer max-w-[280px] sm:max-w-[340px] space-y-1 rounded-xl bg-[#14171e]/75 backdrop-blur-md p-2.5 border border-[#2b303c]/80 shadow-2xl transition-all hover:bg-[#181d27]/85 font-inter-semibold select-none"
+      title="Click to open chat"
+    >
+      <div className="flex items-center justify-between border-b border-white/10 pb-1.5 px-0.5 mb-1">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
+          <GameChatIcon className="h-3.5 w-3.5 text-[#fa4616]" />
+          <span>Live Chat</span>
+        </span>
+        <span className="text-[10px] font-semibold text-slate-400 opacity-70">Tap to open</span>
+      </div>
+      {recentMsgs.length === 0 ? (
+        <p className="text-[11px] text-slate-400 italic py-1">No messages yet. Say hi 👋</p>
+      ) : (
+        recentMsgs.slice(-4).map((m) => {
+          const userColor = getUserColor(m.from);
+          return (
+            <div key={m.id} className="text-[12px] leading-snug truncate font-semibold">
+              <span style={{ color: userColor }} className="font-semibold">
+                {m.from}
+              </span>
+              <span className="text-slate-400 text-[10px] font-normal mx-0.5">[user]</span>
+              <span className="text-slate-400 font-normal">: </span>
+              <span className="text-slate-200 font-semibold">{renderTextWithEmojis(m.text)}</span>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+/**
+ * Realtime sandbox chat — Grey Inventory Aesthetic + Inter Semi-Bold Font + Embedded Cubes WebGL Landing Effect.
  */
 export function SandboxChat({ onClose }: { onClose: () => void }) {
   const { qbUser } = useAuth();
@@ -179,7 +276,7 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
       window.dispatchEvent(new CustomEvent("qb-self-say", { detail: text.slice(0, 240) }));
     } catch (err: any) {
       setVal(text);
-      if (err.code === 'permission-denied') {
+      if (err.code === "permission-denied") {
         setChatError("Missing permission to chat.");
       } else {
         setChatError("Message could not be sent. Please try again.");
@@ -191,34 +288,58 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex flex-col bg-[#0e1116]/70 backdrop-blur-md">
-      <div className="flex min-h-0 flex-1 flex-col bg-white/95 pt-[max(8px,env(safe-area-inset-top))]">
-        <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
-          <span className="flex items-center gap-1.5 text-[14px] font-extrabold tracking-tight text-[#16181d]">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0a0c10]/80 backdrop-blur-md p-3 sm:p-6 font-inter-semibold">
+      {/* Container with Dark Grey Inventory Aesthetics & Metallic Frame */}
+      <div className="relative flex h-[88vh] max-h-[720px] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[#323846] bg-[#181b22] shadow-[0_12px_48px_rgba(0,0,0,0.85)]">
+        {/* Interactive Cubes Landing Component Background */}
+        <div className="pointer-events-auto absolute inset-0 opacity-25">
+          <Cubes
+            gridSize={8}
+            faceColor="#12151c"
+            edgeColor="#fa4616"
+            rippleColor="#38bdf8"
+            maxAngle={25}
+            radius={2.5}
+            autoAnimate={true}
+          />
+        </div>
+
+        {/* Header - Grey Inventory Banner */}
+        <div className="relative z-10 flex items-center justify-between border-b border-[#2d3342] bg-[#1d222c]/90 px-4 py-3 backdrop-blur-md">
+          <span className="flex items-center gap-2 text-[14px] font-semibold text-slate-100">
             <GameChatIcon className="h-4 w-4 text-[#fa4616]" />
-            Sandbox chat
+            <span>Sandbox Chat</span>
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg bg-black/5 text-[16px] font-bold text-black/50"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-[#3b4254] bg-[#252a36] text-[16px] font-semibold text-slate-300 transition-colors hover:bg-[#323848] active:scale-95"
             aria-label="Close chat"
           >
             ×
           </button>
         </div>
 
-        <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
+        {/* Message Stream */}
+        <div ref={scrollRef} className="relative z-10 min-h-0 flex-1 space-y-2.5 overflow-y-auto px-4 py-3">
           {msgs.length === 0 && (
-            <p className="py-6 text-center text-[11px] text-black/35">
-              No messages yet — say hi 👋
-            </p>
+            <div className="flex h-full flex-col items-center justify-center space-y-1 text-center py-12">
+              <GameChatIcon className="h-8 w-8 text-slate-500 opacity-50" />
+              <p className="text-[12px] font-semibold text-slate-400">
+                No messages yet — start the conversation! 👋
+              </p>
+            </div>
           )}
           {msgs.map((m) => {
             const me = !!qbUser && m.uid === qbUser.uid;
             const ring = m.frame ? FRAME_RING[m.frame] : undefined;
+            const userColor = getUserColor(m.from);
+
             return (
-              <div key={m.id} className="flex items-start gap-2 text-[13px] leading-snug">
+              <div
+                key={m.id}
+                className="flex items-start gap-2.5 rounded-xl border border-[#2d3342]/60 bg-[#1e232f]/80 p-2 text-[13px] leading-snug shadow-sm backdrop-blur-sm"
+              >
                 <button
                   type="button"
                   onClick={() =>
@@ -227,7 +348,7 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
                           id: m.uid,
                           n: m.from,
                           username: m.from,
-                          color: "#f4c430",
+                          color: userColor,
                           online: true,
                           isOwn: m.uid === qbUser?.uid,
                           avatarSnapshot: m.frame
@@ -237,7 +358,7 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
                         })
                       : undefined
                   }
-                  className="mt-[1px] grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#eef2f6] press"
+                  className="mt-[1px] grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-lg border border-[#383e50] bg-[#282d3c] active:scale-95"
                   aria-label={`View ${m.from}'s profile`}
                 >
                   <span
@@ -252,27 +373,32 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <span className="text-[11px] font-extrabold text-black/40">
+                      <span className="text-[11px] font-semibold text-slate-300">
                         {m.from.slice(0, 1).toUpperCase()}
                       </span>
                     )}
                   </span>
                 </button>
+
                 <span className="min-w-0 flex-1">
-                  <span className={`font-bold ${me ? "text-[#f4b400]" : "text-[#16181d]"}`}>
-                    {m.from}
+                  <span className="flex items-center gap-1">
+                    <span style={{ color: userColor }} className="font-semibold text-[13px]">
+                      {m.from}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">[user]</span>
+                    {(m.badges ?? []).map((b) => (
+                      <img
+                        key={b}
+                        src={b}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        className="h-3.5 w-3.5 align-[-2px] object-contain"
+                      />
+                    ))}
                   </span>
-                  {(m.badges ?? []).map((b) => (
-                    <img
-                      key={b}
-                      src={b}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="ml-1 inline-block h-3.5 w-3.5 align-[-2px] object-contain"
-                    />
-                  ))}
-                  <span className="text-black/30">: </span>
-                  <span className="break-words text-black/75">{renderTextWithEmojis(m.text)}</span>
+                  <div className="mt-0.5 break-words font-semibold text-slate-200 text-[12.5px]">
+                    {renderTextWithEmojis(m.text)}
+                  </div>
                 </span>
               </div>
             );
@@ -284,13 +410,13 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
         ) : null}
 
         {showEmoji && (
-          <div className="flex flex-wrap gap-1.5 border-t border-black/5 px-3 py-2 max-h-[140px] overflow-y-auto">
+          <div className="relative z-10 flex flex-wrap gap-1.5 border-t border-[#2d3342] bg-[#1a1e27] px-3 py-2 max-h-[140px] overflow-y-auto">
             {CUSTOM_EMOJIS.map((e) => (
               <button
                 key={e}
                 type="button"
                 onClick={() => setVal((v) => (v ? `${v} :${e}:` : `:${e}:`))}
-                className="grid h-8 w-8 place-items-center rounded-lg bg-black/5 hover:bg-black/10 transition-colors"
+                className="grid h-8 w-8 place-items-center rounded-lg border border-[#353c4f] bg-[#222734] transition-colors hover:bg-[#2e3446]"
                 title={e}
               >
                 <img src={`/emojis/face/${e}.png`} className="w-5 h-5 object-contain" alt={e} />
@@ -302,19 +428,21 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
         {chatError && (
           <p
             role="alert"
-            className="border-t border-rose-100 bg-rose-50 px-4 py-2 text-[11px] font-bold text-rose-600"
+            className="relative z-10 border-t border-rose-500/20 bg-rose-950/40 px-4 py-2 text-[11px] font-semibold text-rose-400"
           >
             {chatError}
           </p>
         )}
-        <div className="flex items-center gap-2 border-t border-black/5 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+
+        {/* Input Bar - Dark Grey Metallic Inventory Slot Style */}
+        <div className="relative z-10 flex items-center gap-2 border-t border-[#2d3342] bg-[#161922]/95 px-4 py-3 backdrop-blur-md">
           <button
             type="button"
             onClick={() => setShowEmoji((s) => !s)}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-black/5"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#383e50] bg-[#252a37] text-slate-300 transition-colors hover:bg-[#303646]"
             aria-label="Emoji"
           >
-            <img src="/emojis/face/uwu.png" className="w-5 h-5 opacity-80" alt="emoji" />
+            <img src="/emojis/face/uwu.png" className="w-5 h-5 opacity-90" alt="emoji" />
           </button>
           <input
             ref={inputRef}
@@ -327,13 +455,13 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
             placeholder={qbUser ? "Message everyone…" : "Sign in to chat"}
             disabled={!qbUser || sending}
             maxLength={240}
-            className="h-8 flex-1 rounded-lg border border-black/10 bg-white px-2.5 text-[12px] text-[#16181d] outline-none focus:border-[#fa4616]"
+            className="h-9 flex-1 rounded-lg border border-[#333a4c] bg-[#1f2430] px-3 text-[12.5px] font-semibold text-slate-100 placeholder-slate-400 outline-none focus:border-[#fa4616] focus:ring-1 focus:ring-[#fa4616]"
           />
           <button
             type="button"
             onClick={send}
             disabled={!qbUser || sending}
-            className="h-8 shrink-0 rounded-lg bg-[#fa4616] px-3 text-[12px] font-bold text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
+            className="h-9 shrink-0 rounded-lg bg-[#fa4616] px-4 text-[12.5px] font-semibold text-white transition-all hover:bg-[#ff5726] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 shadow-md"
           >
             {sending ? "…" : "Send"}
           </button>
