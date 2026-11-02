@@ -2164,13 +2164,11 @@ export function SandboxGame({
       } else {
         world.generate(GROUND);
       }
+      const mineArea: MiningArea | null = skyblock ? buildMiningArea(world) : null;
       if (!bedwars) {
         world.meshAll();
         scene.add(world.group);
       }
-      // Built after meshAll so its chunks mesh lazily (nearest-first) instead of
-      // slowing the island's first frame.
-      const mineArea: MiningArea | null = skyblock ? buildMiningArea(world) : null;
       if (skyblock) {
         void loadSkyblockDecorations(scene, () => disposed);
       }
