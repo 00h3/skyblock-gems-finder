@@ -6153,7 +6153,7 @@ export function SandboxGame({
         </div>
       )}
       {!chatOpen && showHud && (
-        <div className="pointer-events-auto fixed left-4 bottom-24 sm:bottom-28 z-[90]">
+        <div className="pointer-events-auto fixed left-3 top-[68px] sm:top-[74px] z-[90]">
           <ChatPreview onOpen={() => setChatOpen(true)} />
         </div>
       )}

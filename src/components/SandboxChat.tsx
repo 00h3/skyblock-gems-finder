@@ -107,10 +107,23 @@ function renderTextWithEmojis(text: string) {
  * Chat Preview Component — displays on the left side of the screen during gameplay.
  * Features Username [user] in different colors and message preview text.
  */
-export function ChatPreview({ onOpen }: { onOpen: () => void }) {
+/**
+ * Chat Preview Component — displays on the left side of the screen during gameplay.
+ * Features Username [user] in different colors and message preview text with grey inventory style.
+ */
+export function ChatPreview({
+  onOpen,
+  messages: externalMsgs,
+  className = "",
+}: {
+  onOpen: () => void;
+  messages?: Array<{ id: string | number; from: string; text: string; me?: boolean; special?: string }>;
+  className?: string;
+}) {
   const [recentMsgs, setRecentMsgs] = useState<ChatMsg[]>([]);
 
   useEffect(() => {
+    if (externalMsgs && externalMsgs.length > 0) return;
     const q = query(collection(db, "sandboxChat"), orderBy("at"), limitToLast(6));
     const unsub = onSnapshot(
       q,
@@ -142,34 +155,52 @@ export function ChatPreview({ onOpen }: { onOpen: () => void }) {
       () => {},
     );
     return unsub;
-  }, []);
+  }, [externalMsgs]);
+
+  const displayList =
+    externalMsgs && externalMsgs.length > 0
+      ? externalMsgs.slice(-4).map((m) => ({
+          id: String(m.id),
+          from: m.from,
+          text: m.text,
+        }))
+      : recentMsgs.slice(-4).map((m) => ({
+          id: m.id,
+          from: m.from,
+          text: m.text,
+        }));
 
   return (
     <div
       onClick={onOpen}
-      className="pointer-events-auto cursor-pointer max-w-[280px] sm:max-w-[340px] space-y-1 rounded-xl bg-[#14171e]/75 backdrop-blur-md p-2.5 border border-[#2b303c]/80 shadow-2xl transition-all hover:bg-[#181d27]/85 font-inter-semibold select-none"
+      className={`pointer-events-auto cursor-pointer max-w-[280px] sm:max-w-[340px] space-y-1.5 rounded-lg bg-[#161a24]/90 backdrop-blur-md p-2.5 border border-[#2c3549] shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:bg-[#1a202d]/95 hover:border-[#38455e] active:scale-[0.98] font-['Inter'] font-semibold select-none ${className}`}
       title="Click to open chat"
     >
-      <div className="flex items-center justify-between border-b border-white/10 pb-1.5 px-0.5 mb-1">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
+      <div className="flex items-center justify-between border-b border-[#2b3346] pb-1.5 px-0.5 mb-1">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200">
           <GameChatIcon className="h-3.5 w-3.5 text-[#fa4616]" />
-          <span>Live Chat</span>
+          <span>Island Chat</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </span>
-        <span className="text-[10px] font-semibold text-slate-400 opacity-70">Tap to open</span>
+        <span className="text-[10px] font-semibold text-slate-400 px-1.5 py-0.5 rounded bg-white/5 border border-white/10">
+          Tap to chat
+        </span>
       </div>
-      {recentMsgs.length === 0 ? (
-        <p className="text-[11px] text-slate-400 italic py-1">No messages yet. Say hi 👋</p>
+      {displayList.length === 0 ? (
+        <p className="text-[11px] text-slate-400 italic py-1">No messages yet. Tap to say hi 👋</p>
       ) : (
-        recentMsgs.slice(-4).map((m) => {
+        displayList.map((m) => {
           const userColor = getUserColor(m.from);
           return (
             <div key={m.id} className="text-[12px] leading-snug truncate font-semibold">
-              <span style={{ color: userColor }} className="font-semibold">
+              <span style={{ color: userColor }} className="font-bold">
                 {m.from}
               </span>
-              <span className="text-slate-400 text-[10px] font-normal mx-0.5">[user]</span>
-              <span className="text-slate-400 font-normal">: </span>
-              <span className="text-slate-200 font-semibold">{renderTextWithEmojis(m.text)}</span>
+              <span className="text-zinc-300 bg-white/10 text-[9.5px] font-mono font-semibold px-1 py-0.2 rounded mx-1">
+                [user]
+              </span>
+              <span className="text-zinc-400 font-bold">: </span>
+              <span className="text-slate-100 font-semibold">{renderTextWithEmojis(m.text)}</span>
             </div>
           );
         })

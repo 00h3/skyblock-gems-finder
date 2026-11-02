@@ -27,6 +27,8 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
+import Cubes from "@/components/ui/Cubes";
+import { ChatPreview, getUserColor } from "@/components/SandboxChat";
 import {
   getOrCreateIsland,
   persistBlockChange,
@@ -12677,6 +12679,13 @@ function EngineGame({
         />
       )}
 
+      {/* ── Left-side in-game Chat Preview: username [user]: message (different user colors) ── */}
+      {!chatOpen && (
+        <div className="fixed left-3 top-[68px] sm:top-[74px] z-30 pointer-events-auto">
+          <ChatPreview onOpen={() => setChatOpen(true)} messages={chatMsgs} />
+        </div>
+      )}
+
       {/* Floating grey chat popup bubble with 3D avatar */}
       {/* Floating grey chat popup bubble with 3D avatar - clickable rectangle to open chat */}
       {chatBubble && !chatOpen && (
@@ -13658,95 +13667,88 @@ function ChatOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-30 flex flex-col animate-fade-in"
-      style={{
-        background: "rgba(241,245,249,0.96)",
-        backdropFilter: "blur(32px) saturate(1.8)",
-        WebkitBackdropFilter: "blur(32px) saturate(1.8)",
-      }}
+      className="fixed inset-0 z-50 flex flex-col font-['Inter'] font-semibold select-none animate-fade-in bg-[#12151d]/95 text-white backdrop-blur-2xl overflow-hidden"
     >
-      {/* ── WeChat / Modern game header ─── */}
+      {/* ── 9:49 AM Note: React Bits Cubes 3D WebGL background ── */}
+      <div className="absolute inset-0 pointer-events-none opacity-40 overflow-hidden">
+        <Cubes gridSize={8} faceColor="#1e2433" edgeColor="#38455e" rippleColor="#fa4616" />
+      </div>
+
+      {/* ── Header: Dark Grey Inventory Bar ─── */}
       <div
-        className="flex items-center gap-3 px-4 pt-[max(16px,env(safe-area-inset-top))] pb-3"
-        style={{
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(226,232,240,0.85)",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
-        }}
+        className="relative z-10 flex items-center justify-between gap-3 px-4 pt-[max(14px,env(safe-area-inset-top))] pb-3 bg-[#161a24] border-b-2 border-[#2b3346] shadow-lg"
       >
         <button
           onClick={onClose}
-          className="press h-9 w-9 rounded-full grid place-items-center shrink-0 bg-slate-100 hover:bg-slate-200 transition-colors"
+          className="press h-9 w-9 rounded-md grid place-items-center shrink-0 bg-[#232938] hover:bg-[#2e3748] border border-[#3b465c] text-white font-bold transition-colors"
           aria-label="Back"
         >
-          <ChevronLeft className="h-5 w-5 text-slate-700" />
+          <ChevronLeft className="h-5 w-5 text-white" />
         </button>
-        <div className="flex-1 text-center flex items-center justify-center gap-2">
-          <div className="h-8 w-8 rounded-[10px] overflow-hidden bg-slate-800 border border-slate-300 shadow-sm shrink-0">
+        <div className="flex-1 text-center flex items-center justify-center gap-2.5">
+          <div className="h-8 w-8 rounded-md overflow-hidden bg-[#131620] border border-[#2b3346] shadow-inner shrink-0">
             <QblockCharacter className="h-full w-full" autoRotate interactive={false} />
           </div>
           <div className="text-left">
-            <div className="text-[14px] font-extrabold text-slate-900 leading-none flex items-center gap-1.5">
+            <div className="text-[14px] font-extrabold text-white leading-none flex items-center gap-1.5">
               <GameChatIcon className="h-3.5 w-3.5 text-[#fa4616]" />
               <span>Skyblock Chat</span>
             </div>
-            <div className="text-[10px] text-slate-500 font-semibold mt-0.5 flex items-center gap-1">
-              <img
-                src="/emojis/server/7921-verified-icon.png"
-                alt=""
-                className="h-2.5 w-2.5 object-contain inline-block"
-              />
+            <div className="text-[10px] text-emerald-400 font-semibold mt-1 flex items-center gap-1.5 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>{qbUser?.displayName || qbUser?.username || "Adventurer"} · Live</span>
             </div>
           </div>
         </div>
-        <div className="relative h-9 w-9 grid place-items-center">
-          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          <div className="absolute h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping opacity-60" />
-        </div>
+        <button
+          onClick={onClose}
+          className="press h-9 w-9 rounded-md grid place-items-center shrink-0 bg-[#232938] hover:bg-[#2e3748] border border-[#3b465c] text-white text-lg font-bold transition-colors"
+          aria-label="Close chat"
+          title="Close chat"
+        >
+          ×
+        </button>
       </div>
 
-      {/* ── Messages area ── */}
+      {/* ── Messages Area: Grey Inventory Slots ── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-3.5"
-        style={{ background: "#f8fafc" }}
+        className="relative z-10 flex-1 overflow-y-auto ios-scroll px-4 py-4 space-y-3 bg-[#11141c]/55"
       >
         {chatMsgs.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-2.5 pb-12 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-[#fa4616]/10 grid place-items-center text-3xl shadow-level1">
+          <div className="flex flex-col items-center justify-center h-full gap-2.5 pb-12 text-center select-none">
+            <div className="h-16 w-16 rounded-xl bg-[#1c2230] border border-[#2e374a] grid place-items-center text-3xl shadow-inner">
               <img
                 src="/emojis/wechat/342085-wechat-smile.png"
                 alt="Welcome"
                 className="h-10 w-10 object-contain"
               />
             </div>
-            <div className="text-[15px] font-extrabold text-slate-800">
+            <div className="text-[15px] font-extrabold text-white">
               Welcome to Skyblock Chat
             </div>
-            <div className="text-[12px] font-medium text-slate-500 max-w-[240px]">
-              Say hi to nearby islanders, coordinate mining runs, or trade resources!
+            <div className="text-[12px] font-medium text-slate-400 max-w-[260px] leading-relaxed">
+              Say hi to nearby islanders, coordinate dungeon mining runs, or trade resources!
             </div>
           </div>
         )}
         {chatMsgs.map((m) => {
           const isSystem = m.from === "System";
+          const userCol = getUserColor(m.from);
           return (
             <div
               key={m.id}
-              className={`flex gap-2.5 animate-fade-in ${m.me ? "flex-row-reverse" : "flex-row"}`}
+              className={`flex items-start gap-2.5 max-w-[85%] animate-fade-in ${m.me ? "ml-auto flex-row-reverse" : "flex-row"}`}
             >
               <button
                 type="button"
                 onClick={() => handleOpenProfile(m.from, m.me)}
-                className="h-9 w-9 shrink-0 rounded-[11px] overflow-visible border border-slate-200/80 bg-white p-0.5 shadow-sm cursor-pointer hover:opacity-85 active:scale-95 transition-all text-left"
+                className="h-9 w-9 shrink-0 rounded-md overflow-hidden border border-[#2c364c] bg-[#181d29] shadow-inner cursor-pointer hover:border-[#4d5e82] active:scale-95 transition-all text-left flex items-center justify-center"
                 aria-label={`View ${m.from}'s profile`}
               >
                 {isSystem ? (
-                  <div className="grid h-full w-full place-items-center rounded-[9px] bg-gradient-to-br from-amber-400 to-amber-600">
-                    <Sparkles className="h-4 w-4 text-white" />
+                  <div className="grid h-full w-full place-items-center bg-[#fa4616]/30 text-[#fa4616]">
+                    <Sparkles className="h-4 w-4" />
                   </div>
                 ) : m.me ? (
                   <GlossyAvatar
@@ -13758,77 +13760,42 @@ function ChatOverlay({
                     className="h-full w-full"
                   />
                 ) : (
-                  <div
-                    className="grid h-full w-full place-items-center rounded-[9px] text-[13px] font-black text-white shadow-inner"
-                    style={{ background: avatarColor(m.from) }}
-                  >
+                  <span style={{ color: userCol }} className="text-[13px] font-bold">
                     {m.from.charAt(0).toUpperCase()}
-                  </div>
+                  </span>
                 )}
               </button>
 
-              <div className={`flex flex-col max-w-[76%] ${m.me ? "items-end" : "items-start"}`}>
-                {!m.me && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenProfile(m.from, false)}
-                    className="text-[11px] font-bold mb-1 px-1 text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer transition-colors text-left"
-                  >
-                    {m.special && m.special !== "ladybug" && (
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider border ${
-                          m.special === "OWNER"
-                            ? "bg-amber-500/15 border-amber-500/40 text-amber-700"
-                            : m.special === "VIP"
-                              ? "bg-purple-500/15 border-purple-500/40 text-purple-700"
-                              : "bg-blue-500/15 border-blue-500/40 text-blue-700"
-                        }`}
-                      >
-                        {m.special}
-                      </span>
-                    )}
-                    <span>{m.from}</span>
-                  </button>
-                )}
+              <div className={`flex flex-col ${m.me ? "items-end" : "items-start"} min-w-0`}>
+                <div className="flex items-center gap-1.5 mb-1 px-0.5">
+                  <span style={{ color: userCol }} className="text-[12px] font-bold">
+                    {m.from}
+                  </span>
+                  <span className="text-[9.5px] bg-white/10 text-zinc-300 px-1 py-0.2 rounded font-mono font-semibold">
+                    [user]
+                  </span>
+                  {m.special && m.special !== "ladybug" && (
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${
+                        m.special === "OWNER"
+                          ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                          : m.special === "VIP"
+                            ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
+                            : "bg-blue-500/20 border-blue-500/40 text-blue-300"
+                      }`}
+                    >
+                      {m.special}
+                    </span>
+                  )}
+                </div>
                 <div
-                  className="text-[14px] font-medium leading-relaxed"
-                  style={
+                  className={`text-[13px] font-semibold leading-relaxed rounded-md px-3.5 py-2 shadow-sm break-words ${
                     m.me
-                      ? {
-                          background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
-                          color: "#f8fafc",
-                          padding: "8px 14px",
-                          borderRadius: "16px 4px 16px 16px",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
-                        }
+                      ? "bg-[#232b3b] border border-[#3a4760] text-white"
                       : isSystem
-                        ? {
-                            background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
-                            border: "1px solid rgba(148,163,184,0.30)",
-                            color: "#334155",
-                            padding: "8px 14px",
-                            borderRadius: "14px",
-                            boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                          }
-                        : m.special === "ladybug"
-                          ? {
-                              background: "linear-gradient(135deg, #475569 0%, #334155 100%)",
-                              border: "1px solid rgba(255,255,255,0.15)",
-                              color: "#f8fafc",
-                              padding: "8px 14px",
-                              borderRadius: "4px 16px 16px 16px",
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
-                            }
-                          : {
-                              background: "#f1f5f9",
-                              border: "1px solid #e2e8f0",
-                              color: "#1e293b",
-                              padding: "8px 14px",
-                              borderRadius: "4px 16px 16px 16px",
-                              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                            }
-                  }
+                        ? "bg-[#1f2430] border border-[#333d52] text-amber-200"
+                        : "bg-[#181d28] border border-[#293345] text-slate-100"
+                  }`}
                 >
                   {m.text}
                 </div>
@@ -13838,13 +13805,13 @@ function ChatOverlay({
         })}
       </div>
 
-      {/* ── Real icon & sticker picker tray ── */}
+      {/* ── Sticker & Emote Tray (Grey Inventory Style) ── */}
       {showEmoji && (
-        <div className="px-4 py-3 border-t border-slate-200/80 bg-white shadow-level2 animate-sheet-up">
-          <div className="flex gap-2 mb-2.5 border-b border-slate-100 pb-2">
+        <div className="relative z-10 px-4 py-3 border-t-2 border-[#2b3346] bg-[#161a24] shadow-2xl animate-sheet-up">
+          <div className="flex gap-2 mb-2.5 border-b border-[#2b3346] pb-2">
             <button
               onClick={() => setEmojiTab("stickers")}
-              className={`px-3 py-1 rounded-full text-[11px] font-extrabold flex items-center gap-1.5 transition-colors ${emojiTab === "stickers" ? "bg-[#fa4616] text-white shadow-sm" : "bg-slate-100 text-slate-600"}`}
+              className={`px-3 py-1 rounded-md text-[11px] font-bold flex items-center gap-1.5 transition-colors border ${emojiTab === "stickers" ? "bg-[#fa4616] border-[#ff6a3c] text-white shadow-sm" : "bg-[#232938] border-[#38435a] text-slate-300"}`}
             >
               <img
                 src="/emojis/wechat/342085-wechat-smile.png"
@@ -13855,7 +13822,7 @@ function ChatOverlay({
             </button>
             <button
               onClick={() => setEmojiTab("emojis")}
-              className={`px-3 py-1 rounded-full text-[11px] font-extrabold flex items-center gap-1.5 transition-colors ${emojiTab === "emojis" ? "bg-[#fa4616] text-white shadow-sm" : "bg-slate-100 text-slate-600"}`}
+              className={`px-3 py-1 rounded-md text-[11px] font-bold flex items-center gap-1.5 transition-colors border ${emojiTab === "emojis" ? "bg-[#fa4616] border-[#ff6a3c] text-white shadow-sm" : "bg-[#232938] border-[#38435a] text-slate-300"}`}
             >
               <span>😊</span>
               Emojis
@@ -13867,7 +13834,7 @@ function ChatOverlay({
                 <button
                   key={s.label}
                   onClick={() => sendEmoji(s.text)}
-                  className="press p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 flex flex-col items-center justify-center transition-all aspect-square"
+                  className="press p-1.5 rounded-lg bg-[#1a1f2b] hover:bg-[#232a3a] border border-[#2e374a] flex flex-col items-center justify-center transition-all aspect-square"
                   title={s.label}
                 >
                   <img src={s.src} alt={s.label} className="h-7 w-7 object-contain" />
@@ -13880,7 +13847,7 @@ function ChatOverlay({
                 <button
                   key={e}
                   onClick={() => sendEmoji(e)}
-                  className="press w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-xl grid place-items-center transition-all"
+                  className="press w-10 h-10 rounded-lg bg-[#1a1f2b] hover:bg-[#232a3a] border border-[#2e374a] text-xl grid place-items-center transition-all text-white"
                 >
                   {e}
                 </button>
@@ -13890,13 +13857,13 @@ function ChatOverlay({
         </div>
       )}
 
-      {/* ── Chat input bar ── */}
-      <div className="px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-2.5 bg-white border-t border-slate-200/80 shadow-level1">
+      {/* ── Chat Input Bar: Dark Grey Inventory Style ── */}
+      <div className="relative z-10 px-4 pb-[max(18px,env(safe-area-inset-bottom))] pt-2.5 bg-[#141722] border-t-2 border-[#2b3346] shadow-2xl">
         <div className="flex items-center gap-2">
           {/* Emoji / sticker toggle */}
           <button
             onClick={() => setShowEmoji((v) => !v)}
-            className={`press w-10 h-10 grid place-items-center rounded-2xl shrink-0 transition-colors ${showEmoji ? "bg-[#fa4616]/15 border border-[#fa4616]/30" : "bg-slate-100 hover:bg-slate-200/70"}`}
+            className={`press w-10 h-10 grid place-items-center rounded-md shrink-0 transition-colors border ${showEmoji ? "bg-[#fa4616]/20 border-[#fa4616]" : "bg-[#232938] hover:bg-[#2c3447] border-[#38435a]"}`}
             aria-label="Toggle stickers and emojis"
           >
             <img
@@ -13906,14 +13873,14 @@ function ChatOverlay({
             />
           </button>
           {/* Text input */}
-          <div className="flex-1 h-11 rounded-2xl flex items-center px-4 bg-slate-100/90 border border-slate-200/70 focus-within:border-[#fa4616] focus-within:bg-white transition-all shadow-inner">
+          <div className="flex-1 h-10 rounded-md flex items-center px-3.5 bg-[#0e1118] border border-[#2b3448] focus-within:border-[#fa4616] transition-all shadow-inner">
             <input
               ref={inputRef}
               value={chatVal}
               onChange={(e) => setChatVal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
               placeholder="Send a message to Skyblock…"
-              className="flex-1 bg-transparent outline-none text-[14px] text-slate-900 placeholder:text-slate-400 font-medium"
+              className="flex-1 bg-transparent outline-none text-[13px] text-white placeholder:text-zinc-500 font-semibold"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -13921,16 +13888,17 @@ function ChatOverlay({
           {chatVal.trim() ? (
             <button
               onClick={sendChat}
-              className="press h-11 w-11 rounded-2xl grid place-items-center shrink-0 bg-gradient-to-b from-[#ff6230] via-[#fa4616] to-[#e03a0d] shadow-[0_4px_14px_rgba(250,70,22,0.38)] border border-[#fa4616]/60 hover:brightness-105 active:scale-95 transition-all text-white"
+              className="press h-10 px-4 rounded-md flex items-center gap-1.5 shrink-0 bg-[#fa4616] hover:bg-[#ff5726] border border-[#ff6a3c] font-bold text-white text-[13px] active:scale-95 transition-all shadow-md"
               aria-label="Send message"
             >
-              <Send className="h-4 w-4 text-white" strokeWidth={2.6} />
+              <span>Send</span>
+              <Send className="h-3.5 w-3.5 text-white" strokeWidth={2.6} />
             </button>
           ) : (
             <button
               onClick={toggleMic}
               aria-label={micListening ? "Stop voice input" : "Start voice input"}
-              className={`press w-11 h-11 grid place-items-center rounded-2xl shrink-0 transition-all ${micListening ? "bg-red-500/15 border border-red-500/40 animate-pulse text-red-500" : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"}`}
+              className={`press w-10 h-10 grid place-items-center rounded-md shrink-0 transition-all border ${micListening ? "bg-red-500/20 border-red-500 animate-pulse text-red-400" : "bg-[#232938] text-slate-300 border-[#38435a] hover:bg-[#2c3447]"}`}
             >
               {micListening ? (
                 <span className="text-base font-black">●</span>
@@ -13941,7 +13909,7 @@ function ChatOverlay({
           )}
         </div>
         {micNotice && (
-          <div className="mt-2 text-center text-[11px] font-semibold text-slate-500">
+          <div className="mt-2 text-center text-[11px] font-semibold text-rose-400">
             {micNotice}
           </div>
         )}

@@ -220,8 +220,8 @@ export function BlockfortSkyblockUi({
   const [friendsTab, setFriendsTab] = useState<"friends" | "all">("friends");
   const [friendSearch, setFriendSearch] = useState("");
 
-  // In-Game Live Chat Preview state - minimized on initial load
-  const [chatPreviewOpen, setChatPreviewOpen] = useState(false);
+  // In-Game Live Chat Preview state - active on initial load
+  const [chatPreviewOpen, setChatPreviewOpen] = useState(true);
   const [chatPreviewMinimized, setChatPreviewMinimized] = useState(true);
   const [chatMessages, setChatMessages] = useState<SkyblockChatMessage[]>([]);
   const [quickInput, setQuickInput] = useState("");
@@ -1745,16 +1745,21 @@ export function BlockfortSkyblockUi({
                       {/* Chat text box */}
                       <div className="flex-1 min-w-0 bg-[rgba(40,40,44,0.62)] border border-[rgba(20,20,22,0.85)] rounded-[4px] px-2 py-1 shadow-sm">
                         <div className="flex items-center justify-between gap-1">
-                          <span
-                            className="text-[11px] font-black leading-none truncate"
-                            style={{
-                              color: msg.senderColor || "#38bdf8",
-                              textShadow:
-                                "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
-                            }}
-                          >
-                            {msg.senderName}
-                          </span>
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span
+                              className="text-[11px] font-bold leading-none truncate"
+                              style={{
+                                color: msg.senderColor || "#38bdf8",
+                                textShadow:
+                                  "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 1px 2px rgba(0,0,0,0.85)",
+                              }}
+                            >
+                              {msg.senderName}
+                            </span>
+                            <span className="text-[9px] bg-white/10 text-zinc-300 px-1 py-0.2 rounded font-mono font-semibold">
+                              [user]
+                            </span>
+                          </div>
                           <span className="text-[8.5px] text-zinc-400 font-mono shrink-0">
                             {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
                               hour: "2-digit",

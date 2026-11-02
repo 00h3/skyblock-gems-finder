@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { MessageSquare, Settings, LogOut } from "lucide-react";
 import { FlatSquareChatModal } from "@/components/FlatSquareChatModal";
+import { ChatPreview } from "@/components/SandboxChat";
 import { FlatSquareSettingsModal } from "@/components/FlatSquareSettingsModal";
 import { QuickChatWheel } from "@/components/v2/QuickChatWheel";
 import { MagicStickBar } from "@/components/v2/MagicStickBar";
@@ -521,6 +522,13 @@ export function FlatSquareGameControls({
           />
         </button>
       </div>
+
+      {/* ── Left-side in-game Chat Preview: username [user]: message (different user colors) ── */}
+      {!chatOpen && (
+        <div className="fixed left-3 top-[68px] sm:top-[74px] z-30 pointer-events-auto">
+          <ChatPreview onOpen={() => setChatOpen(true)} />
+        </div>
+      )}
 
       {/* ── Fullscreen Flat Square Chat Page ── */}
       {chatOpen && (

@@ -15,6 +15,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 
 import { triggerHaptic } from "@/lib/haptics";
+import Cubes from "@/components/ui/Cubes";
+import { getUserColor } from "@/components/SandboxChat";
 
 interface FlatSquareChatModalProps {
   onClose: () => void;
@@ -201,7 +203,7 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
   return createPortal(
     <div
       id="flat-square-chat-fullscreen"
-      className="fixed inset-0 z-[99999] pointer-events-auto flex flex-col bg-black/75 backdrop-blur-2xl text-white overflow-hidden select-text font-['Inter'] font-semibold"
+      className="fixed inset-0 z-[99999] pointer-events-auto flex flex-col bg-[#12151d]/95 backdrop-blur-2xl text-white overflow-hidden select-text font-['Inter'] font-semibold"
       style={{
         borderRadius: 0,
       }}
@@ -209,17 +211,23 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      {/* ── Top Header: Welcome-page blur & Inventory grey bottom outline ── */}
+      {/* ── 9:49 AM Note: React Bits Cubes 3D WebGL background ── */}
+      <div className="absolute inset-0 pointer-events-none opacity-35 overflow-hidden">
+        <Cubes gridSize={8} faceColor="#1e2433" edgeColor="#38455e" rippleColor="#fa4616" />
+      </div>
+
+      {/* ── Top Header: Dark Grey Inventory Bar ── */}
       <div
         onTouchStart={onTouchStartHeader}
         onTouchEnd={onTouchEndHeader}
-        className="h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-black/40 border-b-2 border-white/20 backdrop-blur-xl select-none cursor-grab active:cursor-grabbing"
+        className="relative z-10 h-14 shrink-0 px-4 sm:px-6 flex items-center justify-between bg-[#161a24] border-b-2 border-[#2b3346] shadow-lg select-none cursor-grab active:cursor-grabbing"
       >
         <div className="flex items-center gap-3">
-          <span className="text-[17px] font-semibold tracking-wider text-white uppercase font-['Inter']">
-            Chat
+          <span className="text-[16px] font-bold tracking-wider text-white uppercase font-['Inter']">
+            Island Chat
           </span>
-          <span className="text-[12px] font-mono font-medium text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
+          <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             LIVE
           </span>
         </div>
@@ -229,7 +237,7 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
           id="btn-chat-modal-close"
           type="button"
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-[20px] font-semibold cursor-pointer select-none transition-colors border border-white/15 border-b-2 border-white/25 outline-none"
+          className="w-9 h-9 flex items-center justify-center rounded-md bg-[#232938] hover:bg-[#2e3748] active:bg-[#343e52] text-white text-[18px] font-bold cursor-pointer select-none transition-colors border border-[#3b465c] outline-none"
           aria-label="Close chat"
           title="Close chat"
         >
@@ -237,18 +245,18 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
         </button>
       </div>
 
-      {/* ── Messages List Area ── */}
+      {/* ── Messages List Area: Grey Inventory Slots ── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5 bg-black/20"
+        className="relative z-10 flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 bg-[#11141c]/50"
       >
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8 select-none">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 border-b-2 border-white/30 flex items-center justify-center text-[22px] font-semibold text-white/70 mb-3 backdrop-blur-md">
+            <div className="w-14 h-14 rounded-xl bg-[#1c2230] border border-[#2e374a] flex items-center justify-center text-[22px] font-semibold text-white/70 mb-3 shadow-inner">
               💬
             </div>
-            <p className="text-[16px] font-semibold text-white/90">No messages yet</p>
-            <p className="text-[13px] text-white/50 mt-1 max-w-sm font-normal">
+            <p className="text-[16px] font-bold text-white">No messages yet</p>
+            <p className="text-[13px] text-zinc-400 mt-1 max-w-sm font-medium">
               Type a message below to chat with players currently on this island.
             </p>
           </div>
@@ -265,14 +273,16 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
                 })
               : "";
 
+            const userCol = getUserColor(m.from);
+
             return (
               <div
                 key={m.id}
-                className="flex items-start gap-3 max-w-2xl"
+                className={`flex items-start gap-2.5 max-w-2xl ${isMe ? "ml-auto flex-row-reverse" : ""}`}
               >
-                {/* Profile Picture */}
+                {/* Profile Picture Slot */}
                 <div
-                  className="w-10 h-10 shrink-0 rounded-xl bg-white/10 border border-white/20 border-b-2 border-white/30 flex items-center justify-center overflow-hidden select-none shadow-sm"
+                  className="w-9 h-9 shrink-0 rounded-md bg-[#181d29] border border-[#2c364c] shadow-inner flex items-center justify-center overflow-hidden select-none"
                   title={m.from}
                 >
                   {m.photo ? (
@@ -283,39 +293,38 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <span className="text-[14px] font-semibold text-white/80">
+                    <span style={{ color: userCol }} className="text-[13px] font-bold">
                       {(m.from.charAt(0) || "P").toUpperCase()}
                     </span>
                   )}
                 </div>
 
-                {/* Rectangle Bubble with inventory style grey bottom outline */}
-                <div
-                  className={`flex-1 p-3 rounded-xl border border-white/15 border-b-2 border-white/20 backdrop-blur-md ${
-                    isMe
-                      ? "bg-amber-500/15 border-amber-400/25 border-b-2 border-amber-400/40"
-                      : "bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-baseline justify-between gap-2 border-b border-white/10 pb-1 mb-1.5">
-                    <span
-                      className={`text-[13px] font-semibold tracking-wide ${
-                        isMe ? "text-amber-300" : "text-white"
-                      }`}
-                    >
+                {/* Inventory message container */}
+                <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} min-w-0`}>
+                  <div className="flex items-center gap-1.5 mb-1 px-0.5">
+                    <span style={{ color: userCol }} className="text-[12px] font-bold">
                       {m.from}
                       {isMe && " (You)"}
                     </span>
+                    <span className="text-[9.5px] bg-white/10 text-zinc-300 px-1 py-0.2 rounded font-mono font-semibold">
+                      [user]
+                    </span>
                     {timeStr && (
-                      <span className="text-[11px] font-mono text-white/50 font-normal">
+                      <span className="text-[10px] font-mono text-zinc-500 font-normal ml-1">
                         {timeStr}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-[14px] font-semibold text-white/95 break-words leading-relaxed whitespace-pre-wrap font-['Inter']">
+                  <div
+                    className={`rounded-md px-3.5 py-2 text-[13px] font-semibold leading-relaxed break-words shadow-sm font-['Inter'] ${
+                      isMe
+                        ? "bg-[#232b3b] border border-[#3a4760] text-white"
+                        : "bg-[#181d28] border border-[#293345] text-slate-100"
+                    }`}
+                  >
                     {m.text}
-                  </p>
+                  </div>
                 </div>
               </div>
             );
@@ -323,17 +332,17 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
         )}
       </div>
 
-      {/* ── Bottom Input Bar: Blur & Inventory grey bottom outline ── */}
+      {/* ── Bottom Input Bar: Grey Inventory Style ── */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSend();
         }}
-        className="bg-black/50 border-t border-white/15 border-b-2 border-white/20 backdrop-blur-xl p-3 sm:p-4 pb-[max(12px,calc(env(safe-area-inset-bottom)+8px))] flex items-center gap-3 select-none"
+        className="relative z-10 bg-[#141722] border-t-2 border-[#2b3346] shadow-2xl p-3 sm:p-4 pb-[max(14px,calc(env(safe-area-inset-bottom)+8px))] flex items-center gap-2.5 select-none"
       >
-        {/* User avatar */}
+        {/* User avatar slot */}
         <div
-          className="w-11 h-11 shrink-0 rounded-xl bg-white/10 border border-white/20 border-b-2 border-white/30 hidden sm:flex items-center justify-center overflow-hidden select-none"
+          className="w-10 h-10 shrink-0 rounded-md bg-[#181d29] border border-[#2c364c] hidden sm:flex items-center justify-center overflow-hidden select-none"
           title={currentUsername}
         >
           {currentPhoto ? (
@@ -344,7 +353,7 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
               referrerPolicy="no-referrer"
             />
           ) : (
-            <span className="text-[15px] font-semibold text-white/80">
+            <span className="text-[14px] font-bold text-white">
               {(currentUsername.charAt(0) || "P").toUpperCase()}
             </span>
           )}
@@ -378,7 +387,7 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
           placeholder="Type a message..."
           maxLength={240}
           autoFocus
-          className="pointer-events-auto flex-1 h-11 rounded-xl bg-white/10 border border-white/20 border-b-2 border-white/30 text-white placeholder-white/40 px-3.5 text-[14px] font-semibold outline-none focus:border-amber-400/60 transition-all select-text font-['Inter']"
+          className="pointer-events-auto flex-1 h-10 rounded-md bg-[#0e1118] border border-[#2b3448] text-white placeholder-zinc-500 px-3.5 text-[13px] font-semibold outline-none focus:border-[#fa4616] transition-all select-text font-['Inter']"
           style={{
             userSelect: "text",
             WebkitUserSelect: "text",
@@ -390,7 +399,7 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
           id="btn-chat-modal-send"
           type="submit"
           disabled={!inputText.trim() || sending}
-          className="pointer-events-auto h-11 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-40 disabled:pointer-events-none text-black font-semibold text-[14px] tracking-wide cursor-pointer select-none transition-all border border-amber-300 border-b-2 border-amber-600 outline-none font-['Inter']"
+          className="pointer-events-auto h-10 px-4 rounded-md bg-[#fa4616] hover:bg-[#ff5726] active:bg-[#e03a0d] disabled:opacity-40 disabled:pointer-events-none text-white font-bold text-[13px] tracking-wide cursor-pointer select-none transition-all border border-[#ff6a3c] outline-none font-['Inter'] shadow-md"
         >
           {sending ? "..." : "Send"}
         </button>
