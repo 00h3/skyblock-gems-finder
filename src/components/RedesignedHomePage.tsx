@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { PinkHeartIcon } from "@/components/QbIcons";
@@ -14,6 +14,7 @@ import { openFragments } from "@/lib/fragments-ui";
 import { openEvents } from "@/lib/events-ui";
 import { openShop } from "@/lib/shop-ui";
 import { ThreeDTestimonials } from "@/components/ui/3d-testimonials";
+import LaserFlow from "@/components/ui/LaserFlow";
 
 export function RedesignedHomePage({
   GAMES,
@@ -31,6 +32,7 @@ export function RedesignedHomePage({
   const [showSelfProfile, setShowSelfProfile] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [showBetaBadge, setShowBetaBadge] = useState(false);
+  const bannerCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -221,6 +223,25 @@ export function RedesignedHomePage({
             {/* Top gloss curve */}
             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 dark:from-white/15 to-transparent pointer-events-none rounded-t-[14px] z-10" />
 
+            {/* Animated LaserFlow light beam (Orange and Red beam from Nov 02 note) */}
+            <div className="absolute inset-0 pointer-events-none z-15 overflow-hidden rounded-[14px]">
+              <LaserFlow
+                surfaceRef={bannerCardRef}
+                beamPosition={0.62}
+                color={activeSlide === 0 ? "#ff5500" : "#fa2600"}
+                intensity={2.2}
+                flare={1.8}
+                spread={1.8}
+                spill={1.2}
+                fog={0.3}
+                dust={2.0}
+                streaks={1.8}
+                pulse={1.6}
+                speed={1.5}
+                theme="dark"
+              />
+            </div>
+
             {/* Slide 0: Orange version */}
             <div
               className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-700 ease-out ${
@@ -244,7 +265,7 @@ export function RedesignedHomePage({
                   Explore, build & play together in early access
                 </p>
               </div>
-              <div className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 grid place-items-center shadow-inner overflow-hidden p-2">
+              <div ref={bannerCardRef} className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 grid place-items-center shadow-inner overflow-hidden p-2">
                 <img
                   src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
                   alt="Beta Mascot"
