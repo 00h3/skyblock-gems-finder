@@ -1,0 +1,52 @@
+.jelly-radio-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+  touch-action: manipulation;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.jelly-radio-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.jelly-radio-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.jelly-radio-chip.active {
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+}
+
+.jelly-radio-chip:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.jelly-radio-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.jelly-radio-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

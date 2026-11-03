@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { SkyDialEditor } from "@/components/v2/SkyDialEditor";
 import { detectGpuHardware } from "@/lib/rendering";
 import SlideCommit from "@/components/ui/SlideCommit";
+import JellyRadio from "@/components/ui/JellyRadio";
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
@@ -559,38 +560,32 @@ export function FlatSquareSettingsModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  {[
-                    { id: "lite", label: "Lite", badge: "60 FPS · Mali & Mobile" },
-                    { id: "balanced", label: "Balanced", badge: "Official Graphics" },
-                    { id: "advanced", label: "Advanced", badge: "4K UHD · Full Retina" },
-                  ].map((item) => {
-                    const isActive =
-                      graphicsPreset === item.id ||
-                      (item.id === "balanced" && (graphicsPreset === "official" || graphicsPreset === "medium" || graphicsPreset === "high")) ||
-                      (item.id === "advanced" && graphicsPreset === "uhd") ||
-                      (item.id === "lite" && graphicsPreset === "low");
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setGraphicsPreset(item.id);
-                          updateSetting("bm-quality", item.id, "bm-quality");
-                        }}
-                        className={`p-3 rounded-lg text-left transition cursor-pointer border flex flex-col justify-between gap-1 ${
-                          isActive
-                            ? "bg-[#fa4616] text-white border-[#fa4616] shadow-md"
-                            : "bg-white/5 text-white/70 border-transparent hover:bg-white/10"
-                        }`}
-                      >
-                        <span className="font-extrabold text-[13px] leading-snug">{item.label}</span>
-                        <span className={`text-[10px] font-mono ${isActive ? "text-white/80" : "text-white/45"}`}>
-                          {item.badge}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="py-1.5 flex justify-start">
+                  <JellyRadio
+                    items={[
+                      { value: "lite", label: "Lite (60 FPS Mali)" },
+                      { value: "balanced", label: "Balanced (Official)" },
+                      { value: "advanced", label: "Advanced (4K UHD)" }
+                    ]}
+                    value={
+                      graphicsPreset === "low"
+                        ? "lite"
+                        : graphicsPreset === "uhd"
+                        ? "advanced"
+                        : graphicsPreset === "official" || graphicsPreset === "medium" || graphicsPreset === "high"
+                        ? "balanced"
+                        : graphicsPreset
+                    }
+                    onChange={(val) => {
+                      setGraphicsPreset(val);
+                      updateSetting("bm-quality", val, "bm-quality");
+                    }}
+                    chipColor="#27272a"
+                    activeColor="#fa4616"
+                    textColor="#f5f5f5"
+                    activeTextColor="#ffffff"
+                    size="md"
+                  />
                 </div>
 
                 <div className="p-3 rounded-lg bg-black/30 border border-white/5 text-[11.5px] text-zinc-300 leading-relaxed">

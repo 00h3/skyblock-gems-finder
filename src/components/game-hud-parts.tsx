@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { detectGpuHardware } from "@/lib/rendering";
 import SlideCommit from "@/components/ui/SlideCommit";
+import JellyRadio from "@/components/ui/JellyRadio";
 
 export type CamMode = "first" | "third" | "top";
 
@@ -812,31 +813,29 @@ export function GameSettingsModal({
                       Active: {qualityPref === "lite" || qualityPref === "low" ? "LITE (MALI)" : qualityPref === "advanced" || qualityPref === "uhd" ? "ADVANCED (4K UHD)" : "BALANCED"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: "lite", label: "Lite", badge: "60 FPS · Mali & Mobile" },
-                      { id: "balanced", label: "Balanced", badge: "Official Graphics" },
-                      { id: "advanced", label: "Advanced", badge: "4K UHD · Full Retina" },
-                    ].map((item) => {
-                      const isActive =
-                        qualityPref === item.id ||
-                        (item.id === "balanced" && (qualityPref === "official" || qualityPref === "medium" || qualityPref === "high")) ||
-                        (item.id === "advanced" && qualityPref === "uhd") ||
-                        (item.id === "lite" && qualityPref === "low");
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => onQualityPref?.(item.id as any)}
-                          className={`bf-btn-grey py-3 px-2 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                            isActive ? "is-active font-black !border-amber-400 !bg-amber-500/20" : "font-semibold"
-                          }`}
-                        >
-                          <span className="text-[13px] text-white font-bold">{item.label}</span>
-                          <span className="text-[9px] text-zinc-300/80 font-mono">{item.badge}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="py-1.5 flex justify-start">
+                    <JellyRadio
+                      items={[
+                        { value: "lite", label: "Lite (60 FPS Mali)" },
+                        { value: "balanced", label: "Balanced (Official)" },
+                        { value: "advanced", label: "Advanced (4K UHD)" }
+                      ]}
+                      value={
+                        qualityPref === "low"
+                          ? "lite"
+                          : qualityPref === "uhd"
+                          ? "advanced"
+                          : qualityPref === "official" || qualityPref === "medium" || qualityPref === "high"
+                          ? "balanced"
+                          : qualityPref
+                      }
+                      onChange={(val) => onQualityPref?.(val as any)}
+                      chipColor="#27272a"
+                      activeColor="#fa4616"
+                      textColor="#f5f5f5"
+                      activeTextColor="#ffffff"
+                      size="md"
+                    />
                   </div>
                   <div className="p-2.5 rounded bg-black/30 border border-white/5 text-[11px] text-zinc-300 leading-relaxed">
                     {qualityPref === "lite" || qualityPref === "low" ? (
