@@ -29,6 +29,7 @@ import {
 import { detectGpuHardware } from "@/lib/rendering";
 import SlideCommit from "@/components/ui/SlideCommit";
 import JellyRadio from "@/components/ui/JellyRadio";
+import { Breadcrumb } from "@/components/arc/breadcrumb";
 
 export type CamMode = "first" | "third" | "top";
 
@@ -624,6 +625,14 @@ export function GameSettingsModal({
 
           {/* Settings main content divided into polished grey sections */}
           <div className="bf-settings-content">
+            {/* Navigation Breadcrumb */}
+            <Breadcrumb
+              items={[
+                { label: "Settings", onClick: () => setActiveTab("camera") },
+                { label: activeTab.charAt(0).toUpperCase() + activeTab.slice(1), active: true },
+              ]}
+              className="mb-3 px-1"
+            />
             {/* ── TAB 1: CAMERA ─────────────────────────────────────────── */}
             {activeTab === "camera" && (
               <div className="flex flex-col gap-3">

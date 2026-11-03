@@ -1756,6 +1756,8 @@ export function SandboxGame({
   const auroraGroupRef = useRef<THREE.Group | null>(null);
   const phoenixModelRef = useRef<THREE.Group | null>(null);
   const phoenixMixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const wombatModelRef = useRef<THREE.Group | null>(null);
+  const wombatMixerRef = useRef<THREE.AnimationMixer | null>(null);
   const voxelTorchRef = useRef<VoxelTorchHandle | null>(null);
   const voxelPropsRef = useRef<VoxelPropHandle[]>([]);
   const gltfTreesRef = useRef<
@@ -2235,83 +2237,58 @@ export function SandboxGame({
         aGroup.visible = false;
         auroraGroupRef.current = aGroup;
 
-        // ── 4. Soaring Phoenix Companion (Near Radiant Sun) ──
+        // ── 4. Animated Wombat Companion next to World Tree ──
         try {
-          const pLoader = new GLTFLoader();
-          pLoader.load(
-            "https://file.garden/alGOOylwpAfCa6qP/phoenix_on_fire_update.glb",
-            (pAsset) => {
+          const wLoader = new GLTFLoader();
+          wLoader.load(
+            "https://file.garden/alGOOylwpAfCa6qP/blockbench_wombat.glb",
+            (wAsset) => {
               if (disposed) return;
-              const pModel = pAsset.scene;
-              // Make phoenix even smaller per user request
-              pModel.scale.setScalar(0.08);
-              pModel.position.set(75, 95, 48);
+              const wModel = wAsset.scene;
+              // Position next to the main tree on Skyblock island
+              wModel.position.set(-2.6, 16.0, -3.2);
+              wModel.rotation.y = 0.6;
+              wModel.scale.setScalar(0.9);
 
-              // Traverse and set material properties for smooth, glowing textures
-              pModel.traverse((node) => {
+              wModel.traverse((node) => {
                 if ((node as THREE.Mesh).isMesh) {
                   const mesh = node as THREE.Mesh;
+                  mesh.castShadow = true;
+                  mesh.receiveShadow = true;
                   if (mesh.material) {
                     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
                     mats.forEach((m) => {
                       const mat = m as THREE.MeshStandardMaterial;
                       if (mat.map) {
-                        mat.map.magFilter = THREE.LinearFilter;
-                        mat.map.minFilter = THREE.LinearMipmapLinearFilter;
+                        mat.map.magFilter = THREE.NearestFilter;
+                        mat.map.minFilter = THREE.NearestMipmapLinearFilter;
                         mat.map.generateMipmaps = true;
-                        mat.map.anisotropy = 8;
                         mat.map.needsUpdate = true;
                       }
-                      mat.emissive = new THREE.Color(0xff6a10);
-                      if (mat.map && !mat.emissiveMap) mat.emissiveMap = mat.map;
-                      mat.emissiveIntensity = 2.4;
                       mat.needsUpdate = true;
                     });
                   }
                 }
               });
 
-              // Layered additive corona: hot inner core + wide soft halo.
-              const auraCore = new THREE.Mesh(
-                new THREE.SphereGeometry(1.4, 16, 16),
-                new THREE.MeshBasicMaterial({
-                  color: new THREE.Color(2.2, 1.1, 0.3),
-                  transparent: true,
-                  opacity: 0.45,
-                  blending: THREE.AdditiveBlending,
-                  depthWrite: false,
-                }),
-              );
-              const auraHalo = new THREE.Mesh(
-                new THREE.SphereGeometry(3.2, 16, 16),
-                new THREE.MeshBasicMaterial({
-                  color: 0xff7a1a,
-                  transparent: true,
-                  opacity: 0.16,
-                  blending: THREE.AdditiveBlending,
-                  depthWrite: false,
-                }),
-              );
-              pModel.add(auraCore, auraHalo);
+              scene.add(wModel);
+              wombatModelRef.current = wModel;
 
-              scene.add(pModel);
-              phoenixModelRef.current = pModel;
-
-              if (pAsset.animations && pAsset.animations.length > 0) {
-                const pMixer = new THREE.AnimationMixer(pModel);
-                pAsset.animations.forEach((clip) => {
-                  const action = pMixer.clipAction(clip);
+              if (wAsset.animations && wAsset.animations.length > 0) {
+                const wMixer = new THREE.AnimationMixer(wModel);
+                wAsset.animations.forEach((clip) => {
+                  const action = wMixer.clipAction(clip);
                   action.setLoop(THREE.LoopRepeat, Infinity);
                   action.play();
                 });
-                phoenixMixerRef.current = pMixer;
+                wombatMixerRef.current = wMixer;
               }
             },
             undefined,
-            (err) => console.warn("Could not load soaring phoenix:", err),
+            (err) => console.warn("Could not load animated wombat:", err),
           );
         } catch (err) {
-          console.warn("Phoenix loading error:", err);
+          console.warn("Wombat loading error:", err);
         }
 
         // ── 5. Realistic Voxel Torch with Dynamic Lighting on Starter Island ──
@@ -4429,7 +4406,6 @@ export function SandboxGame({
       const finishCutscene = () => {
         if (!cutsceneRef.current.active) return;
         cutsceneRef.current.active = false;
-        phoenixModelRef.current?.scale.setScalar(0.08);
         player.frozen = false;
         setCutsceneOn(false);
       };
@@ -4577,25 +4553,6 @@ export function SandboxGame({
           );
 
           csLook.set(0, 17, 0);
-          const phoenix = phoenixModelRef.current;
-          if (phoenix) {
-            phoenix.scale.setScalar(0.028);
-            const pAng = ang + 0.45;
-            const pR = 14 + (1 - orbit) * 6;
-            const pY = 24 - orbit * 4 + Math.sin(cs.t * 0.8) * 0.4;
-            const px = Math.cos(pAng) * pR;
-            const pz = Math.sin(pAng) * pR;
-            phoenix.position.set(px, pY, pz);
-
-            // Compute smooth forward flight tangent so orientation never jitters
-            const nextAng = pAng + 0.08;
-            const npx = Math.cos(nextAng) * pR;
-            const npz = Math.sin(nextAng) * pR;
-            _scratchVec.set(npx, pY, npz);
-            phoenix.lookAt(_scratchVec);
-
-            csLook.lerp(phoenix.position, 0.22);
-          }
           camera.lookAt(csLook);
 
           const land = smooth(Math.max(0, (k - 0.82) / 0.18));
@@ -4868,29 +4825,10 @@ export function SandboxGame({
           cosmicSky?.update(dt, camera);
         }
 
-        // ── SkyBlock / Baseplate: Animate Soaring Phoenix, Voxel Torch & Undulating Aurora Borealis ──
+        // ── SkyBlock / Baseplate: Animate Wombat Companion & Voxel Props ──
         if (isSkyblockLike) {
           const tNow = clock.getElapsedTime();
-          if (phoenixMixerRef.current) phoenixMixerRef.current.update(dt);
-          if (phoenixModelRef.current && celestialSunRef.current && !cutsceneRef.current.active) {
-            // Farther soaring flight orbit per user request
-            const orbitRadius = 65.0;
-            const orbitSpeed = 0.24;
-            const angle = tNow * orbitSpeed;
-            const px = celestialSunRef.current.position.x + Math.cos(angle) * orbitRadius;
-            const pz = celestialSunRef.current.position.z + Math.sin(angle) * (orbitRadius * 0.75);
-            const py = celestialSunRef.current.position.y + 12.0 + Math.sin(angle * 2.0) * 10.0;
-            phoenixModelRef.current.position.set(px, py, pz);
-
-            const nextAngle = angle + 0.05;
-            const nextX = celestialSunRef.current.position.x + Math.cos(nextAngle) * orbitRadius;
-            const nextZ =
-              celestialSunRef.current.position.z + Math.sin(nextAngle) * (orbitRadius * 0.75);
-            const nextY =
-              celestialSunRef.current.position.y + 12.0 + Math.sin(nextAngle * 2.0) * 10.0;
-            phoenixModelRef.current.lookAt(nextX, nextY, nextZ);
-            phoenixModelRef.current.rotateZ(-0.25);
-          }
+          if (wombatMixerRef.current) wombatMixerRef.current.update(dt);
 
           if (voxelTorchRef.current) {
             voxelTorchRef.current.update(tNow);

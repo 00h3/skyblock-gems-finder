@@ -559,34 +559,35 @@ export class Avatar {
     this.targetYaw += delta * (1 - Math.exp(-14 * dt));
     this.group.rotation.y = this.targetYaw;
 
-    const moving = speed > 0.35 && onGround;
+    const moving = speed > 0.15 && onGround;
     const inAir = !onGround || Math.abs(verticalVelocity) > 2.0;
 
-    // Character animation runs continuously across all states: walking, jumping, and staying still
     let targetTimeScale = 1.0;
 
     if (inAir) {
-      // JUMPING: energetic playback speed so legs and flowing cape stay active mid-air
       targetTimeScale = 1.2;
     } else if (moving) {
-      // WALKING / RUNNING: playback speed matches movement speed
       targetTimeScale = sneaking ? 0.75 : speed > 5 ? 1.55 : Math.max(0.95, speed * 0.28);
     } else {
-      // STAYING STILL (IDLE): smooth idle pacing so character breathes and cape sways naturally
-      targetTimeScale = this.idleStill ? 0.45 : 0.85;
+      targetTimeScale = 0.85;
     }
 
     if (this.animActions.walk) {
-      this.animActions.walk.setEffectiveWeight(1.0);
+      const walkWeight = (moving || inAir) ? 1.0 : 0.0;
+      this.animActions.walk.setEffectiveWeight(walkWeight);
       this.animActions.walk.setEffectiveTimeScale(targetTimeScale);
-      if (!this.animActions.walk.isRunning()) {
+      if (walkWeight > 0 && !this.animActions.walk.isRunning()) {
         this.animActions.walk.play();
       }
     }
 
     if (this.animActions.breathe) {
-      this.animActions.breathe.setEffectiveWeight(0.2);
+      const breatheWeight = (moving || inAir) ? 0.2 : 1.0;
+      this.animActions.breathe.setEffectiveWeight(breatheWeight);
       this.animActions.breathe.setEffectiveTimeScale(1.0);
+      if (!this.animActions.breathe.isRunning()) {
+        this.animActions.breathe.play();
+      }
     }
 
     if (this.mixer) {

@@ -328,6 +328,15 @@ export const BLOCKS: BlockDef[] = [
     hardness: 0.8,
   },
   {
+    id: 49,
+    name: "Pink Block",
+    top: "pink_block",
+    side: "pink_block",
+    bottom: "pink_block",
+    hardness: 3,
+    glow: 0.6,
+  },
+  {
     id: 34,
     name: "Terracotta",
     top: "terracotta",

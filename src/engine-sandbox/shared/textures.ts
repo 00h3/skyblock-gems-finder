@@ -46,6 +46,7 @@ export const TILE_NAMES = [
   "diamond_block",
   "emerald_block",
   "gold_block",
+  "pink_block",
   "iron_block",
   "lapis_block",
   "amethyst_block",
@@ -202,6 +203,21 @@ function buildCrackTexture(): THREE.Texture {
   return tex;
 }
 
+function recolorTileCanvas(
+  img: HTMLImageElement | HTMLCanvasElement,
+  hueRotateDeg: number,
+  saturatePercent = 180,
+  brightnessPercent = 110,
+): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width || 96;
+  canvas.height = img.height || 96;
+  const ctx = canvas.getContext("2d")!;
+  ctx.filter = `hue-rotate(${hueRotateDeg}deg) saturate(${saturatePercent}%) brightness(${brightnessPercent}%)`;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
 export async function buildAtlas(
   onProgress?: (loaded: number, total: number) => void,
 ): Promise<Atlas> {
@@ -221,12 +237,33 @@ export async function buildAtlas(
 
   ctx.filter = "saturate(105%)";
 
-  // The supplied cartoon resource pack is the only canonical source. Missing
-  // tiles stay visibly magenta instead of silently bringing back an old pack.
   const GOLD_BLOCK_CUSTOM_URL = "https://file.garden/alGOOylwpAfCa6qP/Sounds/jin_right.png";
 
   const images = await Promise.all(
     TILE_NAMES.map(async (name) => {
+      if (name === "emerald_block" || name === "pink_block") {
+        try {
+          let baseImg: HTMLImageElement | null = null;
+          try {
+            baseImg = await loadImage(GOLD_BLOCK_CUSTOM_URL);
+          } catch {
+            baseImg = await loadImage(`${TEXTURE_BASE}gold_block.png`);
+          }
+          if (baseImg) {
+            // Emerald hue ~ 110deg, Pink hue ~ 280deg
+            const recolored = recolorTileCanvas(
+              baseImg,
+              name === "emerald_block" ? 110 : 280,
+              185,
+              1.12,
+            );
+            const dataUrl = recolored.toDataURL();
+            sourceUrls.set(name, dataUrl);
+            return recolored;
+          }
+        } catch {}
+      }
+
       const source = name === "gold_block" ? GOLD_BLOCK_CUSTOM_URL : `${TEXTURE_BASE}${name}.png`;
       try {
         const img = await loadImage(source);

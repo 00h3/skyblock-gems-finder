@@ -73,104 +73,61 @@ export function V2LoadingScreen({
       className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#090b10]"
       style={{ touchAction: "none" }}
     >
-      {/* Background: For Skyblock, show atmospheric dusk sky with phoenix; for others, voxel backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#18131d] via-[#0f121a] to-[#07090e] flex items-center justify-center">
-        {isSkyblock ? (
-          <div className="relative flex flex-col items-center justify-center z-10 w-full max-w-[500px] px-4 -mt-16 sm:-mt-20">
-            {/* The 3D Soaring Animated Phoenix */}
-            <PhoenixLoadingVisual />
+      {/* High-Resolution Floating Islands Background Artwork */}
+      <img
+        src="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
+        alt="Skyblock Floating Islands"
+        className="absolute inset-0 h-full w-full object-cover pointer-events-none [image-rendering:auto]"
+      />
 
-            <div className="text-center -mt-2">
-              <h2 className="font-lilita text-[26px] sm:text-[32px] tracking-wider text-amber-300 drop-shadow-[0_2px_12px_rgba(255,140,0,0.85)]">
-                SKYBLOCK
-              </h2>
-              <p className="text-[12px] sm:text-[13px] font-bold text-orange-200/80 tracking-wide mt-0.5">
-                {subtitle || "Building your island…"}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="relative flex flex-col items-center gap-3">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-1 shadow-[0_0_40px_rgba(250,70,22,0.45)] animate-pulse flex items-center justify-center">
-              <span className="font-lilita text-[32px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
-            </div>
-            <span className="font-lilita text-[18px] tracking-wider text-white/80">QBLOCK</span>
-          </div>
-        )}
+      {/* Subtle vignette dark overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/40 pointer-events-none" />
+
+      {/* Title badge - small and compact */}
+      <div className="relative z-20 flex flex-col items-center mb-12">
+        <div className="h-11 w-11 rounded-xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-0.5 shadow-[0_4px_20px_rgba(250,70,22,0.5)] flex items-center justify-center mb-1.5">
+          <span className="font-lilita text-[22px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
+        </div>
+        <h2 className="font-lilita text-[22px] tracking-wider text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+          {isSkyblock ? "SKYBLOCK" : "QBLOCK"}
+        </h2>
+        <p className="text-[11px] font-bold text-zinc-200/90 tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+          {subtitle || "Building your island…"}
+        </p>
       </div>
 
-      {/* Background MP4 Animation for non-Skyblock worlds */}
-      {!isSkyblock && (
-        <video
-          src="https://maxwell.z3ki.dev/bot/_files/qblock-animation/qblock_animation.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          onCanPlay={() => setVideoReady(true)}
-          onLoadedData={() => setVideoReady(true)}
-          className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${videoReady ? "opacity-100" : "opacity-0"}`}
-        />
-      )}
-
-      {/* Dark overlay for contrast */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px] pointer-events-none" />
-
-      {/* Loader stuck on the bottom — shows only the loader and what is loading */}
-      <div className="absolute inset-x-4 sm:inset-x-8 bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] z-20 mx-auto w-full max-w-[480px]">
-        {/* Pixelated, glossy orange rectangular progress bar */}
-        <div className="w-full">
+      {/* Compact Loader stuck near bottom */}
+      <div className="absolute inset-x-4 bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] z-20 mx-auto w-full max-w-[320px]">
+        <div className="w-full bg-black/60 backdrop-blur-md p-2.5 rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.8)]">
           {/* Outer rectangular pixel frame */}
-          <div className="p-1 bg-[#0d0e12] border-4 border-black shadow-[0_6px_0_#000,0_12px_28px_rgba(0,0,0,0.85)]">
+          <div className="p-0.5 bg-[#0d0e12] border-2 border-black">
             {/* Inner track */}
-            <div className="relative h-7 sm:h-8 w-full bg-[#1b1d24] overflow-hidden border-2 border-black/80">
-              {/* Subtle pixel grid pattern */}
-              <div
-                className="absolute inset-0 pointer-events-none opacity-25"
-                style={{
-                  backgroundImage: "linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)",
-                  backgroundSize: "16px 100%",
-                }}
-              />
-
+            <div className="relative h-5 w-full bg-[#1b1d24] overflow-hidden border border-black/80">
               {/* Glossy orange rectangular fill */}
               <div
                 className="relative h-full transition-[width] duration-150 ease-out bg-gradient-to-b from-[#ffa34d] via-[#fa4616] to-[#b82f05]"
                 style={{ width: `${actualProgress}%` }}
               >
-                {/* Upper-half gloss reflection highlight */}
                 <div className="absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-white/55 to-white/10 pointer-events-none" />
-
-                {/* Pixelated segment notches */}
-                <div
-                  className="absolute inset-0 pointer-events-none opacity-35"
-                  style={{
-                    backgroundImage:
-                      "repeating-linear-gradient(90deg, transparent, transparent 12px, #000 12px, #000 14px)",
-                  }}
-                />
-
-                {/* Specular front edge */}
-                <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-white/80 shadow-[0_0_8px_#fff]" />
+                <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-white/90 shadow-[0_0_6px_#fff]" />
               </div>
             </div>
           </div>
 
-          {/* What is loading & percentage */}
-          <div className="mt-2.5 flex items-center justify-between px-1">
-            <span className="text-[12px] sm:text-[13px] font-black tracking-wide uppercase text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+          {/* Status message and percentage */}
+          <div className="mt-1.5 flex items-center justify-between px-0.5 text-[11px] font-black text-white">
+            <span className="tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
               {actualProgress < 30
-                ? "Loading world & textures…"
+                ? "Loading world…"
                 : actualProgress < 65
-                  ? "Preparing 3D voxel models…"
+                  ? "Preparing models…"
                   : actualProgress < 95
-                    ? "Compiling shaders & entities…"
+                    ? "Compiling shaders…"
                     : !isAssetsLoaded
-                      ? "Finalizing assets…"
+                      ? "Finalizing…"
                       : "Ready!"}
             </span>
-            <span className="text-[13px] sm:text-[14px] font-black tabular-nums text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+            <span className="tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
               {Math.round(actualProgress)}%
             </span>
           </div>
