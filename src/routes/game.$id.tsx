@@ -3072,9 +3072,9 @@ function EngineGame({
       };
       const groups = new Map<number, BlockGroup>();
       const dummyObj = new THREE.Object3D();
-      const scratchMatrix = new THREE.Matrix4();
+      const skyblockPlayerUid = qbUser?.uid || getPermanentPlayerId(qbUser);
       const currentSkyblockIslandId =
-        visitingUserId || qbUser?.islandId || "shared_skyblock_island";
+        visitingUserId ? `island_v2_${visitingUserId}` : `island_v2_${skyblockPlayerUid}`;
 
       function makeGroupMesh(type: number, capacity: number) {
         const leaf = isLeafType(type);

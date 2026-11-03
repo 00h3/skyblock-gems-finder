@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   addDoc,
   collection,
@@ -10,10 +10,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
-import { GameChatIcon } from "@/components/game-icons";
 import { badgeUrlsFor } from "@/lib/user-style";
 import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
-import Cubes from "@/components/ui/Cubes";
 
 export type ChatMsg = {
   id: string;
@@ -26,25 +24,15 @@ export type ChatMsg = {
   badges?: string[];
 };
 
-/** Frame ring colours matching the wearable frames. */
-const FRAME_RING: Record<string, string> = {
-  "star-program": "#f4b400",
-  "blue-gold": "#1769e8",
-  staff: "#22c55e",
-  "early-beta": "#a855f7",
-};
-
-const USER_COLORS = [
-  "#fa4616", // QBlock Orange
-  "#38bdf8", // Sky Blue
-  "#34d399", // Emerald Green
-  "#f59e0b", // Amber Gold
-  "#a855f7", // Purple
+export const USER_COLORS = [
+  "#ff8c00", // BedWars Orange
+  "#00e5ff", // Cyan
+  "#3b82f6", // Blue
+  "#39e75f", // Green
+  "#ffcc00", // Yellow
+  "#ff3333", // Red
   "#ec4899", // Pink
-  "#60a5fa", // Bright Blue
-  "#10b981", // Teal
-  "#f43f5e", // Rose Red
-  "#fbbf24", // Yellow Gold
+  "#a855f7", // Purple
 ];
 
 export function getUserColor(name: string) {
@@ -56,60 +44,17 @@ export function getUserColor(name: string) {
   return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
 }
 
-const CUSTOM_EMOJIS = [
-  "drunk",
-  "heybby",
-  "kirakira",
-  "maniacal",
-  "nervous",
-  "ninja",
-  "o3o",
-  "ohnoes",
-  "owocry",
-  "owonervous",
-  "owosneaky",
-  "pout",
-  "pwease",
-  "really",
-  "smug",
-  "snrk",
-  "squee",
-  "trepidation",
-  "uwu",
-  "wat",
-  "weep",
-  "wtf",
-  "yawn",
-  "zombie",
-];
-
-function renderTextWithEmojis(text: string) {
-  const parts = text.split(/(:\w+:)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith(":") && part.endsWith(":")) {
-      const name = part.slice(1, -1);
-      if (CUSTOM_EMOJIS.includes(name)) {
-        return (
-          <img
-            key={i}
-            src={`/emojis/face/${name}.png`}
-            className="w-5 h-5 inline-block align-middle mx-0.5"
-            alt={name}
-          />
-        );
-      }
-    }
-    return <span key={i}>{part}</span>;
-  });
+function getAvatarUrl(from: string, photo?: string) {
+  if (photo && photo.trim()) return photo;
+  if (from === "System" || from === "Server") {
+    return `https://api.dicebear.com/7.x/identicon/svg?seed=game`;
+  }
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(from || "player")}`;
 }
 
 /**
- * Chat Preview Component — displays on the left side of the screen during gameplay.
- * Features Username [user] in different colors and message preview text.
- */
-/**
- * Chat Preview Component — displays on the left side of the screen during gameplay.
- * Features Username [user] in different colors and message preview text with grey inventory style.
+ * Chat Preview Component — the "0 opacity one" that sits on the left side of the screen during gameplay.
+ * Features Roblox BedWars chat HUD styling with transparent row backgrounds and crisp text shadow.
  */
 export function ChatPreview({
   onOpen,
@@ -117,14 +62,14 @@ export function ChatPreview({
   className = "",
 }: {
   onOpen: () => void;
-  messages?: Array<{ id: string | number; from: string; text: string; me?: boolean; special?: string }>;
+  messages?: Array<{ id: string | number; from: string; text: string; me?: boolean; special?: string; photo?: string }>;
   className?: string;
 }) {
   const [recentMsgs, setRecentMsgs] = useState<ChatMsg[]>([]);
 
   useEffect(() => {
     if (externalMsgs && externalMsgs.length > 0) return;
-    const q = query(collection(db, "sandboxChat"), orderBy("at"), limitToLast(6));
+    const q = query(collection(db, "sandboxChat"), orderBy("at"), limitToLast(8));
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -157,63 +102,86 @@ export function ChatPreview({
     return unsub;
   }, [externalMsgs]);
 
-  const displayList =
-    externalMsgs && externalMsgs.length > 0
-      ? externalMsgs.slice(-4).map((m) => ({
-          id: String(m.id),
-          from: m.from,
-          text: m.text,
-        }))
-      : recentMsgs.slice(-4).map((m) => ({
-          id: m.id,
-          from: m.from,
-          text: m.text,
-        }));
+  const displayList = useMemo(() => {
+    if (externalMsgs && externalMsgs.length > 0) {
+      return externalMsgs.slice(-5).map((m) => ({
+        id: String(m.id),
+        from: m.from,
+        text: m.text,
+        photo: m.photo,
+      }));
+    }
+    return recentMsgs.slice(-5).map((m) => ({
+      id: m.id,
+      from: m.from,
+      text: m.text,
+      photo: m.photo,
+    }));
+  }, [externalMsgs, recentMsgs]);
+
+  if (displayList.length === 0) return null;
 
   return (
     <div
       onClick={onOpen}
-      className={`pointer-events-auto cursor-pointer max-w-[260px] sm:max-w-[320px] space-y-1 bg-transparent border-0 shadow-none font-['Inter'] font-semibold select-none ${className}`}
+      className={`pointer-events-auto cursor-pointer flex flex-col gap-1 select-none font-['Inter',sans-serif] font-semibold ${className}`}
       title="Click to open chat"
-      style={{ borderRadius: 0 }}
+      style={{
+        width: "min(540px, 92vw)",
+      }}
     >
-      {displayList.length === 0 ? null : (
-        displayList.map((m) => {
-          const userColor = getUserColor(m.from);
-          return (
+      {displayList.map((m) => {
+        const isSystem = m.from === "System" || m.from === "Server";
+        const avatarUrl = getAvatarUrl(m.from, m.photo);
+        return (
+          <div
+            key={m.id}
+            className="flex items-center gap-2 px-1.5 py-0.5 rounded-none transition-opacity hover:opacity-90"
+            style={{
+              background: "rgba(0, 0, 0, 0)", // 0 opacity background requested by user
+              border: "1px solid transparent",
+            }}
+          >
+            {/* Square 22x22 avatar with border */}
+            <img
+              src={avatarUrl}
+              alt=""
+              className="w-[22px] h-[22px] rounded-[2px] shrink-0 object-cover bg-[#1e293b]"
+              style={{
+                border: isSystem ? "1px solid rgba(255, 140, 0, 0.6)" : "1px solid rgba(255, 255, 255, 0.35)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.6)",
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(m.from)}`;
+              }}
+            />
+            {/* Chat line with crisp drop shadow */}
             <div
-              key={m.id}
-              className="text-[12px] leading-snug truncate font-semibold bg-black/45 hover:bg-black/65 px-2 py-1 rounded-none border-l-2 border-[#fa4616] text-white shadow-sm backdrop-blur-xs transition-colors"
-              style={{ borderRadius: 0 }}
+              className="text-[14px] sm:text-[14.5px] leading-[1.25] tracking-[-0.2px] break-words text-white truncate max-w-[calc(100%-32px)]"
+              style={{
+                textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.9)",
+              }}
             >
-              <span style={{ color: userColor }} className="font-bold">
-                {m.from}
-              </span>
-              <span className="text-zinc-300 bg-white/10 text-[9px] font-mono font-semibold px-1 py-0.2 rounded-none mx-1 border border-white/10">
-                [user]
-              </span>
-              <span className="text-zinc-400 font-bold mr-1">:</span>
-              <span className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                {renderTextWithEmojis(m.text)}
-              </span>
+              <span className="text-[#ff8c00] font-semibold mr-1">{m.from}</span>
+              <span>: </span>
+              <span className="text-white">{m.text}</span>
             </div>
-          );
-        })
-      )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 /**
- * Realtime sandbox chat — Grey Inventory Aesthetic + Inter Semi-Bold Font + Embedded Cubes WebGL Landing Effect.
+ * Full Page Realtime Roblox BedWars Chat HUD
+ * Matches the user-provided layout in index_b829a50c.html
  */
 export function SandboxChat({ onClose }: { onClose: () => void }) {
   const { qbUser } = useAuth();
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [val, setVal] = useState("");
-  const [showEmoji, setShowEmoji] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ProfileUser | null>(null);
-  const [chatError, setChatError] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -248,8 +216,7 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
         );
       },
       (err) => {
-        setChatError("Live chat is unavailable. Please reconnect.");
-        console.error("Sandbox chat listener failed:", err);
+        console.error("Sandbox chat listener error:", err);
       },
     );
     return unsub;
@@ -267,14 +234,12 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
 
   const send = async () => {
     const text = val.trim();
-    if (!text) return;
-    if (sending) return;
+    if (!text || sending) return;
     setVal("");
     setSending(true);
-    setChatError("");
 
     let uid = qbUser?.uid;
-    let name = qbUser?.displayName || qbUser?.username || "Guest";
+    let name = qbUser?.displayName || qbUser?.username || "Player";
 
     if (!uid) {
       try {
@@ -300,59 +265,81 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
         at: serverTimestamp(),
       });
       window.dispatchEvent(new CustomEvent("qb-self-say", { detail: text.slice(0, 240) }));
-    } catch (err: any) {
+    } catch (err) {
       setVal(text);
-      if (err.code === "permission-denied") {
-        setChatError("Missing permission to chat.");
-      } else {
-        setChatError("Message could not be sent. Please try again.");
-      }
       console.error("Could not send sandbox chat message:", err);
     } finally {
       setSending(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0a0c10]/80 backdrop-blur-md p-3 sm:p-6 font-inter-semibold">
-      {/* Container with Dark Grey Inventory Aesthetics & Metallic Frame */}
-      <div className="relative flex h-[88vh] max-h-[720px] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[#323846] bg-[#181b22] shadow-[0_12px_48px_rgba(0,0,0,0.85)]">
+    <div
+      className="fixed inset-0 z-[100000] w-screen h-screen overflow-hidden select-none font-['Inter',sans-serif] font-semibold bg-[#0b0c10]"
+      style={{
+        backgroundImage: "radial-gradient(ellipse at 50% 30%, rgba(30, 41, 59, 0.4) 0%, rgba(11, 12, 16, 0.95) 100%)",
+      }}
+    >
+      {/* Backdrop tint */}
+      <div className="absolute inset-0 bg-black/45 pointer-events-none" />
 
-        {/* Header - Grey Inventory Banner */}
-        <div className="relative z-10 flex items-center justify-between border-b border-[#2d3342] bg-[#1d222c]/90 px-4 py-3 backdrop-blur-md">
-          <span className="flex items-center gap-2 text-[14px] font-semibold text-slate-100">
-            <GameChatIcon className="h-4 w-4 text-[#fa4616]" />
-            <span>Sandbox Chat</span>
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg border border-[#3b4254] bg-[#252a36] text-[16px] font-semibold text-slate-300 transition-colors hover:bg-[#323848] active:scale-95"
-            aria-label="Close chat"
+      {/* Close button top right */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-2 right-3 z-50 h-8 w-8 grid place-items-center rounded bg-black/50 border border-white/20 text-white font-bold text-lg hover:bg-black/80 transition active:scale-95 cursor-pointer"
+        aria-label="Close chat"
+        title="Close chat"
+      >
+        ✕
+      </button>
+
+      {/* Chat Container starting high up */}
+      <div
+        ref={scrollRef}
+        className="absolute top-[6px] left-[10px] w-[540px] max-w-[95vw] flex flex-col gap-1 z-10 pointer-events-auto overflow-y-auto"
+        style={{
+          maxHeight: "calc(100vh - 48px)",
+          scrollbarWidth: "none",
+        }}
+      >
+        {msgs.length === 0 ? (
+          <div
+            className="flex items-center gap-2 p-2 rounded-none text-white text-[14px]"
+            style={{
+              background: "rgba(0, 0, 0, 0.42)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+            }}
           >
-            ×
-          </button>
-        </div>
-
-        {/* Message Stream */}
-        <div ref={scrollRef} className="relative z-10 min-h-0 flex-1 space-y-2.5 overflow-y-auto px-4 py-3">
-          {msgs.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center space-y-1 text-center py-12">
-              <GameChatIcon className="h-8 w-8 text-slate-500 opacity-50" />
-              <p className="text-[12px] font-semibold text-slate-400">
-                No messages yet — start the conversation! 👋
-              </p>
+            <img
+              src="https://api.dicebear.com/7.x/identicon/svg?seed=game"
+              alt=""
+              className="w-[22px] h-[22px] rounded-[2px] border border-[#ff8c00]/60 shrink-0 object-cover bg-[#1e293b]"
+            />
+            <div
+              className="text-[14.5px] leading-[1.25] text-white"
+              style={{
+                textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.9)",
+              }}
+            >
+              <span className="text-[#ff8c00]">Server:</span> Connected to live QBLOCK BedWars chat.
             </div>
-          )}
-          {msgs.map((m) => {
-            const me = !!qbUser && m.uid === qbUser.uid;
-            const ring = m.frame ? FRAME_RING[m.frame] : undefined;
-            const userColor = getUserColor(m.from);
-
+          </div>
+        ) : (
+          msgs.map((m) => {
+            const isSystem = m.from === "System" || m.from === "Server";
+            const avatarUrl = getAvatarUrl(m.from, m.photo);
             return (
               <div
                 key={m.id}
-                className="flex items-start gap-2.5 rounded-xl border border-[#2d3342]/60 bg-[#1e232f]/80 p-2 text-[13px] leading-snug shadow-sm backdrop-blur-sm"
+                className="flex items-center gap-2 rounded-none px-[7px] py-[3px]"
+                style={{
+                  background: "rgba(0, 0, 0, 0.42)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                }}
               >
                 <button
                   type="button"
@@ -362,7 +349,7 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
                           id: m.uid,
                           n: m.from,
                           username: m.from,
-                          color: userColor,
+                          color: getUserColor(m.from),
                           online: true,
                           isOwn: m.uid === qbUser?.uid,
                           avatarSnapshot: m.frame
@@ -372,114 +359,80 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
                         })
                       : undefined
                   }
-                  className="mt-[1px] grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-lg border border-[#383e50] bg-[#282d3c] active:scale-95"
-                  aria-label={`View ${m.from}'s profile`}
+                  className="shrink-0 p-0 m-0 border-0 bg-transparent cursor-pointer"
+                  title={`View ${m.from}`}
                 >
-                  <span
-                    style={ring ? { boxShadow: `inset 0 0 0 2px ${ring}` } : undefined}
-                    className="grid h-full w-full place-items-center"
-                  >
-                    {m.photo ? (
-                      <img
-                        src={m.photo}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <span className="text-[11px] font-semibold text-slate-300">
-                        {m.from.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                  </span>
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="w-[22px] h-[22px] rounded-[2px] shrink-0 object-cover bg-[#1e293b]"
+                    style={{
+                      border: isSystem
+                        ? "1px solid rgba(255, 140, 0, 0.6)"
+                        : "1px solid rgba(255, 255, 255, 0.35)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.6)",
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(m.from)}`;
+                    }}
+                  />
                 </button>
 
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1">
-                    <span style={{ color: userColor }} className="font-semibold text-[13px]">
-                      {m.from}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal">[user]</span>
-                    {(m.badges ?? []).map((b) => (
-                      <img
-                        key={b}
-                        src={b}
-                        alt=""
-                        referrerPolicy="no-referrer"
-                        className="h-3.5 w-3.5 align-[-2px] object-contain"
-                      />
-                    ))}
-                  </span>
-                  <div className="mt-0.5 break-words font-semibold text-slate-200 text-[12.5px]">
-                    {renderTextWithEmojis(m.text)}
-                  </div>
-                </span>
+                <div
+                  className="text-[14.5px] leading-[1.25] text-white tracking-[-0.2px] break-words flex-1 min-w-0"
+                  style={{
+                    textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.9)",
+                  }}
+                >
+                  <span className="text-[#ff8c00] font-semibold mr-1">{m.from}</span>
+                  <span>: </span>
+                  <span className="text-white">{m.text}</span>
+                </div>
               </div>
             );
-          })}
-        </div>
-
-        {selectedProfile ? (
-          <ProfileSheet user={selectedProfile} onClose={() => setSelectedProfile(null)} />
-        ) : null}
-
-        {showEmoji && (
-          <div className="relative z-10 flex flex-wrap gap-1.5 border-t border-[#2d3342] bg-[#1a1e27] px-3 py-2 max-h-[140px] overflow-y-auto">
-            {CUSTOM_EMOJIS.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => setVal((v) => (v ? `${v} :${e}:` : `:${e}:`))}
-                className="grid h-8 w-8 place-items-center rounded-lg border border-[#353c4f] bg-[#222734] transition-colors hover:bg-[#2e3446]"
-                title={e}
-              >
-                <img src={`/emojis/face/${e}.png`} className="w-5 h-5 object-contain" alt={e} />
-              </button>
-            ))}
-          </div>
+          })
         )}
+      </div>
 
-        {chatError && (
-          <p
-            role="alert"
-            className="relative z-10 border-t border-rose-500/20 bg-rose-950/40 px-4 py-2 text-[11px] font-semibold text-rose-400"
-          >
-            {chatError}
-          </p>
-        )}
+      {selectedProfile && (
+        <ProfileSheet user={selectedProfile} onClose={() => setSelectedProfile(null)} />
+      )}
 
-        {/* Input Bar - Dark Grey Metallic Inventory Slot Style */}
-        <div className="relative z-10 flex items-center gap-2 border-t border-[#2d3342] bg-[#161922]/95 px-4 py-3 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => setShowEmoji((s) => !s)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#383e50] bg-[#252a37] text-slate-300 transition-colors hover:bg-[#303646]"
-            aria-label="Emoji"
-          >
-            <img src="/emojis/face/uwu.png" className="w-5 h-5 opacity-90" alt="emoji" />
-          </button>
-          <input
-            ref={inputRef}
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Enter") send();
-            }}
-            placeholder={qbUser ? "Message everyone…" : "Sign in to chat"}
-            disabled={!qbUser || sending}
-            maxLength={240}
-            className="h-9 flex-1 rounded-lg border border-[#333a4c] bg-[#1f2430] px-3 text-[12.5px] font-semibold text-slate-100 placeholder-slate-400 outline-none focus:border-[#fa4616] focus:ring-1 focus:ring-[#fa4616]"
-          />
-          <button
-            type="button"
-            onClick={send}
-            disabled={!qbUser || sending}
-            className="h-9 shrink-0 rounded-lg bg-[#fa4616] px-4 text-[12.5px] font-semibold text-white transition-all hover:bg-[#ff5726] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 shadow-md"
-          >
-            {sending ? "…" : "Send"}
-          </button>
-        </div>
+      {/* Interactive simulated input at bottom */}
+      <div
+        className="absolute bottom-0 inset-x-0 h-[38px] flex items-center px-3 gap-2 z-10"
+        style={{
+          background: "rgba(20, 28, 38, 0.95)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") send();
+          }}
+          placeholder="Type a custom message and press Enter..."
+          disabled={sending}
+          maxLength={240}
+          className="flex-1 bg-transparent border-none outline-none text-white text-[13px] font-semibold placeholder:text-white/45"
+          style={{ fontFamily: "'Inter', sans-serif" }}
+        />
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending || !val.trim()}
+          className="px-3.5 py-1 text-white font-semibold rounded text-[12.5px] transition cursor-pointer active:scale-95 disabled:opacity-50"
+          style={{
+            background: "#ff8c00",
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          {sending ? "..." : "Send"}
+        </button>
       </div>
     </div>
   );

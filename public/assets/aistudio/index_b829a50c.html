@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roblox BedWars Chat HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet">
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    background-color: #0b0c10;
+    background-image: url('https://cdn.discordapp.com/attachments/1548247936704708658/1567060278024343562/IMG_8384.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    user-select: none;
+    position: relative;
+  }
+
+  .backdrop-tint {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
+
+  /* Chat Box Container starting higher up */
+  .chat-container {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    width: 540px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 10;
+    pointer-events: auto;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .chat-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0px; /* squared off */
+    padding: 3px 7px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  .pfp {
+    width: 22px;
+    height: 22px;
+    border-radius: 2px; /* square avatar with slight crisp edge */
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    background-color: #1e293b;
+    object-fit: cover;
+  }
+
+  .pfp-system {
+    border-color: rgba(255, 140, 0, 0.6);
+  }
+
+  .chat-line {
+    font-size: 14.5px;
+    line-height: 1.25;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.9);
+    letter-spacing: -0.2px;
+    word-break: break-word;
+    color: #ffffff;
+  }
+
+  /* Color classes */
+  .c-white { color: #ffffff; }
+  .c-red { color: #ff3333; }
+  .c-green { color: #39e75f; }
+  .c-cyan { color: #00e5ff; }
+  .c-blue { color: #3b82f6; }
+  .c-yellow { color: #ffcc00; }
+  .c-orange { color: #ff8c00; font-weight: 600; }
+
+  /* Interactive simulated input at bottom */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 38px;
+    background: rgba(20, 28, 38, 0.95);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    z-index: 10;
+  }
+  .bottom-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .bottom-input::placeholder {
+    color: rgba(255,255,255,0.45);
+  }
+  .send-btn {
+    background: #ff8c00;
+    border: none;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12.5px;
+    transition: background 0.15s;
+  }
+  .send-btn:hover {
+    background: #ffa024;
+  }
+</style>
+</head>
+<body>
+
+<div class="backdrop-tint"></div>
+
+<!-- Chat Lines with avatars, white text by default and orange for key/action highlights -->
+<div class="chat-container" id="chat">
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/bottts/svg?seed=sys1" alt="avatar" />
+    <div class="chat-line c-white">gui_selectable_action_103</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/identicon/svg?seed=game" alt="avatar" />
+    <div class="chat-line c-white"><span class="c-orange">16</span> players in game.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/bottts/svg?seed=sys2" alt="avatar" />
+    <div class="chat-line c-white">gui_selectable_action_103</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=IamnotAqeef" alt="avatar" />
+    <div class="chat-line c-white">IamnotAqeef is <span class="c-orange">waving hand</span></div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=IamnotAqeef" alt="avatar" />
+    <div class="chat-line c-white">IamnotAqeef is <span class="c-orange">waving hand</span></div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=TanSat" alt="avatar" />
+    <div class="chat-line c-white"><span class="c-cyan">[Cyan]TanSat_0_8785</span> quits the game.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/identicon/svg?seed=survivors" alt="avatar" />
+    <div class="chat-line c-white">There are <span class="c-orange">15</span> survivors left.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=KiemSiBoss" alt="avatar" />
+    <div class="chat-line c-white">KiemSiBoss4422 is <span class="c-orange">crying</span></div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Learned_Mario" alt="avatar" />
+    <div class="chat-line c-white"><span class="c-blue">[Blue]Learned_Mariokx9</span> quits the game.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/identicon/svg?seed=survivors" alt="avatar" />
+    <div class="chat-line c-white">There are <span class="c-orange">14</span> survivors left.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=KiemSiBoss" alt="avatar" />
+    <div class="chat-line c-white">KiemSiBoss4422 is <span class="c-orange">crying</span></div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=YouPlayer" alt="avatar" />
+    <div class="chat-line c-white">You are <span class="c-orange">waving hand</span></div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=VividFig" alt="avatar" />
+    <div class="chat-line c-white"><span class="c-blue">[Blue]VividFig9443</span> quits the game.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/identicon/svg?seed=survivors" alt="avatar" />
+    <div class="chat-line c-white">There are <span class="c-orange">13</span> survivors left.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=YouPlayer" alt="avatar" />
+    <div class="chat-line c-white">You are <span class="c-orange">waving hand</span></div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Abelmkj1" alt="avatar" />
+    <div class="chat-line c-white"><span class="c-cyan">[Cyan]Active_Abelmkj1</span> quits the game.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/identicon/svg?seed=survivors" alt="avatar" />
+    <div class="chat-line c-white">There are <span class="c-orange">12</span> survivors left.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=xx_coldybg_xx" alt="avatar" />
+    <div class="chat-line c-white"><span class="c-yellow">[Yellow]xx_coldybg_xx</span> quits the game.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp pfp-system" src="https://api.dicebear.com/7.x/identicon/svg?seed=survivors" alt="avatar" />
+    <div class="chat-line c-white">There are <span class="c-orange">11</span> survivors left.</div>
+  </div>
+  <div class="chat-row">
+    <img class="pfp" src="https://api.dicebear.com/7.x/adventurer/svg?seed=girlherobrine" alt="avatar" />
+    <div class="chat-line c-white">girl..herobrine. is <span class="c-orange">waving hand</span></div>
+  </div>
+</div>
+
+<!-- Interactive send bar -->
+<div class="bottom-bar">
+  <input type="text" id="customInput" class="bottom-input" placeholder="Type a custom message and press Enter..." />
+  <button class="send-btn" id="sendBtn">Send</button>
+</div>
+
+<script>
+  const input = document.getElementById('customInput');
+  const btn = document.getElementById('sendBtn');
+  const chat = document.getElementById('chat');
+
+  function addMsg() {
+    const text = input.value.trim();
+    if (!text) return;
+    const row = document.createElement('div');
+    row.className = 'chat-row';
+
+    const pfp = document.createElement('img');
+    pfp.className = 'pfp';
+    pfp.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(text.slice(0, 10))}`;
+    pfp.alt = 'avatar';
+
+    const line = document.createElement('div');
+    line.className = 'chat-line c-white';
+    line.textContent = text;
+
+    row.appendChild(pfp);
+    row.appendChild(line);
+    chat.appendChild(row);
+    input.value = '';
+
+    while (chat.children.length > 25) {
+      chat.removeChild(chat.firstChild);
+    }
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  btn.addEventListener('click', addMsg);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addMsg();
+  });
+</script>
+
+</body>
+</html>

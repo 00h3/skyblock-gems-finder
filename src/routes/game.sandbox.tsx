@@ -58,6 +58,8 @@ import { badgeUrlsFor } from "@/lib/user-style";
 import {
   addDoc,
   collection,
+  doc,
+  setDoc,
   limitToLast,
   onSnapshot,
   orderBy,
@@ -66,6 +68,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { loadSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
+import { getOrCreateIsland, saveIslandBlockDelta } from "@/lib/skyblock-multiplayer";
 import { subscribeToSandboxPlayers, updateSandboxPresence } from "@/lib/sandbox-presence";
 import { loadBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
 import { getShadowMapSize, readQualityPref } from "@/lib/rendering";
@@ -3536,6 +3539,12 @@ export function SandboxGame({
         if (disposed) return;
         console.warn("Saved world unavailable, playing offline:", multiplayerErrorMessage(error, "world"));
       };
+      const skyblockPlayerId = meRef.current.uid || getPermanentPlayerId(qbUser);
+      const currentVisitParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visit") : null;
+      const activeSkyblockIslandId = currentVisitParam
+        ? `island_v2_${currentVisitParam}`
+        : `island_v2_${skyblockPlayerId}`;
+
       if (blockFall) {
         void loadBlockFallBlocks(
           ({ x, y, z, id }) => {
@@ -3543,6 +3552,22 @@ export function SandboxGame({
           },
           onSavedWorldError,
         );
+      } else if (skyblock) {
+        // Each account loads only its own isolated, pristine Skyblock island
+        void getOrCreateIsland(activeSkyblockIslandId, meRef.current.name).then((island) => {
+          if (disposed || !world) return;
+          if (island && island.deltaBlocks) {
+            for (const [coordKey, val] of Object.entries(island.deltaBlocks)) {
+              const [bx, by, bz] = coordKey.split(",").map(Number);
+              if ([bx, by, bz].every(Number.isFinite)) {
+                world.set(bx, by, bz, val === -1 ? 0 : val);
+              }
+            }
+            world.meshAll();
+          }
+        }).catch((err) => {
+          console.warn("Could not load island delta blocks:", err);
+        });
       } else {
         void loadSandboxBlocks(
           ({ x, y, z, id }) => {
@@ -3551,6 +3576,27 @@ export function SandboxGame({
           onSavedWorldError,
         );
       }
+
+      // Skyblock Island Reset handler — wipes island deltas and restores fresh starter sanctuary
+      const onResetIsland = async () => {
+        if (!skyblock || !world) return;
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(`sb_island_${activeSkyblockIslandId}`);
+          }
+          const islandRef = doc(db, "islands", activeSkyblockIslandId);
+          await setDoc(islandRef, { deltaBlocks: {}, lastModified: Date.now() }, { merge: true });
+        } catch (err) {
+          console.warn("Reset island error:", err);
+        }
+        world.clear();
+        buildSkyblockIsland(world);
+        world.meshAll();
+        player.position.set(0, 18, 0);
+        player.velocity.set(0, 0, 0);
+        announce("Island Reset", "Welcome back to your fresh starter sanctuary!");
+      };
+      window.addEventListener("qb-reset-island", onResetIsland);
 
       // Instant local echo: your own bubble pops the moment you hit send,
       // without waiting for the Firestore round-trip.
@@ -3731,6 +3777,7 @@ export function SandboxGame({
           console.warn("Block saved locally only (offline):", error);
         };
         if (blockFall) void writeBlockFallBlock({ x, y, z, id }).catch(rollback);
+        else if (skyblock) void saveIslandBlockDelta(activeSkyblockIslandId, x, y, z, id === 0 ? null : id);
         else void writeSandboxBlock({ x, y, z, id }).catch(rollback);
       };
       const featureOrigin = new THREE.Vector3();
@@ -5216,6 +5263,7 @@ export function SandboxGame({
         });
         cell99Model = null;
       }
+      window.removeEventListener("qb-reset-island", onResetIsland);
       world?.dispose();
       BmgoAudio.stopBgm();
       if (renderer) {
@@ -5596,23 +5644,7 @@ export function SandboxGame({
         onPointerCancel={onTouchEnd}
       />
 
-      {ready && loadingDismissed && !cutsceneOn && !showClickToPlay && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+76px)] z-[85] flex -translate-x-1/2 items-center gap-1.5 rounded-[8px] border border-[#363b46] bg-[#22252c]/90 px-2.5 py-1 text-[10px] font-black text-zinc-200 shadow-lg"
-        >
-          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${multiplayerConnected ? "bg-emerald-400" : "bg-zinc-400"}`} />
-          <span>{multiplayerConnected ? "Online" : "Solo"}</span>
-          {multiplayerError && <span className="sr-only">{multiplayerError}</span>}
-        </div>
-      )}
 
-      {ready && skyblock && loadingDismissed && !cutsceneOn && !showClickToPlay && (
-        <div className="fixed right-2 top-[calc(env(safe-area-inset-top)+112px)] z-[85]">
-          <MineTeleportButton inMine={inMine} onPress={requestTeleport} disabled={!!tpCine} />
-        </div>
-      )}
 
       {skyblock && <HurtVignette hp={playerHp} />}
       {skyblock && ready && loadingDismissed && !cutsceneOn && !showClickToPlay && (
@@ -6171,7 +6203,7 @@ export function SandboxGame({
         </div>
       )}
       {!chatOpen && showHud && (
-        <div className="pointer-events-auto fixed left-1 sm:left-1.5 top-[52px] sm:top-[56px] z-[90]">
+        <div className="pointer-events-auto fixed left-[10px] top-[6px] z-[90]">
           <ChatPreview onOpen={() => setChatOpen(true)} />
         </div>
       )}

@@ -375,6 +375,8 @@ export function persistBlockChange(
   }, 400);
 }
 
+export const saveIslandBlockDelta = persistBlockChange;
+
 /**
  * Subscribe to real-time block changes from other players on the active island
  */

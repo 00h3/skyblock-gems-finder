@@ -74,25 +74,41 @@ export function V2Announcer() {
     >
       <div
         key={msg.id}
-        className="wood-panel v2-anim-pop relative flex max-w-[min(380px,94vw)] items-center gap-3 !rounded-[4px] border-2 border-[#150b04] bg-[#2a170b] px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.7)]"
+        className="v2-anim-pop relative flex max-w-[min(380px,94vw)] items-center gap-3 rounded-[6px] px-3.5 py-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.7)]"
+        style={{
+          background: "rgba(28, 28, 32, 0.92)",
+          border: "2px solid rgba(12, 12, 14, 0.95)",
+          fontFamily:
+            '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}
       >
         <span
           aria-hidden="true"
-          className="grid h-9 w-9 shrink-0 place-items-center !rounded-[2px] border-2 border-[#150b04] bg-[#160c04] text-[15px] font-lilita text-amber-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[4px] border border-white/10 bg-[#16161a] text-[15px] text-amber-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]"
         >
-          {msg.tone === "event" ? "⚡" : msg.tone === "reward" ? "📜" : "🪵"}
+          {msg.tone === "event" ? "⚡" : msg.tone === "reward" ? "📜" : "🧱"}
         </span>
         <div className="min-w-0 text-left">
           {msg.tone && msg.tone !== "info" && (
-            <p className="font-lilita text-[10.5px] uppercase tracking-wider text-amber-300">
-              {msg.tone === "event" ? "World event" : "Quest complete"}
+            <p className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
+              {msg.tone === "event" ? "World event" : "Reward"}
             </p>
           )}
-          <p className="truncate font-lilita text-[13.5px] tracking-wide text-amber-100 leading-tight">
+          <p
+            className="truncate text-[13px] font-bold text-white leading-tight"
+            style={{
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+            }}
+          >
             {msg.title}
           </p>
           {msg.detail && (
-            <p className="truncate text-[11px] font-bold text-amber-200/80">
+            <p
+              className="truncate text-[11px] font-semibold text-zinc-300"
+              style={{
+                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+              }}
+            >
               {msg.detail}
             </p>
           )}

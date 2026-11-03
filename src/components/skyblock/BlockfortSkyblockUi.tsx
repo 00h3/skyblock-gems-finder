@@ -588,18 +588,13 @@ export function BlockfortSkyblockUi({
   };
 
   const spendRealCoins = async (amount: number): Promise<boolean> => {
-    if (realBalance < amount) return false;
-    const ok = await spendCurrency("gold", amount);
-    if (ok) {
-      setPurseCoins(Math.max(0, econ.purse - amount));
-      return true;
-    }
-    return false;
+    if ((econ.purse || 0) < amount) return false;
+    setPurseCoins(Math.max(0, (econ.purse || 0) - amount));
+    return true;
   };
 
   const addRealCoins = (amount: number) => {
-    addCurrency("gold", amount);
-    setPurseCoins(econ.purse + amount);
+    setPurseCoins((econ.purse || 0) + amount);
   };
 
   // ── Manor Upgrade Action ───────────────────────────────────────────────────
@@ -612,8 +607,8 @@ export function BlockfortSkyblockUi({
       showToast(`Upgrade to Level ${econ.islandInfo.level + 1} first!`);
       return;
     }
-    if (realBalance < targetTier.cost) {
-      showToast(`Need ${targetTier.cost.toLocaleString()} Star Coins!`);
+    if ((econ.purse || 0) < targetTier.cost) {
+      showToast(`Need ${targetTier.cost.toLocaleString()} Coins!`);
       return;
     }
 
@@ -683,91 +678,61 @@ export function BlockfortSkyblockUi({
 
   return (
     <>
-      {/* ── RIGHT-TOP: Small Grey Inventory-Style Currency + Sleek Menu Toggle ─── */}
+      {/* ── TOP RIGHT: Single in-game currency perfectly on top (No icon, separate count) ─── */}
+      {!hideHudButtons && (
+        <div className="fixed right-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] z-40 pointer-events-auto select-none">
+          <div
+            onClick={() => setShopOpen(true)}
+            className="flex items-center px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
+            style={{
+              background: "rgba(28, 28, 32, 0.88)",
+              border: "2px solid rgba(12, 12, 14, 0.95)",
+              fontFamily:
+                '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}
+            title="In-Game Coins (Click to open shop)"
+          >
+            <span
+              className="text-[12px] font-bold text-amber-400 font-mono tracking-tight leading-none"
+              style={{
+                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+              }}
+            >
+              {(econ.purse || 0).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── RIGHT: Menu Toggle Button positioned further down ─── */}
       {!hideHudButtons && (
         <div
-          className="fixed right-3 top-3 z-40 pointer-events-auto flex flex-col items-end gap-1 select-none"
+          className="fixed right-3 top-[max(56px,calc(env(safe-area-inset-top)+52px))] z-40 pointer-events-auto flex flex-col items-end gap-1.5 select-none"
           style={{ transformOrigin: "top right" }}
         >
-          {/* Top row: Small grey inventory currency + Toggle button */}
-          <div className="flex items-center gap-1.5 mb-0.5">
-            {/* Small Grey Inventory Style Currency (Gold & Star Coins) */}
-            <div
-              onClick={() => setShopOpen(true)}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
-              style={{
-                background: "rgba(28, 28, 32, 0.88)",
-                border: "2px solid rgba(12, 12, 14, 0.95)",
-                fontFamily:
-                  '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              }}
-              title="Gold & Star Coins (Click to open shop)"
+          {/* Toggle button in Blockfort style: X to close, Menu to open */}
+          {buttonsExpanded ? (
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              type="button"
+              onClick={() => setButtonsExpanded(false)}
+              className="bf-close bf-close--sm"
+              aria-label="Close buttons menu"
+              title="Close buttons menu (✕)"
+            />
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              type="button"
+              onClick={() => setButtonsExpanded(true)}
+              className="bf-toggle-btn"
+              aria-label="Open buttons menu"
+              title="Open Skyblock buttons"
             >
-              {/* Gold */}
-              <div className="flex items-center gap-1">
-                <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0 overflow-hidden">
-                  <img
-                    src="https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png"
-                    alt="Gold"
-                    className="w-full h-full object-contain pointer-events-none [image-rendering:pixelated]"
-                  />
-                </div>
-                <span
-                  className="text-[11px] font-bold text-amber-400 font-mono tracking-tight leading-none"
-                  style={{
-                    textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                  }}
-                >
-                  {(globalGold || econ.purse || 0).toLocaleString()}
-                </span>
-              </div>
-
-              <div className="w-[1px] h-3 bg-white/10 shrink-0" />
-
-              {/* Star Coins */}
-              <div className="flex items-center gap-1">
-                <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0 overflow-hidden">
-                  <img
-                    src="https://file.garden/alGOOylwpAfCa6qP/IMG_7269.png"
-                    alt="Star Coins"
-                    className="w-full h-full object-contain pointer-events-none [image-rendering:pixelated]"
-                  />
-                </div>
-                <span
-                  className="text-[11px] font-bold text-pink-400 font-mono tracking-tight leading-none"
-                  style={{
-                    textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                  }}
-                >
-                  {(starCoins || realBalance || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {/* Toggle button in Blockfort style: X to close, Menu to open */}
-            {buttonsExpanded ? (
-              <motion.button
-                whileTap={{ scale: 0.92 }}
-                type="button"
-                onClick={() => setButtonsExpanded(false)}
-                className="bf-close bf-close--sm"
-                aria-label="Close buttons menu"
-                title="Close buttons menu (✕)"
-              />
-            ) : (
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                type="button"
-                onClick={() => setButtonsExpanded(true)}
-                className="bf-toggle-btn"
-                aria-label="Open buttons menu"
-                title="Open Skyblock buttons"
-              >
-                <i className="bf-icon bf-icon--cube" style={{ transform: "scale(0.75)" }} />
-                <span>Menu</span>
-              </motion.button>
-            )}
-          </div>
+              <i className="bf-icon bf-icon--cube" style={{ transform: "scale(0.75)" }} />
+              <span>Menu</span>
+            </motion.button>
+          )}
 
           {/* Collapsible buttons list with welcome-page blur & spring animation */}
           <AnimatePresence>
@@ -823,6 +788,20 @@ export function BlockfortSkyblockUi({
                   title="Daily Quests"
                 >
                   <span className="bf-btn__label !px-2 !py-0 !pl-5">Quests</span>
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.93 }}
+                  type="button"
+                  className="bf-btn bf-btn--plain !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm active:scale-95 hover:border-red-500/50"
+                  onClick={() => {
+                    if (window.confirm("Reset your island back to starter sanctuary?")) {
+                      window.dispatchEvent(new Event("qb-reset-island"));
+                      showToast("Island reset to fresh starter sanctuary!");
+                    }
+                  }}
+                  title="Reset your island"
+                >
+                  <span className="bf-btn__label !px-2 !py-0 !pl-5 text-red-300">Reset</span>
                 </motion.button>
               </motion.div>
             )}
