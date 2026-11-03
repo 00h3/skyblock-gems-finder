@@ -59,6 +59,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   setDoc,
   limitToLast,
   onSnapshot,
@@ -68,7 +69,14 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { loadSandboxBlocks, writeSandboxBlock } from "@/lib/sandbox-world-sync";
-import { getOrCreateIsland, saveIslandBlockDelta } from "@/lib/skyblock-multiplayer";
+import {
+  getOrCreateIsland,
+  saveIslandBlockDelta,
+  subscribeToIslandPlayers,
+  updatePlayerPresence,
+  clearPlayerPresence,
+  subscribeToIslandBlocks,
+} from "@/lib/skyblock-multiplayer";
 import { subscribeToSandboxPlayers, updateSandboxPresence } from "@/lib/sandbox-presence";
 import { loadBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
 import { getShadowMapSize, readQualityPref } from "@/lib/rendering";
@@ -1833,9 +1841,36 @@ export function SandboxGame({
     };
   }, [qbUser]);
 
+  const currentVisitParam =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("visit")
+      : null;
+  const isVisiting = Boolean(currentVisitParam && currentVisitParam !== meRef.current.uid);
+  const [visitingOwnerName, setVisitingOwnerName] = useState<string>("");
+
+  useEffect(() => {
+    if (!skyblock || !currentVisitParam) return;
+    const targetIslandId = `island_v2_${currentVisitParam}`;
+    let isCurrent = true;
+    void getDoc(doc(db, "islands", targetIslandId))
+      .then((snap) => {
+        if (!isCurrent) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data?.ownerName) {
+            setVisitingOwnerName(data.ownerName);
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isCurrent = false;
+    };
+  }, [skyblock, currentVisitParam]);
+
   // ── Persistent Island Progression (Saved By Person Forever in Firestore & LocalStorage) ──
   useEffect(() => {
-    if (!isSkyblockLike) return;
+    if (!isSkyblockLike || isVisiting) return;
     const playerUid = getPermanentPlayerId(qbUser);
     let isMounted = true;
 
@@ -1897,7 +1932,7 @@ export function SandboxGame({
         hotbar: hotbarRef.current,
       });
     };
-  }, [isSkyblockLike, qbUser?.uid, progression]);
+  }, [isSkyblockLike, isVisiting, qbUser?.uid, progression]);
 
   const [isTouch, setIsTouch] = useState(false);
   useEffect(() => {
@@ -3465,6 +3500,11 @@ export function SandboxGame({
         }
         return s;
       };
+      const skyblockPlayerId = meRef.current.uid || getPermanentPlayerId(qbUser);
+      const activeSkyblockIslandId = currentVisitParam
+        ? `island_v2_${currentVisitParam}`
+        : `island_v2_${skyblockPlayerId}`;
+
       const roomId: MultiplayerRoom = goldenDays
         ? "golden-days"
         : blockFall
@@ -3472,7 +3512,7 @@ export function SandboxGame({
           : bedwars
             ? "bedwars"
             : isSkyblockLike
-              ? "skyblock"
+              ? (`skyblock_${activeSkyblockIslandId}` as MultiplayerRoom)
               : "sandbox";
       socket = new SandboxSocket();
       unsubPresence = socket.onPlayers((list) => {
@@ -3501,7 +3541,37 @@ export function SandboxGame({
         rotY: 0,
       });
 
-      if (!skyblock && !blockFall && !bedwars) {
+      let unsubIslandBlocks: (() => void) | null = null;
+      if (skyblock) {
+        unsubFirestorePresence = subscribeToIslandPlayers(
+          activeSkyblockIslandId,
+          meRef.current.uid,
+          (players) => {
+            const mappedList = players.map((p) => ({
+              uid: p.uid,
+              name: p.name || p.username || "Player",
+              photo: p.profilePhoto || undefined,
+              x: p.x,
+              y: p.y,
+              z: p.z,
+              rotY: p.rotY,
+            }));
+            for (const p of mappedList) {
+              names.set(p.uid, p.name || "Player");
+            }
+            remotes?.sync(mappedList);
+          },
+        );
+
+        unsubIslandBlocks = subscribeToIslandBlocks(
+          activeSkyblockIslandId,
+          (bx, by, bz, bId) => {
+            if (!disposed && world) {
+              world.set(bx, by, bz, bId === null ? 0 : bId);
+            }
+          },
+        );
+      } else if (!blockFall && !bedwars) {
         unsubFirestorePresence = subscribeToSandboxPlayers(
           meRef.current.uid,
           (list) => {
@@ -3516,11 +3586,6 @@ export function SandboxGame({
         if (disposed) return;
         console.warn("Saved world unavailable, playing offline:", multiplayerErrorMessage(error, "world"));
       };
-      const skyblockPlayerId = meRef.current.uid || getPermanentPlayerId(qbUser);
-      const currentVisitParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visit") : null;
-      const activeSkyblockIslandId = currentVisitParam
-        ? `island_v2_${currentVisitParam}`
-        : `island_v2_${skyblockPlayerId}`;
 
       if (blockFall) {
         void loadBlockFallBlocks(
@@ -3894,6 +3959,10 @@ export function SandboxGame({
       const doPlace = (overrideId?: number | string) => {
         if (!world || !fx) return;
         if (!consumeBedwarsAction()) return;
+        if (skyblock && isVisiting) {
+          announce("Visiting Mode", "You cannot place blocks on another player's island.");
+          return;
+        }
 
         if (skyblock && chestHandleRef.current) {
           // Chest removed
@@ -3952,6 +4021,10 @@ export function SandboxGame({
           void writeBlockFallBlock({ x: px, y: py, z: pz, id }).catch((error) => {
             console.warn("BlockFall block saved locally only:", error);
           });
+        } else if (skyblock) {
+          if (!isVisiting) {
+            saveIslandBlockDelta(activeSkyblockIslandId, px, py, pz, id);
+          }
         } else {
           void writeSandboxBlock({ x: px, y: py, z: pz, id }).catch((error) => {
             console.warn("Sandbox block saved locally only:", error);
@@ -3961,7 +4034,7 @@ export function SandboxGame({
         if (renderer) renderer.shadowMap.needsUpdate = true;
         fx.spawn("place", new THREE.Vector3(px, py, pz), BLOCKS.find((b) => b.id === id)!.side);
         placePulse = 1;
-        if (skyblock) progression.recordPlace(py);
+        if (skyblock && !isVisiting) progression.recordPlace(py);
       };
 
       const iconUrlFor = (id: number | string) => {
@@ -4014,6 +4087,10 @@ export function SandboxGame({
           doPlace(item);
         },
         plant: (species) => {
+          if (skyblock && isVisiting) {
+            announce("Visiting Mode", "You cannot plant seeds on another player's island.");
+            return false;
+          }
           const hit = castHit();
           if (!hit || hit.ny !== 1) {
             announce("Aim at grass or dirt", "Look at the top of a block to plant");
@@ -4737,7 +4814,19 @@ export function SandboxGame({
             z: player.position.z,
             rotY: heading,
           });
-          if (!skyblock && !blockFall && !bedwars) {
+          if (skyblock) {
+            void updatePlayerPresence({
+              uid: meRef.current.uid,
+              name: meRef.current.name,
+              username: meRef.current.name,
+              profilePhoto: meRef.current.photo,
+              x: player.position.x,
+              y: player.position.y,
+              z: player.position.z,
+              rotY: heading,
+              islandId: activeSkyblockIslandId,
+            });
+          } else if (!blockFall && !bedwars) {
             void updateSandboxPresence({
               uid: meRef.current.uid,
               name: meRef.current.name,
@@ -4927,58 +5016,70 @@ export function SandboxGame({
               playSound("air_dig");
             }
           } else if (wantMine && hit && hardness >= 0) {
-            const key = `${hit.x},${hit.y},${hit.z}`;
-            if (key !== mineKey) {
-              if (mineKey) features.rememberMining(mineKey, mineT);
-              mineKey = key;
-              mineT = features.recallMining(key);
-            }
-
-            const oldP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
-            mineT += dt;
-            const newP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
-            if (Math.floor(newP * 4) > Math.floor(oldP * 4)) {
-              playSound("mine_tick", def?.name || "stone");
-            }
-
-            if (swing < 0.35) swing = 1;
-            const need = Math.max(0.25, hardness * 0.6);
-            const p = Math.min(1, mineT / need);
-            crackMesh.visible = p > 0.04;
-            crackMesh.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-            // Better breaking animation: subtle shake and scale increase
-            const shake = Math.sin(mineT * 50) * 0.02 * p;
-            crackMesh.position.x += shake;
-            crackMesh.position.z += Math.cos(mineT * 45) * 0.02 * p;
-            crackMesh.scale.setScalar(1 + p * 0.05);
-            crackTex.offset.x =
-              Math.min(CRACK_STAGES - 1, Math.floor(p * CRACK_STAGES)) / CRACK_STAGES;
-            if (mineBarRef.current) mineBarRef.current.style.width = `${p * 100}%`;
-            if (p >= 1) {
-              const oldId = world!.get(hit.x, hit.y, hit.z);
-              playSound("break");
-              fx!.spawn("break", _scratchBreakVec.set(hit.x, hit.y, hit.z), def!.side);
-              world!.set(hit.x, hit.y, hit.z, 0);
-              socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: 0 });
-              gravity.notify(hit.x, hit.y, hit.z);
-              features.forgetMining();
-              if (isSkyblockLike) progression.recordMine();
-              if (isSkyblockLike) nature.rollDrop(oldId);
-              if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
-              if (renderer) renderer.shadowMap.needsUpdate = true;
-              if (blockFall) {
-                void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                  console.warn("Could not sync mined block:", error);
-                });
-              } else {
-                void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                  console.warn("Could not sync mined block:", error);
-                });
-              }
-              mineKey = null;
-              mineT = 0;
+            if (skyblock && isVisiting) {
+              announce("Visiting Mode", "You cannot break blocks on another player's island.");
+              mining = false;
+              if (controls) controls.holding.break = false;
               crackMesh.visible = false;
               if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+            } else {
+              const key = `${hit.x},${hit.y},${hit.z}`;
+              if (key !== mineKey) {
+                if (mineKey) features.rememberMining(mineKey, mineT);
+                mineKey = key;
+                mineT = features.recallMining(key);
+              }
+
+              const oldP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
+              mineT += dt;
+              const newP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
+              if (Math.floor(newP * 4) > Math.floor(oldP * 4)) {
+                playSound("mine_tick", def?.name || "stone");
+              }
+
+              if (swing < 0.35) swing = 1;
+              const need = Math.max(0.25, hardness * 0.6);
+              const p = Math.min(1, mineT / need);
+              crackMesh.visible = p > 0.04;
+              crackMesh.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+              // Better breaking animation: subtle shake and scale increase
+              const shake = Math.sin(mineT * 50) * 0.02 * p;
+              crackMesh.position.x += shake;
+              crackMesh.position.z += Math.cos(mineT * 45) * 0.02 * p;
+              crackMesh.scale.setScalar(1 + p * 0.05);
+              crackTex.offset.x =
+                Math.min(CRACK_STAGES - 1, Math.floor(p * CRACK_STAGES)) / CRACK_STAGES;
+              if (mineBarRef.current) mineBarRef.current.style.width = `${p * 100}%`;
+              if (p >= 1) {
+                const oldId = world!.get(hit.x, hit.y, hit.z);
+                playSound("break");
+                fx!.spawn("break", _scratchBreakVec.set(hit.x, hit.y, hit.z), def!.side);
+                world!.set(hit.x, hit.y, hit.z, 0);
+                socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: 0 });
+                gravity.notify(hit.x, hit.y, hit.z);
+                features.forgetMining();
+                if (isSkyblockLike && !isVisiting) progression.recordMine();
+                if (isSkyblockLike && !isVisiting) nature.rollDrop(oldId);
+                if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
+                if (renderer) renderer.shadowMap.needsUpdate = true;
+                if (blockFall) {
+                  void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
+                    console.warn("Could not sync mined block:", error);
+                  });
+                } else if (skyblock) {
+                  if (!isVisiting) {
+                    saveIslandBlockDelta(activeSkyblockIslandId, hit.x, hit.y, hit.z, null);
+                  }
+                } else {
+                  void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
+                    console.warn("Could not sync mined block:", error);
+                  });
+                }
+                mineKey = null;
+                mineT = 0;
+                crackMesh.visible = false;
+                if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+              }
             }
           } else {
             if (mineKey) features.rememberMining(mineKey, mineT);
@@ -5107,6 +5208,9 @@ export function SandboxGame({
       unsubSocketStatus?.();
       unsubSocketError?.();
       socket?.disconnect();
+      if (skyblock) {
+        void clearPlayerPresence(meRef.current.uid);
+      }
       unsubChat?.();
       remotes?.dispose();
       selfSayCleanup?.();
@@ -5758,12 +5862,30 @@ export function SandboxGame({
             blockFall ? (
               <BlockFallStatus match={match} />
             ) : bedwars ? null : skyblock ? (
-              <SkyblockStatus progression={progression} events={worldEvents} />
+              <SkyblockStatus
+                progression={progression}
+                events={worldEvents}
+                isVisiting={isVisiting}
+                visitingOwnerName={visitingOwnerName}
+                playerName={meRef.current.name}
+              />
             ) : null
           }
           menuExtra={
             isSkyblockLike
               ? [
+                  ...(isVisiting
+                    ? [
+                        {
+                          label: "Return to My Island",
+                          onSelect: () => {
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete("visit");
+                            window.location.href = url.toString();
+                          },
+                        },
+                      ]
+                    : []),
                   { label: baseplate ? "Respawn in Cell 99" : "Respawn on island", onSelect: () => window.dispatchEvent(new Event("qb-menu-respawn")) },
                   {
                     label: `Weather: ${WEATHER_PRESETS[weather].label}`,
@@ -6072,8 +6194,8 @@ export function SandboxGame({
       {/* Loading menu */}
       {!loadingDismissed && !graphicsError && isV2 && (
         <V2LoadingScreen
-          title={baseplate ? "Cell 99" : skyblock ? "Skyblock" : bedwars ? "Bedwars" : "Block Fall"}
-          subtitle={baseplate ? "Loading Cell 99 world" : skyblock ? "Loading your island" : bedwars ? "Entering the lobby" : "Preparing the arena"}
+          title={baseplate ? "Cell 99" : skyblock ? (isVisiting ? `${visitingOwnerName || "Player"}'s Island` : "Island Sanctuary") : bedwars ? "Bedwars" : "Block Fall"}
+          subtitle={baseplate ? "Loading Cell 99 world" : skyblock ? (isVisiting ? `Entering ${visitingOwnerName || "player"}'s island` : "Loading your island sanctuary") : bedwars ? "Entering the lobby" : "Preparing the arena"}
           progress={progress}
           isAssetsLoaded={engineReady}
           onFinished={() => setLoadingDismissed(true)}
@@ -6083,7 +6205,7 @@ export function SandboxGame({
         <div className="fixed inset-0 z-[95] grid place-items-center bg-white">
           <div className="flex flex-col items-center">
             <p className="mb-16 text-[24px] font-extrabold tracking-tight text-[#16181d]">
-              {goldenDays ? "Grotto Wilds" : skyblock ? "SkyBlock" : "QBlock Sandbox"}
+              {goldenDays ? "Grotto Wilds" : skyblock ? "Island Sanctuary" : "QBlock Sandbox"}
             </p>
             <div className="boxes">
               <div className="box">
@@ -6155,8 +6277,13 @@ export function SandboxGame({
           user={inspectUser}
           onClose={() => setInspectUser(null)}
           onVisit={() => {
+            const targetUid = inspectUser.uid;
             setInspectUser(null);
-            console.log("Visiting:", inspectUser);
+            if (targetUid) {
+              const url = new URL(window.location.href);
+              url.searchParams.set("visit", targetUid);
+              window.location.href = url.toString();
+            }
           }}
         />
       )}

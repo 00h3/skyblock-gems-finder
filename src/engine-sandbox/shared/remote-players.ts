@@ -44,9 +44,12 @@ export class RemotePlayers {
 
   spawn(uid: string, name: string, at: THREE.Vector3) {
     const avatar = new Avatar();
+    avatar.setVisible(true);
+    avatar.group.position.copy(at);
     void avatar.load(1.8);
     this.scene.add(avatar.group);
     const tag = new NameTag(name);
+    tag.group.position.copy(at);
     this.scene.add(tag.group);
     const e: Entity = {
       avatar,

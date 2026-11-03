@@ -138,12 +138,18 @@ export function attachSandboxWebSocketServer(httpServer) {
         const message = JSON.parse(data.toString());
         if (!message || typeof message.type !== "string") return;
 
+function isValidRoomId(roomId) {
+  if (typeof roomId !== "string") return false;
+  if (VALID_ROOMS.has(roomId)) return true;
+  return /^(sandbox|bedwars|skyblock|blockfall|golden-days)(_.*)?$/.test(roomId);
+}
+
         if (message.type === "join") {
           const roomId = typeof message.room === "string" ? message.room : "";
           const rawPlayer = message.player;
           const uid = typeof rawPlayer?.uid === "string" ? rawPlayer.uid.slice(0, 128) : "";
           const player = normalizePlayer(rawPlayer, uid);
-          if (!VALID_ROOMS.has(roomId) || !uid || !player) {
+          if (!isValidRoomId(roomId) || !uid || !player) {
             send(socket, { type: "error", message: "Invalid multiplayer room or player data." });
             return;
           }

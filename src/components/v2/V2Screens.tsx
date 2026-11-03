@@ -9,7 +9,6 @@ export function V2LoadingScreen({
   progress = 0,
   isAssetsLoaded = false,
   onFinished,
-  showPhoenix,
 }: {
   title: string;
   subtitle: string;
@@ -18,14 +17,8 @@ export function V2LoadingScreen({
   onFinished?: () => void;
   showPhoenix?: boolean;
 }) {
-  const isSkyblock =
-    title?.toLowerCase().includes("skyblock") ||
-    subtitle?.toLowerCase().includes("skyblock") ||
-    subtitle?.toLowerCase().includes("island") ||
-    Boolean(showPhoenix);
   const startTimeRef = useRef<number>(Date.now());
   const [actualProgress, setActualProgress] = useState(0);
-  const [videoReady, setVideoReady] = useState(false);
   const finishedRef = useRef(false);
 
   useEffect(() => {
@@ -34,8 +27,7 @@ export function V2LoadingScreen({
   }, []);
 
   useEffect(() => {
-    // Fast, responsive loading: snappy 2.5s minimum experience so assets initialize smoothly
-    const MIN_DURATION_MS = 2500;
+    const MIN_DURATION_MS = 1400;
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;
@@ -61,73 +53,76 @@ export function V2LoadingScreen({
         clearInterval(interval);
         setTimeout(() => {
           onFinished?.();
-        }, 300);
+        }, 250);
       }
-    }, 40);
+    }, 35);
 
     return () => clearInterval(interval);
   }, [progress, isAssetsLoaded, onFinished]);
 
   return (
     <div
-      className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#090b10]"
+      className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#0a0c10]"
       style={{ touchAction: "none" }}
     >
-      {/* High-Resolution Floating Islands Background Artwork */}
-      <img
-        src="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
-        alt="Skyblock Floating Islands"
-        className="absolute inset-0 h-full w-full object-cover pointer-events-none [image-rendering:auto]"
+      {/* Subtle deep gradient backdrop with geometric block pattern */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 35%, rgba(250,70,22,0.18) 0%, rgba(15,18,25,0.85) 60%, #080a0e 100%)",
+        }}
       />
 
-      {/* Subtle vignette dark overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/40 pointer-events-none" />
+      {/* Grid pattern overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.07] pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
 
-      {/* Title badge - small and compact */}
-      <div className="relative z-20 flex flex-col items-center mb-12">
-        <div className="h-11 w-11 rounded-xl bg-gradient-to-tr from-[#fa4616] to-[#ff9800] p-0.5 shadow-[0_4px_20px_rgba(250,70,22,0.5)] flex items-center justify-center mb-1.5">
-          <span className="font-lilita text-[22px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
+      {/* Center QBLOCK emblem - clean and sleek */}
+      <div className="relative z-20 flex flex-col items-center mb-10">
+        <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-[#fa4616] via-[#ff7a00] to-[#ffa726] p-0.5 shadow-[0_4px_25px_rgba(250,70,22,0.45)] flex items-center justify-center mb-3">
+          <span className="font-lilita text-[28px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
         </div>
-        <h2 className="font-lilita text-[22px] tracking-wider text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-          {isSkyblock ? "SKYBLOCK" : "QBLOCK"}
+        <h2 className="font-lilita text-[24px] tracking-wider text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+          QBLOCK
         </h2>
-        <p className="text-[11px] font-bold text-zinc-200/90 tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-          {subtitle || "Building your island…"}
+        <p className="mt-1 text-[12px] font-bold text-zinc-300 tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+          {subtitle || "Connecting to world…"}
         </p>
       </div>
 
-      {/* Compact Loader stuck near bottom */}
-      <div className="absolute inset-x-4 bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] z-20 mx-auto w-full max-w-[320px]">
-        <div className="w-full bg-black/60 backdrop-blur-md p-2.5 rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.8)]">
-          {/* Outer rectangular pixel frame */}
-          <div className="p-0.5 bg-[#0d0e12] border-2 border-black">
-            {/* Inner track */}
-            <div className="relative h-5 w-full bg-[#1b1d24] overflow-hidden border border-black/80">
-              {/* Glossy orange rectangular fill */}
+      {/* Compact Loader bar */}
+      <div className="relative z-20 w-full max-w-[300px] px-4">
+        <div className="w-full bg-black/70 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.8)]">
+          <div className="p-0.5 bg-[#0d0e12] border border-black/90 rounded-[4px]">
+            <div className="relative h-4 w-full bg-[#1b1d24] overflow-hidden rounded-[2px]">
               <div
-                className="relative h-full transition-[width] duration-150 ease-out bg-gradient-to-b from-[#ffa34d] via-[#fa4616] to-[#b82f05]"
+                className="relative h-full transition-[width] duration-150 ease-out bg-gradient-to-r from-[#fa4616] via-[#ff8800] to-[#ffa726]"
                 style={{ width: `${actualProgress}%` }}
               >
-                <div className="absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-white/55 to-white/10 pointer-events-none" />
-                <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-white/90 shadow-[0_0_6px_#fff]" />
+                <div className="absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-white/60 to-transparent pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-white shadow-[0_0_6px_#fff]" />
               </div>
             </div>
           </div>
 
-          {/* Status message and percentage */}
-          <div className="mt-1.5 flex items-center justify-between px-0.5 text-[11px] font-black text-white">
-            <span className="tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-              {actualProgress < 30
-                ? "Loading world…"
-                : actualProgress < 65
-                  ? "Preparing models…"
+          <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] font-bold text-white/90">
+            <span className="tracking-wide uppercase text-[10.5px]">
+              {actualProgress < 35
+                ? "Connecting…"
+                : actualProgress < 75
+                  ? "Loading models…"
                   : actualProgress < 95
                     ? "Compiling shaders…"
-                    : !isAssetsLoaded
-                      ? "Finalizing…"
-                      : "Ready!"}
+                    : "Ready!"}
             </span>
-            <span className="tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+            <span className="tabular-nums font-mono text-[11px] text-amber-400">
               {Math.round(actualProgress)}%
             </span>
           </div>

@@ -97,7 +97,7 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
                 className="w-full h-full object-cover rounded-[3px] image-pixelated"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
-                    "https://maxwell.z3ki.dev/bot/_files/menu-icon/menu-icon.png";
+                    "/assets/qblock-ui-kit/kit/assets/icons/icon-cube.png";
                 }}
               />
             </div>

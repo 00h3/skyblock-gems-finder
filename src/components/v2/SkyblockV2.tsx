@@ -5,16 +5,34 @@ import type { WorldEvents } from "@/engine-sandbox/skyblock/world-events";
 import { useStore } from "@/engine-sandbox/shared/store";
 import { formatClock, useNow } from "./primitives";
 
-export function SkyblockStatus({ progression, events }: { progression: Progression; events: WorldEvents }) {
+export function SkyblockStatus({
+  progression,
+  events,
+  isVisiting = false,
+  visitingOwnerName = "",
+  playerName = "",
+}: {
+  progression: Progression;
+  events: WorldEvents;
+  isVisiting?: boolean;
+  visitingOwnerName?: string;
+  playerName?: string;
+}) {
   const p = useStore(progression.store);
   const e = useStore(events.store);
   const now = useNow(500);
   const span = p.nextLevelXp === null ? 1 : p.nextLevelXp - p.levelFloorXp;
   const pct = p.nextLevelXp === null ? 100 : Math.round(((p.xp - p.levelFloorXp) / span) * 100);
 
+  const displayName = isVisiting
+    ? `${visitingOwnerName || "Player"}'s Island`
+    : playerName
+      ? `${playerName}'s Island`
+      : `Island ${p.level}`;
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
-      {e.active && (
+      {e.active && !isVisiting && (
         <span className="flex items-center gap-2 rounded-full border border-[#965a2a] bg-gradient-to-b from-[#4a2e18] to-[#251307] px-3.5 py-1.5 text-xs font-lilita text-amber-200 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
           <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />
           {e.active.name}
@@ -36,23 +54,35 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
           }
         }}
         className="wood-panel relative flex min-w-[210px] flex-col gap-1.5 !rounded-[4px] px-3 py-2 cursor-pointer transition-all duration-150 active:scale-95 hover:brightness-110 hover:border-amber-400/50 shadow-md group"
-        aria-label={`Island level ${p.level}, ${pct} percent to next level. Click to open island interface`}
+        aria-label={`${displayName}. Click to open island interface`}
         title="Click to open Island Manor & Upgrades"
       >
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-lilita text-[14px] tracking-wide text-amber-100 flex items-center gap-1.5">
-            Island <span className="tabular-nums text-amber-300">{p.level}</span>
-            <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400/30 text-amber-200 group-hover:bg-amber-500/40 transition">
-              Manage
-            </span>
+          <span className="font-lilita text-[13.5px] tracking-wide text-amber-100 flex items-center gap-1.5 truncate max-w-[190px]">
+            <span className="tabular-nums text-amber-300 truncate">{displayName}</span>
+            {isVisiting ? (
+              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-blue-500/30 border border-blue-400/40 text-blue-200">
+                Visitor
+              </span>
+            ) : (
+              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400/30 text-amber-200 group-hover:bg-amber-500/40 transition">
+                Lv. {p.level}
+              </span>
+            )}
           </span>
-          <span className="text-[11px] font-bold text-amber-200/70">{p.title}</span>
+          <span className="text-[11px] font-bold text-amber-200/70 shrink-0">
+            {isVisiting ? "Read-Only" : p.title}
+          </span>
         </div>
         {/* Wood-grooved progress track with glossy glass finish */}
         <div className="loader-glossy relative h-2.5 overflow-hidden rounded-[2px] border-2 border-[#150b04] bg-[#160c04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.1)]">
           <div
-            className="loader-glossy relative h-full bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-[0_0_10px_rgba(245,158,11,0.7)] transition-[width] duration-500 overflow-hidden"
-            style={{ width: `${pct}%` }}
+            className={`loader-glossy relative h-full shadow-[0_0_10px_rgba(245,158,11,0.7)] transition-[width] duration-500 overflow-hidden ${
+              isVisiting
+                ? "bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-400 w-full"
+                : "bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#fbbf24]"
+            }`}
+            style={{ width: isVisiting ? "100%" : `${pct}%` }}
           >
             {/* Glossy highlight sheen */}
             <div className="absolute inset-x-0 top-0 h-[50%] bg-gradient-to-b from-white/80 via-white/30 to-transparent pointer-events-none" />
@@ -61,8 +91,17 @@ export function SkyblockStatus({ progression, events }: { progression: Progressi
           <div className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
         </div>
         <div className="flex justify-between text-[10.5px] font-bold tabular-nums text-amber-200/60">
-          <span>{p.xp} XP</span>
-          <span>{p.nextLevelXp === null ? "Max" : `${p.nextLevelXp} XP`}</span>
+          {isVisiting ? (
+            <>
+              <span className="text-sky-300/80">Spectator Mode</span>
+              <span className="text-zinc-400">Cannot alter island</span>
+            </>
+          ) : (
+            <>
+              <span>{p.xp} XP</span>
+              <span>{p.nextLevelXp === null ? "Max" : `${p.nextLevelXp} XP`}</span>
+            </>
+          )}
         </div>
       </div>
     </div>

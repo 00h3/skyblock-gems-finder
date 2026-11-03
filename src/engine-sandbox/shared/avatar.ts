@@ -192,10 +192,10 @@ export class Avatar {
   private heldItemMesh: THREE.Object3D | null = null;
 
   constructor() {
-    // Build procedural rig as an emergency fallback, but keep it hidden unless GLB fails
+    // Build procedural rig for instant frame-0 visibility until GLB assets finish loading
     this.buildProceduralRig();
     if (this.proceduralRig) {
-      this.proceduralRig.visible = false;
+      this.proceduralRig.visible = true;
     }
     this.purpleAura = new PurpleAuraFx();
     this.group.add(this.purpleAura.group);
