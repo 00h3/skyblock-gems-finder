@@ -2426,15 +2426,17 @@ function EngineGame({
 
     // Read persistent graphics quality and FPS cap (set via in-game settings)
     const qualityPref = localStorage.getItem("bm-quality") || "official";
-    const isLiteMode = qualityPref === "lite" || qualityPref === "low";
+    let currentQualityPref = qualityPref;
+    let isLiteModeActive = qualityPref === "lite" || qualityPref === "low";
+    const isLiteMode = isLiteModeActive;
     const fpsPrefInit = localStorage.getItem("bm-fpscap") || "60";
 
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        // Antialiasing: enabled for smooth crisp edges without pixelation
-        antialias: !isSafariBrowser && !conservative3D,
-        powerPreference: isSafariBrowser || conservative3D ? "default" : "high-performance",
+        // Antialiasing: disabled in Lite mode for maximum Mali GPU fillrate performance
+        antialias: !isLiteModeActive && !isSafariBrowser && !conservative3D,
+        powerPreference: "high-performance",
         stencil: false,
       });
     } catch {
@@ -2478,9 +2480,9 @@ function EngineGame({
       const skyBg = isSpleef ? "#cbeeff" : isSkyblock ? "#55bff2" : "#a8d8f0";
       renderer.domElement.style.background = skyBg;
       renderer.setClearColor(new THREE.Color(skyBg), 1);
-      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.enabled = !isLiteModeActive;
       renderer.shadowMap.autoUpdate = false;
-      renderer.shadowMap.needsUpdate = true;
+      renderer.shadowMap.needsUpdate = !isLiteModeActive;
       renderer.shadowMap.type = isMobileUA ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       // ACES's filmic curve crushes saturation — Linear tone mapping scales by exposure.
@@ -2499,11 +2501,11 @@ function EngineGame({
       // ── Post-processing: SSAO + Bloom ────────────────────────────────────────
       // Mobile GPUs render direct-to-screen to eliminate offscreen framebuffer copies
       // and maintain smooth 60 FPS without thermal throttling.
-      const bloomEnabled = qualityPref !== "low" && !isEggwars && !conservative3D && !isMobileUA;
-      const ssaoEnabled = qualityPref === "high" && !isMobileUA && !isEggwars && !conservative3D;
+      const bloomEnabled = !isLiteModeActive && qualityPref !== "low" && !isEggwars && !conservative3D && !isMobileUA;
+      const ssaoEnabled = !isLiteModeActive && qualityPref === "high" && !isMobileUA && !isEggwars && !conservative3D;
       const motionBlurStored = localStorage.getItem("bm-motion-blur");
       const motionBlurEnabled =
-        (motionBlurStored === null || motionBlurStored === "true") && !isEggwars && !conservative3D && !isMobileUA;
+        !isLiteModeActive && (motionBlurStored === null || motionBlurStored === "true") && !isEggwars && !conservative3D && !isMobileUA;
       let composer: EffectComposer | null = null;
       let ssaoPass: SSAOPass | null = null;
       let motionBlurPass: ShaderPass | null = null;
@@ -2856,20 +2858,26 @@ function EngineGame({
       const qualityHandler = (e: Event) => {
         const q = (e as CustomEvent<string>).detail;
         if (!q) return;
+        currentQualityPref = q;
         const isLite = q === "lite" || q === "low";
-        const isUhd = q === "uhd";
+        isLiteModeActive = isLite;
+        const isUhd = q === "advanced" || q === "uhd";
         const dpr = getTargetDpr(q);
-        curScale = 1.0; // Never downscale; keeps crisp Retina HD clarity across all modes
+        curScale = 1.0;
         renderer.setPixelRatio(dpr * curScale);
 
         if (isLite) {
           sun.castShadow = false;
           renderer.shadowMap.enabled = false;
+          renderer.shadowMap.needsUpdate = false;
           if (sun.shadow.map) {
             sun.shadow.map.dispose();
             (sun.shadow as any).map = null;
           }
           ambientLight.intensity = 0.95;
+          if (ambientPoints) ambientPoints.visible = false;
+          if (auroraRibbonMesh) auroraRibbonMesh.visible = false;
+          if (auroraLight) auroraLight.intensity = 0;
         } else {
           sun.castShadow = true;
           renderer.shadowMap.enabled = true;
@@ -2881,21 +2889,8 @@ function EngineGame({
           }
           renderer.shadowMap.needsUpdate = true;
           ambientLight.intensity = isSpleef ? 0.7 : isSkyblock ? 0.75 : 0.8;
+          if (ambientPoints) ambientPoints.visible = true;
         }
-
-        // Force Three.js material shader recompilation across all meshes in scene
-        scene.traverse((obj) => {
-          const mesh = obj as THREE.Mesh;
-          if (mesh.material) {
-            if (Array.isArray(mesh.material)) {
-              mesh.material.forEach((m) => {
-                m.needsUpdate = true;
-              });
-            } else {
-              mesh.material.needsUpdate = true;
-            }
-          }
-        });
 
         try {
           renderer.render(scene, camera);
@@ -3085,8 +3080,8 @@ function EngineGame({
         const leaf = isLeafType(type);
         const mesh = new THREE.InstancedMesh(leaf ? leafGeo : blockGeo, matForType(type), capacity);
         mesh.count = 0;
-        mesh.castShadow = type !== 6 && !isLeafType(type);
-        mesh.receiveShadow = true;
+        mesh.castShadow = !isLiteModeActive && type !== 6 && !isLeafType(type);
+        mesh.receiveShadow = !isLiteModeActive;
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         scene.add(mesh);
         return mesh;
@@ -8842,35 +8837,33 @@ function EngineGame({
       // Frame-budget guard: skip rendering when ahead of the target FPS.
       // 0 = unlimited (no cap). fpsPrefInit drives the initial value; the
       // bm-fpscap event updates it at runtime from the settings panel.
-      let FRAME_BUDGET_MS =
-        fpsPrefInit === "30" ? 1000 / 30 : fpsPrefInit === "max" || fpsPrefInit === "uncapped" ? 0 : 1000 / 62;
+      // Frame-budget guard: only throttle if user explicitly requested 30 FPS cap
+      let FRAME_BUDGET_MS = fpsPrefInit === "30" ? 1000 / 30 : 0;
       const fpsCapHandler = (e: Event) => {
         const cap = (e as CustomEvent<string>).detail;
-        FRAME_BUDGET_MS = cap === "30" ? 1000 / 30 : cap === "max" || cap === "uncapped" ? 0 : 1000 / 62;
+        FRAME_BUDGET_MS = cap === "30" ? 1000 / 30 : 0;
       };
       window.addEventListener("bm-fpscap", fpsCapHandler);
 
       const forceMaxFpsHandler = () => {
         FRAME_BUDGET_MS = 0;
+        isLiteModeActive = true;
+        currentQualityPref = "lite";
+        const dpr = getTargetDpr("lite");
         if (renderer) {
           renderer.shadowMap.enabled = false;
+          renderer.shadowMap.needsUpdate = false;
           sun.castShadow = false;
           if (sun.shadow.map) {
             sun.shadow.map.dispose();
             sun.shadow.map = null;
           }
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+          renderer.setPixelRatio(dpr);
+          ambientLight.intensity = 0.95;
+          if (ambientPoints) ambientPoints.visible = false;
+          if (auroraRibbonMesh) auroraRibbonMesh.visible = false;
+          if (auroraLight) auroraLight.intensity = 0;
         }
-        scene.traverse((obj) => {
-          if ((obj as THREE.Mesh).isMesh) {
-            const mesh = obj as THREE.Mesh;
-            if (Array.isArray(mesh.material)) {
-              mesh.material.forEach((m) => (m.needsUpdate = true));
-            } else if (mesh.material) {
-              mesh.material.needsUpdate = true;
-            }
-          }
-        });
       };
       window.addEventListener("bm-force-max-fps", forceMaxFpsHandler);
       let particleTick = 0;
@@ -8886,7 +8879,7 @@ function EngineGame({
         raf = requestAnimationFrame(tick);
         const now = performance.now();
         const elapsed = now - lastT;
-        // Only clamp from above (prevent spiral-of-death on tab freeze/restore)
+        // Only clamp from above if user explicitly set 30 FPS (prevents skipping on 90Hz/120Hz displays)
         if (FRAME_BUDGET_MS > 0 && elapsed < FRAME_BUDGET_MS - 1) return;
         const dtRaw = Math.min(0.05, elapsed / 1000);
         // EMA smooths ±1-2ms OS jitter without adding lag — α=0.18 gives ~5-frame
@@ -8899,10 +8892,12 @@ function EngineGame({
         const dtVis = dtEma;
         lastT = now;
 
-        shadowUpdateAcc += dt;
-        if (shadowUpdateAcc >= 1.0) {
-          shadowUpdateAcc = 0;
-          if (renderer) renderer.shadowMap.needsUpdate = true;
+        if (renderer && renderer.shadowMap.enabled) {
+          shadowUpdateAcc += dt;
+          if (shadowUpdateAcc >= 1.0) {
+            shadowUpdateAcc = 0;
+            renderer.shadowMap.needsUpdate = true;
+          }
         }
 
         // Keep the sky dome centered on the camera so it never exits the far
@@ -9119,65 +9114,69 @@ function EngineGame({
         // Advance break particles once per frame (see spawnParticles).
         if (liveParticles.length) updateParticles(now);
 
-        // Throttle ambient particle update to every other frame on mobile
-        particleTick++;
-        if (!isMobileUA || particleTick % 2 === 0) {
-          const atm = (atmosphereRef.current || "day").toLowerCase();
-          const isTempest = atm === "tempesta" || atm === "storm";
-          const isChristmas = atm === "christmas" || atm === "striking_christmas" || atm === "natale";
-          const isBloodMoon = atm === "blood_moon" || atm === "bloodmoon";
-          const isAurora = atm === "aurora" || atm === "aurora_borealis";
-          const isEclipse = atm === "solar_eclipse" || atm === "eclipse";
-          const isCinematic = atm === "cinematic" || atm === "mystic";
+        // Skip ambient particle simulation and buffer uploads entirely in Lite mode
+        if (!isLiteModeActive) {
+          particleTick++;
+          if (!isMobileUA || particleTick % 2 === 0) {
+            const atm = (atmosphereRef.current || "day").toLowerCase();
+            const isTempest = atm === "tempesta" || atm === "storm";
+            const isChristmas = atm === "christmas" || atm === "striking_christmas" || atm === "natale";
+            const isBloodMoon = atm === "blood_moon" || atm === "bloodmoon";
+            const isAurora = atm === "aurora" || atm === "aurora_borealis";
+            const isEclipse = atm === "solar_eclipse" || atm === "eclipse";
+            const isCinematic = atm === "cinematic" || atm === "mystic";
 
-          const pMat = ambientPoints.material as THREE.PointsMaterial;
-          if (isTempest) {
-            pMat.color.setHex(0x93c5fd);
-            pMat.size = 0.28;
-            pMat.opacity = 0.85;
-          } else if (isChristmas) {
-            pMat.color.setHex(0xffffff);
-            pMat.size = 0.24;
-            pMat.opacity = 0.95;
-          } else if (isBloodMoon) {
-            pMat.color.setHex(0xef4444);
-            pMat.size = 0.26;
-            pMat.opacity = 0.9;
-          } else if (isAurora) {
-            pMat.color.setHex(0x2dd4bf);
-            pMat.size = 0.22;
-            pMat.opacity = 0.85;
-          } else if (isEclipse || isCinematic) {
-            pMat.color.setHex(0xc084fc);
-            pMat.size = 0.22;
-            pMat.opacity = 0.8;
-          }
-
-          const posAttr = ambientGeo.attributes.position as THREE.BufferAttribute;
-          for (let i = 0; i < AMBIENT_COUNT; i++) {
-            const speedBase = isTempest
-              ? 18.0
-              : isChristmas
-                ? 1.3
-                : isBloodMoon
-                  ? -0.45
-                  : isSpleef
-                    ? ambientSpeed[i] * 1.4
-                    : ambientSpeed[i] * 0.35;
-            const sway = isTempest ? 0.08 : isChristmas ? 0.85 : 0.35;
-            let py = posAttr.array[i * 3 + 1] - speedBase * dt;
-            const px = posAttr.array[i * 3] + Math.sin(now * 0.001 + i) * sway * dt * 2.0;
-            if (isBloodMoon) {
-              if (py > 20) py = 0;
-            } else {
-              if (py < -1) py = 18 + Math.random() * 6;
+            const pMat = ambientPoints.material as THREE.PointsMaterial;
+            if (isTempest) {
+              pMat.color.setHex(0x93c5fd);
+              pMat.size = 0.28;
+              pMat.opacity = 0.85;
+            } else if (isChristmas) {
+              pMat.color.setHex(0xffffff);
+              pMat.size = 0.24;
+              pMat.opacity = 0.95;
+            } else if (isBloodMoon) {
+              pMat.color.setHex(0xef4444);
+              pMat.size = 0.26;
+              pMat.opacity = 0.9;
+            } else if (isAurora) {
+              pMat.color.setHex(0x2dd4bf);
+              pMat.size = 0.22;
+              pMat.opacity = 0.85;
+            } else if (isEclipse || isCinematic) {
+              pMat.color.setHex(0xc084fc);
+              pMat.size = 0.22;
+              pMat.opacity = 0.8;
             }
-            posAttr.array[i * 3] = px;
-            posAttr.array[i * 3 + 1] = py;
+
+            const posAttr = ambientGeo.attributes.position as THREE.BufferAttribute;
+            for (let i = 0; i < AMBIENT_COUNT; i++) {
+              const speedBase = isTempest
+                ? 18.0
+                : isChristmas
+                  ? 1.3
+                  : isBloodMoon
+                    ? -0.45
+                    : isSpleef
+                      ? ambientSpeed[i] * 1.4
+                      : ambientSpeed[i] * 0.35;
+              const sway = isTempest ? 0.08 : isChristmas ? 0.85 : 0.35;
+              let py = posAttr.array[i * 3 + 1] - speedBase * dt;
+              const px = posAttr.array[i * 3] + Math.sin(now * 0.001 + i) * sway * dt * 2.0;
+              if (isBloodMoon) {
+                if (py > 20) py = 0;
+              } else {
+                if (py < -1) py = 18 + Math.random() * 6;
+              }
+              posAttr.array[i * 3] = px;
+              posAttr.array[i * 3 + 1] = py;
+            }
+            posAttr.needsUpdate = true;
           }
-          posAttr.needsUpdate = true;
+          ambientPoints.position.set(playerPos.x, 0, playerPos.z);
+        } else if (ambientPoints.visible) {
+          ambientPoints.visible = false;
         }
-        ambientPoints.position.set(playerPos.x, 0, playerPos.z);
 
         // ── Spleef tick ────────────────────────────────────────────────────
         if (isSpleef) {
@@ -10369,7 +10368,8 @@ function EngineGame({
         // Skyblock Multiplayer: broadcast position and animate other players
         const mySkyblockPlayerUid = qbUser?.uid || getPermanentPlayerId(qbUser);
         if (isSkyblock && mySkyblockPlayerUid) {
-          if (now - lastPresenceTime > 120) {
+          const presenceInterval = isLiteModeActive ? 1200 : 600;
+          if (now - lastPresenceTime > presenceInterval) {
             lastPresenceTime = now;
             updatePlayerPresence({
               uid: mySkyblockPlayerUid,
@@ -10434,24 +10434,12 @@ function EngineGame({
 
         frameAccum += dt;
         frameCount++;
-        // Sample twice as often (0.5s vs 1s) so the dynamic-resolution ramp
-        // reacts to dips almost immediately instead of a full second late —
-        // that lag was the main source of visible "stutter then catch-up".
         if (frameAccum > 0.5) {
           const fps = frameCount / frameAccum;
-          // Mobile gets a lower DRS floor (0.38) so the renderer can shed pixels
-          // aggressively on low-end GPUs. Desktop keeps 0.55 as the floor since
-          // it typically has more headroom and a lower DPR to begin with.
-          // High quality intentionally skips dynamic resolution scaling — it's
-          // the tier players pick specifically to keep full, crisp resolution,
-          // and silently dropping pixels under load was the main source of
-          // "why does it suddenly look pixelated" reports. Low/medium still
-          // scale down to protect frame rate on weaker hardware.
-          const DRS_FLOOR = isMobileUA ? 0.8 : 0.85;
-          if (qualityPref !== "high") {
+          // In Lite mode, pixel ratio is fixed to prevent constant WebGL framebuffer allocations
+          if (!isLiteModeActive && qualityPref !== "high") {
+            const DRS_FLOOR = isMobileUA ? 0.8 : 0.85;
             if (fps < 52 && curScale > DRS_FLOOR) {
-              // Drop faster (0.12 step) when behind; recover slower (0.05) so it
-              // doesn't immediately overshoot back up and cause visible oscillation.
               curScale = Math.max(DRS_FLOOR, curScale - 0.12);
               renderer.setPixelRatio(Math.min(baseDpr, MAX_DPR) * curScale);
             } else if (fps > 58 && curScale < RENDER_SCALE) {

@@ -91,11 +91,20 @@ export const detectGpuHardware = (): GpuHardwareInfo => {
 export const getTargetDpr = (quality?: RenderQuality | string): number => {
   if (typeof window === "undefined") return 1;
   const rawDpr = window.devicePixelRatio || 1;
+  const isMobile = isMobileDevice();
+  const gpu = detectGpuHardware();
+
+  if (quality === "lite" || quality === "low") {
+    // Lite mode for Mali & mobile: 1.0 (or 1.25 on high-res displays) — sharp 1:1 CSS pixel mapping, eliminates GPU fillrate saturation
+    return isMobile || gpu.isMali || gpu.isLowEndAndroid
+      ? Math.min(rawDpr, 1.2)
+      : Math.min(rawDpr, 1.5);
+  }
   if (quality === "advanced" || quality === "uhd") {
     return Math.min(Math.max(rawDpr, 1.5), 2.5);
   }
-  // Always maintain full crystal-clear native Retina HD clarity
-  return Math.min(Math.max(rawDpr, 1.0), 2.0);
+  // Balanced / Official mode: native crisp resolution
+  return isMobile ? Math.min(Math.max(rawDpr, 1.0), 1.6) : Math.min(Math.max(rawDpr, 1.0), 2.0);
 };
 
 /**
