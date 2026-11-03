@@ -525,7 +525,7 @@ export function FlatSquareGameControls({
 
       {/* ── Left-side in-game Chat Preview: username [user]: message (different user colors) ── */}
       {!chatOpen && (
-        <div className="fixed left-3 top-[68px] sm:top-[74px] z-30 pointer-events-auto">
+        <div className="fixed left-1 sm:left-1.5 top-[52px] sm:top-[56px] z-30 pointer-events-auto">
           <ChatPreview onOpen={() => setChatOpen(true)} />
         </div>
       )}

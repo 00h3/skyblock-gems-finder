@@ -26,6 +26,7 @@ import {
   Waves,
   CircleDot,
 } from "lucide-react";
+import { detectGpuHardware } from "@/lib/rendering";
 
 export type CamMode = "first" | "third" | "top";
 
@@ -442,8 +443,8 @@ export function GameSettingsModal({
   onToggleInvertJoyY?: () => void;
   invertJoyX?: boolean;
   onToggleInvertJoyX?: () => void;
-  qualityPref?: "low" | "medium" | "high" | "uhd";
-  onQualityPref?: (q: "low" | "medium" | "high" | "uhd") => void;
+  qualityPref?: "official" | "lite" | "low" | "medium" | "high" | "uhd" | string;
+  onQualityPref?: (q: "official" | "lite" | "low" | "medium" | "high" | "uhd") => void;
   motionBlur?: boolean;
   onToggleMotionBlur?: () => void;
 }) {
@@ -751,42 +752,78 @@ export function GameSettingsModal({
             {/* ── TAB 3: GRAPHICS ───────────────────────────────────────── */}
             {activeTab === "graphics" && (
               <div className="flex flex-col gap-3">
+                {/* Mali & Android Hardware Detector Banner */}
+                {(() => {
+                  const gpu = detectGpuHardware();
+                  return (
+                    <div className="bf-settings-card !bg-black/40 border border-emerald-500/30 flex items-center justify-between p-3 rounded-lg">
+                      <div className="flex items-center gap-2.5">
+                        <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div>
+                          <div className="text-[12px] font-bold text-emerald-300">
+                            Hardware: {gpu.renderer.split("/")[0] || "Mali / Mobile GPU"}
+                          </div>
+                          <div className="text-[10.5px] text-zinc-400">
+                            {gpu.isMali || gpu.isLowEndAndroid
+                              ? "ARM Mali / Vivo / Xiaomi GPU detected. 'Lite' mode provides silky 60 FPS."
+                              : "Standard GPU detected. 'Official' mode provides full shadows."}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 font-bold">
+                        RETINA DPR: 100%
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 <div className="bf-settings-card">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-black text-[15px] text-white flex items-center gap-2">
                       <Sliders className="w-4 h-4 text-purple-400" />
-                      Visual Fidelity & Resolution
+                      Graphics Preset
                     </span>
                     <span className="text-[11px] text-purple-300 font-bold uppercase">
-                      Preset: {qualityPref}
+                      Active: {qualityPref === "lite" ? "LITE (MALI)" : qualityPref === "official" || qualityPref === "high" ? "OFFICIAL" : qualityPref.toUpperCase()}
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(["low", "medium", "high", "uhd"] as const).map((q) => {
-                      const isActive = qualityPref === q;
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: "official", label: "Official Graphics", badge: "Shadows & Tone" },
+                      { id: "lite", label: "Lite (Mali Smooth)", badge: "Vivo & Xiaomi 60FPS" },
+                      { id: "medium", label: "Balanced", badge: "Standard" },
+                      { id: "uhd", label: "UHD 4K", badge: "Max Detail" },
+                    ].map((item) => {
+                      const isActive =
+                        qualityPref === item.id ||
+                        (item.id === "official" && qualityPref === "high") ||
+                        (item.id === "lite" && qualityPref === "low");
                       return (
                         <button
-                          key={q}
+                          key={item.id}
                           type="button"
-                          onClick={() => onQualityPref?.(q)}
-                          className={`bf-btn-grey py-2.5 text-center transition cursor-pointer ${
-                            isActive ? "is-active font-black" : "font-semibold"
+                          onClick={() => onQualityPref?.(item.id as any)}
+                          className={`bf-btn-grey py-2.5 px-2 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                            isActive ? "is-active font-black !border-amber-400 !bg-amber-500/20" : "font-semibold"
                           }`}
                         >
-                          <span className="text-[12px]">{q === "uhd" ? "UHD 4K" : q.toUpperCase()}</span>
+                          <span className="text-[12px] text-white font-bold">{item.label}</span>
+                          <span className="text-[9px] text-zinc-400 font-mono">{item.badge}</span>
                         </button>
                       );
                     })}
                   </div>
-                  <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
-                    {qualityPref === "uhd"
-                      ? "UHD 4K: Crystal-clear native resolution, 0% pixelation, 4096 dynamic soft shadows & maximum visual fidelity."
-                      : qualityPref === "high"
-                        ? "High: Full dynamic resolution, high-precision shaders & ultra-smooth 60fps."
-                        : qualityPref === "medium"
-                          ? "Medium: Balanced resolution and optimized shadow maps."
-                          : "Low: Battery saver mode for low-power mobile devices."}
-                  </p>
+                  <div className="mt-2.5 p-2 rounded bg-black/30 border border-white/5 text-[11px] text-zinc-300 leading-relaxed">
+                    {qualityPref === "lite" || qualityPref === "low" ? (
+                      <span className="text-amber-300 font-semibold">
+                        ⚡ <strong>Lite Mode (Vivo, Xiaomi & Mali Smooth):</strong> Real-time shadow depth passes are bypassed to stop tile render stalls and overheating. Resolution remains 100% native Retina HD with zero pixelation.
+                      </span>
+                    ) : (
+                      <span>
+                        ✨ <strong>Official Graphics:</strong> Full dynamic soft shadows, rich atmospheric tone mapping, and 100% crystal-clear native Retina HD.
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bf-settings-card">

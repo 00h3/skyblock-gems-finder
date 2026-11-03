@@ -173,34 +173,29 @@ export function ChatPreview({
   return (
     <div
       onClick={onOpen}
-      className={`pointer-events-auto cursor-pointer max-w-[280px] sm:max-w-[340px] space-y-1.5 rounded-lg bg-[#161a24]/90 backdrop-blur-md p-2.5 border border-[#2c3549] shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:bg-[#1a202d]/95 hover:border-[#38455e] active:scale-[0.98] font-['Inter'] font-semibold select-none ${className}`}
+      className={`pointer-events-auto cursor-pointer max-w-[260px] sm:max-w-[320px] space-y-1 bg-transparent border-0 shadow-none font-['Inter'] font-semibold select-none ${className}`}
       title="Click to open chat"
+      style={{ borderRadius: 0 }}
     >
-      <div className="flex items-center justify-between border-b border-[#2b3346] pb-1.5 px-0.5 mb-1">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200">
-          <GameChatIcon className="h-3.5 w-3.5 text-[#fa4616]" />
-          <span>Island Chat</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-        </span>
-        <span className="text-[10px] font-semibold text-slate-400 px-1.5 py-0.5 rounded bg-white/5 border border-white/10">
-          Tap to chat
-        </span>
-      </div>
-      {displayList.length === 0 ? (
-        <p className="text-[11px] text-slate-400 italic py-1">No messages yet. Tap to say hi 👋</p>
-      ) : (
+      {displayList.length === 0 ? null : (
         displayList.map((m) => {
           const userColor = getUserColor(m.from);
           return (
-            <div key={m.id} className="text-[12px] leading-snug truncate font-semibold">
+            <div
+              key={m.id}
+              className="text-[12px] leading-snug truncate font-semibold bg-black/45 hover:bg-black/65 px-2 py-1 rounded-none border-l-2 border-[#fa4616] text-white shadow-sm backdrop-blur-xs transition-colors"
+              style={{ borderRadius: 0 }}
+            >
               <span style={{ color: userColor }} className="font-bold">
                 {m.from}
               </span>
-              <span className="text-zinc-300 bg-white/10 text-[9.5px] font-mono font-semibold px-1 py-0.2 rounded mx-1">
+              <span className="text-zinc-300 bg-white/10 text-[9px] font-mono font-semibold px-1 py-0.2 rounded-none mx-1 border border-white/10">
                 [user]
               </span>
-              <span className="text-zinc-400 font-bold">: </span>
-              <span className="text-slate-100 font-semibold">{renderTextWithEmojis(m.text)}</span>
+              <span className="text-zinc-400 font-bold mr-1">:</span>
+              <span className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                {renderTextWithEmojis(m.text)}
+              </span>
             </div>
           );
         })
@@ -322,18 +317,6 @@ export function SandboxChat({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0a0c10]/80 backdrop-blur-md p-3 sm:p-6 font-inter-semibold">
       {/* Container with Dark Grey Inventory Aesthetics & Metallic Frame */}
       <div className="relative flex h-[88vh] max-h-[720px] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[#323846] bg-[#181b22] shadow-[0_12px_48px_rgba(0,0,0,0.85)]">
-        {/* Interactive Cubes Landing Component Background */}
-        <div className="pointer-events-auto absolute inset-0 opacity-25">
-          <Cubes
-            gridSize={8}
-            faceColor="#12151c"
-            edgeColor="#fa4616"
-            rippleColor="#38bdf8"
-            maxAngle={25}
-            radius={2.5}
-            autoAnimate={true}
-          />
-        </div>
 
         {/* Header - Grey Inventory Banner */}
         <div className="relative z-10 flex items-center justify-between border-b border-[#2d3342] bg-[#1d222c]/90 px-4 py-3 backdrop-blur-md">

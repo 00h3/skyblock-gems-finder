@@ -1952,9 +1952,9 @@ function EngineGame({
     } catch {}
   }, [invertJoyX]);
 
-  const [qualityPrefState, setQualityPrefState] = useState<"low" | "medium" | "high" | "uhd">(() => {
-    if (typeof window === "undefined") return "uhd";
-    return (localStorage.getItem("bm-quality") || "uhd") as "low" | "medium" | "high" | "uhd";
+  const [qualityPrefState, setQualityPrefState] = useState<string>(() => {
+    if (typeof window === "undefined") return "official";
+    return localStorage.getItem("bm-quality") || "official";
   });
   const [motionBlurState, setMotionBlurState] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -2425,14 +2425,15 @@ function EngineGame({
     const conservative3D = isSafariBrowser;
 
     // Read persistent graphics quality and FPS cap (set via in-game settings)
-    const qualityPref = (localStorage.getItem("bm-quality") || "high") as "low" | "medium" | "high" | "uhd";
+    const qualityPref = localStorage.getItem("bm-quality") || "official";
+    const isLiteMode = qualityPref === "lite" || qualityPref === "low";
     const fpsPrefInit = localStorage.getItem("bm-fpscap") || "60";
 
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        // Antialiasing: enabled for smooth crisp edges
-        antialias: qualityPref !== "low" && !isSafariBrowser && !conservative3D,
+        // Antialiasing: enabled for smooth crisp edges without pixelation
+        antialias: !isSafariBrowser && !conservative3D,
         powerPreference: isSafariBrowser || conservative3D ? "default" : "high-performance",
         stencil: false,
       });
@@ -2721,21 +2722,19 @@ function EngineGame({
       scene.add(hemi);
 
       // Raised ambient so blocks and shadow faces stay rich, colorful, and vibrant
-      scene.add(new THREE.AmbientLight(0xffffff, isSpleef ? 0.7 : isSkyblock ? 0.75 : 0.8));
+      const ambientLight = new THREE.AmbientLight(0xffffff, isLiteMode ? 0.95 : (isSpleef ? 0.7 : isSkyblock ? 0.75 : 0.8));
+      scene.add(ambientLight);
 
       // Primary sun — vibrant warm golden light
       const sun = new THREE.DirectionalLight(0xfff8e8, isSpleef ? 1.4 : isSkyblock ? 1.35 : 1.45);
       // Skyblock: golden-hour angle — sun lower on the horizon for warm long shadows
       sun.position.set(isSkyblock ? 28 : 34, isSkyblock ? 45 : 60, isSkyblock ? 18 : 22);
-      // On mobile devices, directional shadows are disabled on low/medium quality to
-      // eliminate the double-render depth pass cost on mobile GPUs.
-      const enableShadows = isMobileUA ? (qualityPref === "high" || qualityPref === "uhd") : qualityPref !== "low";
+      // On mobile devices or in Lite mode, directional shadows are disabled to eliminate the double-render depth pass cost on Mali GPUs.
+      const enableShadows = !isLiteMode && (isMobileUA ? (qualityPref === "high" || qualityPref === "uhd" || qualityPref === "official") : qualityPref !== "low");
       sun.castShadow = enableShadows;
       renderer.shadowMap.enabled = enableShadows;
-      // Shadow map: 2048 on desktop and 1024 on mobile devices (512 on mobile low).
-      const shadowMapSize = isMobileUA
-        ? (qualityPref === "low" ? 512 : 1024)
-        : (qualityPref === "low" ? 1024 : 2048);
+      // Shadow map: 2048 on desktop and 1024 on mobile devices.
+      const shadowMapSize = isMobileUA ? 1024 : 2048;
       sun.shadow.mapSize.set(shadowMapSize, shadowMapSize);
       sun.shadow.camera.near = 1;
       sun.shadow.camera.far = isSkyblock ? 180 : isSpleef ? 70 : 90;
@@ -2854,16 +2853,27 @@ function EngineGame({
 
       // Quality preset: update DPR + shadow map size at runtime. Antialiasing
       // and RENDER_SCALE take effect on next game mount (requires renderer recreation).
+      // Quality preset: update DPR + shadow map at runtime.
+      // USER RULE: "don't reduce retina on dpr image quality" — curScale stays 1.0 (no pixelation)
       const qualityHandler = (e: Event) => {
-        const q = (e as CustomEvent<string>).detail as "low" | "medium" | "high";
+        const q = (e as CustomEvent<string>).detail;
+        if (!q) return;
+        const isLite = q === "lite" || q === "low";
         const dpr = getTargetDpr(q);
-        curScale = q === "low" ? 0.85 : 1.0;
+        curScale = 1.0; // Never downscale; keeps crisp Retina HD clarity across all modes
         renderer.setPixelRatio(dpr * curScale);
-        const shadowMapSz = isMobileUA
-          ? (q === "low" ? 512 : 1024)
-          : (q === "low" ? 1024 : 2048);
-        sun.shadow.mapSize.set(shadowMapSz, shadowMapSz);
-        renderer.shadowMap.needsUpdate = true;
+        if (isLite) {
+          sun.castShadow = false;
+          renderer.shadowMap.enabled = false;
+          ambientLight.intensity = 0.95;
+        } else {
+          sun.castShadow = true;
+          renderer.shadowMap.enabled = true;
+          const shadowMapSz = isMobileUA ? 1024 : 2048;
+          sun.shadow.mapSize.set(shadowMapSz, shadowMapSz);
+          renderer.shadowMap.needsUpdate = true;
+          ambientLight.intensity = isSpleef ? 0.7 : isSkyblock ? 0.75 : 0.8;
+        }
       };
       window.addEventListener("bm-quality", qualityHandler);
 
@@ -12674,7 +12684,7 @@ function EngineGame({
 
       {/* ── Left-side in-game Chat Preview: username [user]: message (different user colors) ── */}
       {!chatOpen && (
-        <div className="fixed left-3 top-[68px] sm:top-[74px] z-30 pointer-events-auto">
+        <div className="fixed left-1 sm:left-1.5 top-[52px] sm:top-[56px] z-30 pointer-events-auto">
           <ChatPreview onOpen={() => setChatOpen(true)} messages={chatMsgs} />
         </div>
       )}
@@ -13749,11 +13759,6 @@ const FAST_CHAT_PRESETS = [
       className="fixed inset-0 z-[100000] w-screen h-screen flex flex-col font-['Inter'] font-semibold select-none animate-fade-in bg-[#0e1117] text-white rounded-none overflow-hidden"
       style={{ borderRadius: 0 }}
     >
-      {/* ── 9:49 AM Note: React Bits Cubes 3D WebGL background ── */}
-      <div className="absolute inset-0 pointer-events-none opacity-30 overflow-hidden">
-        <Cubes gridSize={8} faceColor="#1a202c" edgeColor="#2d3748" rippleColor="#fa4616" />
-      </div>
-
       {/* ── Top Header: Sharp Rectangle Grey Bar ─── */}
       <div
         className="relative z-10 flex items-center justify-between gap-3 px-4 pt-[max(12px,env(safe-area-inset-top))] pb-3 bg-[#141821] border-b-2 border-[#262f40] shadow-md rounded-none"

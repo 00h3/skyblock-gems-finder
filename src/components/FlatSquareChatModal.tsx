@@ -275,11 +275,6 @@ export function FlatSquareChatModal({ onClose }: FlatSquareChatModalProps) {
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      {/* ── 9:49 AM Note: React Bits Cubes 3D WebGL background ── */}
-      <div className="absolute inset-0 pointer-events-none opacity-30 overflow-hidden">
-        <Cubes gridSize={8} faceColor="#161b26" edgeColor="#2c364c" rippleColor="#fa4616" />
-      </div>
-
       {/* ── Top Header: Sharp Rectangular Dark Grey Inventory Bar ── */}
       <div
         onTouchStart={onTouchStartHeader}

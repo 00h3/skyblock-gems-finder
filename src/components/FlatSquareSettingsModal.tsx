@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { SkyDialEditor } from "@/components/v2/SkyDialEditor";
+import { detectGpuHardware } from "@/lib/rendering";
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
@@ -101,6 +102,14 @@ export function FlatSquareSettingsModal({
   });
 
   // ── Graphics & Audio State ────────────────────────────────────────────────
+  const [graphicsPreset, setGraphicsPreset] = useState<string>(() => {
+    try {
+      return localStorage.getItem("bm-quality") || "official";
+    } catch {
+      return "official";
+    }
+  });
+
   const [fpsTarget, setFpsTarget] = useState<string>(() => {
     try {
       return localStorage.getItem("qb_fps_target") || "60";
@@ -486,8 +495,92 @@ export function FlatSquareSettingsModal({
               <div>
                 <h3 className="text-[16px] font-extrabold text-white">Display & Acoustics</h3>
                 <p className="text-[12px] text-white/55 mt-0.5">
-                  Dial in sky atmosphere, frame pacing, render distance, and audio balance.
+                  GPU presets, frame pacing, render distance, and audio balance.
                 </p>
+              </div>
+
+              {/* GPU Hardware Detection & Retina Protection Banner */}
+              {(() => {
+                const gpu = detectGpuHardware();
+                return (
+                  <div className="p-4 rounded-xl bg-[#161a22] border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <div className="text-[13.5px] font-extrabold text-emerald-300 flex items-center gap-2">
+                        <span>⚡ GPU Hardware:</span>
+                        <span className="font-mono text-[12px] text-white bg-white/10 px-2 py-0.5 rounded">
+                          {gpu.renderer.split("/")[0] || "Mobile GPU"}
+                        </span>
+                      </div>
+                      <div className="text-[11.5px] text-white/60">
+                        {gpu.isMali || gpu.isLowEndAndroid
+                          ? "ARM Mali / Vivo / Xiaomi GPU detected. 'Lite' mode provides maximum 60 FPS smoothness."
+                          : "Standard GPU detected. 'Official Graphics' provides full dynamic shadows."}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                      RETINA DPR: 100% NATIVE (0% Blur)
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Graphics Presets: Official Graphics vs Lite (Mali / Smooth) */}
+              <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-[14px] text-white">Graphics Preset</div>
+                    <div className="text-[11.5px] text-white/55">Select your visual fidelity and performance mode</div>
+                  </div>
+                  <span className="font-mono font-bold text-[12px] px-2 py-0.5 rounded bg-white/10 text-amber-300 uppercase">
+                    {graphicsPreset === "lite" ? "LITE (MALI)" : graphicsPreset === "official" || graphicsPreset === "high" ? "OFFICIAL" : graphicsPreset.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {[
+                    { id: "official", label: "Official Graphics", badge: "Shadows & Tone" },
+                    { id: "lite", label: "Lite (Mali Smooth)", badge: "Vivo & Xiaomi 60FPS" },
+                    { id: "medium", label: "Balanced", badge: "Standard" },
+                    { id: "uhd", label: "UHD 4K", badge: "Max Detail" },
+                  ].map((item) => {
+                    const isActive =
+                      graphicsPreset === item.id ||
+                      (item.id === "official" && graphicsPreset === "high") ||
+                      (item.id === "lite" && graphicsPreset === "low");
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setGraphicsPreset(item.id);
+                          updateSetting("bm-quality", item.id, "bm-quality");
+                        }}
+                        className={`p-3 rounded-lg text-left transition cursor-pointer border flex flex-col justify-between gap-1 ${
+                          isActive
+                            ? "bg-[#fa4616] text-white border-[#fa4616] shadow-md"
+                            : "bg-white/5 text-white/70 border-transparent hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="font-extrabold text-[12.5px] leading-snug">{item.label}</span>
+                        <span className={`text-[10px] font-mono ${isActive ? "text-white/80" : "text-white/45"}`}>
+                          {item.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="p-3 rounded-lg bg-black/30 border border-white/5 text-[11.5px] text-white/75 leading-relaxed">
+                  {graphicsPreset === "lite" || graphicsPreset === "low" ? (
+                    <span className="text-amber-300 font-medium">
+                      ⚡ <strong>Lite Mode (Vivo, Xiaomi & Mali Smooth):</strong> Real-time shadow depth passes are bypassed to stop tile render stalls and overheating. Resolution remains 100% native Retina HD with zero pixelation or downscaling.
+                    </span>
+                  ) : (
+                    <span>
+                      ✨ <strong>Official Graphics:</strong> Full dynamic soft shadows, rich atmospheric tone mapping, and 100% crystal-clear native Retina HD.
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* React Bits CometDial Sky Editor */}
