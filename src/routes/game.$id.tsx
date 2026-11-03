@@ -2853,27 +2853,53 @@ function EngineGame({
 
       // Quality preset: update DPR + shadow map size at runtime. Antialiasing
       // and RENDER_SCALE take effect on next game mount (requires renderer recreation).
-      // Quality preset: update DPR + shadow map at runtime.
-      // USER RULE: "don't reduce retina on dpr image quality" — curScale stays 1.0 (no pixelation)
       const qualityHandler = (e: Event) => {
         const q = (e as CustomEvent<string>).detail;
         if (!q) return;
         const isLite = q === "lite" || q === "low";
+        const isUhd = q === "uhd";
         const dpr = getTargetDpr(q);
         curScale = 1.0; // Never downscale; keeps crisp Retina HD clarity across all modes
         renderer.setPixelRatio(dpr * curScale);
+
         if (isLite) {
           sun.castShadow = false;
           renderer.shadowMap.enabled = false;
+          if (sun.shadow.map) {
+            sun.shadow.map.dispose();
+            (sun.shadow as any).map = null;
+          }
           ambientLight.intensity = 0.95;
         } else {
           sun.castShadow = true;
           renderer.shadowMap.enabled = true;
-          const shadowMapSz = isMobileUA ? 1024 : 2048;
+          const shadowMapSz = isUhd ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 1024 : 2048);
           sun.shadow.mapSize.set(shadowMapSz, shadowMapSz);
+          if (sun.shadow.map) {
+            sun.shadow.map.dispose();
+            (sun.shadow as any).map = null;
+          }
           renderer.shadowMap.needsUpdate = true;
           ambientLight.intensity = isSpleef ? 0.7 : isSkyblock ? 0.75 : 0.8;
         }
+
+        // Force Three.js material shader recompilation across all meshes in scene
+        scene.traverse((obj) => {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.material) {
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach((m) => {
+                m.needsUpdate = true;
+              });
+            } else {
+              mesh.material.needsUpdate = true;
+            }
+          }
+        });
+
+        try {
+          renderer.render(scene, camera);
+        } catch {}
       };
       window.addEventListener("bm-quality", qualityHandler);
 

@@ -4071,13 +4071,31 @@ export function SandboxGame({
       window.addEventListener("bm-fog-mode", onFogModeEvt);
 
       const onQualityEvt = (e: Event) => {
-        const q = (e as CustomEvent<RenderQuality>).detail;
+        const q = (e as CustomEvent<RenderQuality | string>).detail as string;
+        if (!q) return;
         const targetDpr = getTargetDpr(q);
         renderer.setPixelRatio(targetDpr);
         const w = Math.max(1, mount.clientWidth || window.innerWidth);
         const h = Math.max(1, mount.clientHeight || window.innerHeight);
         renderer.setSize(w, h, false);
         cinematicPost?.setSize(w, h, targetDpr);
+
+        const isLite = q === "lite" || q === "low";
+        renderer.shadowMap.enabled = !isLite;
+        renderer.shadowMap.needsUpdate = true;
+
+        scene.traverse((obj) => {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.material) {
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach((m) => {
+                m.needsUpdate = true;
+              });
+            } else {
+              mesh.material.needsUpdate = true;
+            }
+          }
+        });
       };
       window.addEventListener("bm-quality", onQualityEvt);
 
