@@ -753,6 +753,30 @@ export function GameSettingsModal({
             {/* ── TAB 3: GRAPHICS ───────────────────────────────────────── */}
             {activeTab === "graphics" && (
               <div className="flex flex-col gap-3">
+                {/* FORCE BIG FPS Quick Boost Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onQualityPref?.("lite");
+                    try {
+                      localStorage.setItem("bm-quality", "lite");
+                      localStorage.setItem("qb_fps_target", "uncapped");
+                    } catch {}
+                    window.dispatchEvent(new CustomEvent("bm-quality", { detail: "lite" }));
+                    window.dispatchEvent(new CustomEvent("bm-fpscap", { detail: "uncapped" }));
+                    window.dispatchEvent(new CustomEvent("bm-force-max-fps", { detail: true }));
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-[13.5px] uppercase tracking-wider shadow-lg flex items-center justify-between border border-emerald-400/50 active:scale-[0.98] transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    <span>🚀 FORCE BIG FPS (120+ FPS MAX BOOST)</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-extrabold bg-black/40 px-2 py-0.5 rounded border border-white/20">
+                    ONE TAP
+                  </span>
+                </button>
+
                 {/* GPU Hardware Detection Banner */}
                 {(() => {
                   const gpu = detectGpuHardware();
@@ -766,13 +790,13 @@ export function GameSettingsModal({
                           </div>
                           <div className="text-[10.5px] text-zinc-400">
                             {gpu.isMali || gpu.isLowEndAndroid
-                              ? "ARM Mali / Mobile GPU detected. 'Lite' mode provides 60 FPS performance."
-                              : "Standard GPU detected. 'Official' mode enables full dynamic shadows."}
+                              ? "ARM Mali / Mobile GPU detected. 'Lite' mode provides 60-120+ FPS."
+                              : "Standard GPU detected. 'Balanced' or 'Advanced' available."}
                           </div>
                         </div>
                       </div>
                       <span className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 font-bold">
-                        Native Retina
+                        100% Native Retina
                       </span>
                     </div>
                   );
@@ -785,31 +809,31 @@ export function GameSettingsModal({
                       Graphics Preset
                     </span>
                     <span className="text-[11px] text-purple-300 font-bold uppercase">
-                      Active: {qualityPref === "lite" ? "LITE (MALI)" : qualityPref === "official" || qualityPref === "high" ? "OFFICIAL" : qualityPref.toUpperCase()}
+                      Active: {qualityPref === "lite" || qualityPref === "low" ? "LITE (MALI)" : qualityPref === "advanced" || qualityPref === "uhd" ? "ADVANCED (4K UHD)" : "BALANCED"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: "official", label: "Official Graphics", badge: "Shadows & Tone" },
-                      { id: "lite", label: "Lite Mode", badge: "Mali & Mobile 60FPS" },
-                      { id: "medium", label: "Balanced", badge: "Standard" },
-                      { id: "uhd", label: "UHD 4K", badge: "High Detail" },
+                      { id: "lite", label: "Lite", badge: "60 FPS · Mali & Mobile" },
+                      { id: "balanced", label: "Balanced", badge: "Official Graphics" },
+                      { id: "advanced", label: "Advanced", badge: "4K UHD · Full Retina" },
                     ].map((item) => {
                       const isActive =
                         qualityPref === item.id ||
-                        (item.id === "official" && qualityPref === "high") ||
+                        (item.id === "balanced" && (qualityPref === "official" || qualityPref === "medium" || qualityPref === "high")) ||
+                        (item.id === "advanced" && qualityPref === "uhd") ||
                         (item.id === "lite" && qualityPref === "low");
                       return (
                         <button
                           key={item.id}
                           type="button"
                           onClick={() => onQualityPref?.(item.id as any)}
-                          className={`bf-btn-grey py-2.5 px-2 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                          className={`bf-btn-grey py-3 px-2 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                             isActive ? "is-active font-black !border-amber-400 !bg-amber-500/20" : "font-semibold"
                           }`}
                         >
-                          <span className="text-[12px] text-white font-bold">{item.label}</span>
-                          <span className="text-[9px] text-zinc-400 font-mono">{item.badge}</span>
+                          <span className="text-[13px] text-white font-bold">{item.label}</span>
+                          <span className="text-[9px] text-zinc-300/80 font-mono">{item.badge}</span>
                         </button>
                       );
                     })}
@@ -817,11 +841,15 @@ export function GameSettingsModal({
                   <div className="p-2.5 rounded bg-black/30 border border-white/5 text-[11px] text-zinc-300 leading-relaxed">
                     {qualityPref === "lite" || qualityPref === "low" ? (
                       <span>
-                        <strong>Lite Mode:</strong> Real-time directional shadow depth passes are disabled to reduce GPU load and preserve frame rate on mobile chipsets. Native resolution is maintained.
+                        <strong>Lite Mode:</strong> Real-time directional shadow depth passes are disabled for maximum 60 FPS performance on ARM Mali and mobile chipsets while preserving 100% native Retina HD resolution.
+                      </span>
+                    ) : qualityPref === "advanced" || qualityPref === "uhd" ? (
+                      <span>
+                        <strong>Advanced Mode:</strong> Maximum 4K UHD 4096 shadow depth maps with full Retina supersampling and maximum rendering detail.
                       </span>
                     ) : (
                       <span>
-                        <strong>Official Graphics:</strong> Enables real-time soft shadows and atmospheric tone mapping at native screen resolution.
+                        <strong>Balanced Mode:</strong> Official graphics profile featuring soft dynamic shadows and atmospheric tone mapping at native resolution.
                       </span>
                     )}
                   </div>

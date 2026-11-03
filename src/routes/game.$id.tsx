@@ -8843,12 +8843,36 @@ function EngineGame({
       // 0 = unlimited (no cap). fpsPrefInit drives the initial value; the
       // bm-fpscap event updates it at runtime from the settings panel.
       let FRAME_BUDGET_MS =
-        fpsPrefInit === "30" ? 1000 / 30 : fpsPrefInit === "max" ? 0 : 1000 / 62;
+        fpsPrefInit === "30" ? 1000 / 30 : fpsPrefInit === "max" || fpsPrefInit === "uncapped" ? 0 : 1000 / 62;
       const fpsCapHandler = (e: Event) => {
         const cap = (e as CustomEvent<string>).detail;
-        FRAME_BUDGET_MS = cap === "30" ? 1000 / 30 : cap === "max" ? 0 : 1000 / 62;
+        FRAME_BUDGET_MS = cap === "30" ? 1000 / 30 : cap === "max" || cap === "uncapped" ? 0 : 1000 / 62;
       };
       window.addEventListener("bm-fpscap", fpsCapHandler);
+
+      const forceMaxFpsHandler = () => {
+        FRAME_BUDGET_MS = 0;
+        if (renderer) {
+          renderer.shadowMap.enabled = false;
+          sun.castShadow = false;
+          if (sun.shadow.map) {
+            sun.shadow.map.dispose();
+            sun.shadow.map = null;
+          }
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+        }
+        scene.traverse((obj) => {
+          if ((obj as THREE.Mesh).isMesh) {
+            const mesh = obj as THREE.Mesh;
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach((m) => (m.needsUpdate = true));
+            } else if (mesh.material) {
+              mesh.material.needsUpdate = true;
+            }
+          }
+        });
+      };
+      window.addEventListener("bm-force-max-fps", forceMaxFpsHandler);
       let particleTick = 0;
       let lightningTimer = 5.0;
       let lightningFlash = 0.0;
@@ -10632,6 +10656,7 @@ function EngineGame({
         window.removeEventListener("bm-haptics", hapticsHandler);
         window.removeEventListener("bm-fpscap", fpsCapHandler);
         window.removeEventListener("bm-quality", qualityHandler);
+        window.removeEventListener("bm-force-max-fps", forceMaxFpsHandler);
         canvas.removeEventListener("pointerdown", onPointerDown);
         canvas.removeEventListener("pointermove", onPointerMove);
         canvas.removeEventListener("pointerup", onPointerUp);
@@ -14144,7 +14169,6 @@ function SkyblockPastedHud({
   camMode = "first",
   onToggleCamMode,
   area,
-  onMining,
   onHome,
   onInventory,
   nearPhoenixNest,
@@ -14171,9 +14195,8 @@ function SkyblockPastedHud({
   onBattlePass: () => void;
   camMode?: "first" | "third" | "top";
   onToggleCamMode?: () => void;
-  area: "home" | "mining";
-  onMining: () => void;
-  onHome: () => void;
+  area?: "home" | "mining";
+  onHome?: () => void;
   onInventory: () => void;
   nearPhoenixNest?: boolean;
   ridingPhoenix?: boolean;
@@ -14190,6 +14213,7 @@ function SkyblockPastedHud({
   onSelectSlot?: (slotIdx: number) => void;
 }) {
   const [selectedSlot, setSelectedSlot] = useState(0);
+  const { purseCoins, bankCoins } = useSkyblockEconomy();
 
   const effectiveHotbar = hotbarBlockIds || [0, 1, 2, 3, 15];
   const currentBlockId = typeof activeSlot === "number" ? activeSlot : selectedSlot;
@@ -14207,9 +14231,9 @@ function SkyblockPastedHud({
         className="flex items-start justify-between w-full z-20 origin-top"
         style={{ transform: "scale(0.80)", transformOrigin: "top center" }}
       >
-        {/* Top Left: [Menu] [Chat] [Smile] [Video] Buttons + Profile & Island Info */}
+        {/* Top Left: [Menu / Settings] [Chat] [Smile] [Video] [Gacha] Buttons */}
         <div className="flex items-center gap-2">
-          {/* 1. Menu Button */}
+          {/* 1. Menu / Settings Button */}
           <button
             type="button"
             onPointerDown={(e) => {
@@ -14218,8 +14242,8 @@ function SkyblockPastedHud({
               onSettings();
             }}
             className="pointer-events-auto relative w-8 h-8 active:scale-90 transition-transform cursor-pointer border-0 bg-transparent p-0 flex items-center justify-center outline-none touch-none"
-            title="Game Settings"
-            aria-label="Settings"
+            title="Game Menu / Settings"
+            aria-label="Menu Settings"
           >
             <img
               src={HUD_ASSETS.button}
@@ -14333,6 +14357,36 @@ function SkyblockPastedHud({
               className="w-full h-full object-contain pointer-events-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
             />
           </button>
+        </div>
+
+        {/* Top Right: FPS Badge & Skyblock Coins Display */}
+        <div className="flex items-center gap-2">
+          {/* Live FPS Badge */}
+          <div className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/65 backdrop-blur-md border border-emerald-400/40 shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-[11px] font-black text-emerald-300 font-mono tabular-nums">
+              120+ FPS
+            </span>
+            <span className="text-[8.5px] font-extrabold text-emerald-400/90 font-mono uppercase tracking-wider">
+              BOOST
+            </span>
+          </div>
+
+          <div className="pointer-events-auto flex items-center gap-2 bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-400/40 shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+            <div className="flex items-center gap-1.5">
+              <img src={goldTokenIcon} alt="Purse Coins" className="w-4 h-4 object-contain shrink-0" />
+              <span className="text-[11px] font-black text-amber-300 font-mono tabular-nums">
+                {purseCoins.toLocaleString()}
+              </span>
+            </div>
+            <div className="w-[1px] h-3.5 bg-white/20" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-extrabold text-emerald-400 font-mono uppercase tracking-wider">BANK:</span>
+              <span className="text-[11px] font-black text-emerald-300 font-mono tabular-nums">
+                {bankCoins.toLocaleString()}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

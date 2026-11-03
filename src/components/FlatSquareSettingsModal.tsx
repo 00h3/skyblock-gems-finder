@@ -500,6 +500,28 @@ export function FlatSquareSettingsModal({
                 </p>
               </div>
 
+              {/* FORCE BIG FPS Quick Boost Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setGraphicsPreset("lite");
+                  setFpsTarget("uncapped");
+                  updateSetting("bm-quality", "lite", "bm-quality");
+                  updateSetting("qb_fps_target", "uncapped", "qb_fps_target");
+                  window.dispatchEvent(new CustomEvent("bm-force-max-fps", { detail: true }));
+                  toast.success("🚀 FORCE BIG FPS ACTIVATED! Uncapped 120+ FPS Mode.");
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-[14px] uppercase tracking-wider shadow-lg flex items-center justify-between border border-emerald-400/50 active:scale-[0.98] transition cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🚀</span>
+                  <span>FORCE BIG FPS (120+ FPS UNCAPPED)</span>
+                </div>
+                <span className="text-[10.5px] font-mono font-extrabold bg-black/40 px-2.5 py-1 rounded border border-white/20">
+                  ONE TAP BOOST
+                </span>
+              </button>
+
               {/* GPU Hardware Detection & Display Info Banner */}
               {(() => {
                 const gpu = detectGpuHardware();
@@ -525,28 +547,28 @@ export function FlatSquareSettingsModal({
                 );
               })()}
 
-              {/* Graphics Presets: Official Graphics vs Lite */}
+              {/* Graphics Presets: Lite vs Balanced vs Advanced */}
               <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-extrabold text-[14px] text-white">Graphics Preset</div>
-                    <div className="text-[11.5px] text-white/55">Performance and rendering settings</div>
+                    <div className="text-[11.5px] text-white/55">Performance and rendering quality</div>
                   </div>
                   <span className="font-mono font-bold text-[11.5px] px-2 py-0.5 rounded bg-white/10 text-amber-300 uppercase">
-                    {graphicsPreset === "lite" ? "LITE (MALI)" : graphicsPreset === "official" || graphicsPreset === "high" ? "OFFICIAL" : graphicsPreset.toUpperCase()}
+                    {graphicsPreset === "lite" || graphicsPreset === "low" ? "LITE (MALI)" : graphicsPreset === "advanced" || graphicsPreset === "uhd" ? "ADVANCED (4K UHD)" : "BALANCED"}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="grid grid-cols-3 gap-2 pt-1">
                   {[
-                    { id: "official", label: "Official Graphics", badge: "Shadows & Tone" },
-                    { id: "lite", label: "Lite Mode", badge: "Mali & Mobile 60FPS" },
-                    { id: "medium", label: "Balanced", badge: "Standard" },
-                    { id: "uhd", label: "UHD 4K", badge: "High Detail" },
+                    { id: "lite", label: "Lite", badge: "60 FPS · Mali & Mobile" },
+                    { id: "balanced", label: "Balanced", badge: "Official Graphics" },
+                    { id: "advanced", label: "Advanced", badge: "4K UHD · Full Retina" },
                   ].map((item) => {
                     const isActive =
                       graphicsPreset === item.id ||
-                      (item.id === "official" && graphicsPreset === "high") ||
+                      (item.id === "balanced" && (graphicsPreset === "official" || graphicsPreset === "medium" || graphicsPreset === "high")) ||
+                      (item.id === "advanced" && graphicsPreset === "uhd") ||
                       (item.id === "lite" && graphicsPreset === "low");
                     return (
                       <button
@@ -562,7 +584,7 @@ export function FlatSquareSettingsModal({
                             : "bg-white/5 text-white/70 border-transparent hover:bg-white/10"
                         }`}
                       >
-                        <span className="font-extrabold text-[12.5px] leading-snug">{item.label}</span>
+                        <span className="font-extrabold text-[13px] leading-snug">{item.label}</span>
                         <span className={`text-[10px] font-mono ${isActive ? "text-white/80" : "text-white/45"}`}>
                           {item.badge}
                         </span>
@@ -574,11 +596,15 @@ export function FlatSquareSettingsModal({
                 <div className="p-3 rounded-lg bg-black/30 border border-white/5 text-[11.5px] text-zinc-300 leading-relaxed">
                   {graphicsPreset === "lite" || graphicsPreset === "low" ? (
                     <span>
-                      <strong>Lite Mode:</strong> Disables real-time directional shadow depth passes to reduce GPU load and maintain stable frame rates on ARM Mali and mobile chipsets. Native resolution is fully preserved.
+                      <strong>Lite Mode:</strong> Disables real-time directional shadow depth passes to reduce GPU load and maintain stable 60 FPS frame rates on ARM Mali and mobile chipsets while preserving 100% native Retina HD resolution.
+                    </span>
+                  ) : graphicsPreset === "advanced" || graphicsPreset === "uhd" ? (
+                    <span>
+                      <strong>Advanced Mode:</strong> Maximum 4K UHD 4096 shadow depth maps with full Retina supersampling and maximum detail.
                     </span>
                   ) : (
                     <span>
-                      <strong>Official Graphics:</strong> Enables real-time soft shadows and ACES tone mapping at full native screen resolution.
+                      <strong>Balanced Mode:</strong> Official graphics profile featuring soft dynamic shadows and ACES tone mapping at full native screen resolution.
                     </span>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-export type RenderQuality = "official" | "lite" | "low" | "medium" | "high" | "uhd";
+export type RenderQuality = "lite" | "balanced" | "advanced" | "official" | "low" | "medium" | "high" | "uhd";
 
 export const isMobileDevice = (): boolean => {
   if (typeof window === "undefined") return false;
@@ -19,14 +19,14 @@ export interface GpuHardwareInfo {
   isPowerVR: boolean;
   isApple: boolean;
   isLowEndAndroid: boolean;
-  recommendedPreset: "official" | "lite";
+  recommendedPreset: "lite" | "balanced" | "advanced";
 }
 
 let cachedGpuInfo: GpuHardwareInfo | null = null;
 
 /**
  * Detect GPU hardware and chipset vendor (ARM Mali, Adreno, Apple, PowerVR).
- * Used to intelligently tune tile-based deferred renderers (Vivo, Xiaomi, Realme).
+ * Used to tune tile-based deferred renderers (Vivo, Xiaomi, Realme).
  */
 export const detectGpuHardware = (): GpuHardwareInfo => {
   if (cachedGpuInfo) return cachedGpuInfo;
@@ -39,7 +39,7 @@ export const detectGpuHardware = (): GpuHardwareInfo => {
       isPowerVR: false,
       isApple: false,
       isLowEndAndroid: false,
-      recommendedPreset: "official",
+      recommendedPreset: "balanced",
     };
   }
 
@@ -76,7 +76,7 @@ export const detectGpuHardware = (): GpuHardwareInfo => {
     isPowerVR,
     isApple,
     isLowEndAndroid,
-    recommendedPreset: isLowEndAndroid ? "lite" : "official",
+    recommendedPreset: isLowEndAndroid ? "lite" : "balanced",
   };
 
   return cachedGpuInfo;
@@ -86,11 +86,14 @@ export const detectGpuHardware = (): GpuHardwareInfo => {
  * Target DPR Resolution:
  * USER INSTRUCTION: "don't reduce retina on dpr image quality"
  * Preserves 100% native Retina HD resolution across all devices — zero pixelation and zero blur.
- * Uses Math.min(window.devicePixelRatio, 2.0) so text, blocks, and UI stay crystal-clear.
+ * Advanced (4K UHD) uses full Retina supersampling up to 2.5x.
  */
-export const getTargetDpr = (_quality?: RenderQuality | string): number => {
+export const getTargetDpr = (quality?: RenderQuality | string): number => {
   if (typeof window === "undefined") return 1;
   const rawDpr = window.devicePixelRatio || 1;
+  if (quality === "advanced" || quality === "uhd") {
+    return Math.min(Math.max(rawDpr, 1.5), 2.5);
+  }
   // Always maintain full crystal-clear native Retina HD clarity
   return Math.min(Math.max(rawDpr, 1.0), 2.0);
 };
@@ -98,25 +101,37 @@ export const getTargetDpr = (_quality?: RenderQuality | string): number => {
 /**
  * Shadow Map Optimization:
  * Lite mode completely disables shadow mapping passes to prevent Mali TBDR tile stalls.
- * Official mode uses high-quality soft shadow maps.
+ * Balanced mode uses standard soft shadows (1024 / 2048).
+ * Advanced mode uses 4K UHD 4096 shadow depth maps.
  */
 export const getShadowMapSize = (quality?: RenderQuality | string): number => {
   const isMobile = isMobileDevice();
   if (quality === "lite" || quality === "low") {
-    return 0; // Shadows disabled
+    return 0; // Shadows disabled for 60 FPS Mali performance
   }
-  if (isMobile) {
-    return quality === "medium" ? 512 : 1024;
+  if (quality === "advanced" || quality === "uhd") {
+    return 4096; // 4K UHD max detail shadow map
   }
-  return quality === "uhd" ? 4096 : 2048;
+  // Balanced / Official mode
+  return isMobile ? 1024 : 2048;
 };
 
 export const readQualityPref = (): RenderQuality => {
   try {
     const q = localStorage.getItem("bm-quality");
-    if (q === "official" || q === "lite" || q === "low" || q === "medium" || q === "high" || q === "uhd") {
+    if (
+      q === "lite" ||
+      q === "balanced" ||
+      q === "advanced" ||
+      q === "official" ||
+      q === "low" ||
+      q === "medium" ||
+      q === "high" ||
+      q === "uhd"
+    ) {
       return q as RenderQuality;
     }
   } catch {}
-  return "official";
+  return "balanced";
 };
+
