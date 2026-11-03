@@ -471,24 +471,6 @@ function buildSkyblockIsland(world: World) {
     }
   }
 
-  // ── Tasteful Fantasy Touches ──
-  // 1. Ancient Runic Archway on eastern ledge
-  world.set(5, 17, 3, 5);  // Stone brick pillar 1
-  world.set(5, 18, 3, 14); // Mossy stone brick
-  world.set(5, 17, 1, 5);  // Stone brick pillar 2
-  world.set(5, 18, 1, 14); // Mossy stone brick
-  world.set(5, 19, 2, 18); // Glowing Runic Capstone
-
-  // 2. Resonant Amethyst Geode Spire near tree roots
-  world.set(-5, 17, -5, 23);
-  world.set(-5, 18, -5, 23);
-
-  // 3. Mossy stepping stone path connecting spawn, pond, and tree
-  world.set(1, 16, 1, 14);
-  world.set(2, 16, 2, 4);
-  world.set(-1, 16, -1, 14);
-  world.set(-2, 16, -2, 4);
-
   // ── Majestic Fantasy World Tree ──
   // Anchored at (-4, -3) with organic twisting trunk, sprawling root flares, and cascading canopy
   const tx = -4;
@@ -2451,7 +2433,7 @@ export function SandboxGame({
         }
       }
 
-      if (blockFall || skyblock) {
+      if (blockFall) {
         try {
           const cruiserAsset = await new GLTFLoader().loadAsync(
             "https://file.garden/alGOOylwpAfCa6qP/the_candy_cruiser.glb",
@@ -2462,45 +2444,13 @@ export function SandboxGame({
             const box = new THREE.Box3().setFromObject(model);
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z, 0.01);
-            const scale = 8.8 / maxDim; // Beautiful cruiser ship scaled to be prominently visible
+            const scale = 8.8 / maxDim; // Beautiful cruiser ship scaled to be prominently visible outside windows
             model.scale.setScalar(scale);
 
             // Center model inside group
             const center = box.getCenter(new THREE.Vector3());
             model.position.sub(center.multiplyScalar(scale));
             candyCruiser.add(model);
-
-            // ── Populate ship deck with real cargo, golden chests, lanterns & Trader NPC ──
-            const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7 });
-            const crateGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
-
-            // Cargo Crates on deck
-            const crate1 = new THREE.Mesh(crateGeo, crateMat);
-            crate1.position.set(-1.2, 1.1, 0.8);
-            const crate2 = new THREE.Mesh(crateGeo, crateMat);
-            crate2.position.set(-1.2, 1.8, 0.8);
-            const crate3 = new THREE.Mesh(crateGeo, crateMat);
-            crate3.position.set(-1.2, 1.1, 1.6);
-            candyCruiser.add(crate1, crate2, crate3);
-
-            // Golden Treasure Chest on bow
-            const chestTex = new THREE.TextureLoader().load("/public/chest_gold_1788909061642.png");
-            chestTex.colorSpace = THREE.SRGBColorSpace;
-            const chestMat = new THREE.SpriteMaterial({ map: chestTex, transparent: true });
-            const chestSprite = new THREE.Sprite(chestMat);
-            chestSprite.scale.set(1.4, 1.4, 1);
-            chestSprite.position.set(1.8, 1.5, 0);
-            candyCruiser.add(chestSprite);
-
-            // Glowing lanterns on ship bow & main mast
-            const shipLantern1 = createVoxelLantern(2.2, 2.1, 0);
-            const shipLantern2 = createVoxelLantern(-2.2, 2.5, -0.8);
-            candyCruiser.add(shipLantern1.group, shipLantern2.group);
-
-            // Sky Trader NPC on deck with floating NameTag
-            const traderTag = new NameTag("Sky Trader Vance", 2.2, [], "#ffd700");
-            traderTag.group.position.set(0, 3.1, 0);
-            candyCruiser.add(traderTag.group);
 
             if (cruiserAsset.animations && cruiserAsset.animations.length > 0) {
               candyCruiserMixer = new THREE.AnimationMixer(model);
@@ -2509,26 +2459,7 @@ export function SandboxGame({
               });
             }
 
-            if (skyblock) {
-              // Position ship anchored near Skyblock island
-              candyCruiser.position.set(20, 20.5, -14);
-              candyCruiser.rotation.y = -Math.PI * 0.35;
-
-              // Build wooden gangway bridge from Skyblock island to merchant ship
-              if (world) {
-                for (let step = 0; step <= 12; step++) {
-                  const t = step / 12;
-                  const bx = Math.round(7 + t * 11);
-                  const by = Math.round(17 + t * 3);
-                  const bz = Math.round(-2 - t * 10);
-                  world.set(bx, by, bz, 13); // Oak Planks bridge
-                  world.set(bx, by + 1, bz + 1, 4); // Cobble railing
-                }
-              }
-            } else {
-              candyCruiser.position.set(48, 25.5, 0);
-            }
-
+            candyCruiser.position.set(48, 25.5, 0);
             scene.add(candyCruiser);
           }
         } catch (err) {
