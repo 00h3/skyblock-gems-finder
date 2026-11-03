@@ -44,50 +44,56 @@ vec2 waveGrad(vec2 p, vec2 dir, float freq, float speed, float amp) {
 
 // Procedural animated caustics shimmer
 float caustic(vec2 p) {
-  vec2 p1 = p * 1.4 + vec2(uTime * 0.12, uTime * 0.08);
-  vec2 p2 = p * 1.8 - vec2(uTime * 0.09, uTime * 0.14);
-  float c1 = sin(p1.x + sin(p1.y * 1.2)) * 0.5 + 0.5;
-  float c2 = cos(p2.y + cos(p2.x * 1.3)) * 0.5 + 0.5;
-  return pow(c1 * c2, 1.8) * 1.8;
+  vec2 p1 = p * 1.6 + vec2(uTime * 0.14, uTime * 0.09);
+  vec2 p2 = p * 2.1 - vec2(uTime * 0.11, uTime * 0.16);
+  float c1 = sin(p1.x + sin(p1.y * 1.3)) * 0.5 + 0.5;
+  float c2 = cos(p2.y + cos(p2.x * 1.4)) * 0.5 + 0.5;
+  return pow(c1 * c2, 1.6) * 2.2;
 }
 
 void main() {
   vec2 p = vWorld.xz * uScale;
   vec2 g = vec2(0.0);
-  g += waveGrad(p, normalize(vec2(1.0, 0.3)), 1.1, 1.2, 0.12);
-  g += waveGrad(p, normalize(vec2(-0.5, 0.9)), 2.2, 1.6, 0.07);
-  g += waveGrad(p, normalize(vec2(0.8, -0.6)), 4.1, 2.4, 0.04);
-  g += waveGrad(p, normalize(vec2(-0.8, -0.3)), 7.5, 3.2, 0.02);
-  g += waveGrad(p, normalize(vec2(0.3, 0.95)), 12.0, 4.5, 0.01);
+  g += waveGrad(p, normalize(vec2(1.0, 0.3)), 1.2, 1.4, 0.14);
+  g += waveGrad(p, normalize(vec2(-0.6, 0.8)), 2.4, 1.8, 0.08);
+  g += waveGrad(p, normalize(vec2(0.7, -0.7)), 4.5, 2.6, 0.05);
+  g += waveGrad(p, normalize(vec2(-0.9, -0.2)), 8.2, 3.5, 0.025);
+  g += waveGrad(p, normalize(vec2(0.4, 0.92)), 14.0, 5.0, 0.012);
   vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
 
   vec3 v = normalize(cameraPosition - vWorld);
   float ndv = max(dot(n, v), 0.0);
-  float fresnel = 0.04 + 0.96 * pow(1.0 - ndv, 4.0);
+  float fresnel = 0.05 + 0.95 * pow(1.0 - ndv, 4.2);
 
   vec3 r = reflect(-v, n);
-  vec3 sky = mix(uSkyColor * 0.88, uSkyColor * 1.25, clamp(r.y * 1.4 + 0.1, 0.0, 1.0));
+  vec3 sky = mix(uSkyColor * 0.92, uSkyColor * 1.35, clamp(r.y * 1.5 + 0.1, 0.0, 1.0));
 
   vec3 h = normalize(uSunDir + v);
   float ndh = max(dot(n, h), 0.0);
-  // Soft, subtle specular sheen (removed harsh 4.5x blinding light hotspot)
-  float spec = pow(ndh, 32.0) * 0.15;
+  // Realistic multi-specular highlights
+  float spec1 = pow(ndh, 48.0) * 0.35;
+  float spec2 = pow(ndh, 180.0) * 0.85;
 
-  // Crystal clear tropical water gradient with depth
-  vec3 body = mix(uDeep, uShallow, pow(ndv, 1.3) * 0.85);
+  // Ultra-realistic tropical depth color gradient
+  vec3 deepColor = mix(uDeep, vec3(0.02, 0.12, 0.24), 0.5);
+  vec3 shallowColor = mix(uShallow, vec3(0.12, 0.58, 0.72), 0.5);
+  vec3 body = mix(deepColor, shallowColor, pow(ndv, 1.2) * 0.9);
 
-  // Gentle caustics pattern moving with the waves
-  if (uIsPond > 0.5) {
-    float caust = caustic(vWorld.xz * 1.8);
-    body += vec3(0.02, 0.05, 0.07) * caust;
-  }
+  // Animated wave crest foam highlights
+  float waveSlope = length(g);
+  float foam = smoothstep(0.15, 0.38, waveSlope) * 0.35;
 
-  vec3 col = mix(body, sky, fresnel) + uSunColor * spec;
+  // Deep caustics shimmer
+  float caust = caustic(vWorld.xz * (uIsPond > 0.5 ? 2.0 : 0.25));
+  body += vec3(0.04, 0.12, 0.16) * caust;
+  body = mix(body, vec3(0.92, 0.98, 1.0), foam);
+
+  vec3 col = mix(body, sky, fresnel) + uSunColor * (spec1 + spec2);
 
   float fog = smoothstep(uFogNear, uFogFar, vViewDepth);
   col = mix(col, uFogColor, fog);
 
-  float alpha = mix(uOpacity, 0.96, fresnel);
+  float alpha = mix(uOpacity, 0.98, fresnel);
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

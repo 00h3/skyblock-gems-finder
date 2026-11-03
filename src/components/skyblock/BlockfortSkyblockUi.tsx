@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import * as THREE from "three";
 import { GameAudio } from "@/lib/game-audio";
 import {
   useSkyblockEconomy,
@@ -131,7 +132,7 @@ export const ISLAND_TIERS: IslandTierDef[] = [
 export interface ShopItem {
   id: string;
   name: string;
-  tab: "blocks" | "tools" | "decor";
+  tab: "blocks" | "tools" | "decor" | "accessories";
   cost: number;
   icon: string;
   blockType?: number | string;
@@ -173,7 +174,107 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: "ancient_chest", name: "Golden Treasure Chest", tab: "decor", cost: 2200, icon: "/public/chest_gold_1788909061642.png", desc: "Gilded chest containing ancient Skyblock relics and gemstones." },
   { id: "dragon_trophy", name: "Red Dragon Crest", tab: "decor", cost: 6500, icon: "/public/3d-trophy.png", desc: "Gilded victory trophy forged from the fiery breath of the Red Dragon." },
   { id: "sky_crown", name: "Golden Sky Crown", tab: "decor", cost: 10000, icon: "/public/assets/ui/icon-crown.svg", desc: "The ultimate crown worn only by sovereign island lords." },
+
+  // ── Accessories ─────────────────────────────────────────────────────────
+  { id: "dragon_wings", name: "Red Dragon Wings", tab: "accessories", cost: 12000, icon: "/public/3d-trophy.png", blockType: "dragon_wings", desc: "Fiery mythical dragon wings granting double-jump glides!" },
+  { id: "phoenix_amulet", name: "Phoenix Sun Amulet", tab: "accessories", cost: 8500, icon: "/public/assets/ui/icon-crown.svg", blockType: "phoenix_amulet", desc: "Radiant golden medallion granting automatic health regeneration." },
+  { id: "sovereign_crown", name: "Sovereign Crown", tab: "accessories", cost: 25000, icon: "/public/assets/ui/icon-crown.svg", blockType: "sky_crown", desc: "High-tier gilded crown with sparkling gems." },
+  { id: "hermes_boots", name: "Hermes Speed Boots", tab: "accessories", cost: 4500, icon: "/public/items/diamond_axe.png", blockType: "hermes_boots", desc: "Enchanted boots increasing base sprint speed by +35%." },
+  { id: "obsidian_shield", name: "Obsidian Guard Shield", tab: "accessories", cost: 6000, icon: "/public/items/netherite_axe.png", blockType: "obsidian_shield", desc: "Reinforced volcanic glass shield deflecting incoming mob projectiles." },
+  { id: "celestial_relic", name: "Celestial Rune Relic", tab: "accessories", cost: 9500, icon: "/textures/blocks/amethyst_block.png", blockType: "celestial_relic", desc: "Ancient runic crystal increasing island coin yield by +50%." },
+  { id: "royal_cape", name: "Royal Silk Cape", tab: "accessories", cost: 7000, icon: "/public/assets/ui/icon-crown.svg", blockType: "royal_cape", desc: "Flowing crimson velvet cape with embroidered gold crest." },
+  { id: "companion_egg", name: "Mystic Pet Companion Egg", tab: "accessories", cost: 15000, icon: "/lucky-block-cat.png", blockType: "companion_egg", desc: "Hatch a loyal floating pet companion to follow you across islands." },
 ];
+
+/**
+ * Interactive 3D Canvas Viewer for Shop Items & Voxel Blocks
+ */
+function ShopItem3DViewer({ item }: { item: ShopItem }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    const width = mount.clientWidth || 120;
+    const height = mount.clientHeight || 120;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(1.6, 1.4, 2.2);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(width, height, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+
+    mount.appendChild(renderer.domElement);
+
+    // Studio Lighting
+    const amb = new THREE.AmbientLight(0xffffff, 1.8);
+    const key = new THREE.DirectionalLight(0xfff5e6, 2.8);
+    key.position.set(2, 4, 3);
+    const fill = new THREE.DirectionalLight(0xa6d8ff, 1.2);
+    fill.position.set(-3, 1, -2);
+    scene.add(amb, key, fill);
+
+    let pivot = new THREE.Group();
+    scene.add(pivot);
+
+    const textureLoader = new THREE.TextureLoader();
+
+    if (item.tab === "blocks" && item.icon) {
+      // Create authentic 3D Voxel Cube
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      const tex = textureLoader.load(item.icon, () => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+      });
+      const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.4, metalness: 0.1 });
+      const mesh = new THREE.Mesh(geo, mat);
+      pivot.add(mesh);
+    } else {
+      // Render 3D textured sprite or icon prop
+      const tex = textureLoader.load(item.icon, () => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+      });
+      const geo = new THREE.PlaneGeometry(1.2, 1.2);
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex,
+        transparent: true,
+        side: THREE.DoubleSide,
+        alphaTest: 0.05,
+        roughness: 0.3,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      pivot.add(mesh);
+    }
+
+    let animationFrameId: number;
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      pivot.rotation.y += 0.015;
+      pivot.rotation.x = Math.sin(Date.now() * 0.0015) * 0.12;
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      renderer.dispose();
+      if (renderer.domElement && mount.contains(renderer.domElement)) {
+        mount.removeChild(renderer.domElement);
+      }
+    };
+  }, [item]);
+
+  return <div ref={mountRef} className="w-28 h-28 cursor-grab active:cursor-grabbing" />;
+}
 
 interface Props {
   onEquipHotbar?: (blockType: number | string) => void;
@@ -214,6 +315,7 @@ export function BlockfortSkyblockUi({
   const [dailyOpen, setDailyOpen] = useState(false);
   const [questsOpen, setQuestsOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   // Multiplayer Friends & Online Islands state
   const [friendsList, setFriendsList] = useState<IslandFriendPlayer[]>([]);
@@ -240,7 +342,7 @@ export function BlockfortSkyblockUi({
   });
 
   // Shop state
-  const [shopTab, setShopTab] = useState<"blocks" | "tools" | "decor">("blocks");
+  const [shopTab, setShopTab] = useState<"blocks" | "tools" | "decor" | "accessories">("blocks");
   const [selectedShopItem, setSelectedShopItem] = useState<ShopItem>(SHOP_ITEMS[0]);
 
   const closeAllModals = useCallback(() => {
@@ -249,24 +351,25 @@ export function BlockfortSkyblockUi({
     setDailyOpen(false);
     setQuestsOpen(false);
     setFriendsOpen(false);
+    setResetConfirmOpen(false);
   }, []);
 
-  const isAnyModalOpen = manorOpen || shopOpen || dailyOpen || questsOpen || friendsOpen;
+  const isAnyModalOpen = manorOpen || shopOpen || dailyOpen || questsOpen || friendsOpen || resetConfirmOpen;
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("bm-modal-active", { detail: { open: isAnyModalOpen } }),
     );
   }, [isAnyModalOpen]);
 
-  // Responsive modal fit scaling so windows always fit viewport compactly
-  const [bfFit, setBfFit] = useState<number>(1);
+  // Responsive modal fit scaling so windows stay compact and sharp
+  const [bfFit, setBfFit] = useState<number>(0.85);
   useEffect(() => {
     const updateFit = () => {
       if (typeof window === "undefined") return;
       const w = window.innerWidth;
       const h = window.innerHeight;
-      const scale = Math.min(1, (w - 24) / 580, (h - 24) / 360);
-      setBfFit(Math.max(0.68, Math.min(1, scale)));
+      const scale = Math.min(0.85, (w - 24) / 520, (h - 24) / 340);
+      setBfFit(Math.max(0.62, Math.min(0.85, scale)));
     };
     updateFit();
     window.addEventListener("resize", updateFit);
@@ -793,12 +896,7 @@ export function BlockfortSkyblockUi({
                   whileTap={{ scale: 0.93 }}
                   type="button"
                   className="bf-btn bf-btn--plain !min-w-0 !w-[78px] !h-[28px] !text-[11px] cursor-pointer touch-manipulation shadow-sm active:scale-95 hover:border-red-500/50"
-                  onClick={() => {
-                    if (window.confirm("Reset your island back to starter sanctuary?")) {
-                      window.dispatchEvent(new Event("qb-reset-island"));
-                      showToast("Island reset to fresh starter sanctuary!");
-                    }
-                  }}
+                  onClick={() => setResetConfirmOpen(true)}
                   title="Reset your island"
                 >
                   <span className="bf-btn__label !px-2 !py-0 !pl-5 text-red-300">Reset</span>
@@ -820,6 +918,88 @@ export function BlockfortSkyblockUi({
             className="fixed left-1/2 bottom-20 -translate-x-1/2 z-[2000] pointer-events-none"
           >
             <div className="bf-toast">{toastMsg}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* ── SHARP RECTANGULAR RESET CONFIRMATION MODAL ─────────────────────── */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {resetConfirmOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            onClick={closeAllModals}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", damping: 30, stiffness: 450 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[380px] p-4 bg-[#18181c]/98 border-2 border-[#0d0d10] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_12px_32px_rgba(0,0,0,0.85)] rounded-none text-left select-none"
+              style={{
+                fontFamily:
+                  '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              }}
+            >
+              {/* Sharp Dark Header Bar */}
+              <div className="flex items-center justify-between pb-2 mb-3 border-b-2 border-[#0d0d10]">
+                <span
+                  className="text-[13px] font-black tracking-wider uppercase text-red-400"
+                  style={{
+                    textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                  }}
+                >
+                  ⚠ RESET ISLAND CONFIRMATION
+                </span>
+                <button
+                  type="button"
+                  onClick={closeAllModals}
+                  className="w-6 h-6 grid place-items-center bg-[#24242a] hover:bg-[#32323a] text-zinc-300 font-bold border border-black/80 text-[12px] active:scale-95"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p
+                className="text-[12.5px] font-medium text-zinc-300 leading-relaxed mb-4"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                Are you sure you want to reset your island?
+                <br />
+                <span className="text-red-300 text-[11.5px] font-semibold block mt-1">
+                  This will clear all placed blocks and restore your world to the fresh starter sanctuary. This action cannot be undone.
+                </span>
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 bg-[#282830] hover:bg-[#363642] text-zinc-200 text-[12px] font-bold border-2 border-[#0d0d10] shadow-sm active:scale-95 transition-transform"
+                  onClick={closeAllModals}
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white text-[12px] font-black border-2 border-[#0d0d10] shadow-[inset_0_1px_0_rgba(255,255,255,0.3)] active:scale-95 transition-transform"
+                  onClick={() => {
+                    window.dispatchEvent(new Event("qb-reset-island"));
+                    showToast("Island reset to fresh starter sanctuary!");
+                    closeAllModals();
+                  }}
+                >
+                  CONFIRM RESET
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1000,23 +1180,42 @@ export function BlockfortSkyblockUi({
                   <button
                     type="button"
                     className={`bf-tab ${shopTab === "blocks" ? "is-active" : ""}`}
-                    onClick={() => setShopTab("blocks")}
+                    onClick={() => {
+                      setShopTab("blocks");
+                      setSelectedShopItem(SHOP_ITEMS.find((i) => i.tab === "blocks") || SHOP_ITEMS[0]);
+                    }}
                   >
                     Blocks
                   </button>
                   <button
                     type="button"
                     className={`bf-tab ${shopTab === "tools" ? "is-active" : ""}`}
-                    onClick={() => setShopTab("tools")}
+                    onClick={() => {
+                      setShopTab("tools");
+                      setSelectedShopItem(SHOP_ITEMS.find((i) => i.tab === "tools") || SHOP_ITEMS[0]);
+                    }}
                   >
                     Tools
                   </button>
                   <button
                     type="button"
                     className={`bf-tab ${shopTab === "decor" ? "is-active" : ""}`}
-                    onClick={() => setShopTab("decor")}
+                    onClick={() => {
+                      setShopTab("decor");
+                      setSelectedShopItem(SHOP_ITEMS.find((i) => i.tab === "decor") || SHOP_ITEMS[0]);
+                    }}
                   >
                     Decor
+                  </button>
+                  <button
+                    type="button"
+                    className={`bf-tab ${shopTab === "accessories" ? "is-active" : ""}`}
+                    onClick={() => {
+                      setShopTab("accessories");
+                      setSelectedShopItem(SHOP_ITEMS.find((i) => i.tab === "accessories") || SHOP_ITEMS[0]);
+                    }}
+                  >
+                    Gear
                   </button>
                 </div>
                 <button
@@ -1053,19 +1252,14 @@ export function BlockfortSkyblockUi({
                     </div>
                   </div>
 
-                  {/* Detail column */}
-                  <div className="bf-panel bf-panel--scroll text-center flex flex-col items-center justify-between p-2">
+                  {/* Detail column with 3D Voxel / Item Renderer */}
+                  <div className="bf-panel bf-panel--scroll text-center flex flex-col items-center justify-between p-2 min-w-[180px]">
                     <div className="flex flex-col items-center">
-                      <div className="h-28 w-28 grid place-items-center mt-2">
-                        <img
-                          src={selectedShopItem.icon}
-                          alt={selectedShopItem.name}
-                          className="max-h-20 max-w-20 object-contain [image-rendering:pixelated] drop-shadow-md"
-                          draggable={false}
-                        />
+                      <div className="h-28 w-28 grid place-items-center mt-1 bg-black/10 rounded-lg overflow-hidden border border-black/20 shadow-inner">
+                        <ShopItem3DViewer item={selectedShopItem} />
                       </div>
-                      <h3 className="bf-ink text-[19px] font-black">{selectedShopItem.name}</h3>
-                      <p className="text-[13px] text-amber-800 leading-snug px-2 mt-1">
+                      <h3 className="bf-ink text-[17px] font-black mt-1">{selectedShopItem.name}</h3>
+                      <p className="text-[12px] text-amber-900 leading-snug px-2 mt-0.5">
                         {selectedShopItem.desc}
                       </p>
                     </div>
