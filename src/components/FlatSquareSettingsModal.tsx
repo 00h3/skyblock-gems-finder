@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { SkyDialEditor } from "@/components/v2/SkyDialEditor";
 import { detectGpuHardware } from "@/lib/rendering";
+import SlideCommit from "@/components/ui/SlideCommit";
 
 interface FlatSquareSettingsModalProps {
   onClose: () => void;
@@ -499,39 +500,39 @@ export function FlatSquareSettingsModal({
                 </p>
               </div>
 
-              {/* GPU Hardware Detection & Retina Protection Banner */}
+              {/* GPU Hardware Detection & Display Info Banner */}
               {(() => {
                 const gpu = detectGpuHardware();
                 return (
-                  <div className="p-4 rounded-xl bg-[#161a22] border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="p-3.5 rounded-xl bg-[#161a22] border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm">
                     <div className="space-y-0.5">
-                      <div className="text-[13.5px] font-extrabold text-emerald-300 flex items-center gap-2">
-                        <span>⚡ GPU Hardware:</span>
-                        <span className="font-mono text-[12px] text-white bg-white/10 px-2 py-0.5 rounded">
+                      <div className="text-[13px] font-bold text-emerald-300 flex items-center gap-2">
+                        <span>GPU Hardware:</span>
+                        <span className="font-mono text-[11.5px] text-white bg-white/10 px-2 py-0.5 rounded">
                           {gpu.renderer.split("/")[0] || "Mobile GPU"}
                         </span>
                       </div>
-                      <div className="text-[11.5px] text-white/60">
+                      <div className="text-[11px] text-zinc-400">
                         {gpu.isMali || gpu.isLowEndAndroid
-                          ? "ARM Mali / Vivo / Xiaomi GPU detected. 'Lite' mode provides maximum 60 FPS smoothness."
-                          : "Standard GPU detected. 'Official Graphics' provides full dynamic shadows."}
+                          ? "ARM Mali / Mobile chipset detected. 'Lite' mode provides smooth 60 FPS performance."
+                          : "Standard GPU detected. 'Official Graphics' provides dynamic shadows and tone mapping."}
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                      RETINA DPR: 100% NATIVE (0% Blur)
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                      100% Native Retina
                     </span>
                   </div>
                 );
               })()}
 
-              {/* Graphics Presets: Official Graphics vs Lite (Mali / Smooth) */}
+              {/* Graphics Presets: Official Graphics vs Lite */}
               <div className="p-4 rounded-xl bg-[#181b22] border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-extrabold text-[14px] text-white">Graphics Preset</div>
-                    <div className="text-[11.5px] text-white/55">Select your visual fidelity and performance mode</div>
+                    <div className="text-[11.5px] text-white/55">Performance and rendering settings</div>
                   </div>
-                  <span className="font-mono font-bold text-[12px] px-2 py-0.5 rounded bg-white/10 text-amber-300 uppercase">
+                  <span className="font-mono font-bold text-[11.5px] px-2 py-0.5 rounded bg-white/10 text-amber-300 uppercase">
                     {graphicsPreset === "lite" ? "LITE (MALI)" : graphicsPreset === "official" || graphicsPreset === "high" ? "OFFICIAL" : graphicsPreset.toUpperCase()}
                   </span>
                 </div>
@@ -539,9 +540,9 @@ export function FlatSquareSettingsModal({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                   {[
                     { id: "official", label: "Official Graphics", badge: "Shadows & Tone" },
-                    { id: "lite", label: "Lite (Mali Smooth)", badge: "Vivo & Xiaomi 60FPS" },
+                    { id: "lite", label: "Lite Mode", badge: "Mali & Mobile 60FPS" },
                     { id: "medium", label: "Balanced", badge: "Standard" },
-                    { id: "uhd", label: "UHD 4K", badge: "Max Detail" },
+                    { id: "uhd", label: "UHD 4K", badge: "High Detail" },
                   ].map((item) => {
                     const isActive =
                       graphicsPreset === item.id ||
@@ -570,16 +571,39 @@ export function FlatSquareSettingsModal({
                   })}
                 </div>
 
-                <div className="p-3 rounded-lg bg-black/30 border border-white/5 text-[11.5px] text-white/75 leading-relaxed">
+                <div className="p-3 rounded-lg bg-black/30 border border-white/5 text-[11.5px] text-zinc-300 leading-relaxed">
                   {graphicsPreset === "lite" || graphicsPreset === "low" ? (
-                    <span className="text-amber-300 font-medium">
-                      ⚡ <strong>Lite Mode (Vivo, Xiaomi & Mali Smooth):</strong> Real-time shadow depth passes are bypassed to stop tile render stalls and overheating. Resolution remains 100% native Retina HD with zero pixelation or downscaling.
+                    <span>
+                      <strong>Lite Mode:</strong> Disables real-time directional shadow depth passes to reduce GPU load and maintain stable frame rates on ARM Mali and mobile chipsets. Native resolution is fully preserved.
                     </span>
                   ) : (
                     <span>
-                      ✨ <strong>Official Graphics:</strong> Full dynamic soft shadows, rich atmospheric tone mapping, and 100% crystal-clear native Retina HD.
+                      <strong>Official Graphics:</strong> Enables real-time soft shadows and ACES tone mapping at full native screen resolution.
                     </span>
                   )}
+                </div>
+
+                {/* React Bits SlideCommit Integration */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/10">
+                  <span className="text-[12px] font-semibold text-zinc-400">
+                    Slide handle to confirm graphics selection:
+                  </span>
+                  <SlideCommit
+                    label="Slide to confirm preset"
+                    doneLabel="Graphics Applied"
+                    errorLabel="Failed to apply"
+                    onConfirm={() => {
+                      updateSetting("bm-quality", graphicsPreset, "bm-quality");
+                      toast.success(`Graphics preset updated to ${graphicsPreset.toUpperCase()}`);
+                    }}
+                    trackColor="#13161f"
+                    handleColor="#f5f5f5"
+                    successColor="#22c55e"
+                    dangerColor="#e5484d"
+                    width={260}
+                    height={48}
+                    radius={24}
+                  />
                 </div>
               </div>
 

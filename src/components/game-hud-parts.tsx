@@ -27,6 +27,7 @@ import {
   CircleDot,
 } from "lucide-react";
 import { detectGpuHardware } from "@/lib/rendering";
+import SlideCommit from "@/components/ui/SlideCommit";
 
 export type CamMode = "first" | "third" | "top";
 
@@ -752,7 +753,7 @@ export function GameSettingsModal({
             {/* ── TAB 3: GRAPHICS ───────────────────────────────────────── */}
             {activeTab === "graphics" && (
               <div className="flex flex-col gap-3">
-                {/* Mali & Android Hardware Detector Banner */}
+                {/* GPU Hardware Detection Banner */}
                 {(() => {
                   const gpu = detectGpuHardware();
                   return (
@@ -761,24 +762,24 @@ export function GameSettingsModal({
                         <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
                         <div>
                           <div className="text-[12px] font-bold text-emerald-300">
-                            Hardware: {gpu.renderer.split("/")[0] || "Mali / Mobile GPU"}
+                            GPU Hardware: {gpu.renderer.split("/")[0] || "Mobile GPU"}
                           </div>
                           <div className="text-[10.5px] text-zinc-400">
                             {gpu.isMali || gpu.isLowEndAndroid
-                              ? "ARM Mali / Vivo / Xiaomi GPU detected. 'Lite' mode provides silky 60 FPS."
-                              : "Standard GPU detected. 'Official' mode provides full shadows."}
+                              ? "ARM Mali / Mobile GPU detected. 'Lite' mode provides 60 FPS performance."
+                              : "Standard GPU detected. 'Official' mode enables full dynamic shadows."}
                           </div>
                         </div>
                       </div>
                       <span className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 font-bold">
-                        RETINA DPR: 100%
+                        Native Retina
                       </span>
                     </div>
                   );
                 })()}
 
-                <div className="bf-settings-card">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="bf-settings-card space-y-3">
+                  <div className="flex items-center justify-between">
                     <span className="font-black text-[15px] text-white flex items-center gap-2">
                       <Sliders className="w-4 h-4 text-purple-400" />
                       Graphics Preset
@@ -790,9 +791,9 @@ export function GameSettingsModal({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { id: "official", label: "Official Graphics", badge: "Shadows & Tone" },
-                      { id: "lite", label: "Lite (Mali Smooth)", badge: "Vivo & Xiaomi 60FPS" },
+                      { id: "lite", label: "Lite Mode", badge: "Mali & Mobile 60FPS" },
                       { id: "medium", label: "Balanced", badge: "Standard" },
-                      { id: "uhd", label: "UHD 4K", badge: "Max Detail" },
+                      { id: "uhd", label: "UHD 4K", badge: "High Detail" },
                     ].map((item) => {
                       const isActive =
                         qualityPref === item.id ||
@@ -813,16 +814,38 @@ export function GameSettingsModal({
                       );
                     })}
                   </div>
-                  <div className="mt-2.5 p-2 rounded bg-black/30 border border-white/5 text-[11px] text-zinc-300 leading-relaxed">
+                  <div className="p-2.5 rounded bg-black/30 border border-white/5 text-[11px] text-zinc-300 leading-relaxed">
                     {qualityPref === "lite" || qualityPref === "low" ? (
-                      <span className="text-amber-300 font-semibold">
-                        ⚡ <strong>Lite Mode (Vivo, Xiaomi & Mali Smooth):</strong> Real-time shadow depth passes are bypassed to stop tile render stalls and overheating. Resolution remains 100% native Retina HD with zero pixelation.
+                      <span>
+                        <strong>Lite Mode:</strong> Real-time directional shadow depth passes are disabled to reduce GPU load and preserve frame rate on mobile chipsets. Native resolution is maintained.
                       </span>
                     ) : (
                       <span>
-                        ✨ <strong>Official Graphics:</strong> Full dynamic soft shadows, rich atmospheric tone mapping, and 100% crystal-clear native Retina HD.
+                        <strong>Official Graphics:</strong> Enables real-time soft shadows and atmospheric tone mapping at native screen resolution.
                       </span>
                     )}
+                  </div>
+
+                  {/* React Bits SlideCommit Integration */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/10">
+                    <span className="text-[11.5px] font-medium text-zinc-400">
+                      Slide handle to apply preset:
+                    </span>
+                    <SlideCommit
+                      label="Slide to confirm preset"
+                      doneLabel="Graphics Applied"
+                      errorLabel="Failed to apply"
+                      onConfirm={() => {
+                        onQualityPref?.(qualityPref as any);
+                      }}
+                      trackColor="#141822"
+                      handleColor="#f5f5f5"
+                      successColor="#22c55e"
+                      dangerColor="#e5484d"
+                      width={240}
+                      height={44}
+                      radius={22}
+                    />
                   </div>
                 </div>
 
@@ -831,10 +854,10 @@ export function GameSettingsModal({
                     <div>
                       <div className="text-[13.5px] font-black text-white flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>AAA Velocity Motion Blur</span>
+                        <span>Camera Motion Blur</span>
                       </div>
                       <div className="text-[11px] text-zinc-400 mt-0.5">
-                        Fluid camera shutter blur when turning & moving (buttery smooth game feel)
+                        Subtle camera shutter blur when turning
                       </div>
                     </div>
                     <button

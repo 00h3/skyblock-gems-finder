@@ -25,6 +25,8 @@
     "@google/genai": "^2.32.0",
     "@google/model-viewer": "^4.3.1",
     "@hookform/resolvers": "^5.2.2",
+    "@hugeicons/core-free-icons": "^4.4.0",
+    "@hugeicons/react": "^1.1.10",
     "@iconify/react": "^6.0.2",
     "@lovable.dev/vite-tanstack-config": "^2.21.0",
     "@radix-ui/react-accordion": "^1.2.12",
