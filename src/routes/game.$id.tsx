@@ -35,6 +35,7 @@ import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
 import Cubes from "@/components/ui/Cubes";
 import { ChatPreview, getUserColor } from "@/components/SandboxChat";
 import {
+  canonicalIslandId,
   getOrCreateIsland,
   persistBlockChange,
   subscribeToIslandBlocks,
@@ -48,6 +49,7 @@ import {
   type LiveSkyblockPlayer,
   type SkyblockChatMessage,
 } from "@/lib/skyblock-multiplayer";
+import { isIraHrUser, CYBERPUNK_DEV_MODEL } from "@/engine-sandbox/shared/avatar-model";
 import { getPermanentPlayerId } from "@/lib/skyblock-profile";
 import { GameUiChrome } from "@/components/GameUiChrome";
 import { RobloxInGameServerBar } from "@/components/RobloxInGameServerBar";
@@ -3073,8 +3075,7 @@ function EngineGame({
       const groups = new Map<number, BlockGroup>();
       const dummyObj = new THREE.Object3D();
       const skyblockPlayerUid = qbUser?.uid || getPermanentPlayerId(qbUser);
-      const currentSkyblockIslandId =
-        visitingUserId ? `island_v2_${visitingUserId}` : `island_v2_${skyblockPlayerUid}`;
+      const currentSkyblockIslandId = canonicalIslandId(visitingUserId || skyblockPlayerUid);
 
       function makeGroupMesh(type: number, capacity: number) {
         const leaf = isLeafType(type);
@@ -3205,14 +3206,35 @@ function EngineGame({
         { x: number; y: number; z: number; rotY: number; walkPhase: number }
       >();
 
-      function createPlayerRig(name: string, photoUrl?: string) {
+      function createPlayerRig(
+        name: string,
+        photoUrl?: string,
+        avatarSnapshot?: { color?: string },
+        uid?: string,
+      ) {
         const group = new THREE.Group();
+        const isIraHr = isIraHrUser(name) || (uid && isIraHrUser(uid));
+
+        let bodyColor = 0x38bdf8;
+        let headColor = 0xfde047;
+        let legColor = 0x1e293b;
+
+        if (isIraHr) {
+          bodyColor = 0xea580c; // Vibrant Cyberpunk Orange
+          headColor = 0xf97316; // Neon Orange Hair/Head
+          legColor = 0x18181b;  // Dark Tech Pants
+        } else if (avatarSnapshot?.color) {
+          try {
+            const parsed = parseInt(avatarSnapshot.color.replace("#", ""), 16);
+            if (!isNaN(parsed)) bodyColor = parsed;
+          } catch {}
+        }
 
         // Body
         const bodyGeo = new THREE.BoxGeometry(0.65, 0.9, 0.35);
         const bodyMat = new THREE.MeshStandardMaterial({
-          color: 0x38bdf8,
-          roughness: 0.8,
+          color: bodyColor,
+          roughness: 0.75,
         });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 1.05;
@@ -3222,8 +3244,8 @@ function EngineGame({
         // Head
         const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
         const headMat = new THREE.MeshStandardMaterial({
-          color: 0xfde047,
-          roughness: 0.8,
+          color: headColor,
+          roughness: 0.75,
         });
         const head = new THREE.Mesh(headGeo, headMat);
         head.position.y = 1.75;
@@ -3233,8 +3255,8 @@ function EngineGame({
         // Arms
         const armGeo = new THREE.BoxGeometry(0.22, 0.75, 0.22);
         const armMat = new THREE.MeshStandardMaterial({
-          color: 0x38bdf8,
-          roughness: 0.8,
+          color: bodyColor,
+          roughness: 0.75,
         });
 
         const leftArm = new THREE.Mesh(armGeo, armMat);
@@ -3252,7 +3274,7 @@ function EngineGame({
         // Legs
         const legGeo = new THREE.BoxGeometry(0.24, 0.8, 0.25);
         const legMat = new THREE.MeshStandardMaterial({
-          color: 0x1e293b,
+          color: legColor,
           roughness: 0.8,
         });
 
@@ -3268,77 +3290,125 @@ function EngineGame({
         rightLeg.castShadow = true;
         group.add(rightLeg);
 
-        // Name tag billboard — Inter, hi-res, with the player's profile photo
-        // drawn as a circular avatar directly above their name.
+        // Optional Cyberpunk GLTF enhancement for h3 / ira
+        if (isIraHr) {
+          const gltfLoader = new GLTFLoader();
+          gltfLoader.load(
+            CYBERPUNK_DEV_MODEL,
+            (gltf) => {
+              const model = gltf.scene;
+              model.scale.setScalar(0.72);
+              model.position.set(0, 0, 0);
+              body.visible = false;
+              head.visible = false;
+              leftArm.visible = false;
+              rightArm.visible = false;
+              leftLeg.visible = false;
+              rightLeg.visible = false;
+              group.add(model);
+            },
+            undefined,
+            () => {
+              // Procedural rig remains visible on error
+            },
+          );
+        }
+
+        // Safe Name Tag Canvas
         const canvas = document.createElement("canvas");
         canvas.width = 512;
         canvas.height = 256;
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext("2d");
 
         const drawTag = (photo?: HTMLImageElement) => {
-          ctx.clearRect(0, 0, 512, 256);
-          // Avatar bubble
-          const cx = 256;
-          const cy = 88;
-          const r = 56;
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255,255,255,0.95)";
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          ctx.closePath();
-          ctx.clip();
-          if (photo) {
-            ctx.drawImage(photo, cx - r, cy - r, r * 2, r * 2);
-          } else {
-            ctx.fillStyle = "#38bdf8";
-            ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "600 56px Inter, system-ui, sans-serif";
+          if (!ctx) return;
+          try {
+            ctx.clearRect(0, 0, 512, 256);
+            // Avatar circular frame
+            const cx = 256;
+            const cy = 88;
+            const r = 56;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+            ctx.fillStyle = isIraHr ? "#ea580c" : "rgba(255,255,255,0.95)";
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            if (photo && photo.complete && photo.naturalWidth > 0) {
+              ctx.drawImage(photo, cx - r, cy - r, r * 2, r * 2);
+            } else {
+              ctx.fillStyle = isIraHr ? "#c2410c" : "#38bdf8";
+              ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "bold 56px Inter, system-ui, sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText((name[0] || "?").toUpperCase(), cx, cy + 2);
+            }
+            ctx.restore();
+
+            // Name plate background
+            ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+            ctx.beginPath();
+            if (typeof ctx.roundRect === "function") {
+              ctx.roundRect(56, 164, 400, 68, 22);
+            } else {
+              ctx.rect(56, 164, 400, 68);
+            }
+            ctx.fill();
+
+            // Outer border
+            ctx.strokeStyle = isIraHr ? "rgba(234, 88, 12, 0.9)" : "rgba(255, 255, 255, 0.25)";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === "function") {
+              ctx.roundRect(56, 164, 400, 68, 22);
+            } else {
+              ctx.rect(56, 164, 400, 68);
+            }
+            ctx.stroke();
+
+            // Name text
+            ctx.fillStyle = isIraHr ? "#fb923c" : "#ffffff";
+            ctx.font = "bold 38px Inter, system-ui, sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText((name[0] || "?").toUpperCase(), cx, cy + 2);
+            ctx.fillText(name.slice(0, 16), 256, 198);
+          } catch (e) {
+            console.warn("Could not draw remote player name tag:", e);
           }
-          ctx.restore();
-
-          // Name plate
-          ctx.fillStyle = "rgba(15, 23, 42, 0.82)";
-          ctx.beginPath();
-          ctx.roundRect(56, 164, 400, 68, 22);
-          ctx.fill();
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "600 40px Inter, system-ui, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(name.slice(0, 16), 256, 200);
         };
 
         drawTag();
 
-        const tagTexture = new THREE.CanvasTexture(canvas);
-        tagTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        if (photoUrl) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => {
-            drawTag(img);
-            tagTexture.needsUpdate = true;
-          };
-          img.src = photoUrl;
+        try {
+          const tagTexture = new THREE.CanvasTexture(canvas);
+          if (photoUrl) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              drawTag(img);
+              tagTexture.needsUpdate = true;
+            };
+            img.src = photoUrl;
+          }
+          const tagMat = new THREE.SpriteMaterial({
+            map: tagTexture,
+            transparent: true,
+            depthTest: false,
+          });
+          tagMat.toneMapped = false;
+          const tagSprite = new THREE.Sprite(tagMat);
+          tagSprite.renderOrder = 999;
+          tagSprite.scale.set(2.2, 1.1, 1);
+          tagSprite.position.y = 2.6;
+          group.add(tagSprite);
+        } catch (e) {
+          console.warn("Tag sprite error handled:", e);
         }
-        const tagMat = new THREE.SpriteMaterial({
-          map: tagTexture,
-          transparent: true,
-          depthTest: false,
-        });
-        tagMat.toneMapped = false;
-        const tagSprite = new THREE.Sprite(tagMat);
-        tagSprite.renderOrder = 999;
-        tagSprite.scale.set(2.2, 1.1, 1);
-        tagSprite.position.y = 2.6;
-        group.add(tagSprite);
 
         return group;
       }
@@ -3349,7 +3419,7 @@ function EngineGame({
           activeUids.add(p.uid);
           let mesh = remotePlayerMeshes.get(p.uid);
           if (!mesh) {
-            mesh = createPlayerRig(p.name, p.profilePhoto);
+            mesh = createPlayerRig(p.name, p.profilePhoto, p.avatarSnapshot, p.uid);
             mesh.position.set(p.x, p.y, p.z);
             mesh.rotation.y = p.rotY;
             scene.add(mesh);
@@ -4408,23 +4478,28 @@ function EngineGame({
               getOrCreateIsland(
                 currentSkyblockIslandId,
                 qbUser?.displayName || qbUser?.username || "Player",
-              ).then((island) => {
-                if (island.ownerName && visitingUserId) {
-                  setVisitingHostName(island.ownerName);
-                }
-                const deltas = island.deltaBlocks || {};
-                for (const [posKey, bType] of Object.entries(deltas)) {
-                  const [bx, by, bz] = posKey.split(",").map(Number);
-                  if (!isNaN(bx) && !isNaN(by) && !isNaN(bz)) {
-                    if (bType === -1) {
-                      removeBlock(bx, by, bz);
-                    } else if (bType >= 0) {
-                      addBlock(bx, by, bz, bType);
+              )
+                .then((island) => {
+                  if (!island) return;
+                  if (island.ownerName && visitingUserId) {
+                    setVisitingHostName(island.ownerName);
+                  }
+                  const deltas = island.deltaBlocks || {};
+                  for (const [posKey, bType] of Object.entries(deltas)) {
+                    const [bx, by, bz] = posKey.split(",").map(Number);
+                    if (!isNaN(bx) && !isNaN(by) && !isNaN(bz)) {
+                      if (bType === -1) {
+                        removeBlock(bx, by, bz);
+                      } else if (bType >= 0) {
+                        addBlock(bx, by, bz, bType);
+                      }
                     }
                   }
-                }
-                runOcclusionPass();
-              });
+                  runOcclusionPass();
+                })
+                .catch((err) => {
+                  console.warn("Could not load island delta blocks:", err);
+                });
             }
             setTimeout(() => {
               mapLoaded = true;
@@ -4444,23 +4519,28 @@ function EngineGame({
               getOrCreateIsland(
                 currentSkyblockIslandId,
                 qbUser?.displayName || qbUser?.username || "Player",
-              ).then((island) => {
-                if (island.ownerName && visitingUserId) {
-                  setVisitingHostName(island.ownerName);
-                }
-                const deltas = island.deltaBlocks || {};
-                for (const [posKey, bType] of Object.entries(deltas)) {
-                  const [bx, by, bz] = posKey.split(",").map(Number);
-                  if (!isNaN(bx) && !isNaN(by) && !isNaN(bz)) {
-                    if (bType === -1) {
-                      removeBlock(bx, by, bz);
-                    } else if (bType >= 0) {
-                      addBlock(bx, by, bz, bType);
+              )
+                .then((island) => {
+                  if (!island) return;
+                  if (island.ownerName && visitingUserId) {
+                    setVisitingHostName(island.ownerName);
+                  }
+                  const deltas = island.deltaBlocks || {};
+                  for (const [posKey, bType] of Object.entries(deltas)) {
+                    const [bx, by, bz] = posKey.split(",").map(Number);
+                    if (!isNaN(bx) && !isNaN(by) && !isNaN(bz)) {
+                      if (bType === -1) {
+                        removeBlock(bx, by, bz);
+                      } else if (bType >= 0) {
+                        addBlock(bx, by, bz, bType);
+                      }
                     }
                   }
-                }
-                runOcclusionPass();
-              });
+                  runOcclusionPass();
+                })
+                .catch((err) => {
+                  console.warn("Could not load fallback island delta blocks:", err);
+                });
             }
             setTimeout(() => {
               mapLoaded = true;
@@ -8313,6 +8393,19 @@ function EngineGame({
         // In BedWars, block placement is only allowed during an active match
         if (isBedwars && !bwMatchActive) return;
         if (isEggwars && !eggMatchActive) return;
+        // In Skyblock, visitors cannot place blocks on another player's island
+        const isVisitingOther =
+          isSkyblock &&
+          Boolean(
+            visitingUserId &&
+              visitingUserId !== qbUser?.uid &&
+              visitingUserId !== qbUser?.islandId &&
+              visitingUserId !== getPermanentPlayerId(qbUser),
+          );
+        if (isVisitingOther) {
+          showSbToast("You cannot place blocks on another player's island!", 3500);
+          return;
+        }
         // When holding a weapon/item, use it instead of placing blocks
         if (isBedwars && bwMatchActive) {
           if (bwHeldItem === "bow") {

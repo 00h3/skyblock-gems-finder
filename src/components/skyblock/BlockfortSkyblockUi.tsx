@@ -699,6 +699,10 @@ export function BlockfortSkyblockUi({
 
   // ── Manor Upgrade Action ───────────────────────────────────────────────────
   const handleUpgradeIsland = async (targetTier: IslandTierDef) => {
+    if (currentVisitingId) {
+      showToast("You cannot upgrade another player's island!");
+      return;
+    }
     if (econ.islandInfo.level >= targetTier.tier) {
       showToast(`${targetTier.name} is already unlocked!`);
       return;

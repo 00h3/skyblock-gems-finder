@@ -56,15 +56,27 @@ export interface SkyblockChatMessage {
 // In-memory cache for instant loads
 const islandCache = new Map<string, PersistentIsland>();
 const pendingBlockUpdates: Record<string, Record<string, number>> = {};
-const updateDebounceTimers: Record<string, NodeJS.Timeout> = {};
+const updateDebounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+/**
+ * Standardize island IDs so that whether a user passes "player123" or "island_v2_player123",
+ * both resolve to the exact same canonical Firestore document path.
+ */
+export function canonicalIslandId(rawId: string | null | undefined): string {
+  if (!rawId) return "island_v2_default";
+  const clean = String(rawId).trim();
+  if (clean.startsWith("island_v2_")) return clean;
+  return `island_v2_${clean}`;
+}
 
 /**
  * Load or initialize an island for a user
  */
 export async function getOrCreateIsland(
-  islandId: string,
+  rawIslandId: string,
   ownerName: string,
 ): Promise<PersistentIsland> {
+  const islandId = canonicalIslandId(rawIslandId);
   // Check local cache first
   const cached = islandCache.get(islandId);
   if (cached) return cached;
@@ -77,8 +89,8 @@ export async function getOrCreateIsland(
       const data = snap.data() as PersistentIsland;
       const island: PersistentIsland = {
         ownerId: data.ownerId || islandId,
-        ownerName: data.ownerName || ownerName,
-        islandName: data.islandName || `${ownerName}'s Island`,
+        ownerName: data.ownerName || ownerName || "Player",
+        islandName: data.islandName || `${data.ownerName || ownerName || "Player"}'s Island`,
         deltaBlocks: data.deltaBlocks || {},
         likesCount:
           typeof data.likesCount === "number" ? data.likesCount : data.likedBy?.length || 0,
@@ -93,8 +105,8 @@ export async function getOrCreateIsland(
     // Create new island record
     const newIsland: PersistentIsland = {
       ownerId: islandId,
-      ownerName: ownerName,
-      islandName: `${ownerName}'s Island`,
+      ownerName: ownerName || "Player",
+      islandName: `${ownerName || "Player"}'s Island`,
       deltaBlocks: {},
       likesCount: 0,
       likedBy: [],
@@ -122,8 +134,8 @@ export async function getOrCreateIsland(
 
     const fallback: PersistentIsland = {
       ownerId: islandId,
-      ownerName,
-      islandName: `${ownerName}'s Island`,
+      ownerName: ownerName || "Player",
+      islandName: `${ownerName || "Player"}'s Island`,
       deltaBlocks: {},
       likesCount: 0,
       likedBy: [],
@@ -139,9 +151,10 @@ export async function getOrCreateIsland(
  * Toggle like on an island and sync with Firestore
  */
 export async function toggleIslandLike(
-  islandId: string,
+  rawIslandId: string,
   userId: string,
 ): Promise<{ liked: boolean; likesCount: number }> {
+  const islandId = canonicalIslandId(rawIslandId);
   try {
     const islandRef = doc(db, "islands", islandId);
     const snap = await getDoc(islandRef);
@@ -188,10 +201,11 @@ export async function toggleIslandLike(
  * Subscribe to real-time likes count of an island
  */
 export function subscribeToIslandLikes(
-  islandId: string,
+  rawIslandId: string,
   onLikesUpdate: (likesCount: number, likedBy: string[]) => void,
 ): () => void {
   try {
+    const islandId = canonicalIslandId(rawIslandId);
     const islandRef = doc(db, "islands", islandId);
     return onSnapshot(
       islandRef,
@@ -215,7 +229,7 @@ export function subscribeToIslandLikes(
  * Send real-time chat message to the island
  */
 export async function sendSkyblockChatMessage(
-  islandId: string,
+  rawIslandId: string,
   msg: {
     senderId: string;
     senderName: string;
@@ -226,6 +240,7 @@ export async function sendSkyblockChatMessage(
   },
 ) {
   try {
+    const islandId = canonicalIslandId(rawIslandId);
     const msgsCol = collection(db, "islands", islandId, "messages");
     const newMsgRef = doc(msgsCol);
     await setDoc(newMsgRef, {
@@ -247,11 +262,12 @@ export async function sendSkyblockChatMessage(
  * Subscribe to live chat on the current island
  */
 export function subscribeToSkyblockChat(
-  islandId: string,
+  rawIslandId: string,
   onNewMessage: (msg: SkyblockChatMessage) => void,
   onAllMessages?: (msgs: SkyblockChatMessage[]) => void,
 ): () => void {
   try {
+    const islandId = canonicalIslandId(rawIslandId);
     const msgsCol = collection(db, "islands", islandId, "messages");
     const q = query(msgsCol, limit(40));
     let initial = false;
@@ -297,12 +313,13 @@ export function subscribeToSkyblockChat(
  * Queue and persist a block change (place or break) to Firestore
  */
 export function persistBlockChange(
-  islandId: string,
+  rawIslandId: string,
   x: number,
   y: number,
   z: number,
   blockType: number | null,
 ) {
+  const islandId = canonicalIslandId(rawIslandId);
   const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
   const val = blockType === null ? -1 : blockType;
 
@@ -355,7 +372,7 @@ export function persistBlockChange(
         updates[`deltaBlocks.${k}`] = v;
       }
       await updateDoc(islandRef, updates);
-    } catch (error) {
+    } catch {
       // If doc doesn't exist, create it with setDoc merge
       try {
         const islandRef = doc(db, "islands", islandId);
@@ -381,10 +398,11 @@ export const saveIslandBlockDelta = persistBlockChange;
  * Subscribe to real-time block changes from other players on the active island
  */
 export function subscribeToIslandBlocks(
-  islandId: string,
+  rawIslandId: string,
   onRemoteBlockUpdate: (x: number, y: number, z: number, blockType: number | null) => void,
 ): () => void {
   try {
+    const islandId = canonicalIslandId(rawIslandId);
     const islandRef = doc(db, "islands", islandId);
     let initialLoaded = false;
 
@@ -425,59 +443,85 @@ export function subscribeToIslandBlocks(
 }
 
 /**
- * Real-time player presence tracking
+ * Real-time player presence tracking across multiplayer islands
  */
-let presenceTimer: NodeJS.Timeout | null = null;
+let presenceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingPresencePlayer: LiveSkyblockPlayer | null = null;
 let lastPresencePos = { x: 0, y: 0, z: 0, rotY: 0 };
+let lastPresenceWriteTime = 0;
 
-export function updatePlayerPresence(player: {
-  uid: string;
-  name: string;
-  username?: string;
-  x: number;
-  y: number;
-  z: number;
-  rotY: number;
-  islandId: string;
-  avatarSnapshot?: AvatarSnapshot;
-  profilePhoto?: string;
-  holdingItem?: string;
-}) {
+export function updatePlayerPresence(
+  player: {
+    uid: string;
+    name: string;
+    username?: string;
+    x: number;
+    y: number;
+    z: number;
+    rotY: number;
+    islandId: string;
+    avatarSnapshot?: AvatarSnapshot;
+    profilePhoto?: string;
+    holdingItem?: string;
+  },
+  immediate = false,
+) {
+  if (!player || !player.uid) return;
+  const canonicalId = canonicalIslandId(player.islandId);
+  const normalized: LiveSkyblockPlayer = {
+    ...player,
+    islandId: canonicalId,
+    lastSeen: Date.now(),
+  };
+
   const dist =
-    Math.abs(player.x - lastPresencePos.x) +
-    Math.abs(player.y - lastPresencePos.y) +
-    Math.abs(player.z - lastPresencePos.z) +
-    Math.abs(player.rotY - lastPresencePos.rotY);
+    Math.abs(normalized.x - lastPresencePos.x) +
+    Math.abs(normalized.y - lastPresencePos.y) +
+    Math.abs(normalized.z - lastPresencePos.z) +
+    Math.abs(normalized.rotY - lastPresencePos.rotY);
 
-  // If moved substantially or presenceTimer expired, write to Firestore
-  if (!presenceTimer || dist > 0.4) {
-    lastPresencePos = { x: player.x, y: player.y, z: player.z, rotY: player.rotY };
+  pendingPresencePlayer = normalized;
 
-    if (!presenceTimer) {
-      presenceTimer = setTimeout(() => {
-        presenceTimer = null;
-      }, 400);
+  const now = Date.now();
+  const shouldWriteNow = immediate || !presenceTimer || (now - lastPresenceWriteTime > 750 && dist > 0.25);
 
-      const playerRef = doc(db, "skyblock_players", player.uid);
-      setDoc(
-        playerRef,
-        {
-          uid: player.uid,
-          name: player.name,
-          username: player.username || player.name,
-          x: Math.round(player.x * 100) / 100,
-          y: Math.round(player.y * 100) / 100,
-          z: Math.round(player.z * 100) / 100,
-          rotY: Math.round(player.rotY * 100) / 100,
-          islandId: player.islandId,
-          lastSeen: Date.now(),
-          avatarSnapshot: player.avatarSnapshot || null,
-          profilePhoto: player.profilePhoto || null,
-          holdingItem: player.holdingItem || null,
-        },
-        { merge: true },
-      ).catch(() => {});
+  if (shouldWriteNow) {
+    lastPresenceWriteTime = now;
+    lastPresencePos = { x: normalized.x, y: normalized.y, z: normalized.z, rotY: normalized.rotY };
+    pendingPresencePlayer = null;
+
+    if (presenceTimer) {
+      clearTimeout(presenceTimer);
+      presenceTimer = null;
     }
+
+    const playerRef = doc(db, "skyblock_players", normalized.uid);
+    setDoc(
+      playerRef,
+      {
+        uid: normalized.uid,
+        name: normalized.name || "Player",
+        username: normalized.username || normalized.name || "Player",
+        x: Math.round(normalized.x * 100) / 100,
+        y: Math.round(normalized.y * 100) / 100,
+        z: Math.round(normalized.z * 100) / 100,
+        rotY: Math.round(normalized.rotY * 100) / 100,
+        islandId: canonicalId,
+        lastSeen: Date.now(),
+        avatarSnapshot: normalized.avatarSnapshot || null,
+        profilePhoto: normalized.profilePhoto || null,
+        holdingItem: normalized.holdingItem || null,
+      },
+      { merge: true },
+    ).catch(() => {});
+
+    // Schedule flush for when the player stops moving
+    presenceTimer = setTimeout(() => {
+      presenceTimer = null;
+      if (pendingPresencePlayer) {
+        updatePlayerPresence(pendingPresencePlayer, true);
+      }
+    }, 350);
   }
 }
 
@@ -485,6 +529,7 @@ export function updatePlayerPresence(player: {
  * Clean up presence on disconnect / leave
  */
 export async function clearPlayerPresence(uid: string) {
+  if (!uid) return;
   try {
     await deleteDoc(doc(db, "skyblock_players", uid));
   } catch {}
@@ -494,11 +539,12 @@ export async function clearPlayerPresence(uid: string) {
  * Subscribe to all live players currently in the same Skyblock island
  */
 export function subscribeToIslandPlayers(
-  islandId: string,
+  rawIslandId: string,
   myUid: string,
   onPlayersChange: (players: LiveSkyblockPlayer[]) => void,
 ): () => void {
   try {
+    const islandId = canonicalIslandId(rawIslandId);
     const q = query(collection(db, "skyblock_players"), where("islandId", "==", islandId));
 
     let latestPlayers: LiveSkyblockPlayer[] = [];
@@ -506,7 +552,7 @@ export function subscribeToIslandPlayers(
       const now = Date.now();
       onPlayersChange(
         latestPlayers.filter(
-          (player) => player.uid !== myUid && now - (player.lastSeen || 0) < 60000,
+          (player) => player.uid !== myUid && now - (player.lastSeen || 0) < 120000,
         ),
       );
     };
@@ -522,9 +568,8 @@ export function subscribeToIslandPlayers(
       },
     );
 
-    // Firestore only emits when a document changes; refresh the expiry filter
-    // so disconnected players disappear without waiting for another update.
-    const expiryTimer = setInterval(emitActivePlayers, 15000);
+    // Refresh every 10 seconds so inactive players gracefully expire
+    const expiryTimer = setInterval(emitActivePlayers, 10000);
     return () => {
       clearInterval(expiryTimer);
       unsubscribe();

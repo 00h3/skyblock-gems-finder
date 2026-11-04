@@ -58,20 +58,22 @@ export function SkyblockStatus({
         title="Click to open Island Manor & Upgrades"
       >
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-lilita text-[13.5px] tracking-wide text-amber-100 flex items-center gap-1.5 truncate max-w-[190px]">
-            <span className="tabular-nums text-amber-300 truncate">{displayName}</span>
+          <span className="font-lilita text-[13.5px] tracking-wide text-amber-100 flex items-center gap-1.5 truncate max-w-[210px]">
             {isVisiting ? (
-              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-blue-500/30 border border-blue-400/40 text-blue-200">
-                Visitor
+              <span className="text-[10.5px] tracking-wider font-black px-2 py-0.5 rounded-[4px] bg-gradient-to-r from-blue-600/40 via-sky-500/40 to-blue-600/40 border border-blue-400/50 text-sky-200 truncate">
+                🏝️ {visitingOwnerName ? `${visitingOwnerName}'s Island` : "Visiting Island"}
               </span>
             ) : (
-              <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400/30 text-amber-200 group-hover:bg-amber-500/40 transition">
-                Lv. {p.level}
-              </span>
+              <>
+                <span className="tabular-nums text-amber-300 truncate">{displayName}</span>
+                <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400/30 text-amber-200 group-hover:bg-amber-500/40 transition">
+                  Lv. {p.level}
+                </span>
+              </>
             )}
           </span>
           <span className="text-[11px] font-bold text-amber-200/70 shrink-0">
-            {isVisiting ? "Read-Only" : p.title}
+            {isVisiting ? "Spectator" : p.title}
           </span>
         </div>
         {/* Wood-grooved progress track with glossy glass finish */}

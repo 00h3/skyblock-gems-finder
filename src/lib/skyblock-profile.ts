@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getSavedAccounts } from "@/lib/saved-accounts";
 import type { EconomySave } from "@/engine-sandbox/skyblock/economy";
 import type { ProgressionSave } from "@/engine-sandbox/skyblock/progression";
 
@@ -13,6 +14,10 @@ export function getPermanentPlayerId(qbUser?: { uid?: string } | null): string {
   if (qbUser?.uid) return qbUser.uid;
   if (typeof window !== "undefined") {
     try {
+      const saved = getSavedAccounts();
+      if (saved.length > 0 && saved[0].uid) {
+        return saved[0].uid;
+      }
       let id = localStorage.getItem("qb_persistent_player_id");
       if (!id) {
         id =
