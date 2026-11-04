@@ -217,8 +217,9 @@ export function V2GameHud({
             onToggleRun={onToggleRun}
             sneaking={sneaking}
             onToggleSneak={onToggleSneak}
+            scale={controlsScale}
           />
-          <ActionCluster actions={actions} />
+          <ActionCluster actions={actions} scale={controlsScale} />
         </>
       )}
 
@@ -297,12 +298,14 @@ function DPad({
   onToggleRun,
   sneaking,
   onToggleSneak,
+  scale = 1.0,
 }: {
   onMove: (x: number, y: number) => void;
   running: boolean;
   onToggleRun: () => void;
   sneaking?: boolean;
   onToggleSneak?: () => void;
+  scale?: number;
 }) {
   const padRef = useRef<HTMLDivElement>(null);
   const pointer = useRef<number | null>(null);
@@ -352,7 +355,7 @@ function DPad({
     <div
       className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] left-[max(2px,calc(env(safe-area-inset-left)+1px))] sm:left-2"
       style={{
-        transform: "scale(1.02)",
+        transform: `scale(${1.02 * scale})`,
         transformOrigin: "bottom left",
       }}
     >
@@ -465,14 +468,14 @@ function PadArrow({ label, rotate, active }: { label: string; rotate: number; ac
   );
 }
 
-function ActionCluster({ actions }: { actions: HudAction[] }) {
+function ActionCluster({ actions, scale = 1.0 }: { actions: HudAction[]; scale?: number }) {
   const primary = actions.find((a) => a.primary) ?? actions[0];
   const secondary = actions.filter((a) => a !== primary);
   return (
     <div
       className="pointer-events-auto absolute bottom-[calc(max(8px,calc(env(safe-area-inset-bottom)+4px))+var(--hb,0px))] right-[max(4px,calc(env(safe-area-inset-right)+2px))] flex items-end gap-2 sm:right-4"
       style={{
-        transform: "scale(1.0)",
+        transform: `scale(${1.0 * scale})`,
         transformOrigin: "bottom right",
       }}
     >

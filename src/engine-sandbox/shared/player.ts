@@ -37,7 +37,7 @@ export type PhysicsProfile = {
 export const SANDBOX_PHYSICS: PhysicsProfile = {
   gravity: 28.5,
   fallGravityMul: 1.18,
-  jumpV: 8.6,
+  jumpV: 9.6,
   walk: 5.6,
   sprint: 7.8,
   crouch: 2.8,
@@ -234,9 +234,8 @@ export class Player {
       this.velocity.z *= Math.exp(-6 * dt);
     } else {
       let g = this.velocity.y < 0 ? P.gravity * P.fallGravityMul : P.gravity;
-      // Soft apex hang reads as weight rather than float; releasing jump early cuts the arc.
+      // Soft apex hang reads as weight rather than float
       if (!this.onGround && Math.abs(this.velocity.y) < 1.4) g *= 0.72;
-      else if (this.velocity.y > 0 && !wantsJump) g *= 1.55;
       this.velocity.y -= g * dt;
       if (this.velocity.y < TERMINAL_V) this.velocity.y = TERMINAL_V;
     }
@@ -296,12 +295,13 @@ export class Player {
       return;
     }
     const mantling = axis !== 1 && this.mantleReady && !this.onGround && this.coyote <= 0;
-    if (axis !== 1 && ((this.onGround || this.coyote > 0) && this.velocity.y <= 0.01 || mantling)) {
-      // Stair blocks collide as full cubes, so let the player walk straight up them.
+    const inAirStep = axis !== 1 && !this.onGround && this.velocity.y > -3.0;
+    if (axis !== 1 && (((this.onGround || this.coyote > 0) && this.velocity.y <= 0.01) || mantling || inAirStep)) {
+      // Stair blocks collide as full cubes, and jumping players need smooth step-up to clear 1-block lips
       const ahead = BLOCK_BY_ID.get(
         this.world.get(Math.floor(next.x), Math.floor(this.position.y + 0.05), Math.floor(next.z)),
       );
-      const maxLift = mantling ? 1.15 : ahead?.shape ? 1.0 : STEP_HEIGHT;
+      const maxLift = mantling || inAirStep ? 1.15 : ahead?.shape ? 1.0 : STEP_HEIGHT;
       for (let lift = 0.2; lift <= maxLift + 0.001; lift += 0.2) {
         const stepped = this._probe.copy(this.position);
         stepped.y += lift;

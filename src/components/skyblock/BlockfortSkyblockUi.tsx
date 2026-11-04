@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import * as THREE from "three";
 import { GameAudio } from "@/lib/game-audio";
+import { utilityIconUrl } from "@/engine-sandbox/shared/item-icons";
 import {
   useSkyblockEconomy,
   getPurseCoins,
@@ -140,7 +141,7 @@ export interface ShopItem {
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
-  // ── Real Voxel Blocks ──────────────────────────────────────────────────────
+  // ── Authentic Voxel Blocks ──────────────────────────────────────────────────
   { id: "grass", name: "Grass Block", tab: "blocks", cost: 20, icon: "/textures/blocks/grass_block_side.png", blockType: 1, desc: "Fresh topsoil for flowers, saplings, and expanding your island." },
   { id: "dirt", name: "Dirt Block", tab: "blocks", cost: 10, icon: "/textures/blocks/dirt.png", blockType: 2, desc: "Standard building earth for farming terraces." },
   { id: "stone", name: "Smooth Stone", tab: "blocks", cost: 30, icon: "/textures/blocks/stone.png", blockType: 3, desc: "Solid quarried bedrock stone for sturdy structures." },
@@ -158,32 +159,28 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: "lapis_block", name: "Lapis Lazuli Block", tab: "blocks", cost: 400, icon: "/textures/blocks/lapis_block.png", blockType: 22, desc: "Deep mystical azure mineral block." },
   { id: "amethyst", name: "Amethyst Block", tab: "blocks", cost: 500, icon: "/textures/blocks/amethyst_block.png", blockType: 23, desc: "Resonant purple crystal geode block." },
   { id: "obsidian", name: "Obsidian", tab: "blocks", cost: 1500, icon: "/textures/blocks/obsidian.png", blockType: 11, desc: "Blast-resistant volcanic glass of supreme density." },
+  { id: "tnt", name: "TNT Explosive", tab: "blocks", cost: 300, icon: "/textures/blocks/tnt_side.png", blockType: 28, desc: "Ignite to clear large stone deposits instantly." },
+  { id: "slime", name: "Slime Block", tab: "blocks", cost: 400, icon: "/textures/blocks/slime_block.png", blockType: 63, desc: "Bouncy gel block negating fall damage." },
 
-  // ── Authentic Tools & Weapons ──────────────────────────────────────────────
-  { id: "short_sword", name: "Hunter Short Sword", tab: "tools", cost: 150, icon: "/public/short-sword.svg", blockType: "short_sword", desc: "Reliable starting blade for mob defense." },
-  { id: "iron_sword", name: "Iron Broadsword", tab: "tools", cost: 800, icon: "/items/diamond_axe.png", blockType: "iron_sword", desc: "Forged iron blade dealing +8 combat damage." },
-  { id: "diamond_sword", name: "Diamond Katana", tab: "tools", cost: 3500, icon: "/items/netherite_axe.png", blockType: "diamond_sword", desc: "High-grade tempered diamond blade with swift critical strike." },
-  { id: "staff_dark", name: "Dark Magic Sickle Staff", tab: "tools", cost: 15000, icon: "/textures/blocks/amethyst_block.png", blockType: "dark_magic_staff", desc: "LEGENDARY: Mythic WoW-inspired celestial weapon that shoots piercing fireball bursts!" },
-  { id: "pick_iron", name: "Iron Pickaxe", tab: "tools", cost: 350, icon: "/public/items/diamond_axe.png", blockType: "iron_pickaxe", desc: "Mines stone, coal, and iron ore at 2x baseline speed." },
-  { id: "pick_diamond", name: "Diamond Pickaxe", tab: "tools", cost: 1200, icon: "/public/items/netherite_axe.png", blockType: "diamond_pickaxe", desc: "High-durability pickaxe capable of fracturing deep obsidian." },
-  { id: "axe_diamond", name: "Diamond Great Axe", tab: "tools", cost: 700, icon: "/public/items/diamond_axe.png", blockType: "iron_axe", desc: "Instantly fells ancient oak and birch trees." },
-  { id: "shovel_diamond", name: "Diamond Spade", tab: "tools", cost: 400, icon: "/public/items/diamond_shovel.png", blockType: "diamond_shovel", desc: "Rapidly excavates topsoil, sand, and gravel deposits." },
+  // ── Authentic Weapons & Functional Items ─────────────────────────────────────
+  { id: "short_sword", name: "Hunter Short Sword", tab: "tools", cost: 150, icon: utilityIconUrl("short_sword") || "/textures/blocks/oak_planks.png", blockType: "short_sword", desc: "Reliable starting blade for mob defense." },
+  { id: "gold_sword", name: "Gilded Gold Sword", tab: "tools", cost: 450, icon: utilityIconUrl("gold_sword") || "/textures/blocks/gold_block.png", blockType: "gold_sword", desc: "Fast gilded sword with high critical strike rate." },
+  { id: "iron_sword", name: "Iron Broadsword", tab: "tools", cost: 800, icon: utilityIconUrl("iron_sword") || "/textures/blocks/iron_block.png", blockType: "iron_sword", desc: "Forged iron blade dealing +8 combat damage." },
+  { id: "diamond_sword", name: "Diamond Katana", tab: "tools", cost: 3500, icon: utilityIconUrl("diamond_sword") || "/textures/blocks/diamond_block.png", blockType: "diamond_sword", desc: "High-grade tempered diamond blade with swift strike." },
+  { id: "staff_dark", name: "Dark Magic Sickle Staff", tab: "tools", cost: 15000, icon: utilityIconUrl("dark_magic_staff") || "/textures/blocks/amethyst_block.png", blockType: "dark_magic_staff", desc: "LEGENDARY: Celestial staff shooting piercing fireball bursts!" },
+  { id: "water_bucket", name: "Water Bucket", tab: "tools", cost: 100, icon: utilityIconUrl("water_bucket"), blockType: "water_bucket", desc: "Spawns a flowing water source for cobble generators." },
+  { id: "lava_bucket", name: "Lava Bucket", tab: "tools", cost: 250, icon: utilityIconUrl("lava_bucket"), blockType: "lava_bucket", desc: "Spawns a molten lava source." },
+  { id: "ender_pearl", name: "Ender Pearl", tab: "tools", cost: 200, icon: utilityIconUrl("ender_pearl"), blockType: "ender_pearl", desc: "Throw to instantly teleport across islands." },
+  { id: "golden_apple", name: "Golden Apple", tab: "tools", cost: 300, icon: utilityIconUrl("golden_apple"), blockType: "golden_apple", desc: "Eat for instant health boost and absorption shield." },
+  { id: "speed_potion", name: "Swiftness Potion", tab: "tools", cost: 180, icon: utilityIconUrl("speed_potion"), blockType: "speed_potion", desc: "Drink to gain +60% movement speed for 30s." },
+  { id: "flint_steel", name: "Flint & Steel", tab: "tools", cost: 120, icon: utilityIconUrl("flint_steel"), blockType: "flint_steel", desc: "Creates fire to ignite TNT." },
+  { id: "fire_charge", name: "Fire Charge", tab: "tools", cost: 150, icon: utilityIconUrl("fire_charge"), blockType: "fire_charge", desc: "Launches a flaming fireball forward." },
+  { id: "wind_charge", name: "Wind Charge", tab: "tools", cost: 180, icon: utilityIconUrl("wind_charge"), blockType: "wind_charge", desc: "Launches a burst of wind that knocks back targets." },
 
-  // ── Real Decor & Sky Relics ───────────────────────────────────────────────
-  { id: "lucky_block", name: "Lucky Cat Block", tab: "decor", cost: 350, icon: "/lucky-block-cat.png", blockType: "lucky_block", desc: "Break to unleash surprising rare island rewards!" },
-  { id: "ancient_chest", name: "Golden Treasure Chest", tab: "decor", cost: 2200, icon: "/public/chest_gold_1788909061642.png", desc: "Gilded chest containing ancient Skyblock relics and gemstones." },
-  { id: "dragon_trophy", name: "Red Dragon Crest", tab: "decor", cost: 6500, icon: "/public/3d-trophy.png", desc: "Gilded victory trophy forged from the fiery breath of the Red Dragon." },
-  { id: "sky_crown", name: "Golden Sky Crown", tab: "decor", cost: 10000, icon: "/public/assets/ui/icon-crown.svg", desc: "The ultimate crown worn only by sovereign island lords." },
-
-  // ── Accessories ─────────────────────────────────────────────────────────
-  { id: "dragon_wings", name: "Red Dragon Wings", tab: "accessories", cost: 12000, icon: "/public/3d-trophy.png", blockType: "dragon_wings", desc: "Fiery mythical dragon wings granting double-jump glides!" },
-  { id: "phoenix_amulet", name: "Phoenix Sun Amulet", tab: "accessories", cost: 8500, icon: "/public/assets/ui/icon-crown.svg", blockType: "phoenix_amulet", desc: "Radiant golden medallion granting automatic health regeneration." },
-  { id: "sovereign_crown", name: "Sovereign Crown", tab: "accessories", cost: 25000, icon: "/public/assets/ui/icon-crown.svg", blockType: "sky_crown", desc: "High-tier gilded crown with sparkling gems." },
-  { id: "hermes_boots", name: "Hermes Speed Boots", tab: "accessories", cost: 4500, icon: "/public/items/diamond_axe.png", blockType: "hermes_boots", desc: "Enchanted boots increasing base sprint speed by +35%." },
-  { id: "obsidian_shield", name: "Obsidian Guard Shield", tab: "accessories", cost: 6000, icon: "/public/items/netherite_axe.png", blockType: "obsidian_shield", desc: "Reinforced volcanic glass shield deflecting incoming mob projectiles." },
-  { id: "celestial_relic", name: "Celestial Rune Relic", tab: "accessories", cost: 9500, icon: "/textures/blocks/amethyst_block.png", blockType: "celestial_relic", desc: "Ancient runic crystal increasing island coin yield by +50%." },
-  { id: "royal_cape", name: "Royal Silk Cape", tab: "accessories", cost: 7000, icon: "/public/assets/ui/icon-crown.svg", blockType: "royal_cape", desc: "Flowing crimson velvet cape with embroidered gold crest." },
-  { id: "companion_egg", name: "Mystic Pet Companion Egg", tab: "accessories", cost: 15000, icon: "/lucky-block-cat.png", blockType: "companion_egg", desc: "Hatch a loyal floating pet companion to follow you across islands." },
+  // ── Island Decor & Seeds ───────────────────────────────────────────────
+  { id: "oak_sapling", name: "Oak Sapling", tab: "decor", cost: 50, icon: "/textures/blocks/oak_leaves.png", blockType: 9, desc: "Plant on grass to grow an oak tree." },
+  { id: "birch_sapling", name: "Birch Sapling", tab: "decor", cost: 60, icon: "/textures/blocks/birch_leaves.png", blockType: 9, desc: "Plant on grass to grow a white birch tree." },
+  { id: "lucky_block", name: "Lucky Cat Block", tab: "decor", cost: 350, icon: "/textures/blocks/gold_block.png", blockType: "lucky_block", desc: "Break to unleash surprising rare island rewards!" },
 ];
 
 /**

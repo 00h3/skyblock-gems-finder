@@ -1579,7 +1579,7 @@ export function SandboxGame({
     goldenDays
       ? ["short_sword", 1, 2, 3, 4, 44, 45, 46, 18, 21]
       : isSkyblockLike
-        ? [...(skyblock && !hasStaff() ? [] : ["dark_magic_staff"]), "short_sword", 1, 2, 3, 4, 44, 45, 46]
+        ? [19, 19, 0, 0, 0, 0, 0, 0, 0]
         : blockFall
           ? []
           : bedwars
@@ -1588,6 +1588,25 @@ export function SandboxGame({
   );
   const hotbarRef = useRef(hotbar);
   hotbarRef.current = hotbar;
+
+  const [hotbarCounts, setHotbarCounts] = useState<number[]>(() => {
+    if (goldenDays) return [1, 64, 64, 64, 64, 64, 64, 64, 64, 64];
+    if (isSkyblockLike) return [64, 64, 0, 0, 0, 0, 0, 0, 0];
+    if (blockFall) return [];
+    if (bedwars) return [1, 64, 64, 64, 16, 1, 1, 1, 64];
+    return [64, 64, 64, 64, 64, 64, 64, 64, 64];
+  });
+  const hotbarCountsRef = useRef(hotbarCounts);
+  hotbarCountsRef.current = hotbarCounts;
+
+  const [controlsScale, setControlsScale] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("qb_controls_scale");
+      return saved ? Number(saved) : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
   const [crafted, setCrafted] = useState<(number | string)[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -3910,12 +3929,6 @@ export function SandboxGame({
           if (!best || d < best.d) best = { uid, center, d };
         }
         if (!best) return false;
-        const targetPlayerName = names.get(best.uid) || "Player";
-        setInspectUser({
-          name: targetPlayerName,
-          uid: best.uid,
-          isNpc: false,
-        });
         const damage = landDamage();
         const s = hpFor(best.uid);
         if (s.respawnIn <= 0) {
@@ -3927,6 +3940,29 @@ export function SandboxGame({
         playSound("hurt");
         playSound("sword_hit");
         return true;
+      };
+
+      const decrementCurrentSlotCount = () => {
+        const currentSlot = slotRef.current;
+        const count = hotbarCountsRef.current[currentSlot] ?? 0;
+        if (count > 0) {
+          const nextCount = count - 1;
+          setHotbarCounts((prev) => {
+            const next = [...prev];
+            next[currentSlot] = nextCount;
+            return next;
+          });
+          if (nextCount <= 0) {
+            setHotbar((prev) => {
+              const next = [...prev];
+              next[currentSlot] = 0;
+              return next;
+            });
+            setHeldTile(0);
+            announce("Item Depleted", "Stack finished.");
+            playSound("pop");
+          }
+        }
       };
 
       /** One sword/staff/fist swing: animation, slash arc, whoosh, fireball and hit test. */
@@ -3980,6 +4016,7 @@ export function SandboxGame({
           if ((UTILITY_ITEMS as readonly string[]).includes(id)) {
             swing = 1;
             features.useItem(id, castHit());
+            decrementCurrentSlotCount();
             return;
           }
           attack();
@@ -4018,7 +4055,7 @@ export function SandboxGame({
         socket?.sendBlockUpdate({ x: px, y: py, z: pz, id });
         gravity.notify(px, py, pz);
         if (blockFall) {
-          void writeBlockFallBlock({ x: px, y: py, z: pz, id }).catch((error) => {
+          void writeBlockFallBlock({ x: px, py: py, z: pz, id }).catch((error) => {
             console.warn("BlockFall block saved locally only:", error);
           });
         } else if (skyblock) {
@@ -4035,6 +4072,7 @@ export function SandboxGame({
         fx.spawn("place", new THREE.Vector3(px, py, pz), BLOCKS.find((b) => b.id === id)!.side);
         placePulse = 1;
         if (skyblock && !isVisiting) progression.recordPlace(py);
+        decrementCurrentSlotCount();
       };
 
       const iconUrlFor = (id: number | string) => {
@@ -5960,9 +5998,15 @@ export function SandboxGame({
                     window.location.href = url.toString();
                   }}
                   onEquipHotbar={(b) => {
+                    const currentSlot = slotRef.current;
                     setHotbar((prev) => {
                       const next = [...prev];
-                      next[slotRef.current] = b;
+                      next[currentSlot] = b;
+                      return next;
+                    });
+                    setHotbarCounts((prev) => {
+                      const next = [...prev];
+                      next[currentSlot] = typeof b === "number" ? 64 : ((UTILITY_ITEMS as readonly string[]).includes(b) ? 16 : 1);
                       return next;
                     });
                     api()?.setHeldTile(b);
@@ -5975,6 +6019,7 @@ export function SandboxGame({
               )}
               <V2Hotbar
                 hotbar={hotbar}
+                counts={hotbarCounts}
                 tileUrls={tileUrls}
                 slot={slot}
                 onSelect={selectSlot}
@@ -6289,7 +6334,12 @@ export function SandboxGame({
       )}
 
       {settingsOpen && (
-        <FlatSquareSettingsModal onClose={() => setSettingsOpen(false)} showWeather={isSkyblockLike} />
+        <FlatSquareSettingsModal
+          onClose={() => setSettingsOpen(false)}
+          controlsScale={controlsScale}
+          onControlsScaleChange={setControlsScale}
+          showWeather={isSkyblockLike}
+        />
       )}
     </div>
   );

@@ -127,6 +127,7 @@ function getItemName(id: number | string | undefined): string {
  */
 export function V2Hotbar({
   hotbar,
+  counts,
   tileUrls,
   slot,
   onSelect,
@@ -134,6 +135,7 @@ export function V2Hotbar({
   onOpenInventory,
 }: {
   hotbar: (number | string)[];
+  counts?: number[];
   tileUrls: Record<number | string, string>;
   slot: number;
   onSelect: (i: number) => void;
@@ -193,6 +195,7 @@ export function V2Hotbar({
       >
         {hotbar.map((id, i) => {
           const active = slot === i;
+          const count = counts?.[i] ?? (typeof id === "number" ? 64 : String(id).includes("sword") || String(id).includes("staff") || id === "shield" ? 1 : 16);
           return (
             <button
               key={`${id}-${i}`}
@@ -212,14 +215,21 @@ export function V2Hotbar({
                     draggable={false}
                     className="h-6.5 w-6.5 sm:h-7 sm:w-7 rounded-[3px] object-cover [image-rendering:pixelated]"
                   />
-                  {id !== 0 && (
+                  {id !== 0 && count > 0 && (
                     <span className="absolute bottom-0.5 right-0.5 font-lilita text-[10px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
-                      {typeof id === "number" ? 64 : String(id).includes("sword") || String(id).includes("staff") || id === "shield" ? 1 : 16}
+                      {count}
                     </span>
                   )}
                 </>
               ) : id === "dark_magic_staff" ? (
-                <span className="text-[18px] leading-none drop-shadow">🔮</span>
+                <>
+                  <span className="text-[18px] leading-none drop-shadow">🔮</span>
+                  {count > 0 && (
+                    <span className="absolute bottom-0.5 right-0.5 font-lilita text-[10px] text-white [text-shadow:0_1px_2px_#000,0_0_3px_#000] tabular-nums leading-none pointer-events-none select-none">
+                      {count}
+                    </span>
+                  )}
+                </>
               ) : null}
               {!isTouch && i < 9 && (
                 <span
