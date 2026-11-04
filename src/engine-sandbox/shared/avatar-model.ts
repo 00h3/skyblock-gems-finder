@@ -8,7 +8,7 @@ export const AVATAR_BOY_ALL_ANIMS_LOCAL = "/avatar_boy_all_anims.glb";
 export const NED_AVATAR_MODEL = "/avatar_boy_all_anims.glb";
 export const NELLY_AVATAR_MODEL = "/avatar_boy_all_anims.glb";
 
-export const CYBERPUNK_DEV_MODEL = "https://file.garden/alGOOylwpAfCa6qP/Cyberpunk_Dev_Orange_Hair.glb";
+export const CYBERPUNK_DEV_MODEL = "https://file.garden/alGOOylwpAfCa6qP/Cyberpunk_Dev_Orange_Smooth.glb";
 
 /** The universal character rig matching the classic old witch character with cape & magic */
 export const SANDBOX_AVATAR_MODEL = WITCH_AVATAR_MODEL;
