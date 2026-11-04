@@ -79,9 +79,10 @@ function SearchPage() {
           .map((d) => {
             const data = d.data() as DocumentData;
             const username = typeof data.username === "string" ? data.username.trim() : "";
-            const displayName = userDisplayName(data, d.id);
             const lower = username.toLowerCase();
-            const isStaff = lower === "ira" || lower === "die";
+            const isH3 = lower === "h3" || lower === "00h3" || lower === "ira" || lower === "hr" || lower === "ira/hr" || data.email === "mammaettahiri@gmail.com";
+            const displayName = isH3 ? "h3" : userDisplayName(data, d.id);
+            const isStaff = isH3 || lower === "die";
             const snapshot = normalizeAvatarSnapshot(data);
             const modelUrl =
               snapshot?.modelUrl ||
@@ -89,9 +90,9 @@ function SearchPage() {
 
             return {
               id: d.id,
-              username,
+              username: isH3 ? "h3" : username,
               displayName,
-              customId: data.email === "mammaettahiri@gmail.com" || lower === "ira" || lower === "die" ? "id4" : (data.customId || d.id.slice(0, 8).toUpperCase()),
+              customId: data.email === "mammaettahiri@gmail.com" || isH3 || lower === "die" ? "id4" : (data.customId || d.id.slice(0, 8).toUpperCase()),
               bio: typeof data.bio === "string" ? data.bio : undefined,
               avatarSnapshot: snapshot,
               modelUrl,

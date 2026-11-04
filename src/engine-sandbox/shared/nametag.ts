@@ -209,14 +209,15 @@ function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
   c.textAlign = "left";
 
   const lowerName = name.toLowerCase();
-  const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName.includes("h3");
+  const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName === "ira" || lowerName === "hr" || lowerName === "ira/hr" || lowerName.includes("h3") || lowerName.includes("ira") || lowerName.includes("hr");
+  const displayStr = isH3 ? "h3" : name;
   const isStr = lowerName === "str" || lowerName.includes("str");
   const isCat = lowerName === "cat" || lowerName === "@cat" || lowerName.includes("cat");
 
   // Dark outline for crystal clarity in all lighting
   c.lineWidth = 4;
   c.strokeStyle = "rgba(0, 0, 0, 0.88)";
-  c.strokeText(name, padX, h / 2 + 1);
+  c.strokeText(displayStr, padX, h / 2 + 1);
 
   if (isH3) {
     const textGrad = c.createLinearGradient(padX, 0, padX + textW, 0);
@@ -239,7 +240,7 @@ function drawName(name: string, badges: HTMLImageElement[], color = "#ffffff") {
   } else {
     c.fillStyle = color;
   }
-  c.fillText(name, padX, h / 2 + 1);
+  c.fillText(displayStr, padX, h / 2 + 1);
 
   // Draw Blockman GO VIP0 badge next to player name
   const vipX = padX + textW + gap;

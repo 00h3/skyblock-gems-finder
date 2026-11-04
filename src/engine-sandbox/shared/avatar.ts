@@ -367,10 +367,16 @@ export class Avatar {
     }
 
     // Normalise size + put the feet at y = 0
+    const isCyberpunk = Boolean(
+      (customUrl && customUrl.includes("Cyberpunk")) ||
+      (candidates[0] && candidates[0].includes("Cyberpunk"))
+    );
+    const effectiveHeight = isCyberpunk ? 1.85 : targetHeight;
+
     const box = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
     box.getSize(size);
-    const scale = size.y > 0.001 ? targetHeight / size.y : 1;
+    const scale = size.y > 0.001 ? effectiveHeight / size.y : 1;
     model.scale.setScalar(scale);
 
     const box2 = new THREE.Box3().setFromObject(model);
@@ -379,6 +385,9 @@ export class Avatar {
     model.position.x -= center.x;
     model.position.z -= center.z;
     model.position.y -= box2.min.y;
+    if (isCyberpunk) {
+      model.position.y -= 0.08;
+    }
 
     const holder = new THREE.Group();
     holder.add(model);

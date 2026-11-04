@@ -22,7 +22,8 @@ interface UserSquareCardModalProps {
 export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardModalProps) {
   const isTutorial = user.isNpc || user.name.toLowerCase().includes("tutorial");
   const lowerName = user.name.toLowerCase();
-  const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName.includes("h3");
+  const isH3 = lowerName === "h3" || lowerName === "00h3" || lowerName === "ira" || lowerName === "hr" || lowerName === "ira/hr" || lowerName.includes("h3") || lowerName.includes("ira") || lowerName.includes("hr");
+  const displayName = isH3 ? "h3" : user.name;
   const isStr = lowerName === "str" || lowerName.includes("str");
   const isCat = lowerName === "cat" || lowerName === "@cat" || lowerName.includes("cat");
 
@@ -73,7 +74,7 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
               ) : (
                 <iframe
                   src={getAvatarViewerUrl({
-                    username: user.name,
+                    username: displayName,
                     customId: user.uid,
                     isH3,
                     isStr,
@@ -81,7 +82,7 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
                   className="w-full h-full border-0 absolute inset-0 bg-transparent pointer-events-none"
                   style={{ border: "none" }}
                   loading="lazy"
-                  title={`${user.name} 3D Avatar`}
+                  title={`${displayName} 3D Avatar`}
                 />
               )}
             </div>
@@ -107,10 +108,12 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
           <div className="flex items-center justify-center gap-2 mt-1">
             {/* Squircle PFP part */}
             <div className="w-7 h-7 rounded-[9px] overflow-hidden bg-gradient-to-br from-orange-500 to-amber-600 border border-white/20 shadow-xs flex items-center justify-center text-xs font-black text-white shrink-0">
-              {user.photo ? (
+              {isH3 ? (
+                <img src="https://maxwell.z3ki.dev/bot/cyberpunk-model-preview/" alt="h3" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+              ) : user.photo ? (
                 <img src={user.photo} alt="" className="w-full h-full object-cover" />
               ) : (
-                user.name.charAt(0).toUpperCase()
+                displayName.charAt(0).toUpperCase()
               )}
             </div>
 
@@ -131,7 +134,7 @@ export function UserSquareCardModal({ user, onClose, onVisit }: UserSquareCardMo
                     : "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)",
               }}
             >
-              {user.name}
+              {displayName}
             </h3>
 
             {/* Verified tick for h3, pink tick for str */}

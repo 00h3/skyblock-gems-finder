@@ -181,7 +181,16 @@ export function BlockmanInventory({
           {tab === "role" ? (
             <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5 sm:flex-row sm:p-2">
               <div className="wood-inset flex shrink-0 flex-col items-center gap-1 p-1.5 sm:w-[32%]">
-                <p className="font-lilita text-[13px] text-amber-300 [text-shadow:0_1px_0_rgba(0,0,0,.6)]">{playerName}</p>
+                {(() => {
+                  const lower = (playerName || "").toLowerCase();
+                  const isH3 = lower === "h3" || lower === "00h3" || lower === "ira" || lower === "hr" || lower === "ira/hr" || lower.includes("h3") || lower.includes("ira");
+                  const nameText = isH3 ? "h3" : playerName;
+                  return (
+                    <p className={`font-lilita text-[13px] [text-shadow:0_1px_0_rgba(0,0,0,.6)] ${isH3 ? "text-orange-400 font-extrabold" : "text-amber-300"}`}>
+                      {nameText}
+                    </p>
+                  );
+                })()}
                 <div className="relative grid h-[110px] w-full place-items-center overflow-hidden rounded-md bg-[radial-gradient(circle_at_50%_35%,rgba(255,221,145,.35),transparent_48%),linear-gradient(160deg,#2b1a16,#120c0d)] sm:h-[140px]">
                   <div className="relative h-20 w-14 rounded-[42%_42%_28%_28%] bg-gradient-to-b from-amber-200 via-orange-300 to-orange-700 shadow-[0_8px_18px_rgba(0,0,0,.45)] sm:h-24 sm:w-16" aria-hidden="true">
                     <span className="absolute left-1/2 top-[34%] h-2 w-2 -translate-x-[9px] rounded-full bg-slate-900" />

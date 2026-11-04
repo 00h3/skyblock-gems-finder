@@ -62,14 +62,20 @@ export function getCleanName(
     | undefined,
 ): string {
   if (!user) return "Player";
+  const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
+  const username = typeof user.username === "string" ? user.username.toLowerCase() : "";
+  const displayName = typeof user.displayName === "string" ? user.displayName.toLowerCase() : "";
+  const name = typeof user.name === "string" ? user.name.toLowerCase() : "";
+  const n = typeof user.n === "string" ? user.n.toLowerCase() : "";
+
   if (
-    user.email === "mammaettahiri@gmail.com" ||
-    (typeof user.username === "string" &&
-      (user.username.toLowerCase() === "mammaettahiri" || user.username.toLowerCase() === "ira")) ||
-    (typeof user.displayName === "string" &&
-      (user.displayName.toLowerCase() === "mammaettahiri" || user.displayName.toLowerCase() === "ira"))
-  )
-    return "IRA";
+    email === "mammaettahiri@gmail.com" ||
+    username === "mammaettahiri" || username === "ira" || username === "hr" || username === "ira/hr" || username === "h3" ||
+    displayName === "mammaettahiri" || displayName === "ira" || displayName === "hr" || displayName === "ira/hr" || displayName === "h3" ||
+    name === "ira" || name === "h3" || n === "ira" || n === "h3"
+  ) {
+    return "h3";
+  }
   if (
     (typeof user.username === "string" && user.username.toLowerCase() === "die") ||
     (typeof user.displayName === "string" && user.displayName.toLowerCase() === "die")

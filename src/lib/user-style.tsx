@@ -99,13 +99,23 @@ export function isH3User(user: UserProfileLike | null | undefined): boolean {
   return (
     username === "h3" ||
     username === "00h3" ||
+    username === "ira" ||
+    username === "hr" ||
+    username === "ira/hr" ||
     username.startsWith("h3") ||
     displayName === "h3" ||
+    displayName === "ira" ||
+    displayName === "hr" ||
+    displayName === "ira/hr" ||
     name === "h3" ||
+    name === "ira" ||
     n === "h3" ||
+    n === "ira" ||
     customId === "h3" ||
     customId.startsWith("h3") ||
-    email.includes("h3")
+    email === "mammaettahiri@gmail.com" ||
+    email.includes("h3") ||
+    email.includes("ira")
   );
 }
 
@@ -229,11 +239,12 @@ export function UserNameWithBadges({
   badgeSize?: number;
   defaultColorClass?: string;
 }) {
-  const displayName =
-    name || user?.displayName || user?.username || user?.n || user?.name || "Player";
+  const isH3 = isH3User(user);
+  const rawName = name || user?.displayName || user?.username || user?.n || user?.name || "Player";
+  const lower = rawName.toLowerCase();
+  const displayName = isH3 || lower === "ira" || lower === "hr" || lower === "ira/hr" || lower === "mammaettahiri" ? "h3" : rawName;
   const nameStyleClass = getUserNameClass(user, defaultColorClass);
   const isStr = isStrUser(user);
-  const isH3 = isH3User(user);
   const isVerified = Boolean(
     (user as any)?.verified === true ||
     (user as any)?.isVerified === true ||

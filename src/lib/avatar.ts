@@ -10,6 +10,8 @@ export const NED_AVATAR_GLB =
 export const NELLY_AVATAR_GLB =
   "https://maxwell.z3ki.dev/bot/_files/female-walk-legs-glb/Female_Walk_LegsOnly.glb";
 
+export const H3_AVATAR_PREVIEW_URL = "https://maxwell.z3ki.dev/bot/cyberpunk-model-preview/";
+
 export function getAvatarViewerUrl(opts?: {
   characterId?: string;
   gender?: string;
@@ -18,6 +20,7 @@ export function getAvatarViewerUrl(opts?: {
   customId?: string;
   isIra?: boolean;
   isStr?: boolean;
+  isH3?: boolean;
   shirt?: string | null;
   pants?: string | null;
   hasCrimsonOutfit?: boolean;
@@ -34,25 +37,14 @@ export function getAvatarViewerUrl(opts?: {
   const username = (opts?.username || "").toLowerCase();
   const customId = (opts?.customId || "").toLowerCase();
 
-  const charId = (opts?.characterId || "").toLowerCase();
-
-  const isIraOrStrOrDieOrH3 =
+  const isH3 =
+    opts?.isH3 ||
     opts?.isIra ||
-    opts?.isStr ||
-    charId === "char2" ||
-    charId === "nelly" ||
     email === "mammaettahiri@gmail.com" ||
     email.includes("ira") ||
-    email.includes("die") ||
     username === "ira" ||
-    username === "die" ||
-    username.startsWith("die") ||
-    customId === "die" ||
-    customId.startsWith("die") ||
-    username === "str" ||
-    username.startsWith("str") ||
-    customId === "str" ||
-    customId.startsWith("str") ||
+    username === "hr" ||
+    username === "ira/hr" ||
     username === "h3" ||
     username === "00h3" ||
     username.includes("h3") ||
@@ -60,7 +52,27 @@ export function getAvatarViewerUrl(opts?: {
     customId.includes("h3") ||
     email.includes("h3");
 
-  if (isIraOrStrOrDieOrH3) {
+  if (isH3) {
+    return H3_AVATAR_PREVIEW_URL;
+  }
+
+  const charId = (opts?.characterId || "").toLowerCase();
+
+  const isStrOrDie =
+    opts?.isStr ||
+    charId === "char2" ||
+    charId === "nelly" ||
+    email.includes("die") ||
+    username === "die" ||
+    username.startsWith("die") ||
+    customId === "die" ||
+    customId.startsWith("die") ||
+    username === "str" ||
+    username.startsWith("str") ||
+    customId === "str" ||
+    customId.startsWith("str");
+
+  if (isStrOrDie) {
     return "https://maxwell.z3ki.dev/bot/witch-studio-viewer/";
   }
 
