@@ -6239,8 +6239,6 @@ export function SandboxGame({
       {/* Loading menu */}
       {!loadingDismissed && !graphicsError && isV2 && (
         <V2LoadingScreen
-          title={baseplate ? "Cell 99" : skyblock ? (isVisiting ? `${visitingOwnerName || "Player"}'s Island` : "Island Sanctuary") : bedwars ? "Bedwars" : "Block Fall"}
-          subtitle={baseplate ? "Loading Cell 99 world" : skyblock ? (isVisiting ? `Entering ${visitingOwnerName || "player"}'s island` : "Loading your island sanctuary") : bedwars ? "Entering the lobby" : "Preparing the arena"}
           progress={progress}
           isAssetsLoaded={engineReady}
           onFinished={() => setLoadingDismissed(true)}
@@ -6250,7 +6248,7 @@ export function SandboxGame({
         <div className="fixed inset-0 z-[95] grid place-items-center bg-white">
           <div className="flex flex-col items-center">
             <p className="mb-16 text-[24px] font-extrabold tracking-tight text-[#16181d]">
-              {goldenDays ? "Grotto Wilds" : skyblock ? "Island Sanctuary" : "QBlock Sandbox"}
+              Connecting…
             </p>
             <div className="boxes">
               <div className="box">

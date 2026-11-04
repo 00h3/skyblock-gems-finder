@@ -4,14 +4,12 @@ import { V2Button } from "./primitives";
 import { PhoenixLoadingVisual } from "@/components/skyblock/PhoenixLoadingVisual";
 
 export function V2LoadingScreen({
-  title,
-  subtitle,
   progress = 0,
   isAssetsLoaded = false,
   onFinished,
 }: {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   progress?: number;
   isAssetsLoaded?: boolean;
   onFinished?: () => void;
@@ -65,43 +63,21 @@ export function V2LoadingScreen({
       className="v2-ui fixed inset-0 z-[150] flex flex-col items-center justify-center overflow-hidden select-none bg-[#0a0c10]"
       style={{ touchAction: "none" }}
     >
-      {/* Subtle deep gradient backdrop with geometric block pattern */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-40"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 35%, rgba(250,70,22,0.18) 0%, rgba(15,18,25,0.85) 60%, #080a0e 100%)",
-        }}
+      {/* Local background image downloaded for ultra fast load */}
+      <img
+        src="/backgrounds/floating-islands.png"
+        alt="Loading background"
+        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
       />
 
-      {/* Grid pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.07] pointer-events-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-        }}
-      />
+      {/* Dark overlay gradient for contrast */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/60 pointer-events-none" />
 
-      {/* Center QBLOCK emblem - clean and sleek */}
-      <div className="relative z-20 flex flex-col items-center mb-10">
-        <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-[#fa4616] via-[#ff7a00] to-[#ffa726] p-0.5 shadow-[0_4px_25px_rgba(250,70,22,0.45)] flex items-center justify-center mb-3">
-          <span className="font-lilita text-[28px] text-white [text-shadow:0_2px_4px_#000]">Q</span>
-        </div>
-        <h2 className="font-lilita text-[24px] tracking-wider text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
-          QBLOCK
-        </h2>
-        <p className="mt-1 text-[12px] font-bold text-zinc-300 tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-          {subtitle || "Connecting to world…"}
-        </p>
-      </div>
-
-      {/* Compact Loader bar */}
-      <div className="relative z-20 w-full max-w-[300px] px-4">
-        <div className="w-full bg-black/70 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.8)]">
-          <div className="p-0.5 bg-[#0d0e12] border border-black/90 rounded-[4px]">
-            <div className="relative h-4 w-full bg-[#1b1d24] overflow-hidden rounded-[2px]">
+      {/* Loading bar only (no Skyblock or Cell 99 text) */}
+      <div className="relative z-20 w-full max-w-[320px] px-4">
+        <div className="w-full bg-black/85 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.9)]">
+          <div className="p-0.5 bg-[#0d0e12] border border-black/90 rounded-[6px]">
+            <div className="relative h-4.5 w-full bg-[#1b1d24] overflow-hidden rounded-[4px]">
               <div
                 className="relative h-full transition-[width] duration-150 ease-out bg-gradient-to-r from-[#fa4616] via-[#ff8800] to-[#ffa726]"
                 style={{ width: `${actualProgress}%` }}
@@ -112,8 +88,8 @@ export function V2LoadingScreen({
             </div>
           </div>
 
-          <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] font-bold text-white/90">
-            <span className="tracking-wide uppercase text-[10.5px]">
+          <div className="mt-2 flex items-center justify-between px-1 text-[12px] font-extrabold text-white">
+            <span className="tracking-wider uppercase text-[11px] text-white/80">
               {actualProgress < 35
                 ? "Connecting…"
                 : actualProgress < 75
@@ -122,7 +98,7 @@ export function V2LoadingScreen({
                     ? "Compiling shaders…"
                     : "Ready!"}
             </span>
-            <span className="tabular-nums font-mono text-[11px] text-amber-400">
+            <span className="tabular-nums font-mono text-[12px] text-amber-400">
               {Math.round(actualProgress)}%
             </span>
           </div>
