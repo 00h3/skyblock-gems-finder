@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { qbSignIn, qbSignUp, qbResetPassword } from "@/lib/auth-utils";
 import { saveAccount, type SavedAccount } from "@/lib/saved-accounts";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { SharpUiverseButton } from "@/components/ui/SharpUiverseButton";
 import {
   UserSpeakIcon,
   MailForwardIcon,
@@ -285,14 +286,15 @@ export function AuthBottomSheet({
                   )}
 
                   <div className="pt-2 space-y-2">
-                    <ShinyButton
+                    <SharpUiverseButton
                       type="submit"
-                      loading={loading}
-                      variant="white"
-                      className="w-full h-[48px] text-[14.5px] font-bold"
+                      disabled={loading}
+                      variant="orange"
+                      fullWidth
+                      size="md"
                     >
-                      Send Reset Link
-                    </ShinyButton>
+                      {loading ? "Sending..." : "Send Reset Link"}
+                    </SharpUiverseButton>
                     <button
                       type="button"
                       onClick={() => {
@@ -368,14 +370,15 @@ export function AuthBottomSheet({
                   </div>
 
                   <div className="pt-2">
-                    <ShinyButton
+                    <SharpUiverseButton
                       type="submit"
-                      loading={loading}
-                      variant="white"
-                      className="w-full h-[48px] text-[14.5px] font-bold"
+                      disabled={loading}
+                      variant="orange"
+                      fullWidth
+                      size="md"
                     >
-                      Log In Securely
-                    </ShinyButton>
+                      {loading ? "Signing in..." : "Log In Securely"}
+                    </SharpUiverseButton>
                   </div>
                 </form>
               ) : (
@@ -445,14 +448,15 @@ export function AuthBottomSheet({
                   </div>
 
                   <div className="pt-3">
-                    <ShinyButton
+                    <SharpUiverseButton
                       type="submit"
-                      loading={loading}
-                      variant="white"
-                      className="w-full h-[48px] text-[14.5px] font-bold"
+                      disabled={loading}
+                      variant="orange"
+                      fullWidth
+                      size="md"
                     >
-                      Create QBLOCK Account
-                    </ShinyButton>
+                      {loading ? "Creating..." : "Create Account"}
+                    </SharpUiverseButton>
                   </div>
                 </form>
               )}

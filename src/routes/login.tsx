@@ -10,6 +10,7 @@ import { BlurReveal } from "@/components/ui/blur-reveal";
 import AnimatedGradientBackground from "@/components/ui/animated-gradient-background";
 import { AuthArtwork3D } from "@/components/AuthArtwork3D";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { SharpUiverseButton, GoBackButton } from "@/components/ui/SharpUiverseButton";
 import { HtmlSpinner } from "@/components/ui/HtmlLoadingScreen";
 import {
   UserSpeakIcon,
@@ -246,12 +247,14 @@ function WelcomeScreen({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col gap-2.5 w-full max-w-sm mx-auto">
-        <WhiteGlossSquircleButton onClick={onSignup}>
+      <div className="flex flex-col gap-3 w-full max-w-sm mx-auto">
+        <SharpUiverseButton variant="orange" fullWidth size="lg" onClick={onSignup}>
           Create account — it&apos;s free
-        </WhiteGlossSquircleButton>
+        </SharpUiverseButton>
 
-        <OrangeSignInButton onClick={onLogin}>Sign In</OrangeSignInButton>
+        <SharpUiverseButton variant="white" fullWidth size="lg" onClick={onLogin}>
+          Sign In
+        </SharpUiverseButton>
 
         {typeof window !== "undefined" && getSavedAccounts().length > 0 && (
           <button
@@ -309,20 +312,7 @@ function LoginScreen({
     <div className="flex flex-col h-dvh overflow-y-auto ios-scroll">
       {/* Top Header with Back button */}
       <div className="px-5 pt-[max(36px,env(safe-area-inset-top))] pb-2 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="press w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
+        <GoBackButton onClick={onBack} size="sm" variant="white" />
       </div>
       <div className="flex-1 flex flex-col justify-center px-6 pb-[max(32px,env(safe-area-inset-bottom))]">
         <AuthArtwork3D size="compact" className="-mt-6 mb-3 mx-auto" />
@@ -408,9 +398,15 @@ function LoginScreen({
             </button>
           </div>
           <div className="pt-4">
-            <OrangeSignInButton type="submit" loading={loading} onClick={() => {}}>
-              Login securely
-            </OrangeSignInButton>
+            <SharpUiverseButton
+              type="submit"
+              variant="orange"
+              fullWidth
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Login securely"}
+            </SharpUiverseButton>
           </div>
         </form>
         <p className="mt-6 text-center text-[13.5px] text-slate-600">
@@ -460,20 +456,7 @@ function SignupScreen({ onBack, onLogin }: { onBack: () => void; onLogin: () => 
   return (
     <div className="flex flex-col h-dvh overflow-y-auto ios-scroll">
       <div className="px-5 pt-[max(36px,env(safe-area-inset-top))] pb-2 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="press w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
+        <GoBackButton onClick={onBack} size="sm" variant="white" />
       </div>
       <div className="flex-1 flex flex-col justify-center px-6 pb-[max(32px,env(safe-area-inset-bottom))]">
         <AuthArtwork3D size="compact" className="-mt-6 mb-3 mx-auto" />
@@ -573,9 +556,15 @@ function SignupScreen({ onBack, onLogin }: { onBack: () => void; onLogin: () => 
             </div>
           </div>
           <div className="pt-4">
-            <OrangeSignInButton type="submit" loading={loading} onClick={() => {}}>
-              Create Account
-            </OrangeSignInButton>
+            <SharpUiverseButton
+              type="submit"
+              variant="orange"
+              fullWidth
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? "Creating..." : "Create Account"}
+            </SharpUiverseButton>
           </div>
         </form>
         <p className="mt-6 text-center text-[13.5px] text-slate-600">
@@ -622,16 +611,9 @@ function ForgotScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="flex flex-col h-dvh overflow-y-auto ios-scroll">
-      {/* Top Header with Back button (bubble removed) */}
+      {/* Top Header with Back button */}
       <div className="px-5 pt-[max(36px,env(safe-area-inset-top))] pb-2 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="press grid h-10 w-10 place-items-center rounded-[12px] bg-black/5 hover:bg-black/10 backdrop-blur-md border border-black/5 text-slate-900 shadow-sm"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-4.5 w-4.5" />
-        </button>
+        <GoBackButton onClick={onBack} size="sm" variant="white" />
         <div className="w-10" />
       </div>
 
@@ -652,7 +634,9 @@ function ForgotScreen({ onBack }: { onBack: () => void }) {
               We sent a password reset link to <strong className="text-slate-900">{email}</strong>.
             </p>
             <div className="w-full mt-6">
-              <OrangeSignInButton onClick={onBack}>Back to Sign In</OrangeSignInButton>
+              <SharpUiverseButton variant="white" fullWidth size="lg" onClick={onBack}>
+                Back to Sign In
+              </SharpUiverseButton>
             </div>
           </div>
         ) : (
@@ -703,9 +687,15 @@ function ForgotScreen({ onBack }: { onBack: () => void }) {
               {error && <FormError message={error} />}
 
               <div className="pt-2">
-                <OrangeSignInButton type="submit" loading={loading}>
-                  Send reset link
-                </OrangeSignInButton>
+                <SharpUiverseButton
+                  type="submit"
+                  variant="orange"
+                  fullWidth
+                  size="lg"
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Send reset link"}
+                </SharpUiverseButton>
               </div>
             </form>
           </>

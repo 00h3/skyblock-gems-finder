@@ -47,6 +47,7 @@ import baseplateIcon from "@/assets/game-baseplate.jpg";
 import { useNavigate } from "@tanstack/react-router";
 import { ClapIcon } from "@/components/QbIcons";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { GoBackButton } from "@/components/ui/SharpUiverseButton";
 
 import { ProfileIcon } from "@/components/icons";
 export function getCleanName(
@@ -441,15 +442,7 @@ export function ProfileSheet({
 
             {/* Top Bar Navigation */}
             <div className="relative z-10 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={onClose}
-                className="press flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-white/95 dark:bg-[#1a1c24]/95 text-slate-800 dark:text-white border border-black/10 dark:border-white/10 shadow-sm cursor-pointer font-bold text-[13px]"
-                aria-label="Go Back"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span>Go Back</span>
-              </button>
+              <GoBackButton onClick={onClose} size="sm" variant="white" />
 
               {!isOwnProfile && (
                 <button
@@ -712,15 +705,12 @@ export function ProfileSheet({
                   </ShinyButton>
                 </div>
               )}
-              <ShinyButton
-                type="button"
-                variant="glass"
+              <GoBackButton
                 onClick={onClose}
-                className="h-11 w-full text-[13.5px] mt-1"
-              >
-                <ChevronLeft className="h-4 w-4 shrink-0" />
-                <span>Go Back</span>
-              </ShinyButton>
+                className="w-full h-11 text-[13.5px] mt-1"
+                size="md"
+                variant="white"
+              />
             </div>
           </div>
         </div>

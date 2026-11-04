@@ -54,6 +54,7 @@ import { GlossyAvatar, AvatarFrameOverlay } from "@/components/GlossyAvatar";
 import { BronzeCorniceAvatar, BronzeCorniceUpper } from "@/components/BronzeCornice";
 import { TextureButton } from "@/components/ui/texture-button";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { GoBackButton, SharpUiverseButton } from "@/components/ui/SharpUiverseButton";
 import {
   GlossyUserProfileIcon,
   GlossyKeyAccessIcon,
@@ -449,16 +450,7 @@ export function NicknameStyleView({
 export function SubScreenHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <header className="flex items-center gap-3 px-4 pt-[max(env(safe-area-inset-top),14px)] pb-3 border-b border-black/[0.04] dark:border-white/[0.05] bg-[#f8f9fa] dark:bg-[#0c0d11]">
-      <ShinyButton
-        type="button"
-        variant="glass"
-        onClick={onBack}
-        className="h-9 px-3.5 text-[12.5px] py-0 gap-1"
-        aria-label="Go Back"
-      >
-        <ChevronLeft className="h-4 w-4 shrink-0" />
-        <span>Go Back</span>
-      </ShinyButton>
+      <GoBackButton onClick={onBack} size="sm" variant="white" />
       <h1 className="text-[17.5px] font-extrabold text-[#17191d] dark:text-white tracking-tight">
         {title}
       </h1>
