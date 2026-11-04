@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Avatar } from "./avatar";
 import { NameTag } from "./nametag";
+import { CYBERPUNK_DEV_MODEL, isIraHrUser } from "./avatar-model";
 import type { PlayerUpdate } from "@/lib/websocket-sync";
 
 type Entity = {
@@ -46,7 +47,8 @@ export class RemotePlayers {
     const avatar = new Avatar();
     avatar.setVisible(true);
     avatar.group.position.copy(at);
-    void avatar.load(1.8);
+    const isIraHr = isIraHrUser(name) || isIraHrUser(uid);
+    void avatar.load(1.8, isIraHr ? CYBERPUNK_DEV_MODEL : undefined);
     this.scene.add(avatar.group);
     const tag = new NameTag(name);
     tag.group.position.copy(at);

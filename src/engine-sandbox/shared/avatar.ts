@@ -289,17 +289,18 @@ export class Avatar {
     this.group.add(rig);
   }
 
-  async load(targetHeight = 2.28) {
+  async load(targetHeight = 2.28, customUrl?: string) {
     const loader = new GLTFLoader();
 
-    // Priority candidates: Local avatar_boy_all_anims.glb first to match Blockman GO boy from screenshots
+    // Priority candidates: custom model URL first if specified
     const candidates = [
+      customUrl,
       SANDBOX_AVATAR_MODEL,
       "/avatar_boy_all_anims.glb",
       SANDBOX_AVATAR_FALLBACK_MODEL,
       WITCH_AVATAR_MODEL,
       WITCH_AVATAR_REMOTE_URL,
-    ].filter(Boolean);
+    ].filter((x): x is string => typeof x === "string" && x.length > 0);
 
     let gltf: any = null;
     for (const url of candidates) {
@@ -394,18 +395,25 @@ export class Avatar {
           action.setLoop(THREE.LoopOnce, 1);
           action.clampWhenFinished = true;
           this.animActions.die = action;
-        } else if (name.includes("jump") || name.includes("air")) {
+        } else if (name.includes("fly") || name.includes("smoke") || name.includes("jump") || name.includes("air")) {
           action.setLoop(THREE.LoopRepeat, Infinity);
           this.animActions.jump = action;
+          action.play();
         } else if (name.includes("climb")) {
           action.setLoop(THREE.LoopRepeat, Infinity);
           this.animActions.climb = action;
-        } else if (name.includes("walk") || name.includes("run")) {
+        } else if (name.includes("walk") || name.includes("run") || name.includes("move") || name.includes("dev")) {
           action.setLoop(THREE.LoopRepeat, Infinity);
           this.animActions.walk = action;
-        } else if (name.includes("breathe") || name.includes("idle")) {
+          action.play();
+        } else if (name.includes("breathe") || name.includes("idle") || name.includes("stand")) {
           action.setLoop(THREE.LoopRepeat, Infinity);
           this.animActions.breathe = action;
+          action.play();
+        } else {
+          // Play any other animation clip in the GLTF continuously
+          action.setLoop(THREE.LoopRepeat, Infinity);
+          action.play();
         }
       }
 
@@ -413,6 +421,7 @@ export class Avatar {
       if (!this.animActions.walk && gltf.animations[0]) {
         this.animActions.walk = this.mixer.clipAction(gltf.animations[0]);
         this.animActions.walk.setLoop(THREE.LoopRepeat, Infinity);
+        this.animActions.walk.play();
       }
 
       // Automatically start the character animation immediately
@@ -426,21 +435,14 @@ export class Avatar {
         this.animActions.walk.play();
       }
 
-      // Initial playback weights: ensure walk animation is active and started
+      // Initial playback weights: ensure walk/breathe animations are active
       if (this.animActions.breathe) {
         this.animActions.breathe.play();
         this.animActions.breathe.setEffectiveWeight(this.animActions.walk ? 0.2 : 1);
       }
       if (this.animActions.jump) {
         this.animActions.jump.play();
-        this.animActions.jump.setEffectiveWeight(0);
-      }
-      if (this.animActions.climb) {
-        this.animActions.climb.play();
-        this.animActions.climb.setEffectiveWeight(0);
-      }
-      if (this.animActions.die) {
-        this.animActions.die.setEffectiveWeight(0);
+        this.animActions.jump.setEffectiveWeight(0.5);
       }
 
       this.mixer.addEventListener("finished", (e: any) => {

@@ -31,6 +31,7 @@ import { Controls } from "@/engine-sandbox/shared/controls";
 import { BlockFx, createHighlight, raycastVoxel } from "@/engine-sandbox/shared/interact";
 import { Sky } from "@/engine-sandbox/shared/sky";
 import { Avatar } from "@/engine-sandbox/shared/avatar";
+import { CYBERPUNK_DEV_MODEL, isIraHrUser } from "@/engine-sandbox/shared/avatar-model";
 import { DroppedItemManager } from "@/engine-sandbox/shared/dropped-items";
 import { CRACK_STAGES } from "@/engine-sandbox/shared/textures";
 import { Link } from "@tanstack/react-router";
@@ -2841,7 +2842,8 @@ export function SandboxGame({
       if (emotingRef.current) avatar.setEmote(true);
       scene.add(avatar.group);
       avatar.setVisible(thirdRef.current);
-      avatar.load(2.28).then(() => {
+      const isIraHrLocal = isIraHrUser(meRef.current.name) || isIraHrUser(qbUser?.displayName) || isIraHrUser(qbUser?.username) || isIraHrUser(qbUser?.email);
+      avatar.load(2.28, isIraHrLocal ? CYBERPUNK_DEV_MODEL : undefined).then(() => {
         if (disposed || !avatar) return;
         setAvatarReady(true);
         if (heldItemId) avatar.setHeldItem(heldItemId);
