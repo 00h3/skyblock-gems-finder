@@ -3,9 +3,12 @@ import { useCurrency, type CurrencyKey } from "@/lib/currency";
 
 export const GOLDEN_COINS_ICON = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
 export const PINK_GEM_ICON =
-  "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png";
+  "https://maxwell.z3ki.dev/bot/_files/pastel-cube/A8BE8F6D-2675-4CE6-AABE-8B0A00F24BC2.png";
+export const PASTEL_CUBE_ICON = PINK_GEM_ICON;
 export const STAR_BILL_ICON =
   "https://maxwell.z3ki.dev/bot/_files/star-bill/DAC24FFC-3F66-4A8D-B5B0-73CEC1020A4D.png";
+export const FRAGMENTS_ICON =
+  "https://maxwell.z3ki.dev/bot/_files/0d68e334-94fc-436e-8197-c94b87/0D68E334-94FC-436E-8197-C94B87E81281.png";
 
 type CurrencyPillsProps = {
   onSelect?: (currency: Extract<CurrencyKey, "gold" | "gems" | "pinkCube">) => void;

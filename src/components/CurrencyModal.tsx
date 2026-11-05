@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 
 export const GOLDEN_COINS_ICON = "https://file.garden/alGOOylwpAfCa6qP/file_000000008f8481f49405d6c7b6fcbb5a.png";
 export const PINK_GEM_ICON =
-  "https://file.garden/alGOOylwpAfCa6qP/file_000000007ea881f4a21aac7088884509.png";
+  "https://maxwell.z3ki.dev/bot/_files/pastel-cube/A8BE8F6D-2675-4CE6-AABE-8B0A00F24BC2.png";
 
 export function GoldCoin({ size = 22 }: { size?: number }) {
   return (

@@ -275,14 +275,14 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] overflow-hidden bg-amber-100">
               <img
                 src="https://file.garden/alGOOylwpAfCa6qP/13FD00B3-7CDA-4B91-B1CC-42F496FC79D7.png"
-                alt="Welcome Early Access"
+                alt="This is Beta"
                 className="h-full w-full object-contain"
               />
             </span>
             <div>
-              <div className="text-[13.5px] font-black text-slate-900">Welcome Early Access</div>
+              <div className="text-[13.5px] font-black text-slate-900">This is Beta</div>
               <div className="mt-0.5 text-[10.5px] font-semibold text-[#806719]">
-                Play, create, and help shape QBLOCK.
+                Play, create, and help shape QBLOCK Beta.
               </div>
             </div>
           </div>
@@ -296,7 +296,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
             className="press group relative aspect-[4/5] overflow-hidden rounded-[18px] bg-slate-900 text-left shadow-[0_6px_16px_rgba(0,0,0,0.12)] border-0 cursor-pointer"
           >
             <img
-              src="/file_000000004d5881f498ee54c310e345a5_1788908394839.png"
+              src="https://maxwell.z3ki.dev/bot/_files/orange-shop-banner/C03CF82D-0DF5-46F0-92D3-6189D433FC9A.jpg"
               alt="Shop"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
@@ -323,7 +323,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
             className="press group relative aspect-[4/5] overflow-hidden rounded-[18px] bg-slate-900 text-left shadow-[0_6px_16px_rgba(0,0,0,0.12)] border-0 cursor-pointer"
           >
             <img
-              src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ab448210ace3ea08875f15f6.png"
+              src="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
               alt="Events"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
@@ -350,7 +350,7 @@ function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void
             className="press group relative aspect-[4/5] overflow-hidden rounded-[18px] bg-slate-900 text-left shadow-[0_6px_16px_rgba(0,0,0,0.12)] border-0 cursor-pointer"
           >
             <img
-              src="https://file.garden/alGOOylwpAfCa6qP/file_00000000ded48210a85ba665493b1474.png"
+              src="https://maxwell.z3ki.dev/bot/_files/0d68e334-94fc-436e-8197-c94b87/0D68E334-94FC-436E-8197-C94B87E81281.png"
               alt="Fragments"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />

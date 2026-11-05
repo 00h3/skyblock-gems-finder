@@ -175,19 +175,29 @@ export function RedesignedHomePage({
           </form>
         </div>
 
-        {/* Quick Entries: Shop, Events (rectangle in middle), Fragments — blank glossy squircles */}
+        {/* Quick Entries: Shop, Events (Middle card with Floating Islands image), Fragments */}
         <div className="px-4 flex items-center gap-2.5">
-          {/* Shop - opens 3D Avatar Customization sheet */}
+          {/* Shop */}
           <button
             type="button"
             onClick={() => {
               openShop();
             }}
-            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
+            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] bg-slate-900 shadow-sm"
             aria-label="Shop"
-          />
+          >
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/orange-shop-banner/C03CF82D-0DF5-46F0-92D3-6189D433FC9A.jpg"
+              alt="Shop"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/25" />
+            <div className="relative z-10 flex h-full items-end p-1.5">
+              <span className="text-[10.5px] font-black text-white drop-shadow">Shop</span>
+            </div>
+          </button>
 
-          {/* Events (Rectangle in middle with more length) */}
+          {/* Events (Rectangle in middle fitted with Floating Islands image) */}
           <button
             type="button"
             onClick={() => {
@@ -195,9 +205,24 @@ export function RedesignedHomePage({
                 openEvents();
               }
             }}
-            className="qb-squircle press relative h-[60px] flex-1 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
+            className="qb-squircle press group relative h-[60px] flex-1 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] bg-slate-900 shadow-sm"
             aria-label="Events"
-          />
+          >
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
+              alt="Events - Floating Islands"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+            <div className="relative z-10 flex h-full flex-col justify-end p-2">
+              <span className="text-[8.5px] font-black uppercase tracking-wider text-[#ff6600] drop-shadow">
+                Live Event
+              </span>
+              <span className="text-[12px] font-black text-white leading-tight drop-shadow-md">
+                Floating Islands
+              </span>
+            </div>
+          </button>
 
           {/* Fragments */}
           <button
@@ -207,65 +232,73 @@ export function RedesignedHomePage({
                 openFragments();
               }
             }}
-            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
+            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] bg-slate-900 shadow-sm"
             aria-label="Fragments"
-          />
+          >
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/0d68e334-94fc-436e-8197-c94b87/0D68E334-94FC-436E-8197-C94B87E81281.png"
+              alt="Fragments"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/25" />
+            <div className="relative z-10 flex h-full items-end p-1.5">
+              <span className="text-[10.5px] font-black text-white drop-shadow">Fragments</span>
+            </div>
+          </button>
         </div>
 
-        {/* Switching Promotional Banner: Welcome to beta! (Orange ver <-> Orange-Red Gradient ver) */}
+        {/* Featured Beta & Floating Islands Event Component (Single completed banner with LaserFlow upper beam) */}
         <div className="px-4 mt-2.5">
           <div
             onClick={() => {
-              navigate({ to: "/game/sandbox" as never });
+              if (typeof window !== "undefined") openEvents();
             }}
-            className="qb-squircle press relative h-[108px] w-full overflow-hidden cursor-pointer select-none rounded-[14px] bg-[#1a1c22] text-white shadow-md transition-all duration-300"
+            className="qb-squircle press relative h-[112px] w-full overflow-hidden cursor-pointer select-none rounded-[16px] text-white shadow-lg transition-all duration-300 border border-orange-500/40 bg-slate-950"
           >
-            {/* Top gloss curve */}
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 dark:from-white/15 to-transparent pointer-events-none rounded-t-[14px] z-10" />
+            {/* Background Floating Islands Event Graphic */}
+            <img
+              src="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
+              alt="Floating Islands Event"
+              className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-[16px] z-10" />
 
-            {/* Animated LaserFlow light beam (Orange and Red beam from Nov 02 note) */}
-            <div className="absolute inset-0 pointer-events-none z-15 overflow-hidden rounded-[14px]">
+            {/* LaserFlow light beam aligned upper the event component */}
+            <div className="absolute inset-0 pointer-events-none z-15 overflow-hidden rounded-[16px]">
               <LaserFlow
                 surfaceRef={bannerCardRef}
-                beamPosition={0.62}
-                color={activeSlide === 0 ? "#ff5500" : "#fa2600"}
-                intensity={2.2}
-                flare={1.8}
-                spread={1.8}
-                spill={1.2}
-                fog={0.3}
+                beamPosition={0.48}
+                color="#ff6600"
+                intensity={2.4}
+                flare={2.0}
+                spread={1.9}
+                spill={1.4}
+                fog={0.35}
                 dust={2.0}
-                streaks={1.8}
-                pulse={1.6}
-                speed={1.5}
+                streaks={2.0}
+                pulse={1.8}
+                speed={1.6}
                 theme="dark"
               />
             </div>
 
-            {/* Slide 0: Orange version */}
-            <div
-              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-700 ease-out ${
-                activeSlide === 0
-                  ? "opacity-100 translate-x-0 pointer-events-auto"
-                  : "opacity-0 -translate-x-4 pointer-events-none"
-              }`}
-              style={{
-                background:
-                  "linear-gradient(135deg, #fa4616 0%, #ff7a00 50%, #ff8800 100%)",
-              }}
-            >
-              <div className="relative z-20 flex flex-col justify-center max-w-[80%]">
-                <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-100 bg-black/20 px-2 py-0.5 rounded-full w-fit">
-                  QBLOCK
-                </span>
-                <h3 className="mt-1 text-[19px] sm:text-[21px] font-black tracking-tight text-white leading-tight drop-shadow-xs">
-                  Welcome to beta!
+            <div className="relative z-20 h-full p-3.5 flex items-center justify-between">
+              <div className="flex flex-col justify-center max-w-[76%]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-orange-200 bg-orange-600/80 border border-orange-400/50 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                    This is Beta
+                  </span>
+                </div>
+                <h3 className="mt-1 text-[18px] sm:text-[20px] font-black tracking-tight text-white leading-tight drop-shadow-md">
+                  This is Beta
                 </h3>
-                <p className="text-[11.5px] font-semibold text-orange-100/95 mt-0.5 line-clamp-1">
-                  Explore, build & play together in early access
+                <p className="text-[11px] font-semibold text-amber-100/95 mt-0.5 line-clamp-1 drop-shadow-sm">
+                  Explore Floating Islands & build together in QBLOCK Beta
                 </p>
               </div>
-              <div ref={bannerCardRef} className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 grid place-items-center shadow-inner overflow-hidden p-2">
+
+              <div ref={bannerCardRef} className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-black/40 backdrop-blur-md border border-white/30 grid place-items-center shadow-lg overflow-hidden p-1.5">
                 <img
                   src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
                   alt="Beta Mascot"
@@ -273,59 +306,6 @@ export function RedesignedHomePage({
                   draggable={false}
                 />
               </div>
-            </div>
-
-            {/* Slide 1: Orange-Red gradient version */}
-            <div
-              className={`absolute inset-0 p-4 flex items-center justify-between transition-all duration-700 ease-out ${
-                activeSlide === 1
-                  ? "opacity-100 translate-x-0 pointer-events-auto"
-                  : "opacity-0 translate-x-4 pointer-events-none"
-              }`}
-              style={{
-                background:
-                  "linear-gradient(135deg, #ea2b0c 0%, #fa4616 50%, #dc2626 100%)",
-              }}
-            >
-              <div className="relative z-20 flex flex-col justify-center max-w-[80%]">
-                <span className="text-[9.5px] font-black uppercase tracking-wider text-rose-100 bg-black/20 px-2 py-0.5 rounded-full w-fit">
-                  QBLOCK
-                </span>
-                <h3 className="mt-1 text-[19px] sm:text-[21px] font-black tracking-tight text-white leading-tight drop-shadow-xs">
-                  Welcome to beta!
-                </h3>
-                <p className="text-[11.5px] font-semibold text-white/95 mt-0.5 line-clamp-1">
-                  Explore, build & play together in early access
-                </p>
-              </div>
-              <div className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 grid place-items-center shadow-inner overflow-hidden p-2">
-                <img
-                  src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
-                  alt="Beta Mascot"
-                  className="w-full h-full object-contain drop-shadow"
-                  draggable={false}
-                />
-              </div>
-            </div>
-
-            {/* Slide switcher dots */}
-            <div className="absolute bottom-2.5 right-3.5 z-30 flex items-center gap-1.5">
-              {[0, 1].map((idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveSlide(idx);
-                  }}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    activeSlide === idx
-                      ? "w-4 bg-white shadow-xs"
-                      : "w-1.5 bg-white/40 hover:bg-white/70"
-                  }`}
-                  aria-label={`Go to style ${idx + 1}`}
-                />
-              ))}
             </div>
           </div>
         </div>

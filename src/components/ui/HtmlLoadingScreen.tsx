@@ -12,23 +12,20 @@ export function HtmlLoadingScreen({
   fadeOutOnDone?: boolean;
   className?: string;
 }) {
-  const [progress, setProgress] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     let frame = 0;
-    const totalFrames = 40;
+    const totalFrames = 30;
     const id = setInterval(() => {
       frame++;
-      const pct = Math.min(100, Math.round((frame / totalFrames) * 100));
-      setProgress(pct);
       if (frame >= totalFrames) {
         clearInterval(id);
         if (fadeOutOnDone) {
           setFadeOut(true);
           setTimeout(() => {
             onDone?.();
-          }, 350);
+          }, 250);
         } else {
           onDone?.();
         }
@@ -40,13 +37,14 @@ export function HtmlLoadingScreen({
   return (
     <div
       suppressHydrationWarning
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center select-none bg-white transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[99999] bg-white select-none transition-opacity duration-300 ${
         fadeOut ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"
       } ${className}`}
       style={{ backgroundColor: "#ffffff" }}
     >
-      <div className="flex flex-col items-center justify-center gap-6">
-        <MorphingSquare message={`${progress}%`} messagePlacement="bottom" className="text-xl font-bold bg-[#14161a]" />
+      {/* Loading Spinner placed strictly in bottom right corner */}
+      <div className="fixed right-6 bottom-[max(24px,calc(env(safe-area-inset-bottom)+16px))] z-[100000] flex items-center gap-2 select-none pointer-events-none">
+        <div className="w-8 h-8 rounded-full border-3 border-[#fa4616]/25 border-t-[#fa4616] animate-spin shadow-sm" />
       </div>
     </div>
   );
