@@ -7374,7 +7374,7 @@ function EngineGame({
         GameAudio.playFootstep();
       }
       function playJump() {
-        GameAudio.playJump();
+        // Silenced per user request
         haptic(14);
       }
       function playLand(impact: number) {
@@ -10536,11 +10536,17 @@ function EngineGame({
           }
         }
 
-        // ── Animated Grass Wind-Sway ──
+        // ── Animated Grass Wind-Sway (Vertex Shader + Mesh Transform) ──
         const grassWindTime = now * 0.003;
+        for (const mat of decorMats) {
+          const shader = mat.userData?.shader as { uniforms?: { uTime?: { value: number } } } | undefined;
+          if (shader?.uniforms?.uTime) {
+            shader.uniforms.uTime.value = grassWindTime;
+          }
+        }
         for (const dm of decorMeshes) {
-          dm.rotation.y = Math.sin(grassWindTime + dm.position.x * 0.5) * 0.08;
-          dm.rotation.z = Math.cos(grassWindTime * 1.2 + dm.position.z * 0.5) * 0.05;
+          dm.rotation.y = Math.sin(grassWindTime) * 0.05;
+          dm.rotation.z = Math.cos(grassWindTime * 1.4) * 0.04;
         }
 
         // ── Animate White Block Break Flashes (0.1s duration, matte non-glossy) ──
@@ -10784,6 +10790,27 @@ function EngineGame({
             alphaTest: 0.5,
             side: THREE.DoubleSide,
           });
+          // GPU vertex shader wind animation: sways tops of grass in wind while pinning roots
+          mat.onBeforeCompile = (shader) => {
+            shader.uniforms.uTime = { value: 0 };
+            mat.userData.shader = shader;
+            shader.vertexShader = `
+              uniform float uTime;
+              ${shader.vertexShader}
+            `;
+            shader.vertexShader = shader.vertexShader.replace(
+              "#include <begin_vertex>",
+              `
+              #include <begin_vertex>
+              // Height factor: 0 at root (position.y = 0), 1 at tip (position.y = 0.85)
+              float hFactor = clamp(position.y / 0.85, 0.0, 1.0);
+              float windWave = sin(uTime * 3.2 + instanceMatrix[3][0] * 0.7 + instanceMatrix[3][2] * 0.7);
+              float windGust = cos(uTime * 1.8 + instanceMatrix[3][0] * 1.3);
+              transformed.x += (windWave * 0.32 + windGust * 0.18) * hFactor;
+              transformed.z += (sin(uTime * 2.5 + instanceMatrix[3][2] * 1.1) * 0.22) * hFactor;
+              `,
+            );
+          };
           const mesh = new THREE.InstancedMesh(geo, mat, spots.length * 2);
           mesh.castShadow = false;
           mesh.receiveShadow = true;
@@ -14550,50 +14577,25 @@ function SkyblockPastedHud({
             </span>
           </div>
 
-          {/* Grey Player Stats Pill: Heart 20/20, Hunger 20/20 & Coins */}
+          {/* Grey Player Purse Star Coins Display */}
           <div
-            className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
+            className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
             style={{
               background: "rgba(28, 28, 32, 0.88)",
               border: "2px solid rgba(12, 12, 14, 0.95)",
               fontFamily:
                 '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             }}
-            title="Player Stats"
+            title="Purse Star Coins"
           >
-            {/* Heart 20/20 */}
-            <div className="flex items-center gap-1">
-              <span className="text-[13px] leading-none">❤️</span>
-              <span
-                className="text-[12px] font-bold text-red-400 font-mono tracking-tight leading-none"
-                style={{
-                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                }}
-              >
-                20/20
-              </span>
-            </div>
-
-            <div className="h-3 w-[1px] bg-white/20" />
-
-            {/* Hunger 20/20 */}
-            <div className="flex items-center gap-1">
-              <span className="text-[13px] leading-none">🍖</span>
-              <span
-                className="text-[12px] font-bold text-amber-500 font-mono tracking-tight leading-none"
-                style={{
-                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                }}
-              >
-                20/20
-              </span>
-            </div>
-
-            <div className="h-3 w-[1px] bg-white/20" />
-
-            {/* Purse Coins */}
-            <div className="flex items-center gap-1">
-              <span className="text-[12px] leading-none">💰</span>
+            {/* Purse Coins with Star Bill Icon */}
+            <div className="flex items-center gap-1.5">
+              <img
+                src="https://maxwell.z3ki.dev/bot/_files/star-bill/DAC24FFC-3F66-4A8D-B5B0-73CEC1020A4D.png"
+                alt="Star Bill"
+                className="w-4.5 h-4.5 object-contain select-none pointer-events-none drop-shadow-sm"
+                draggable={false}
+              />
               <span
                 className="text-[12px] font-bold text-amber-400 font-mono tracking-tight leading-none"
                 style={{

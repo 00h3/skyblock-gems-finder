@@ -164,7 +164,47 @@ export function V2Hotbar({
   };
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] flex flex-col items-center justify-center px-2 scale-[0.78] origin-bottom">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-[max(5px,calc(env(safe-area-inset-bottom)+3px))] flex flex-col items-center justify-center px-2 scale-[0.78] origin-bottom gap-1.5">
+      {/* ── Player Health & Hunger Attached Directly on Top of Inventory Hotbar ── */}
+      <div
+        className="flex items-center gap-2.5 px-3 py-1 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] select-none pointer-events-auto"
+        style={{
+          background: "rgba(28, 28, 32, 0.92)",
+          border: "2px solid rgba(12, 12, 14, 0.95)",
+          fontFamily:
+            '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}
+        title="Player Health & Hunger"
+      >
+        {/* Heart 20/20 */}
+        <div className="flex items-center gap-1">
+          <span className="text-[13px] leading-none">❤️</span>
+          <span
+            className="text-[12px] font-bold text-red-400 font-mono tracking-tight leading-none"
+            style={{
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+            }}
+          >
+            20/20
+          </span>
+        </div>
+
+        <div className="h-3 w-[1px] bg-white/20" />
+
+        {/* Hunger 20/20 */}
+        <div className="flex items-center gap-1">
+          <span className="text-[13px] leading-none">🍖</span>
+          <span
+            className="text-[12px] font-bold text-amber-500 font-mono tracking-tight leading-none"
+            style={{
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+            }}
+          >
+            20/20
+          </span>
+        </div>
+      </div>
+
       <div
         role="toolbar"
         aria-label="Inventory"

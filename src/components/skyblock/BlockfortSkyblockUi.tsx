@@ -10,6 +10,7 @@ import {
   type DailyQuest,
 } from "@/lib/skyblock-economy";
 import { useCurrency, spendCurrency, addCurrency } from "@/lib/currency";
+import { STAR_BILL_ICON } from "@/components/CurrencyPills";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, limit } from "firebase/firestore";
@@ -782,65 +783,7 @@ export function BlockfortSkyblockUi({
 
   return (
     <>
-      {/* ── TOP RIGHT: Grey Stats Badge (Health 20/20, Hunger 20/20 & Coins) ─── */}
-      {!hideHudButtons && (
-        <div className="fixed right-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] z-40 pointer-events-auto select-none flex items-center gap-2">
-          <div
-            onClick={() => setShopOpen(true)}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
-            style={{
-              background: "rgba(28, 28, 32, 0.88)",
-              border: "2px solid rgba(12, 12, 14, 0.95)",
-              fontFamily:
-                '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-            title="Player Stats (Click to open shop)"
-          >
-            {/* Heart / Health 20/20 */}
-            <div className="flex items-center gap-1">
-              <span className="text-[13px] leading-none">❤️</span>
-              <span
-                className="text-[12px] font-bold text-red-400 font-mono tracking-tight leading-none"
-                style={{
-                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                }}
-              >
-                20/20
-              </span>
-            </div>
-
-            <div className="h-3 w-[1px] bg-white/20" />
-
-            {/* Hunger 20/20 */}
-            <div className="flex items-center gap-1">
-              <span className="text-[13px] leading-none">🍖</span>
-              <span
-                className="text-[12px] font-bold text-amber-500 font-mono tracking-tight leading-none"
-                style={{
-                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                }}
-              >
-                20/20
-              </span>
-            </div>
-
-            <div className="h-3 w-[1px] bg-white/20" />
-
-            {/* Coins */}
-            <div className="flex items-center gap-1">
-              <span className="text-[12px] leading-none">💰</span>
-              <span
-                className="text-[12px] font-bold text-amber-400 font-mono tracking-tight leading-none"
-                style={{
-                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                }}
-              >
-                {(econ.purse || 0).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── TOP RIGHT: (Stats pill moved to top of inventory hotbar per user request) ─── */}
 
       {/* ── RIGHT: Menu Toggle Button positioned further down ─── */}
       {!hideHudButtons && (
@@ -1135,7 +1078,12 @@ export function BlockfortSkyblockUi({
                       <b className="font-semibold">{selectedTier.boundary}x{selectedTier.boundary}</b>
                     </div>
                     <div className="bf-row">
-                      <span className="bf-icon bf-icon--coin" />
+                      <img
+                        src={STAR_BILL_ICON}
+                        alt="Star Coin"
+                        className="w-4.5 h-4.5 object-contain inline-block drop-shadow-sm select-none pointer-events-none"
+                        draggable={false}
+                      />
                       <span className="bf-row__grow text-[13.5px]">Upgrade Cost</span>
                       <b className={`font-semibold ${realBalance < selectedTier.cost && isSelectedTierNext ? "text-red-600" : ""}`}>
                         {selectedTier.cost === 0 ? "Unlocked" : `${selectedTier.cost.toLocaleString()} Coins`}
@@ -1301,7 +1249,12 @@ export function BlockfortSkyblockUi({
 
                     <div className="flex flex-col items-center mb-2 gap-1.5">
                       <div className="inline-flex items-center gap-1.5 text-[18px] font-black text-amber-900">
-                        <i className="bf-icon bf-icon--coin" />
+                        <img
+                          src={STAR_BILL_ICON}
+                          alt="Star Coin"
+                          className="w-5 h-5 object-contain inline-block drop-shadow-sm select-none pointer-events-none"
+                          draggable={false}
+                        />
                         <span className={realBalance < selectedShopItem.cost ? "text-red-600" : ""}>
                           {selectedShopItem.cost.toLocaleString()}
                         </span>
@@ -1391,7 +1344,12 @@ export function BlockfortSkyblockUi({
                             isDone ? "opacity-60 grayscale" : ""
                           } ${isToday ? "is-selected" : ""}`}
                         >
-                          <i className="bf-icon bf-icon--coin" />
+                          <img
+                            src={STAR_BILL_ICON}
+                            alt="Star Coin"
+                            className="w-5 h-5 object-contain select-none pointer-events-none drop-shadow-sm"
+                            draggable={false}
+                          />
                           <span className="text-[11px] tabular-nums mt-0.5">+{reward}</span>
                           <span className="text-[9px] text-amber-200">Day {i + 1}</span>
                         </div>
@@ -1521,8 +1479,13 @@ export function BlockfortSkyblockUi({
                         </div>
 
                         <div className="flex items-center gap-2.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <span className="inline-flex items-center gap-1 font-black text-amber-900 text-[14px]">
-                            <i className="bf-icon bf-icon--coin" />
+                          <span className="inline-flex items-center gap-1.5 font-black text-amber-900 text-[14px]">
+                            <img
+                              src={STAR_BILL_ICON}
+                              alt="Star Coin"
+                              className="w-4.5 h-4.5 object-contain inline-block drop-shadow-sm select-none pointer-events-none"
+                              draggable={false}
+                            />
                             +{q.reward}
                           </span>
                           <button

@@ -27,52 +27,10 @@ async function getAudioBuffer(): Promise<AudioBuffer | null> {
 }
 
 export function playButtonHitSound() {
-  try {
-    const ctx = audioCtx || new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    audioCtx = ctx;
-    if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {});
-    }
-
-    if (audioBuffer) {
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 0.65;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      source.start(0);
-      return;
-    }
-
-    // Fallback using HTMLAudioElement if WebAudio buffer is still loading
-    const audio = new Audio(BUTTON_HIT_URL);
-    audio.volume = 0.65;
-    audio.play().catch(() => {});
-    // Pre-fetch WebAudio buffer for subsequent clicks
-    void getAudioBuffer();
-  } catch {
-    // Fail silently
-  }
+  // Silenced per user request: "don’t make app has that click sound neither spas or jump"
 }
 
-// Global click event handler for all button interactions across the app
-let listenerAttached = false;
+// Global click event handler silenced per user request
 export function initButtonSoundListener() {
-  if (listenerAttached || typeof window === "undefined") return;
-  listenerAttached = true;
-
-  // Pre-load audio buffer
-  void getAudioBuffer();
-
-  const handlePointerDown = (e: MouseEvent | TouchEvent) => {
-    const target = e.target as HTMLElement | null;
-    if (!target) return;
-    const btn = target.closest('button, [role="button"], input[type="button"], input[type="submit"], .btn, .press');
-    if (btn) {
-      playButtonHitSound();
-    }
-  };
-
-  window.addEventListener("pointerdown", handlePointerDown, { capture: true, passive: true });
+  // No-op
 }

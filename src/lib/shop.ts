@@ -6,7 +6,7 @@
  * localStorage; purchases spend the shared currency store.
  */
 import { useEffect, useState } from "react";
-import { GOLDEN_COINS_ICON, PINK_GEM_ICON } from "@/components/CurrencyPills";
+import { GOLDEN_COINS_ICON, PINK_GEM_ICON, STAR_BILL_ICON } from "@/components/CurrencyPills";
 import type { CurrencyKey } from "@/lib/currency";
 import { getFragmentState, useFragments } from "@/lib/fragments";
 
@@ -40,7 +40,7 @@ export const CURRENCY_ICON: Record<CurrencyKey, string> = {
   gold: GOLDEN_COINS_ICON,
   gems: PINK_GEM_ICON,
   pinkCube: PINK_GEM_ICON,
-  starCoins: GOLDEN_COINS_ICON,
+  starCoins: STAR_BILL_ICON,
 };
 
 export const CURRENCY_LABEL: Record<CurrencyKey, string> = {
