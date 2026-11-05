@@ -3533,21 +3533,41 @@ function EngineGame({
       }
 
       function addBlock(x: number, y: number, z: number, type: number) {
+        // Enforce Grass Rule: Grass (type 0) can ONLY exist on top of dirt blocks (type 1).
+        // It disappears/reverts to dirt (type 1) on gold blocks (type 30) or any non-dirt blocks!
+        let targetType = type;
+        if (targetType === 0) {
+          const under = blocks.get(key(x, y - 1, z));
+          if (under && "type" in under && under.type !== 1) {
+            targetType = 1; // convert to dirt!
+          }
+        } else if (targetType !== 1) {
+          // If placing a non-dirt block, convert any grass block directly above it to dirt
+          const aboveKey = key(x, y + 1, z);
+          const above = blocks.get(aboveKey);
+          if (above && "type" in above && above.type === 0) {
+            setTimeout(() => {
+              removeBlock(x, y + 1, z);
+              addBlock(x, y + 1, z, 1);
+            }, 0);
+          }
+        }
+
         const k = key(x, y, z);
         if (blocks.has(k)) return;
-        if (type === 6) {
+        if (targetType === 6) {
           // Water: no mesh — shader plane handles it visually.
-          blocks.set(k, { type });
+          blocks.set(k, { type: targetType });
           return;
         }
-        if (isTransparentType(type)) {
-          const mesh = new THREE.Mesh(blockGeo, matForType(type));
+        if (isTransparentType(targetType)) {
+          const mesh = new THREE.Mesh(blockGeo, matForType(targetType));
           mesh.position.set(x, y, z);
           mesh.castShadow = false;
           mesh.receiveShadow = true;
           scene.add(mesh);
           transparentMeshes.add(mesh);
-          blocks.set(k, { type, mesh });
+          blocks.set(k, { type: targetType, mesh });
           if (!_worldGenPhase) {
             // Transparent blocks can occlude neighbours (they are solid for culling)
             for (const [dx, dy, dz] of DIRS6) checkOcclusion(x + dx, y + dy, z + dz);
@@ -3557,15 +3577,15 @@ function EngineGame({
         }
         // Occlusion culling: if this solid block is already fully surrounded,
         // record it as hidden — don't waste an InstancedMesh slot on it.
-        if (!_worldGenPhase && isOccluder(type) && isFullyOccluded(x, y, z)) {
-          blocks.set(k, { type, hidden: true } as { type: number; hidden: true });
+        if (!_worldGenPhase && isOccluder(targetType) && isFullyOccluded(x, y, z)) {
+          blocks.set(k, { type: targetType, hidden: true } as { type: number; hidden: true });
           // This new block may cause its neighbours to become occluded too
           for (const [dx, dy, dz] of DIRS6) checkOcclusion(x + dx, y + dy, z + dz);
           _invalidateShadows();
           return;
         }
-        const g = ensureGroup(type);
-        if (g.count >= g.capacity) growGroup(g, type);
+        const g = ensureGroup(targetType);
+        if (g.count >= g.capacity) growGroup(g, targetType);
         const idx = g.count;
         dummyObj.position.set(x, y, z);
         dummyObj.rotation.set(0, 0, 0);
@@ -3577,15 +3597,15 @@ function EngineGame({
         g.posToIndex.set(k, idx);
         g.indexToPos.set(idx, k);
         g.count = idx + 1;
-        blocks.set(k, { type, index: idx });
+        blocks.set(k, { type: targetType, index: idx });
         if (!_worldGenPhase) {
           // New solid block may push neighbours into being fully occluded
-          if (isOccluder(type)) {
+          if (isOccluder(targetType)) {
             for (const [dx, dy, dz] of DIRS6) checkOcclusion(x + dx, y + dy, z + dz);
           }
           _invalidateShadows();
           if (isSkyblock) {
-            persistBlockChange(currentSkyblockIslandId, x, y, z, type);
+            persistBlockChange(currentSkyblockIslandId, x, y, z, targetType);
           }
         }
       }
@@ -7857,40 +7877,54 @@ function EngineGame({
       const poppedBlockPieces: PoppedBlockPiece[] = [];
       const poppedChunkGeo = new THREE.BoxGeometry(0.38, 0.38, 0.38);
 
-      function spawnPoppedBlockPiece(x: number, y: number, z: number, blockType: number) {
-        try {
-          const mat = matForType(blockType >= 0 ? blockType : 2);
-          const piece = new THREE.Mesh(poppedChunkGeo, mat);
-          piece.castShadow = true;
-          piece.receiveShadow = false;
-          piece.position.set(x, y + 0.1, z);
-          scene.add(piece);
+      // 3D Popped block chunks removed per user request (replaced with white highlight + 2D crack overlay)
+      function spawnPoppedBlockPiece(_x: number, _y: number, _z: number, _blockType: number) {
+        return;
+      }
 
-          const dx = playerPos.x - x;
-          const dz = playerPos.z - z;
-          const dist = Math.hypot(dx, dz) || 1;
-          const pushX = dx / dist;
-          const pushZ = dz / dist;
+      // ── 3D Chest GLB Model & Rotation Shake Animation System ───────────────
+      const CHEST_GLB_URL = "https://file.garden/alGOOylwpAfCa6qP/chest.glb";
+      let chestModelTemplate: THREE.Object3D | null = null;
+      type ShakingChest = { mesh: THREE.Object3D; start: number; dur: number; origRotY: number };
+      const shakingChests: ShakingChest[] = [];
 
-          poppedBlockPieces.push({
-            mesh: piece,
-            x,
-            y: y + 0.1,
-            z,
-            vx: pushX * 1.8 + (Math.random() - 0.5) * 1.5,
-            vy: 3.5 + Math.random() * 1.5,
-            vz: pushZ * 1.8 + (Math.random() - 0.5) * 1.5,
-            rx: Math.random() * Math.PI,
-            ry: Math.random() * Math.PI,
-            rz: Math.random() * Math.PI,
-            rvx: (Math.random() - 0.5) * 9,
-            rvy: (Math.random() - 0.5) * 9,
-            rvz: (Math.random() - 0.5) * 9,
-            scale: 1.0,
-            born: performance.now(),
-            lifetime: 1400,
+      new GLTFLoader().load(
+        CHEST_GLB_URL,
+        (gltf) => {
+          chestModelTemplate = gltf.scene;
+          const bbox = new THREE.Box3().setFromObject(chestModelTemplate);
+          const sz = bbox.getSize(new THREE.Vector3());
+          const ctr = bbox.getCenter(new THREE.Vector3());
+          const scale = 1.0 / Math.max(sz.x, sz.y, sz.z, 0.001);
+          chestModelTemplate.scale.setScalar(scale);
+          chestModelTemplate.position.sub(ctr.clone().multiplyScalar(scale));
+          chestModelTemplate.traverse((ch) => {
+            if ((ch as THREE.Mesh).isMesh) {
+              ch.castShadow = true;
+              ch.receiveShadow = true;
+            }
           });
+        },
+        undefined,
+        (err) => console.warn("Could not load 3D chest.glb:", err),
+      );
+
+      function triggerChestShakeAndOpen(chestMesh?: THREE.Object3D | null) {
+        playButtonHitSound();
+        try {
+          GameAudio.playPop();
         } catch {}
+        if (chestMesh) {
+          shakingChests.push({
+            mesh: chestMesh,
+            start: performance.now(),
+            dur: 380,
+            origRotY: chestMesh.rotation.y,
+          });
+        }
+        setTimeout(() => {
+          setChestOpen(true);
+        }, 120);
       }
 
       // ─��� Tree Physics & Falling Blocks System ──────────────────────────────
@@ -8378,6 +8412,13 @@ function EngineGame({
         const { hit, normal, position } = getTargetBlock(true);
         if (!hit || !normal || !position) return;
         const p = position;
+        // Check if tapping a chest (block type 22) -> trigger rotation shake animation & open Manor Chest
+        const clickedBlock = blocks.get(key(p.x, p.y, p.z));
+        if (clickedBlock && "type" in clickedBlock && clickedBlock.type === 22) {
+          triggerChestShakeAndOpen(hit?.object || null);
+          return;
+        }
+
         const nx = p.x + Math.round(normal.x);
         const ny = p.y + Math.round(normal.y);
         const nz = p.z + Math.round(normal.z);
@@ -10354,13 +10395,14 @@ function EngineGame({
 
                 // Real progressive breaking crack textures
                 const stage = Math.min(9, Math.floor(pct * 10));
+                breakMat.color.setHex(0xffffff);
                 if (crackTextures[stage]) {
                   breakMat.map = crackTextures[stage];
-                  breakMat.opacity = 0.95;
+                  breakMat.opacity = 0.85 + 0.15 * pct;
                   breakMat.transparent = true;
                   breakMat.needsUpdate = true;
                 } else {
-                  breakMat.opacity = 0.15 + 0.55 * pct;
+                  breakMat.opacity = 0.45 + 0.45 * pct;
                 }
 
                 // Rhythmic hit sounds during breaking for satisfying game feel
@@ -10437,9 +10479,33 @@ function EngineGame({
           } else {
             // Idle: gentle head bob
             (a.head as THREE.Mesh).rotation.x = Math.sin(now * 0.0008 + a.walkPhase) * 0.1;
-            // Settle back to home Y
-            a.group.position.y += (a.home.y - a.group.position.y) * Math.min(1, dt * 5);
           }
+        }
+
+        // ── Animate Shaking 3D Chests on Open ──
+        const nowPerf = performance.now();
+        for (let sci = shakingChests.length - 1; sci >= 0; sci--) {
+          const sc = shakingChests[sci];
+          const elapsed = nowPerf - sc.start;
+          if (elapsed >= sc.dur) {
+            sc.mesh.rotation.y = sc.origRotY;
+            sc.mesh.rotation.z = 0;
+            shakingChests.splice(sci, 1);
+          } else {
+            const progress = elapsed / sc.dur;
+            const decay = 1 - progress;
+            const shakeYaw = Math.sin(elapsed * 0.04) * 0.28 * decay;
+            const shakeRoll = Math.sin(elapsed * 0.05) * 0.18 * decay;
+            sc.mesh.rotation.y = sc.origRotY + shakeYaw;
+            sc.mesh.rotation.z = shakeRoll;
+          }
+        }
+
+        // ── Animated Grass Wind-Sway ──
+        const grassWindTime = now * 0.003;
+        for (const dm of decorMeshes) {
+          dm.rotation.y = Math.sin(grassWindTime + dm.position.x * 0.5) * 0.08;
+          dm.rotation.z = Math.cos(grassWindTime * 1.2 + dm.position.z * 0.5) * 0.05;
         }
 
         // ── Animate White Block Break Flashes (0.1s duration, matte non-glossy) ──
@@ -10576,7 +10642,8 @@ function EngineGame({
       // never shows up in raycasting/mining and can't desync world state.
       // (Known tradeoff: mining the grass block underneath leaves the tuft
       // floating rather than popping it off — acceptable for a first pass.)
-      if (!isSkyblock) {
+      const enableFoliage = Boolean(blocks.size >= 0);
+      if (enableFoliage) {
         type DecorSpot = { x: number; y: number; z: number };
         const spotsByVariant: DecorSpot[][] = [[], [], [], []]; // tuft-a, tuft-b, flower-yellow, flower-pink
         for (const [k, b] of blocks) {

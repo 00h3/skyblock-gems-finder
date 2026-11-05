@@ -782,28 +782,62 @@ export function BlockfortSkyblockUi({
 
   return (
     <>
-      {/* ── TOP RIGHT: Single in-game currency perfectly on top (No icon, separate count) ─── */}
+      {/* ── TOP RIGHT: Grey Stats Badge (Health 20/20, Hunger 20/20 & Coins) ─── */}
       {!hideHudButtons && (
-        <div className="fixed right-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] z-40 pointer-events-auto select-none">
+        <div className="fixed right-3 top-[max(10px,calc(env(safe-area-inset-top)+6px))] z-40 pointer-events-auto select-none flex items-center gap-2">
           <div
             onClick={() => setShopOpen(true)}
-            className="flex items-center px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
             style={{
               background: "rgba(28, 28, 32, 0.88)",
               border: "2px solid rgba(12, 12, 14, 0.95)",
               fontFamily:
                 '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             }}
-            title="In-Game Coins (Click to open shop)"
+            title="Player Stats (Click to open shop)"
           >
-            <span
-              className="text-[12px] font-bold text-amber-400 font-mono tracking-tight leading-none"
-              style={{
-                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-              }}
-            >
-              {(econ.purse || 0).toLocaleString()}
-            </span>
+            {/* Heart / Health 20/20 */}
+            <div className="flex items-center gap-1">
+              <span className="text-[13px] leading-none">❤️</span>
+              <span
+                className="text-[12px] font-bold text-red-400 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                20/20
+              </span>
+            </div>
+
+            <div className="h-3 w-[1px] bg-white/20" />
+
+            {/* Hunger 20/20 */}
+            <div className="flex items-center gap-1">
+              <span className="text-[13px] leading-none">🍖</span>
+              <span
+                className="text-[12px] font-bold text-amber-500 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                20/20
+              </span>
+            </div>
+
+            <div className="h-3 w-[1px] bg-white/20" />
+
+            {/* Coins */}
+            <div className="flex items-center gap-1">
+              <span className="text-[12px] leading-none">💰</span>
+              <span
+                className="text-[12px] font-bold text-amber-400 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                {(econ.purse || 0).toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
       )}

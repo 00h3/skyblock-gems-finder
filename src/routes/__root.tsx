@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from "../lib/auth-context";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { initTheme } from "../lib/ui-bus";
+import { initButtonSoundListener } from "../lib/button-audio";
 import {
   initAvatarColor,
   initHairColor,
@@ -593,6 +594,7 @@ function RootComponent() {
     initBandana();
     initCurrency();
     initShop();
+    initButtonSoundListener();
 
     // Daily Days active time tracker
     const timer = setInterval(() => {
