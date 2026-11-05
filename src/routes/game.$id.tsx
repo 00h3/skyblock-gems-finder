@@ -3560,6 +3560,24 @@ function EngineGame({
           blocks.set(k, { type: targetType });
           return;
         }
+        if (targetType === 22) {
+          // 3D Animated GLTF Chest Model (https://file.garden/alGOOylwpAfCa6qP/chest.glb)
+          let chestMesh: THREE.Object3D;
+          if (chestModelTemplate) {
+            chestMesh = chestModelTemplate.clone(true);
+            chestMesh.position.set(x, y - 0.5, z);
+          } else {
+            // Fallback while GLB loads
+            chestMesh = new THREE.Mesh(blockGeo, matForType(22));
+            chestMesh.position.set(x, y, z);
+          }
+          chestMesh.castShadow = true;
+          chestMesh.receiveShadow = true;
+          scene.add(chestMesh);
+          transparentMeshes.add(chestMesh as THREE.Mesh);
+          blocks.set(k, { type: targetType, mesh: chestMesh as THREE.Mesh });
+          return;
+        }
         if (isTransparentType(targetType)) {
           const mesh = new THREE.Mesh(blockGeo, matForType(targetType));
           mesh.position.set(x, y, z);
@@ -7908,6 +7926,19 @@ function EngineGame({
               ch.receiveShadow = true;
             }
           });
+          // Replace any existing placeholder chests in the scene with 3D model
+          for (const [k, b] of blocks) {
+            if (b && "type" in b && b.type === 22 && "mesh" in b && b.mesh) {
+              const [px, py, pz] = k.split(",").map(Number);
+              scene.remove(b.mesh);
+              transparentMeshes.delete(b.mesh);
+              const clone = chestModelTemplate.clone(true);
+              clone.position.set(px, py - 0.5, pz);
+              scene.add(clone);
+              transparentMeshes.add(clone as THREE.Mesh);
+              b.mesh = clone as THREE.Mesh;
+            }
+          }
         },
         undefined,
         (err) => console.warn("Could not load 3D chest.glb:", err),
