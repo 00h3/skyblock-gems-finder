@@ -4493,6 +4493,9 @@ function EngineGame({
               }
             }
 
+            // Place Starter Manor Chest on island (block type 22)
+            addBlock(3, treeBaseY, 2, 22);
+
             runOcclusionPass();
             if (isSkyblock) {
               getOrCreateIsland(
@@ -4534,6 +4537,7 @@ function EngineGame({
                 addBlock(dx, 2, dz, 2);
                 addBlock(dx, 3, dz, 0);
               }
+            addBlock(3, 4, 2, 22); // Starter Manor Chest
             runOcclusionPass();
             if (isSkyblock) {
               getOrCreateIsland(
@@ -14364,13 +14368,8 @@ function SkyblockPastedHud({
   const { purseCoins, bankCoins } = useSkyblockEconomy();
 
   const effectiveHotbar = hotbarBlockIds || [0, 1, 2, 3, 15];
-  const currentBlockId = typeof activeSlot === "number" ? activeSlot : selectedSlot;
-
-  const handleCycleBlock = () => {
-    const nextIdx = (currentBlockId + 1) % BLOCKS.length;
-    setSelectedSlot(nextIdx);
-    onSelectSlot?.(nextIdx);
-  };
+  void effectiveHotbar;
+  void selectedSlot;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between p-2 md:p-4 select-none overflow-hidden font-sans">
@@ -14520,25 +14519,64 @@ function SkyblockPastedHud({
             </span>
           </div>
 
-          <div className="pointer-events-auto flex items-center gap-2 bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-400/40 shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
-            <div className="flex items-center gap-1.5">
-              <img src={goldTokenIcon} alt="Purse Coins" className="w-4 h-4 object-contain shrink-0" />
-              <span className="text-[11px] font-black text-amber-300 font-mono tabular-nums">
-                {purseCoins.toLocaleString()}
+          {/* Grey Player Stats Pill: Heart 20/20, Hunger 20/20 & Coins */}
+          <div
+            className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-transform active:scale-95 hover:brightness-105"
+            style={{
+              background: "rgba(28, 28, 32, 0.88)",
+              border: "2px solid rgba(12, 12, 14, 0.95)",
+              fontFamily:
+                '"InterDisplay", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}
+            title="Player Stats"
+          >
+            {/* Heart 20/20 */}
+            <div className="flex items-center gap-1">
+              <span className="text-[13px] leading-none">❤️</span>
+              <span
+                className="text-[12px] font-bold text-red-400 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                20/20
               </span>
             </div>
-            <div className="w-[1px] h-3.5 bg-white/20" />
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-extrabold text-emerald-400 font-mono uppercase tracking-wider">BANK:</span>
-              <span className="text-[11px] font-black text-emerald-300 font-mono tabular-nums">
-                {bankCoins.toLocaleString()}
+
+            <div className="h-3 w-[1px] bg-white/20" />
+
+            {/* Hunger 20/20 */}
+            <div className="flex items-center gap-1">
+              <span className="text-[13px] leading-none">🍖</span>
+              <span
+                className="text-[12px] font-bold text-amber-500 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                20/20
+              </span>
+            </div>
+
+            <div className="h-3 w-[1px] bg-white/20" />
+
+            {/* Purse Coins */}
+            <div className="flex items-center gap-1">
+              <span className="text-[12px] leading-none">💰</span>
+              <span
+                className="text-[12px] font-bold text-amber-400 font-mono tracking-tight leading-none"
+                style={{
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                {purseCoins.toLocaleString()}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── BOTTOM ACTION BAR (Action Bar Banner + Grey Login Style Block Switcher) ── */}
+      {/* ── BOTTOM ACTION BAR (Clean Banner Without Block Info Button) ── */}
       <div className="pointer-events-auto flex items-center justify-center pb-2 z-20">
         <div className="flex items-center gap-2.5 bg-black/45 backdrop-blur-md p-1.5 px-3 rounded-2xl border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
           <img
@@ -14547,27 +14585,6 @@ function SkyblockPastedHud({
             className="h-10 sm:h-12 w-auto object-contain drop-shadow-md select-none pointer-events-none"
             draggable={false}
           />
-          <button
-            type="button"
-            onPointerDown={(e) => {
-              e.preventDefault();
-              handleCycleBlock();
-            }}
-            className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] flex items-center gap-2 text-white font-bold active:scale-95 transition-transform cursor-pointer select-none"
-            title="Click to change block"
-            aria-label="Change Block"
-          >
-            <div
-              className="w-5 h-5 rounded-md border border-white/40 shadow-inner flex items-center justify-center shrink-0"
-              style={{
-                background: `#${(BLOCKS[currentBlockId]?.color ?? 0x8eb86f).toString(16).padStart(6, "0")}`,
-              }}
-            />
-            <span className="text-[12px] font-extrabold capitalize text-zinc-100 tracking-wide">
-              {BLOCKS[currentBlockId]?.name ?? "Block"}
-            </span>
-            <RefreshCw className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-          </button>
         </div>
       </div>
     </div>
