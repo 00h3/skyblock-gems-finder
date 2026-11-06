@@ -1460,12 +1460,12 @@ const SWORD_MODELS: Record<string, string> = {
 };
 
 export const SWORD_STATS: Record<string, SwordStats> = {
-  fist: { damage: 1, knockback: 3.2, cooldown: 0.3, reach: 3.4, slash: 0xffffff },
-  short_sword: { damage: 4, knockback: 4.6, cooldown: 0.5, reach: 4.2, slash: 0xe8d3a8 },
-  gold_sword: { damage: 5, knockback: 5.4, cooldown: 0.36, reach: 4.3, slash: 0xffc94a },
-  iron_sword: { damage: 6, knockback: 6.2, cooldown: 0.46, reach: 4.5, slash: 0xdfe8f2 },
-  diamond_sword: { damage: 7, knockback: 7.2, cooldown: 0.52, reach: 4.7, slash: 0x5ff2ff },
-  dark_magic_staff: { damage: 8, knockback: 5.5, cooldown: 0.35, reach: 24, slash: 0xff5500 },
+  fist: { damage: 1, knockback: 3.2, cooldown: 0.20, reach: 3.6, slash: 0xffffff },
+  short_sword: { damage: 4, knockback: 4.6, cooldown: 0.25, reach: 4.2, slash: 0xe8d3a8 },
+  gold_sword: { damage: 5, knockback: 5.4, cooldown: 0.22, reach: 4.3, slash: 0xffc94a },
+  iron_sword: { damage: 6, knockback: 6.2, cooldown: 0.26, reach: 4.5, slash: 0xdfe8f2 },
+  diamond_sword: { damage: 7, knockback: 7.2, cooldown: 0.28, reach: 4.7, slash: 0x5ff2ff },
+  dark_magic_staff: { damage: 8, knockback: 5.5, cooldown: 0.28, reach: 24, slash: 0xff5500 },
 };
 
 function normalizeShowcaseModel(model: THREE.Object3D, targetHeight: number) {
@@ -2714,9 +2714,9 @@ export function SandboxGame({
       camera.add(heldRig);
       scene.add(camera);
       const heldBasePose = {
-        hand: { px: 0.45, py: -0.27, pz: -0.45, rx: -0.24, ry: 0.35, rz: -0.10 },
-        block: { px: 0.39, py: -0.25, pz: -0.60, rx: -0.25, ry: 0.6, rz: 0.15 },
-        item: { px: 0.36, py: -0.36, pz: -0.42, rx: -0.12, ry: 0.2, rz: 0.08 },
+        hand: { px: 0.40, py: -0.24, pz: -0.38, rx: -0.24, ry: 0.35, rz: -0.10 },
+        block: { px: 0.32, py: -0.20, pz: -0.40, rx: -0.25, ry: 0.6, rz: 0.15 },
+        item: { px: 0.28, py: -0.24, pz: -0.30, rx: -0.12, ry: 0.18, rz: 0.08 },
       };
       let swing = 0;
       let placePulse = 0;
@@ -4637,16 +4637,34 @@ export function SandboxGame({
           }
         }
 
-        euler.set(input.pitch, input.yaw, 0);
+        const wishStrafe = input.strafe;
+        const targetRoll = -wishStrafe * 0.016;
+        euler.set(input.pitch, input.yaw, targetRoll);
         camera.quaternion.setFromEuler(euler);
-        const bobY = Math.sin(player.bob * 2) * 0.045;
-        const bobX = Math.cos(player.bob) * 0.03;
-        _eye.set(player.position.x + bobX * 0.3, player.eyeY + bobY, player.position.z);
+
+        // Subtle, rhythmic up-and-down camera bobbing on movement
+        const bobY = Math.sin(player.bob * 2) * 0.038;
+        const bobX = Math.cos(player.bob) * 0.022;
+
+        // Blockman GO signature engine feel: Landing recoil dip on footfall
+        let landDip = 0;
+        if (player.landedImpact > 2.0) {
+          landDip = Math.min(0.12, player.landedImpact * 0.010);
+        }
+        _eye.set(player.position.x + bobX * 0.3, player.eyeY + bobY - landDip, player.position.z);
         camera.position.copy(_eye);
 
-        // Third-person: Blockman GO framing centered on character torso at 3.3m
+        // Blockman GO Sprint FOV dynamic kick
+        const isSprinting = input.sprint && Math.hypot(player.velocity.x, player.velocity.z) > 4.5;
+        const targetFovBoost = isSprinting ? 3.5 : 0;
+        if (Math.abs(camera.fov - (baseFov + targetFovBoost)) > 0.05) {
+          camera.fov += (baseFov + targetFovBoost - camera.fov) * (1 - Math.exp(-12 * dt));
+          camera.updateProjectionMatrix();
+        }
+
+        // Third-person: Tactical Close-Proximity framing centered on character torso with up-down bob
         if (thirdRef.current) {
-          _pivot.set(player.position.x, player.position.y + 1.45, player.position.z);
+          _pivot.set(player.position.x, player.position.y + 1.45 + bobY * 0.5, player.position.z);
           rig.update(dt, camera, _pivot, world!);
         }
 
@@ -4892,7 +4910,7 @@ export function SandboxGame({
         }
 
         // held block placement + swing
-        swing = Math.max(0, swing - dt * (heldSword?.visible ? 5 : 4));
+        swing = Math.max(0, swing - dt * (heldSword?.visible ? 7.2 : 6.0));
         attackCd = Math.max(0, attackCd - dt);
         updateHitMe(dt);
         updateSwordFx(dt);
@@ -4918,7 +4936,7 @@ export function SandboxGame({
             : heldBasePose.block;
 
         if (heldHand.visible) {
-          // Punching hit animation for bare block hand per user request
+          // Punching hit animation for bare block hand
           heldRig.position.set(
             bp.px - sw * 0.12,
             bp.py + sw * 0.08 + bobY * 0.5,
@@ -4926,11 +4944,11 @@ export function SandboxGame({
           );
           heldRig.rotation.set(bp.rx - sw * 0.85, bp.ry - sw * 0.35, bp.rz + sw * 0.45);
         } else if (heldSword?.visible) {
-          // Diagonal slash: wind up high-right, cut down across to the left.
+          // Responsive diagonal slash with punchy forward thrust
           const arc = swing > 0 ? 1 - swing : 0;
           const cut = Math.sin(arc * Math.PI);
-          heldRig.position.set(bp.px - cut * 0.22, bp.py + (swing > 0.7 ? sw * 0.08 : -cut * 0.12) + bobY * 0.5, bp.pz - cut * 0.12);
-          heldRig.rotation.set(bp.rx - cut * 1.15, bp.ry + cut * 0.55, bp.rz + cut * 0.9);
+          heldRig.position.set(bp.px - cut * 0.24, bp.py + (swing > 0.7 ? sw * 0.10 : -cut * 0.14) + bobY * 0.5, bp.pz - cut * 0.18);
+          heldRig.rotation.set(bp.rx - cut * 1.25, bp.ry + cut * 0.65, bp.rz + cut * 1.05);
         } else {
           heldRig.position.set(bp.px - sw * 0.05, bp.py - sw * 0.1 + bobY * 0.5, bp.pz + sw * 0.08);
           heldRig.rotation.set(bp.rx - sw * 0.7, bp.ry, bp.rz + sw * 0.4);
@@ -5136,7 +5154,7 @@ export function SandboxGame({
         placeCd = Math.max(0, placeCd - dt);
         if (controls!.holding.place && placeCd === 0) {
           doPlace();
-          placeCd = 0.2;
+          placeCd = 0.18;
         }
 
         fx!.update(dt);

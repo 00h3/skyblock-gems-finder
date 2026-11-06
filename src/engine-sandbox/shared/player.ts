@@ -37,30 +37,30 @@ export type PhysicsProfile = {
 export const SANDBOX_PHYSICS: PhysicsProfile = {
   gravity: 28.5,
   fallGravityMul: 1.18,
-  jumpV: 9.6,
-  walk: 5.6,
-  sprint: 7.8,
-  crouch: 2.8,
-  accel: 88,
-  groundDamp: 17.0,
-  airDamp: 0.55,
-  airControl: 0.45,
-  sprintJumpBoost: 1.18,
+  jumpV: 9.5,
+  walk: 4.85,
+  sprint: 6.60,
+  crouch: 2.40,
+  accel: 145.0,
+  groundDamp: 24.0,
+  airDamp: 0.65,
+  airControl: 0.62,
+  sprintJumpBoost: 1.15,
 };
 
 /** Smooth, responsive and agile — built for silky Block Fall rounds. */
 export const COMPETITIVE_PHYSICS: PhysicsProfile = {
   gravity: 28.8,
   fallGravityMul: 1.2,
-  jumpV: 8.8,
-  walk: 4.8,
-  sprint: 6.1,
-  crouch: 2.3,
-  accel: 72,
-  groundDamp: 15.5,
+  jumpV: 9.2,
+  walk: 4.85,
+  sprint: 6.60,
+  crouch: 2.40,
+  accel: 130.0,
+  groundDamp: 22.0,
   airDamp: 0.65,
-  airControl: 0.45,
-  sprintJumpBoost: 1.08,
+  airControl: 0.60,
+  sprintJumpBoost: 1.10,
 };
 
 export type MoveInput = {
@@ -259,7 +259,7 @@ export class Player {
     }
 
     const horizontal = Math.hypot(this.velocity.x, this.velocity.z);
-    if (this.onGround && horizontal > 0.6) this.bob += dt * horizontal * 1.5;
+    if (this.onGround && horizontal > 0.6) this.bob += dt * horizontal * 1.8;
     else this.bob *= Math.exp(-8 * dt);
   }
 
@@ -284,11 +284,37 @@ export class Player {
     return false;
   }
 
+  private hasGroundUnder(pos: THREE.Vector3): boolean {
+    const half = (WIDTH - 0.04) / 2;
+    const minY = Math.floor(pos.y - 0.05);
+    if (minY < 0) return false;
+    const probes = [
+      { x: pos.x - half, z: pos.z - half },
+      { x: pos.x + half, z: pos.z - half },
+      { x: pos.x - half, z: pos.z + half },
+      { x: pos.x + half, z: pos.z + half },
+    ];
+    for (const p of probes) {
+      if (this.world.solid(Math.floor(p.x), minY, Math.floor(p.z))) return true;
+    }
+    return false;
+  }
+
   private moveAxis(axis: 0 | 1 | 2, amount: number) {
     if (amount === 0) return;
     const key = axis === 0 ? "x" : axis === 1 ? "y" : "z";
     const next = this._next.copy(this.position);
     next[key] += amount;
+
+    // Minecraft Sneak / Crouch Lock Edge Guard:
+    // When crouching on solid ground, prevent walking off ledges into empty air
+    if (axis !== 1 && this.isCrouching && this.onGround && !this.onLadder) {
+      if (!this.hasGroundUnder(next)) {
+        this.velocity[key] = 0;
+        return;
+      }
+    }
+
     if (!this.collides(next)) {
       this.position.copy(next);
       if (axis === 1) this.onGround = false;

@@ -236,15 +236,15 @@ export class DroppedItemManager {
       // Proximity check to player
       const dist = item.mesh.position.distanceTo(playerTarget);
 
-      // Magnet pull when near and cooldown expired
-      if (dist < 1.75 && item.pickupCooldown <= 0) {
-        const pullSpeed = Math.min(14, 18 / Math.max(0.2, dist));
+      // Minecraft item magnet pull when near and cooldown expired
+      if (dist < 2.5 && item.pickupCooldown <= 0) {
+        const pullSpeed = Math.min(16, 22 / Math.max(0.15, dist));
         item.pos.lerp(playerTarget, dt * pullSpeed);
         item.mesh.position.copy(item.pos);
       }
 
       // Pickup trigger
-      if (dist < 0.65 && item.pickupCooldown <= 0) {
+      if (dist < 0.75 && item.pickupCooldown <= 0) {
         // Collect into player inventory
         let accepted = true;
         if (onPickup) {

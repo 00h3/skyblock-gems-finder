@@ -6,41 +6,38 @@ import { raycastVoxel } from "./interact";
  * Mobile-tuned FOV: base 66°-70° for comfortable over-the-shoulder framing,
  * with subtle aspect adaptation so neither wide phones nor tablets feel distorted.
  */
-export function fovForAspect(aspect: number, _horizontalDeg = 90, baseTargetFov = 68): number {
+export function fovForAspect(aspect: number, _horizontalDeg = 90, baseTargetFov = 62): number {
   const target = Number.isFinite(baseTargetFov) && baseTargetFov >= 50 && baseTargetFov <= 95
     ? baseTargetFov
-    : 68;
-  const userScale = THREE.MathUtils.clamp(target / 68, 0.85, 1.35);
+    : 62;
+  const userScale = THREE.MathUtils.clamp(target / 62, 0.85, 1.35);
 
   if (aspect <= 0 || !Number.isFinite(aspect)) {
-    return THREE.MathUtils.clamp(68 * userScale, 60, 75);
+    return THREE.MathUtils.clamp(62 * userScale, 56, 72);
   }
 
   if (aspect >= 1.0) {
-    const wideBoost = aspect >= 1.9 ? 2.5 : aspect >= 1.6 ? 1.5 : 0.5;
-    const landscapeFov = (67 + wideBoost) * userScale;
-    return THREE.MathUtils.clamp(landscapeFov, 65, 75);
+    const wideBoost = aspect >= 1.9 ? 2.0 : aspect >= 1.6 ? 1.0 : 0.0;
+    const landscapeFov = (61 + wideBoost) * userScale;
+    return THREE.MathUtils.clamp(landscapeFov, 58, 72);
   }
 
-  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 6;
-  const portraitFov = (68 + portraitExpansion) * userScale;
-  return THREE.MathUtils.clamp(portraitFov, 66, 78);
+  const portraitExpansion = (1.0 - Math.max(0.4, aspect)) * 5;
+  const portraitFov = (62 + portraitExpansion) * userScale;
+  return THREE.MathUtils.clamp(portraitFov, 60, 74);
 }
 
 /**
- * Blockman GO style Over-The-Shoulder Third Person Rig:
- * - Tight distance (2.2m - 2.6m) so avatar skins and feet are clearly visible
- * - Lateral right-shoulder offset (+0.38m) keeping reticle line-of-sight clear
- * - Pitch-based lift and forward lerp when looking down (bridging assist)
- * - Multi-ray SphereCast clipping (radius ~0.18m) preventing wall clipping
- * - Alpha fade factor when camera is pushed closer than 0.85m to character
- * - Snappy rotation with spring-damped position translation
+ * Tactical Close-Proximity Third Person Rig:
+ * - Tight distance (~2.25m) so blocks, voxel builds and avatar are close to the camera
+ * - Centered framing with responsive vertical/horizontal tracking
+ * - SphereCast block clipping prevention
  */
 export class ThirdPersonRig {
-  /** Target distance behind the player (Blockman GO signature: 3.3m) */
-  distance = 3.3;
-  minDistance = 0.65;
-  /** Lateral offset: centered directly behind player like Blockman GO */
+  /** Target distance behind the player: 2.25m (blocks closer to camera) */
+  distance = 2.25;
+  minDistance = 0.50;
+  /** Lateral offset: centered directly behind player */
   lateralOffset = 0.0;
 
   /** Player model opacity fade factor: 1.0 (fully opaque) to 0.0 (transparent) */
@@ -48,7 +45,7 @@ export class ThirdPersonRig {
 
   private pivot = new THREE.Vector3();
   private initialized = false;
-  private currentDistance = 2.4;
+  private currentDistance = 2.0;
   private _back = new THREE.Vector3();
   private _right = new THREE.Vector3();
   private _up = new THREE.Vector3();
@@ -69,9 +66,9 @@ export class ThirdPersonRig {
   ) {
     if (!this.initialized) this.snap(target);
 
-    // Spring position damping for translation so jumps don't violently jerk the screen
-    const followXZ = 1 - Math.exp(-24 * dt);
-    const followY = 1 - Math.exp(-15 * dt);
+    // Responsive spring position damping so camera moves crisply without floaty lag
+    const followXZ = 1 - Math.exp(-38 * dt);
+    const followY = 1 - Math.exp(-32 * dt);
     this.pivot.x += (target.x - this.pivot.x) * followXZ;
     this.pivot.z += (target.z - this.pivot.z) * followXZ;
     this.pivot.y += (target.y - this.pivot.y) * followY;
@@ -87,11 +84,10 @@ export class ThirdPersonRig {
 
     // Pitch-based height and distance adjustment:
     // When looking down (bridging, placing blocks beneath feet), lerp camera forward and up
-    // so the character's head doesn't block the viewport or clip
     const pitch = camera.rotation.x;
     const lookDownFactor = Math.max(0, -pitch / 1.35); // 0 at horizon, up to ~1 when looking down
-    const targetDist = Math.max(1.5, this.distance - lookDownFactor * 0.45);
-    const verticalLift = lookDownFactor * 0.32;
+    const targetDist = Math.max(1.3, this.distance - lookDownFactor * 0.40);
+    const verticalLift = lookDownFactor * 0.28;
 
     // Shift pivot over right shoulder and apply vertical lift
     const shoulderPivot = this.pivot.clone()
@@ -99,7 +95,6 @@ export class ThirdPersonRig {
       .add(new THREE.Vector3(0, verticalLift, 0));
 
     // Multi-sample SphereCast collision (~0.18m radius):
-    // Cast center ray and 4 surrounding perimeter rays to prevent block clipping
     const sphereRadius = 0.18;
     const testOffsets = [
       new THREE.Vector3(0, 0, 0),
@@ -109,13 +104,13 @@ export class ThirdPersonRig {
       up.clone().multiplyScalar(-sphereRadius),
     ];
 
-    let minHitDist = targetDist + 0.3;
+    let minHitDist = targetDist + 0.25;
     for (const off of testOffsets) {
       this._rayOrigin.copy(shoulderPivot).add(off);
-      const hit = raycastVoxel(world, this._rayOrigin, back, targetDist + 0.3);
+      const hit = raycastVoxel(world, this._rayOrigin, back, targetDist + 0.25);
       if (hit) {
         this._wall.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-        const dist = this._rayOrigin.distanceTo(this._wall) - 0.45;
+        const dist = this._rayOrigin.distanceTo(this._wall) - 0.40;
         if (dist < minHitDist) {
           minHitDist = dist;
         }
@@ -128,12 +123,12 @@ export class ThirdPersonRig {
     if (wanted < this.currentDistance) {
       this.currentDistance = wanted;
     } else {
-      this.currentDistance += (wanted - this.currentDistance) * (1 - Math.exp(-16 * dt));
+      this.currentDistance += (wanted - this.currentDistance) * (1 - Math.exp(-22 * dt));
     }
 
-    // Dither / Alpha Fade: When pushed closer than 0.85m to the player, fade avatar mesh
-    if (this.currentDistance < 0.85) {
-      this.playerAlpha = THREE.MathUtils.clamp((this.currentDistance - 0.4) / 0.45, 0.05, 1.0);
+    // Dither / Alpha Fade: When pushed closer than 0.75m to the player, fade avatar mesh
+    if (this.currentDistance < 0.75) {
+      this.playerAlpha = THREE.MathUtils.clamp((this.currentDistance - 0.35) / 0.40, 0.05, 1.0);
     } else {
       this.playerAlpha = 1.0;
     }

@@ -639,11 +639,11 @@ export class Features {
     if (this.speedBoostTimer > 0) {
       this.speedBoostTimer -= dt;
       player.profile.walk = 6.4;
-      player.profile.sprint = 8.6;
+      player.profile.sprint = 8.2;
       if (this.speedBoostTimer <= 0) {
         this.speedBoostTimer = 0;
-        player.profile.walk = 4.31;
-        player.profile.sprint = 5.61;
+        player.profile.walk = 4.80;
+        player.profile.sprint = 6.40;
       }
     }
 
