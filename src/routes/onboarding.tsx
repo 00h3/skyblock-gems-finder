@@ -278,12 +278,12 @@ function OnboardingPage() {
           animationSpeed={0.02}
           gradientColors={[
             "#FFFFFF",
-            "#2979FF",
-            "#FF80AB",
-            "#FF6D00",
-            "#FFD600",
-            "#00E676",
-            "#3D5AFE",
+            "#FFF7ED",
+            "#FFEDD5",
+            "#FED7AA",
+            "#FB923C",
+            "#F97316",
+            "#EA580C",
           ]}
           gradientStops={[35, 50, 60, 70, 80, 90, 100]}
           topOffset={-10}

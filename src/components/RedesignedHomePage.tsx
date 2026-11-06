@@ -175,7 +175,7 @@ export function RedesignedHomePage({
           </form>
         </div>
 
-        {/* Quick Entries: Shop, Events, Fragments (reverted to blank glossy squircles without text and image) */}
+        {/* Quick Entries: Shop, Events, Fragments with exact Uiverse glossiness */}
         <div className="px-4 flex items-center gap-2.5">
           {/* Shop */}
           <button
@@ -183,9 +183,12 @@ export function RedesignedHomePage({
             onClick={() => {
               openShop();
             }}
-            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
+            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
             aria-label="Shop"
-          />
+          >
+            <span className="absolute inset-x-0 top-0 h-[48%] pointer-events-none rounded-t-[14px] bg-gradient-to-b from-white/70 via-white/20 to-transparent z-10" />
+            <span className="absolute inset-0 rounded-[14px] pointer-events-none ring-1 ring-inset ring-white/60 z-10" />
+          </button>
 
           {/* Events */}
           <button
@@ -195,9 +198,12 @@ export function RedesignedHomePage({
                 openEvents();
               }
             }}
-            className="qb-squircle press relative h-[60px] flex-1 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
+            className="qb-squircle press relative h-[60px] flex-1 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
             aria-label="Events"
-          />
+          >
+            <span className="absolute inset-x-0 top-0 h-[48%] pointer-events-none rounded-t-[14px] bg-gradient-to-b from-white/70 via-white/20 to-transparent z-10" />
+            <span className="absolute inset-0 rounded-[14px] pointer-events-none ring-1 ring-inset ring-white/60 z-10" />
+          </button>
 
           {/* Fragments */}
           <button
@@ -207,9 +213,12 @@ export function RedesignedHomePage({
                 openFragments();
               }
             }}
-            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
+            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
             aria-label="Fragments"
-          />
+          >
+            <span className="absolute inset-x-0 top-0 h-[48%] pointer-events-none rounded-t-[14px] bg-gradient-to-b from-white/70 via-white/20 to-transparent z-10" />
+            <span className="absolute inset-0 rounded-[14px] pointer-events-none ring-1 ring-inset ring-white/60 z-10" />
+          </button>
         </div>
 
         {/* Featured Floating Islands Event Component with LaserFlow flowing from above */}

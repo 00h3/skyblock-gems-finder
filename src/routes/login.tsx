@@ -28,15 +28,15 @@ export const Route = createFileRoute("/login")({
 
 type Screen = "welcome" | "login" | "signup" | "forgot";
 
-// Aura gradient matching the onboarding screen
-const ONBOARDING_AURA_COLORS = [
+// Pure warm orange aura gradient requested by user (no purple/pink)
+const ORANGE_AURA_COLORS = [
   "#FFFFFF",
-  "#2979FF",
-  "#FF80AB",
-  "#FF6D00",
-  "#FFD600",
-  "#00E676",
-  "#3D5AFE",
+  "#FFF7ED",
+  "#FFEDD5",
+  "#FED7AA",
+  "#FB923C",
+  "#F97316",
+  "#EA580C",
 ];
 
 function LoginPage() {
@@ -65,14 +65,14 @@ function LoginPage() {
   return (
     <MobileShell hideNav scroll={false}>
       <div className="min-h-dvh flex flex-col relative overflow-hidden bg-white text-slate-900">
-        {/* Dynamic Aura Gradient Background - identical to onboarding */}
-        <div className="absolute inset-0 pointer-events-none opacity-80">
+        {/* Dynamic Warm Orange Aura Gradient Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-85">
           <AnimatedGradientBackground
             Breathing={true}
             startingGap={120}
             breathingRange={6}
             animationSpeed={0.02}
-            gradientColors={ONBOARDING_AURA_COLORS}
+            gradientColors={ORANGE_AURA_COLORS}
             gradientStops={[35, 50, 60, 70, 80, 90, 100]}
             topOffset={-10}
           />

@@ -11,9 +11,8 @@ export interface SharpUiverseButtonProps
 }
 
 /**
- * Rectangle Sharp Button inspired by Uiverse.io (adamgiebl)
- * Styled with vibrant orange & white gradients, crisp rectangle borders,
- * tactile inner container, and smooth press animations.
+ * Uiverse-style tactile glossy button with signature top specular highlights,
+ * crisp borders, 3D bottom edge depth, and responsive tactile press.
  */
 export function SharpUiverseButton({
   children,
@@ -28,41 +27,57 @@ export function SharpUiverseButton({
 }: SharpUiverseButtonProps) {
   const isOrange = variant === "orange";
   const isWhite = variant === "white";
-  const isDark = variant === "dark";
 
-  // Outer 2px border gradient with rectangle sharp corners (rounded-[6px])
+  // Tactile outer shell with crisp bevel shadow and gradient border
   const outerBorderClass = isOrange
-    ? "bg-gradient-to-t from-[#c2410c] via-[#ea580c] to-[#ffedd5] shadow-[0_4px_14px_rgba(234,88,12,0.32)]"
+    ? "border-2 border-[#c9380d] bg-gradient-to-b from-[#ff8533] via-[#fa4616] to-[#c9380d] text-white shadow-[0_4px_0_#a92d0a,0_8px_16px_rgba(201,56,13,0.25)]"
     : isWhite
-    ? "bg-gradient-to-t from-[#ea580c] via-[#fdba74] to-[#ffffff] shadow-[0_3px_10px_rgba(0,0,0,0.06)]"
-    : "bg-gradient-to-t from-[#ea580c] via-[#ff7a00] to-[#ffffff] shadow-[0_4px_14px_rgba(0,0,0,0.3)]";
-
-  // Inner container gradient with matching rectangle sharp corners (rounded-[4px])
-  const innerSpanClass = isOrange
-    ? "bg-[#ea580c] text-white bg-gradient-to-t from-[#c2410c] via-[#ea580c] to-[#f97316] [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]"
-    : isWhite
-    ? "bg-white text-[#ea580c] bg-gradient-to-t from-[#fff7ed] via-[#ffffff] to-[#ffffff] [text-shadow:0_1px_0_rgba(255,255,255,0.8)] border border-orange-100/50"
-    : "bg-[#14151b] text-white bg-gradient-to-t from-[#0e0f14] via-[#14151b] to-[#1c1f28]";
+    ? "border border-slate-200/90 bg-gradient-to-b from-[#ffffff] via-[#f8fafc] to-[#eef2f6] text-slate-900 shadow-[0_3px_0_#cbd5e1,0_6px_14px_rgba(0,0,0,0.06)]"
+    : "border-2 border-[#1e232d] bg-gradient-to-b from-[#242832] via-[#1a1d24] to-[#12141a] text-white shadow-[0_4px_0_#0f1115,0_8px_16px_rgba(0,0,0,0.3)]";
 
   const sizeClasses =
     size === "sm"
-      ? "px-3.5 py-1.5 text-[12px]"
+      ? "px-3.5 py-1.5 text-[12px] min-h-[34px]"
       : size === "lg"
-      ? "px-8 py-3.5 text-[15px]"
-      : "px-5 py-2.5 text-[13.5px]";
+      ? "px-8 py-3 text-[15px] min-h-[50px]"
+      : "px-5 py-2.5 text-[13.5px] min-h-[42px]";
 
   return (
     <button
       type={type}
       disabled={disabled}
-      className={`relative cursor-pointer opacity-95 hover:opacity-100 transition-all p-[2px] rounded-[6px] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none ${
+      className={`group relative isolate cursor-pointer overflow-hidden rounded-[10px] font-black uppercase tracking-wider select-none transition-all duration-150 active:translate-y-[2px] active:shadow-none disabled:opacity-50 disabled:pointer-events-none disabled:translate-y-0 ${
         fullWidth ? "w-full" : "inline-flex"
-      } ${outerBorderClass} ${className}`}
+      } ${outerBorderClass} ${sizeClasses} ${className}`}
       {...props}
     >
+      {/* Top Half Glossy Specular Highlight (The signature Uiverse gloss) */}
       <span
-        className={`w-full h-full flex items-center justify-center gap-2 rounded-[4px] font-black uppercase tracking-wider ${sizeClasses} ${innerSpanClass}`}
-      >
+        className={`absolute inset-x-0 top-0 h-[48%] pointer-events-none rounded-t-[8px] z-10 transition-opacity ${
+          isOrange
+            ? "bg-gradient-to-b from-white/45 via-white/15 to-transparent"
+            : isWhite
+            ? "bg-gradient-to-b from-white/90 via-white/40 to-transparent"
+            : "bg-gradient-to-b from-white/25 to-transparent"
+        }`}
+      />
+
+      {/* Inner highlight rim */}
+      <span
+        className={`absolute inset-0 rounded-[8px] pointer-events-none z-10 ${
+          isOrange
+            ? "ring-1 ring-inset ring-white/30"
+            : isWhite
+            ? "ring-1 ring-inset ring-white/80"
+            : "ring-1 ring-inset ring-white/10"
+        }`}
+      />
+
+      {/* Glossy light streak sheen on hover */}
+      <span className="absolute inset-y-0 -left-full w-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 transition-transform duration-700 ease-out group-hover:translate-x-[250%] pointer-events-none z-10" />
+
+      {/* Button content */}
+      <span className="relative z-20 flex w-full items-center justify-center gap-2 drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]">
         {icon}
         {children}
       </span>
@@ -71,7 +86,8 @@ export function SharpUiverseButton({
 }
 
 /**
- * Sharp Rectangle "Go Back" button with orange & white styling
+ * Tactile Uiverse-styled "Go Back" button with exact glossiness, crisp chevron,
+ * top specular highlight, and 3D tactile press.
  */
 export function GoBackButton({
   onClick,
@@ -92,7 +108,7 @@ export function GoBackButton({
       variant={variant}
       size={size}
       onClick={onClick}
-      className={className}
+      className={`font-black tracking-wide ${className}`}
       aria-label={label}
       icon={<ChevronLeft className="w-4 h-4 stroke-[3] shrink-0" />}
     >
