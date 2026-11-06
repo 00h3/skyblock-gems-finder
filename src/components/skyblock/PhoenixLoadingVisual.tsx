@@ -262,6 +262,7 @@ export function PhoenixLoadingVisual() {
       cancelAnimationFrame(animId);
       if (mixer) mixer.stopAllAction();
       renderer.dispose();
+      renderer.forceContextLoss();
       partGeo.dispose();
       partMat.dispose();
       bodyGeo.dispose();
