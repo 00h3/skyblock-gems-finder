@@ -18,7 +18,7 @@ export interface WelcomeScreenProps {
 
 /**
  * A responsive and animated welcome screen component.
- * It uses framer-motion for animations and is styled with shadcn/ui theme variables.
+ * Features curved ellipse hero image and the glossy squircle button (unfriend-style with black text).
  */
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   imageUrl,
@@ -37,13 +37,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
+        staggerChildren: 0.18,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 18, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
@@ -56,7 +56,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
   
   const imageVariants = {
-    hidden: { y: -50, opacity: 0 },
+    hidden: { y: -40, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
@@ -70,13 +70,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   return (
     <div
       className={cn(
-        'flex h-full w-full flex-col items-center justify-between bg-white text-slate-900',
+        'flex h-full w-full flex-col items-center justify-between bg-transparent text-slate-900',
         className
       )}
     >
-      {/* Top Image Section with a curved clip-path */}
+      {/* Top Image Section with signature curved ellipse clip-path — expanded larger for maximum visual presence */}
       <motion.div 
-        className="relative w-full overflow-hidden"
+        className="relative w-full overflow-hidden shrink-0"
         initial="hidden"
         animate="visible"
         variants={imageVariants}
@@ -84,23 +84,23 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <img
           src={imageUrl}
           alt="Welcome"
-          className="h-auto max-h-[380px] w-full object-cover"
-          style={{ clipPath: 'ellipse(100% 60% at 50% 40%)' }}
+          className="w-full h-[48dvh] min-h-[360px] max-h-[480px] object-cover object-center select-none"
+          style={{ clipPath: 'ellipse(110% 72% at 50% 34%)' }}
         />
-        {/* Subtle orange gradient light at the bottom curve */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white via-white/50 to-transparent pointer-events-none" />
+        {/* Subtle orange warm fade gradient at the bottom curve */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white via-white/50 to-transparent pointer-events-none" />
       </motion.div>
 
-      {/* Content Section */}
+      {/* Content Section positioned more in the down */}
       <motion.div
-        className="flex flex-1 flex-col items-center justify-center space-y-4 px-8 py-4 text-center z-10"
+        className="flex flex-1 flex-col items-center justify-end space-y-2.5 px-8 pt-4 pb-2 text-center z-10 max-w-sm mx-auto w-full"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
         {/* Title */}
         <motion.h1
-          className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl"
+          className="text-3xl sm:text-[34px] font-black tracking-tight text-slate-900 leading-tight"
           variants={itemVariants}
         >
           {title}
@@ -108,7 +108,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         {/* Description */}
         <motion.p
-          className="max-w-md text-[14.5px] font-medium text-slate-600 leading-relaxed"
+          className="max-w-md text-[13.5px] font-semibold text-slate-600 leading-relaxed"
           variants={itemVariants}
         >
           {description}
@@ -119,33 +119,36 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       
       {/* Actions Section */}
       <motion.div 
-        className="w-full space-y-3.5 px-8 pb-8 pt-2 z-10 max-w-sm mx-auto"
+        className="w-full space-y-3 px-8 pb-8 pt-2 z-10 max-w-sm mx-auto"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
-        {/* Primary Button with Uiverse glossiness */}
+        {/* Primary Button: unfriend-style glossy squircle with bold black text */}
         <motion.div variants={itemVariants}>
-          <Button
+          <button
+            type="button"
             onClick={onButtonClick}
-            className="w-full h-[52px] rounded-[14px] font-black uppercase tracking-wider text-[14.5px] shadow-[0_6px_20px_rgba(234,88,12,0.35)] active:scale-[0.98] transition-all bg-gradient-to-b from-[#ff8533] via-[#ea580c] to-[#c2410c] text-white border border-[#ffedd5]/50 relative overflow-hidden"
-            size="lg"
+            className="qb-squircle press relative w-full h-[52px] rounded-[14px] flex items-center justify-center cursor-pointer select-none active:scale-95 transition-transform overflow-hidden shadow-[0_6px_18px_rgba(23,24,27,0.08),inset_1px_1px_0_rgba(255,255,255,0.98)] border border-black/[0.12] bg-gradient-to-b from-white via-[#fafbfc] to-[#f0f3f6]"
           >
-            {/* Glossy top specular reflection */}
-            <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-[14px]" />
-            <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+            {/* Top specular highlight reflection */}
+            <span className="absolute inset-x-0 top-0 h-[48%] pointer-events-none rounded-t-[14px] bg-gradient-to-b from-white/90 via-white/30 to-transparent z-10" />
+            <span className="absolute inset-0 rounded-[14px] pointer-events-none ring-1 ring-inset ring-white/80 z-10" />
+
+            {/* Black text */}
+            <span className="relative z-20 font-black uppercase tracking-wider text-[14.5px] text-black drop-shadow-[0_1px_0_rgba(255,255,255,0.8)]">
               {buttonText}
             </span>
-          </Button>
+          </button>
         </motion.div>
 
-        {/* Secondary Action Link / Button */}
+        {/* Secondary Action Link */}
         {secondaryActionText && onSecondaryActionClick && (
           <motion.div variants={itemVariants} className="text-center pt-1">
             <Button
               variant="link"
               onClick={onSecondaryActionClick}
-              className="text-sm font-semibold text-slate-600 hover:text-orange-600 cursor-pointer transition-colors"
+              className="text-sm font-semibold text-slate-600 hover:text-[#fa4616] cursor-pointer transition-colors"
             >
               {secondaryActionText}
             </Button>

@@ -14,7 +14,7 @@ export const WelcomeScreenDemo = () => {
   return (
     <div className="relative mx-auto my-12 h-[812px] w-[975px] max-w-sm overflow-hidden rounded-3xl border border-slate-200 shadow-xl bg-white">
       <WelcomeScreen
-        imageUrl="https://cdn.21st.dev/assets/mirror/40/40f15003fc3dd37a91023fe2649e7a0602bc689f6cfc68c08b52fb37077c6c93.jpg"
+        imageUrl="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
         title={
           <>
             Welcome To <span className="text-orange-500">QBLOCK</span>

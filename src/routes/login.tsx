@@ -12,6 +12,7 @@ import { AuthArtwork3D } from "@/components/AuthArtwork3D";
 import { ShinyButton } from "@/components/ui/shiny-button";
 import { SharpUiverseButton, GoBackButton } from "@/components/ui/SharpUiverseButton";
 import { HtmlSpinner } from "@/components/ui/HtmlLoadingScreen";
+import { WelcomeScreen } from "@/components/ui/onboarding-welcome-screen";
 import {
   UserSpeakIcon,
   MailForwardIcon,
@@ -65,21 +66,25 @@ function LoginPage() {
   return (
     <MobileShell hideNav scroll={false}>
       <div className="min-h-dvh flex flex-col relative overflow-hidden bg-white text-slate-900">
-        {/* Dynamic Warm Orange Aura Gradient Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-85">
+        {/* Dynamic Warm Orange Aura Gradient Background — breathing atmospheric effect */}
+        <div className="absolute inset-0 pointer-events-none opacity-90 overflow-hidden">
           <AnimatedGradientBackground
             Breathing={true}
-            startingGap={120}
-            breathingRange={6}
-            animationSpeed={0.02}
+            startingGap={90}
+            breathingRange={14}
+            animationSpeed={0.025}
             gradientColors={ORANGE_AURA_COLORS}
-            gradientStops={[35, 50, 60, 70, 80, 90, 100]}
+            gradientStops={[30, 45, 58, 70, 80, 90, 100]}
             topOffset={-10}
           />
         </div>
 
+        {/* Ambient warm orange glowing aura */}
+        <div className="absolute -top-28 left-1/2 -translate-x-1/2 w-[520px] h-[320px] bg-orange-400/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-[460px] h-[260px] bg-orange-500/15 rounded-full blur-3xl pointer-events-none" />
+
         {/* Subtle light vignette overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-transparent to-white/90 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/35 via-transparent to-white/75 pointer-events-none" />
 
         <div className="flex flex-col flex-1 relative z-10">
           <AnimatePresence mode="wait">
@@ -93,9 +98,32 @@ function LoginPage() {
                 className="flex-1 flex flex-col"
               >
                 <WelcomeScreen
-                  onLogin={() => setScreen("login")}
-                  onSignup={() => setScreen("signup")}
-                />
+                  imageUrl="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
+                  title={
+                    <>
+                      Welcome To <span className="text-[#fa4616]">QBLOCK</span>
+                    </>
+                  }
+                  description="Discover, build, and explore voxel worlds and minigames effortlessly with QBLOCK."
+                  buttonText="Let's get started"
+                  onButtonClick={() => setScreen("signup")}
+                  secondaryActionText={
+                    <>
+                      Already have an account? <span className="font-bold text-[#fa4616]">Login Now</span>
+                    </>
+                  }
+                  onSecondaryActionClick={() => setScreen("login")}
+                >
+                  {typeof window !== "undefined" && getSavedAccounts().length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => nav({ to: "/accounts" as never })}
+                      className="press mt-2 text-center text-[12.5px] font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer select-none"
+                    >
+                      Switch saved account ({getSavedAccounts().length})
+                    </button>
+                  )}
+                </WelcomeScreen>
               </motion.div>
             )}
             {screen === "login" && (
@@ -204,69 +232,6 @@ function WhiteGlossSquircleButton({
     >
       {children}
     </ShinyButton>
-  );
-}
-
-// ── Screen 1: Welcome / Choose Screen ───────────────────────────────────────
-function WelcomeScreen({
-  onLogin,
-  onSignup,
-  onJoinGroup,
-}: {
-  onLogin: () => void;
-  onSignup: () => void;
-  onJoinGroup?: () => void;
-}) {
-  const nav = useNavigate();
-  return (
-    <div className="flex flex-col h-dvh px-6 justify-between pt-[max(36px,env(safe-area-inset-top))] pb-[max(32px,env(safe-area-inset-bottom))]">
-      {/* Top spacer */}
-      <div className="h-2" />
-
-      {/* 3D Moving Artwork Centerpiece */}
-      <div className="flex flex-col items-center justify-center my-auto py-2 -translate-y-7">
-        <AuthArtwork3D size="hero" className="mb-2 z-10" />
-
-        <div className="text-center max-w-[320px] px-2">
-          <BlurReveal
-            delay={0.1}
-            speedReveal={1.2}
-            className="text-[30px] font-inter-bold tracking-tight leading-[36px] text-slate-900"
-          >
-            Play, build, explore
-          </BlurReveal>
-
-          <BlurReveal
-            delay={0.25}
-            speedReveal={1.3}
-            className="text-[13.5px] font-inter-normal text-slate-600 mt-2 leading-relaxed"
-          >
-            Your voxel worlds, BedWars matches, and community — all in one place.
-          </BlurReveal>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-3 w-full max-w-sm mx-auto">
-        <SharpUiverseButton variant="orange" fullWidth size="lg" onClick={onSignup}>
-          Create account — it&apos;s free
-        </SharpUiverseButton>
-
-        <SharpUiverseButton variant="white" fullWidth size="lg" onClick={onLogin}>
-          Sign In
-        </SharpUiverseButton>
-
-        {typeof window !== "undefined" && getSavedAccounts().length > 0 && (
-          <button
-            type="button"
-            onClick={() => nav({ to: "/accounts" as never })}
-            className="press mt-1 text-center text-[12.5px] font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-          >
-            Switch saved account ({getSavedAccounts().length})
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -400,7 +365,7 @@ function LoginScreen({
           <div className="pt-4">
             <SharpUiverseButton
               type="submit"
-              variant="orange"
+              variant="white"
               fullWidth
               size="lg"
               disabled={loading}
@@ -558,12 +523,12 @@ function SignupScreen({ onBack, onLogin }: { onBack: () => void; onLogin: () => 
           <div className="pt-4">
             <SharpUiverseButton
               type="submit"
-              variant="orange"
+              variant="white"
               fullWidth
               size="lg"
               disabled={loading}
             >
-              {loading ? "Creating..." : "Create Account"}
+              {loading ? "Creating..." : "Create Account Securely"}
             </SharpUiverseButton>
           </div>
         </form>
@@ -689,12 +654,12 @@ function ForgotScreen({ onBack }: { onBack: () => void }) {
               <div className="pt-2">
                 <SharpUiverseButton
                   type="submit"
-                  variant="orange"
+                  variant="white"
                   fullWidth
                   size="lg"
                   disabled={loading}
                 >
-                  {loading ? "Sending..." : "Send reset link"}
+                  {loading ? "Sending..." : "Send Reset Link Securely"}
                 </SharpUiverseButton>
               </div>
             </form>
