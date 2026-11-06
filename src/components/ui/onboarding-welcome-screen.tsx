@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { WarpText } from '@/components/ui/WarpText';
 
 // Define the props for the WelcomeScreen component
 export interface WelcomeScreenProps {
@@ -99,12 +99,32 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         variants={containerVariants}
       >
         {/* Title */}
-        <motion.h1
-          className="text-3xl sm:text-[34px] font-black tracking-tight text-slate-900 leading-tight"
-          variants={itemVariants}
-        >
-          {title}
-        </motion.h1>
+        <motion.div className="w-full flex items-center justify-center" variants={itemVariants}>
+          {typeof title === 'string' ? (
+            <WarpText
+              text={title}
+              warpStrength={0.08}
+              warpScale={1.7}
+              speed={0.55}
+              lens="bulge"
+              pointerInfluence={0.42}
+              pointerStrength={0.38}
+              refraction={0.018}
+              chromatic={0.32}
+              idleDrift={0.25}
+              ripple
+              clickRipple
+              intro
+              fontSize="clamp(1.85rem, 6vw, 2.6rem)"
+              fontWeight={900}
+              letterSpacing="-0.04em"
+              color="#0f172a"
+              style={{ height: '64px', width: '100%', maxWidth: '340px', margin: '0 auto' }}
+            />
+          ) : (
+            <div className="w-full flex items-center justify-center">{title}</div>
+          )}
+        </motion.div>
 
         {/* Description */}
         <motion.p
