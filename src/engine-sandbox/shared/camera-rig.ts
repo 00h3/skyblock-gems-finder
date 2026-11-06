@@ -31,7 +31,7 @@ export function fovForAspect(aspect: number, _horizontalDeg = 90, baseTargetFov 
  * Tactical Close-Proximity Third Person Rig:
  * - Tight distance (~2.25m) so blocks, voxel builds and avatar are close to the camera
  * - Centered framing with responsive vertical/horizontal tracking
- * - SphereCast block clipping prevention
+ * - 8-point SphereCast block clipping prevention & smooth ease-out
  */
 export class ThirdPersonRig {
   /** Target distance behind the player: 2.25m (blocks closer to camera) */
@@ -66,15 +66,17 @@ export class ThirdPersonRig {
   ) {
     if (!this.initialized) this.snap(target);
 
-    // Responsive spring position damping so camera moves crisply without floaty lag
-    const followXZ = 1 - Math.exp(-38 * dt);
-    const followY = 1 - Math.exp(-32 * dt);
-    this.pivot.x += (target.x - this.pivot.x) * followXZ;
-    this.pivot.z += (target.z - this.pivot.z) * followXZ;
-    this.pivot.y += (target.y - this.pivot.y) * followY;
-
-    if (this.pivot.distanceToSquared(target) > 16) {
+    // Large teleport or respawn distance check (> 6m): snap pivot immediately without stretching
+    if (this.pivot.distanceToSquared(target) > 36) {
       this.pivot.copy(target);
+      this.currentDistance = this.distance;
+    } else {
+      // Responsive spring position damping so camera moves crisply without floaty lag
+      const followXZ = 1 - Math.exp(-38 * dt);
+      const followY = 1 - Math.exp(-32 * dt);
+      this.pivot.x += (target.x - this.pivot.x) * followXZ;
+      this.pivot.z += (target.z - this.pivot.z) * followXZ;
+      this.pivot.y += (target.y - this.pivot.y) * followY;
     }
 
     // Direction vectors from camera quaternion
@@ -86,15 +88,15 @@ export class ThirdPersonRig {
     // When looking down (bridging, placing blocks beneath feet), lerp camera forward and up
     const pitch = camera.rotation.x;
     const lookDownFactor = Math.max(0, -pitch / 1.35); // 0 at horizon, up to ~1 when looking down
-    const targetDist = Math.max(1.3, this.distance - lookDownFactor * 0.40);
+    const targetDist = Math.max(1.25, this.distance - lookDownFactor * 0.40);
     const verticalLift = lookDownFactor * 0.28;
 
-    // Shift pivot over right shoulder and apply vertical lift
+    // Shift pivot over shoulder and apply vertical lift
     const shoulderPivot = this.pivot.clone()
       .addScaledVector(right, this.lateralOffset * (1 - lookDownFactor * 0.4))
       .add(new THREE.Vector3(0, verticalLift, 0));
 
-    // Multi-sample SphereCast collision (~0.18m radius):
+    // Multi-sample 8-point SphereCast collision (~0.18m radius):
     const sphereRadius = 0.18;
     const testOffsets = [
       new THREE.Vector3(0, 0, 0),
@@ -102,15 +104,18 @@ export class ThirdPersonRig {
       right.clone().multiplyScalar(-sphereRadius),
       up.clone().multiplyScalar(sphereRadius),
       up.clone().multiplyScalar(-sphereRadius),
+      right.clone().add(up).multiplyScalar(sphereRadius * 0.7),
+      right.clone().sub(up).multiplyScalar(sphereRadius * 0.7),
+      up.clone().sub(right).multiplyScalar(sphereRadius * 0.7),
     ];
 
-    let minHitDist = targetDist + 0.25;
+    let minHitDist = targetDist + 0.22;
     for (const off of testOffsets) {
       this._rayOrigin.copy(shoulderPivot).add(off);
-      const hit = raycastVoxel(world, this._rayOrigin, back, targetDist + 0.25);
+      const hit = raycastVoxel(world, this._rayOrigin, back, targetDist + 0.22);
       if (hit) {
         this._wall.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-        const dist = this._rayOrigin.distanceTo(this._wall) - 0.40;
+        const dist = this._rayOrigin.distanceTo(this._wall) - 0.38;
         if (dist < minHitDist) {
           minHitDist = dist;
         }
@@ -181,5 +186,142 @@ export class MovementFacing {
     }
 
     return this.heading;
+  }
+}
+
+/**
+ * Complete Camera Controller Pipeline
+ * Handles rotation smoothing, eye-height jitter filtering, subtle head bobbing,
+ * sprint FOV feedback, landing recoil dips, underwater transitions, and respawn snaps.
+ */
+export class CameraController {
+  rig = new ThirdPersonRig();
+  facing = new MovementFacing();
+
+  // Settings
+  enableBobbing = true;
+  enableFovKick = true;
+  enableLandingDip = true;
+
+  smoothEyeY = -100;
+  landDip = 0;
+  underwaterAlpha = 0;
+  smoothFov = 62;
+  smoothYaw = 0;
+  smoothPitch = 0;
+
+  private _eye = new THREE.Vector3();
+  private _pivot = new THREE.Vector3();
+  private _euler = new THREE.Euler(0, 0, 0, "YXZ");
+
+  snap(target: THREE.Vector3, yaw = 0, pitch = 0) {
+    this.rig.snap(target);
+    this.smoothEyeY = target.y + 1.62;
+    this.landDip = 0;
+    this.smoothYaw = yaw;
+    this.smoothPitch = pitch;
+  }
+
+  addLandImpact(impactVel: number) {
+    if (!this.enableLandingDip) return;
+    if (impactVel > 1.8) {
+      const extraDip = Math.min(0.16, impactVel * 0.012);
+      this.landDip = Math.max(this.landDip, extraDip);
+    }
+  }
+
+  update(
+    dt: number,
+    camera: THREE.PerspectiveCamera,
+    playerPos: THREE.Vector3,
+    targetEyeY: number,
+    rawYaw: number,
+    rawPitch: number,
+    isGrounded: boolean,
+    isSprinting: boolean,
+    isCrouching: boolean,
+    horizontalSpeed: number,
+    bobPhase: number,
+    world: World | null,
+    isThirdPerson = false,
+    baseFov = 62,
+    waterLevel: number | null = null,
+  ) {
+    // 1. Rotation damping & pitch clamping
+    const rotSpeed = 34;
+    const rotAlpha = 1 - Math.exp(-rotSpeed * dt);
+    let yawDiff = (rawYaw - this.smoothYaw) % (Math.PI * 2);
+    if (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+    if (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+    this.smoothYaw += yawDiff * rotAlpha;
+
+    const clampedPitch = THREE.MathUtils.clamp(rawPitch, -Math.PI / 2 + 0.001, Math.PI / 2 - 0.001);
+    this.smoothPitch += (clampedPitch - this.smoothPitch) * rotAlpha;
+
+    this._euler.set(this.smoothPitch, this.smoothYaw, 0);
+    camera.quaternion.setFromEuler(this._euler);
+
+    // 2. Eye height smoothing (absorbs micro-step physics jitter)
+    if (this.smoothEyeY < -50 || Math.abs(targetEyeY - this.smoothEyeY) > 5.0) {
+      this.smoothEyeY = targetEyeY;
+    } else {
+      const eyeRate = isGrounded ? 28 : 36;
+      this.smoothEyeY += (targetEyeY - this.smoothEyeY) * (1 - Math.exp(-eyeRate * dt));
+    }
+
+    // 3. Head bobbing (rhythmic, speed-dependent)
+    let bobY = 0;
+    let bobX = 0;
+    if (this.enableBobbing && isGrounded && !isCrouching && horizontalSpeed > 0.4) {
+      const bobMult = Math.min(1.0, horizontalSpeed / 4.5);
+      bobY = Math.sin(bobPhase * 2) * (isSprinting ? 0.042 : 0.032) * bobMult;
+      bobX = Math.cos(bobPhase) * (isSprinting ? 0.026 : 0.018) * bobMult;
+    }
+
+    // 4. Landing dip recoil decay
+    if (this.landDip > 0.001) {
+      this.landDip *= Math.exp(-15 * dt);
+    } else {
+      this.landDip = 0;
+    }
+
+    // 5. Smooth underwater transition
+    const isUnderwater = waterLevel !== null && (this.smoothEyeY < waterLevel);
+    const targetSubmerged = isUnderwater ? 1.0 : 0.0;
+    this.underwaterAlpha += (targetSubmerged - this.underwaterAlpha) * (1 - Math.exp(-16 * dt));
+    const waterBob = this.underwaterAlpha > 0.01 ? Math.sin(Date.now() * 0.0025) * 0.04 * this.underwaterAlpha : 0;
+
+    // 6. Camera positioning
+    if (!isThirdPerson) {
+      this._eye.set(
+        playerPos.x + bobX * 0.25,
+        this.smoothEyeY + bobY - this.landDip + waterBob,
+        playerPos.z,
+      );
+      camera.position.copy(this._eye);
+    } else if (world) {
+      this._pivot.set(
+        playerPos.x,
+        playerPos.y + 1.45 + bobY * 0.5 - this.landDip * 0.5 + waterBob,
+        playerPos.z,
+      );
+      this.rig.update(dt, camera, this._pivot, world);
+    }
+
+    // 7. Dynamic FOV expansion (sprint & underwater)
+    if (this.smoothFov <= 0) this.smoothFov = baseFov;
+    let fovBoost = 0;
+    if (this.enableFovKick && isSprinting && horizontalSpeed > 4.2) {
+      fovBoost += 3.5;
+    }
+    if (this.underwaterAlpha > 0.01) {
+      fovBoost -= 2.0 * this.underwaterAlpha;
+    }
+    const targetFov = fovForAspect(camera.aspect, 90, baseFov) + fovBoost;
+    if (Math.abs(camera.fov - targetFov) > 0.04) {
+      this.smoothFov += (targetFov - this.smoothFov) * (1 - Math.exp(-12 * dt));
+      camera.fov = this.smoothFov;
+      camera.updateProjectionMatrix();
+    }
   }
 }

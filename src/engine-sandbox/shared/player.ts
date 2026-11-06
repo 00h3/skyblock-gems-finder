@@ -131,6 +131,38 @@ export class Player {
     this.onGround = true;
     this.coyote = 0;
     this.jumpBuffer = 0;
+    this.resolveStuck();
+  }
+
+  /** External impulse handler for knockback physics (combat attacks, mobs, explosions). */
+  addKnockback(impulse: THREE.Vector3) {
+    if (!impulse || typeof impulse.x !== "number") return;
+    this.velocity.add(impulse);
+    if (impulse.y > 0.4) {
+      this.onGround = false;
+      this.coyote = 0;
+    }
+  }
+
+  /** Soft entity collision: repulses local player from remote players / mobs so entities do not overlap like ghosts. */
+  pushEntity(otherPos: THREE.Vector3, radius = 0.65) {
+    if (!otherPos) return;
+    const dx = this.position.x - otherPos.x;
+    const dz = this.position.z - otherPos.z;
+    const distSq = dx * dx + dz * dz;
+    if (distSq > 0.0001 && distSq < radius * radius) {
+      const dist = Math.sqrt(distSq);
+      const overlap = (radius - dist) / dist;
+      const pushForce = overlap * 7.5;
+      this.velocity.x += dx * pushForce;
+      this.velocity.z += dz * pushForce;
+    }
+  }
+
+  pushEntities(positions: THREE.Vector3[], radius = 0.65) {
+    for (const pos of positions) {
+      this.pushEntity(pos, radius);
+    }
   }
 
   update(dt: number, input: MoveInput) {
@@ -143,6 +175,53 @@ export class Player {
       return;
     }
 
+    // Sub-step physics (60Hz fixed step rate) for 100% frame-rate independence across 30-240 FPS
+    const maxSubStep = 1 / 60;
+    let remaining = Math.min(dt, 0.15); // cap at 150ms to prevent lag spiral
+    while (remaining > 0) {
+      const step = Math.min(remaining, maxSubStep);
+      this.stepPhysics(step, input);
+      remaining -= step;
+    }
+  }
+
+  /** De-penetration & anti-stuck resolver: pushes player outward if embedded inside solid voxels. */
+  private resolveStuck() {
+    if (!this.collides(this.position)) return;
+
+    // 1. Try upward de-penetration first (player stepped into a block or block placed below feet)
+    const probe = this._probe.copy(this.position);
+    for (let dy = 0.05; dy <= 2.1; dy += 0.1) {
+      probe.y = this.position.y + dy;
+      if (!this.collides(probe)) {
+        this.position.y = probe.y;
+        if (this.velocity.y < 0) this.velocity.y = 0;
+        this.onGround = true;
+        return;
+      }
+    }
+
+    // 2. Try horizontal de-penetration if ceiling is blocked
+    const steps = 8;
+    const radius = 0.35;
+    for (let r = 0.1; r <= radius; r += 0.1) {
+      for (let i = 0; i < steps; i++) {
+        const ang = (i / steps) * Math.PI * 2;
+        probe.set(
+          this.position.x + Math.cos(ang) * r,
+          this.position.y,
+          this.position.z + Math.sin(ang) * r,
+        );
+        if (!this.collides(probe)) {
+          this.position.copy(probe);
+          return;
+        }
+      }
+    }
+  }
+
+  private stepPhysics(dt: number, input: MoveInput) {
+    this.resolveStuck();
     const P = this.profile;
     const forward = this.frozen ? 0 : input.forward;
     const strafe = this.frozen ? 0 : input.strafe;
@@ -150,7 +229,37 @@ export class Player {
 
     this.mantleReady = wantsJump && !this.onGround && this.velocity.y <= 1.5;
     this.isCrouching = Boolean(input.crouch) && !this.frozen;
-    const speed = this.isCrouching ? P.crouch : input.sprint ? P.sprint : P.walk;
+
+    // Surface block friction & special terrain properties
+    const footX = Math.floor(this.position.x);
+    const footY = Math.floor(this.position.y - 0.08);
+    const footZ = Math.floor(this.position.z);
+    const blockUnderId = this.world.get(footX, footY, footZ);
+    const blockUnderDef = BLOCK_BY_ID.get(blockUnderId);
+
+    let activeGroundDamp = P.groundDamp;
+    let speedMult = 1.0;
+
+    if (blockUnderDef && this.onGround) {
+      const bName = blockUnderDef.name.toLowerCase();
+      if (bName.includes("ice")) {
+        // Slippery Ice physics: low deceleration momentum retention
+        activeGroundDamp = P.groundDamp * 0.18;
+      } else if (blockUnderId === 63 || bName.includes("slime")) {
+        // Slime block elastic bounce
+        if (this.landedImpact > 2.5) {
+          this.velocity.y = Math.min(16, this.landedImpact * 0.78);
+          this.onGround = false;
+        }
+      } else if (bName.includes("soul") || bName.includes("mud")) {
+        // Soul Sand / Mud slowdown
+        speedMult = 0.55;
+        activeGroundDamp = P.groundDamp * 1.8;
+      }
+    }
+
+    const baseSpeed = this.isCrouching ? P.crouch : input.sprint ? P.sprint : P.walk;
+    const speed = baseSpeed * speedMult;
 
     const crouchPressed = Boolean(input.crouch) && !this.wasCrouchInput;
     this.wasCrouchInput = Boolean(input.crouch);
@@ -171,19 +280,26 @@ export class Player {
     const sliding = this.slideT > 0;
     if (sliding) this.isCrouching = true;
 
-    // Camera-relative wish direction. Three.js cameras look down -Z, so at
-    // yaw 0 "forward" is (0, -1) and "right" is (1, 0).
+    // Camera-relative wish direction. Unit-circle normalized for uniform diagonal movement speed
     const sin = Math.sin(input.yaw);
     const cos = Math.cos(input.yaw);
     let dx = strafe * cos - forward * sin;
     let dz = -strafe * sin - forward * cos;
     const len = Math.hypot(dx, dz);
-    if (len > 1) {
+    if (len > 1.0) {
       dx /= len;
       dz /= len;
     }
 
-    const control = this.onGround ? P.accel : P.accel * P.airControl;
+    const currentSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+    const isReversing = len > 0.01 && currentSpeed > 0.5 && (dx * this.velocity.x + dz * this.velocity.z) < 0;
+
+    let control = this.onGround ? P.accel : P.accel * P.airControl;
+    if (isReversing && this.onGround) {
+      // Direction-reversal active braking for instant snappy turning without sliding
+      control *= 2.4;
+    }
+
     if (sliding) {
       const glide = Math.exp(-1.7 * dt);
       this.velocity.x *= glide;
@@ -194,7 +310,7 @@ export class Player {
       this.velocity.x += THREE.MathUtils.clamp(targetX - this.velocity.x, -control * dt, control * dt);
       this.velocity.z += THREE.MathUtils.clamp(targetZ - this.velocity.z, -control * dt, control * dt);
     } else {
-      const damp = Math.exp(-(this.onGround ? P.groundDamp : P.airDamp) * dt);
+      const damp = Math.exp(-(this.onGround ? activeGroundDamp : P.airDamp) * dt);
       this.velocity.x *= damp;
       this.velocity.z *= damp;
     }
@@ -212,20 +328,37 @@ export class Player {
       this.onGround = false;
     }
 
-    const footX = Math.floor(this.position.x);
-    const footY = Math.floor(this.position.y);
-    const footZ = Math.floor(this.position.z);
-    const inWater = this.world.isLiquid(footX, footY, footZ) || this.world.isLiquid(footX, footY + 1, footZ);
+    // Short hop: cut upward momentum early if jump button is released mid-ascent
+    if (!wantsJump && this.velocity.y > 2.2 && !this.onGround) {
+      this.velocity.y *= Math.exp(-12 * dt);
+    }
+
+    const curFootX = Math.floor(this.position.x);
+    const curFootY = Math.floor(this.position.y);
+    const curEyeY = Math.floor(this.position.y + EYE);
+    const curFootZ = Math.floor(this.position.z);
+    const isFeetLiquid = this.world.isLiquid(curFootX, curFootY, curFootZ);
+    const isHeadLiquid = this.world.isLiquid(curFootX, curEyeY, curFootZ);
+    const inWater = isFeetLiquid || isHeadLiquid;
 
     if (inWater) {
+      // Smooth 3D liquid swimming & buoyancy
       if (wantsJump) {
-        this.velocity.y = Math.min(this.velocity.y + 18 * dt, 4.2);
+        // Water exit leap when reaching surface
+        if (!isHeadLiquid && isFeetLiquid && this.velocity.y > 0) {
+          this.velocity.y = P.jumpV * 0.72;
+          this.onGround = false;
+        } else {
+          this.velocity.y = Math.min(this.velocity.y + 18 * dt, 4.8);
+        }
+      } else if (input.crouch) {
+        this.velocity.y = Math.max(this.velocity.y - 16 * dt, -4.2);
       } else {
-        this.velocity.y -= P.gravity * 0.3 * dt;
-        if (this.velocity.y < -3.2) this.velocity.y = -3.2;
+        // Neutral buoyant float
+        this.velocity.y *= Math.exp(-4.5 * dt);
       }
-      this.velocity.x *= Math.exp(-2.5 * dt);
-      this.velocity.z *= Math.exp(-2.5 * dt);
+      this.velocity.x *= Math.exp(-3.5 * dt);
+      this.velocity.z *= Math.exp(-3.5 * dt);
     } else if (this.onLadder) {
       if (wantsJump || forward > 0.2) this.velocity.y = 3.4;
       else if (input.crouch) this.velocity.y = 0;
@@ -245,7 +378,7 @@ export class Player {
     this.moveAxis(0, this.velocity.x * dt);
     this.moveAxis(1, this.velocity.y * dt);
     this.moveAxis(2, this.velocity.z * dt);
-    if (!wasGround && this.onGround && fallSpeed > 2) this.landedImpact = fallSpeed;
+    if (!wasGround && this.onGround && fallSpeed > 1.8) this.landedImpact = fallSpeed;
 
     const voidY = Math.min(this.spawnPoint.y - 18, -4);
     if (this.position.y < voidY && !this.isDying) {
@@ -269,18 +402,43 @@ export class Player {
 
   private collidesAt(pos: THREE.Vector3, height: number) {
     const half = WIDTH / 2;
-    const minX = Math.floor(pos.x - half);
-    const maxX = Math.floor(pos.x + half);
-    const minY = Math.floor(pos.y);
-    const maxY = Math.floor(pos.y + height - 0.0001);
-    const minZ = Math.floor(pos.z - half);
-    const maxZ = Math.floor(pos.z + half);
-    for (let x = minX; x <= maxX; x++)
-      for (let y = minY; y <= maxY; y++)
+    const playerMinX = pos.x - half;
+    const playerMaxX = pos.x + half;
+    const playerMinY = pos.y;
+    const playerMaxY = pos.y + height - 0.0001;
+    const playerMinZ = pos.z - half;
+    const playerMaxZ = pos.z + half;
+
+    const minX = Math.floor(playerMinX);
+    const maxX = Math.floor(playerMaxX);
+    const minY = Math.floor(playerMinY);
+    const maxY = Math.floor(playerMaxY);
+    const minZ = Math.floor(playerMinZ);
+    const maxZ = Math.floor(playerMaxZ);
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
-          if (y >= WORLD_H) continue;
-          if (this.world.solid(x, y, z)) return true;
+          if (y >= WORLD_H || y < 0) continue;
+          const id = this.world.get(x, y, z);
+          if (id === 0) continue;
+          const def = BLOCK_BY_ID.get(id);
+          if (!def || def.passable || def.liquid) continue;
+
+          // Sub-voxel shape bounds check for slabs and partial blocks
+          let blockMinY = y;
+          let blockMaxY = y + 1.0;
+
+          if (def.shape === "slab") {
+            blockMaxY = y + 0.5;
+          }
+
+          if (playerMaxY > blockMinY && playerMinY < blockMaxY) {
+            return true;
+          }
         }
+      }
+    }
     return false;
   }
 
@@ -320,15 +478,16 @@ export class Player {
       if (axis === 1) this.onGround = false;
       return;
     }
+
     const mantling = axis !== 1 && this.mantleReady && !this.onGround && this.coyote <= 0;
     const inAirStep = axis !== 1 && !this.onGround && this.velocity.y > -3.0;
     if (axis !== 1 && (((this.onGround || this.coyote > 0) && this.velocity.y <= 0.01) || mantling || inAirStep)) {
-      // Stair blocks collide as full cubes, and jumping players need smooth step-up to clear 1-block lips
+      // Stair & slab step-up: smooth stair-climbing for lips up to STEP_HEIGHT
       const ahead = BLOCK_BY_ID.get(
         this.world.get(Math.floor(next.x), Math.floor(this.position.y + 0.05), Math.floor(next.z)),
       );
       const maxLift = mantling || inAirStep ? 1.15 : ahead?.shape ? 1.0 : STEP_HEIGHT;
-      for (let lift = 0.2; lift <= maxLift + 0.001; lift += 0.2) {
+      for (let lift = 0.15; lift <= maxLift + 0.001; lift += 0.15) {
         const stepped = this._probe.copy(this.position);
         stepped.y += lift;
         stepped[key] += amount;
@@ -345,7 +504,7 @@ export class Player {
       }
     }
 
-    // Fast binary search bisection to find the exact point of contact without linear loop stalls
+    // Fast binary search bisection to find exact point of contact without linear loop stalls
     let min = 0;
     let max = amount;
     for (let i = 0; i < 5; i++) {

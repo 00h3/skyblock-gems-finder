@@ -82,7 +82,7 @@ import { subscribeToSandboxPlayers, updateSandboxPresence } from "@/lib/sandbox-
 import { loadBlockFallBlocks, writeBlockFallBlock } from "@/lib/blockfall-world-sync";
 import { getShadowMapSize, readQualityPref } from "@/lib/rendering";
 import { COMPETITIVE_PHYSICS } from "@/engine-sandbox/shared/player";
-import { MovementFacing, ThirdPersonRig, fovForAspect } from "@/engine-sandbox/shared/camera-rig";
+import { CameraController, MovementFacing, ThirdPersonRig, fovForAspect } from "@/engine-sandbox/shared/camera-rig";
 import { MatchController, now as matchNow } from "@/engine-sandbox/blockfall/match";
 import { Progression } from "@/engine-sandbox/skyblock/progression";
 import { WorldEvents } from "@/engine-sandbox/skyblock/world-events";
@@ -4509,11 +4509,11 @@ export function SandboxGame({
           announce(`${ev.name} ended`, `+${ev.completionXp} XP for taking part`, "reward");
         };
       }
-      const rig = new ThirdPersonRig();
-      const facing = new MovementFacing();
+      const camController = new CameraController();
+      const rig = camController.rig;
+      const facing = camController.facing;
       facing.heading = controls.state.yaw + Math.PI;
       let lastNotice = 0;
-      let sprintFov = 0;
 
       setEngineReady(true);
       setReady(true);
@@ -4559,14 +4559,7 @@ export function SandboxGame({
         raf = requestAnimationFrame(loop);
         const raw = clock.getDelta();
 
-        // Render every browser frame. The previous fixed 60 Hz accumulator
-        // intentionally skipped frames on high-refresh displays and made
-        // camera motion feel uneven.
-        // Mobile browsers deliver jittery rAF timestamps (e.g. 12ms, 21ms,
-        // 15ms at a steady 60Hz). Feeding that noise into movement makes the
-        // camera micro-stutter, so we blend toward the raw delta; real frame
-        // drops (>1.6x the average) pass through immediately.
-        // High-precision display refresh rate delta (butter-smooth 60/120fps motion)
+        // Render every browser frame. High-precision display refresh rate delta (butter-smooth 60/120fps motion)
         const dt = Math.min(Math.max(raw, 0.001), 0.05);
 
         const input = controls!.read();
@@ -4598,7 +4591,10 @@ export function SandboxGame({
         player.update(dt, input);
         features.afterPlayerUpdate(dt);
         features.update(dt);
-        if (player.landedImpact > 9) playSound("place");
+        if (player.landedImpact > 1.8) {
+          camController.addLandImpact(player.landedImpact);
+          if (player.landedImpact > 9) playSound("place");
+        }
         const horizontalSpeed = Math.hypot(player.velocity.x, player.velocity.z);
         if (goldenDays && horizontalSpeed > 0.15) {
           const drainRate = input.sprint ? 0.0038 : 0.0022;
@@ -4637,43 +4633,31 @@ export function SandboxGame({
           }
         }
 
-        const wishStrafe = input.strafe;
-        const targetRoll = -wishStrafe * 0.016;
-        euler.set(input.pitch, input.yaw, targetRoll);
-        camera.quaternion.setFromEuler(euler);
+        // Camera Controller Pipeline: rotation smoothing, eye jitter filtering, head bobbing,
+        // landing recoil dips, underwater transitions, sprint FOV kick, and voxel spherecast collision.
+        const waterSurfaceY = isSkyblockLike ? SKYBLOCK_POND_SURFACE.y + 0.5 : null;
+        camController.update(
+          dt,
+          camera,
+          player.position,
+          player.eyeY,
+          input.yaw,
+          input.pitch,
+          player.onGround,
+          input.sprint,
+          input.crouch,
+          horizontalSpeed,
+          player.bob,
+          world,
+          thirdRef.current,
+          baseFov,
+          waterSurfaceY,
+        );
 
-        // Subtle, rhythmic up-and-down camera bobbing on movement
-        const bobY = Math.sin(player.bob * 2) * 0.038;
-        const bobX = Math.cos(player.bob) * 0.022;
-
-        // Blockman GO signature engine feel: Landing recoil dip on footfall
-        let landDip = 0;
-        if (player.landedImpact > 2.0) {
-          landDip = Math.min(0.12, player.landedImpact * 0.010);
-        }
-        _eye.set(player.position.x + bobX * 0.3, player.eyeY + bobY - landDip, player.position.z);
-        camera.position.copy(_eye);
-
-        // Blockman GO Sprint FOV dynamic kick
-        const isSprinting = input.sprint && Math.hypot(player.velocity.x, player.velocity.z) > 4.5;
-        const targetFovBoost = isSprinting ? 3.5 : 0;
-        if (Math.abs(camera.fov - (baseFov + targetFovBoost)) > 0.05) {
-          camera.fov += (baseFov + targetFovBoost - camera.fov) * (1 - Math.exp(-12 * dt));
-          camera.updateProjectionMatrix();
-        }
-
-        // Third-person: Tactical Close-Proximity framing centered on character torso with up-down bob
-        if (thirdRef.current) {
-          _pivot.set(player.position.x, player.position.y + 1.45 + bobY * 0.5, player.position.z);
-          rig.update(dt, camera, _pivot, world!);
-        }
-
-        // Skyblock intro: smooth sweeping orbit that descends onto the island while
-        // the phoenix glides gracefully in front of the camera.
+        // Skyblock intro: smooth sweeping orbit that descends onto the island
         if (cutsceneRef.current.active) {
           const cs = cutsceneRef.current;
           cs.t += dt;
-          // The rig already placed the gameplay camera this frame; keep it as the landing pose.
           csRigPos.copy(camera.position);
           csRigQuat.copy(camera.quaternion);
           const smooth = (v: number) => v * v * (3 - 2 * v);
@@ -4717,15 +4701,6 @@ export function SandboxGame({
           playerGlow.color.setHex(playerInMine ? 0xffe6b0 : 0xffb86b);
           playerGlow.visible = playerInMine || night > 0.05;
           if (playerGlow.visible) playerGlow.position.set(player.position.x, player.position.y + 1.6, player.position.z);
-        }
-
-        // Subtle sprint FOV kick for speed feel with deadband to avoid matrix recalculation
-        const sprinting = input.sprint && horizontalSpeed > 4.5 && !player.frozen;
-        sprintFov += ((sprinting ? 3.5 : 0) - sprintFov) * (1 - Math.exp(-8 * dt));
-        const targetFov = baseFov + sprintFov;
-        if (Math.abs(camera.fov - targetFov) > 0.12) {
-          camera.fov = targetFov;
-          camera.updateProjectionMatrix();
         }
 
         // Combat / Reticle Mode: Character torso and head always lock to the camera yaw when swinging weapons or placing blocks.
@@ -4850,8 +4825,9 @@ export function SandboxGame({
         if (verityChar) verityChar.update(dt, camera.position);
         if (remotes) {
           remotes.update(dt, camera.position);
-          // Keep every HP bar pinned above its entity; dead ones heal back.
+          // Keep every HP bar pinned above its entity; dead ones heal back. Apply entity repulsion.
           for (const [uid, e] of remotes.list()) {
+            player.pushEntity(e.current, 0.65);
             const s = hpFor(uid);
             s.bar.sprite.position.set(e.current.x, e.current.y + 2.45, e.current.z);
             if (s.respawnIn > 0) {

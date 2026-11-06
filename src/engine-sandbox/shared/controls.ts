@@ -28,6 +28,8 @@ export class Controls {
   };
   touch = { x: 0, y: 0, jump: false, sprint: false, crouch: false };
   sensitivity = 0.0032;
+  sensitivityX = 0.0032;
+  sensitivityY = 0.0032;
   onSlot?: (index: number) => void;
   onDrop?: () => void;
   onLockChange?: (locked: boolean) => void;
@@ -40,15 +42,7 @@ export class Controls {
 
   constructor(el: HTMLElement) {
     this.el = el;
-    try {
-      const savedSens = localStorage.getItem("qb_cam_sensitivity") || localStorage.getItem("bm-cam-sensitivity");
-      if (savedSens) {
-        const parsed = Number(savedSens);
-        if (Number.isFinite(parsed) && parsed > 0) {
-          this.sensitivity = 0.0032 * parsed;
-        }
-      }
-    } catch {}
+    this.reloadSensitivity();
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     document.addEventListener("pointerlockchange", this.onPointerLockChange);
@@ -56,7 +50,66 @@ export class Controls {
     el.addEventListener("mousedown", this.onMouseDown);
     window.addEventListener("mouseup", this.onMouseUp);
     window.addEventListener("blur", this.onBlur);
+    window.addEventListener("bm-sensitivity", this.onSensEvent as any);
+    window.addEventListener("bm-cam-sensitivity", this.onSensEvent as any);
+    window.addEventListener("bm-cam-sens-x", this.onSensXEvent as any);
+    window.addEventListener("bm-cam-sens-y", this.onSensYEvent as any);
   }
+
+  reloadSensitivity() {
+    try {
+      const savedSens = localStorage.getItem("qb_cam_sensitivity") || localStorage.getItem("bm-cam-sensitivity");
+      const savedSensX = localStorage.getItem("qb_cam_sens_x") || localStorage.getItem("bm-cam-sens-x");
+      const savedSensY = localStorage.getItem("qb_cam_sens_y") || localStorage.getItem("bm-cam-sens-y");
+
+      let base = 1.0;
+      if (savedSens) {
+        const parsed = Number(savedSens);
+        if (Number.isFinite(parsed) && parsed > 0) base = parsed > 5 ? parsed / 50 : parsed;
+      }
+      this.sensitivity = 0.0032 * base;
+
+      let multX = 1.0;
+      if (savedSensX) {
+        const parsedX = Number(savedSensX);
+        if (Number.isFinite(parsedX) && parsedX > 0) multX = parsedX > 5 ? parsedX / 50 : parsedX;
+      }
+      this.sensitivityX = this.sensitivity * multX;
+
+      let multY = 1.0;
+      if (savedSensY) {
+        const parsedY = Number(savedSensY);
+        if (Number.isFinite(parsedY) && parsedY > 0) multY = parsedY > 5 ? parsedY / 50 : parsedY;
+      }
+      this.sensitivityY = this.sensitivity * multY;
+    } catch {}
+  }
+
+  private onSensEvent = (e: CustomEvent) => {
+    const val = typeof e.detail === "number" ? e.detail : Number(e.detail);
+    if (Number.isFinite(val) && val > 0) {
+      const base = val > 5 ? val / 50 : val;
+      this.sensitivity = 0.0032 * base;
+      this.sensitivityX = this.sensitivity;
+      this.sensitivityY = this.sensitivity;
+    }
+  };
+
+  private onSensXEvent = (e: CustomEvent) => {
+    const val = typeof e.detail === "number" ? e.detail : Number(e.detail);
+    if (Number.isFinite(val) && val > 0) {
+      const multX = val > 5 ? val / 50 : val;
+      this.sensitivityX = this.sensitivity * multX;
+    }
+  };
+
+  private onSensYEvent = (e: CustomEvent) => {
+    const val = typeof e.detail === "number" ? e.detail : Number(e.detail);
+    if (Number.isFinite(val) && val > 0) {
+      const multY = val > 5 ? val / 50 : val;
+      this.sensitivityY = this.sensitivity * multY;
+    }
+  };
 
   requestLock() {
     this.el.requestPointerLock?.();
@@ -84,8 +137,8 @@ export class Controls {
 
   private onMouseMove = (e: MouseEvent) => {
     if (!this.state.locked) return;
-    this.state.yaw -= e.movementX * this.sensitivity;
-    this.state.pitch -= e.movementY * this.sensitivity;
+    this.state.yaw -= e.movementX * this.sensitivityX;
+    this.state.pitch -= e.movementY * this.sensitivityY;
     const lim = Math.PI / 2 - 0.001;
     this.state.pitch = Math.max(-lim, Math.min(lim, this.state.pitch));
   };
@@ -135,13 +188,32 @@ export class Controls {
     this.state.crouch = k.has("ShiftLeft") || k.has("ShiftRight") || k.has("KeyC");
   }
 
-  /** Merge keyboard + touch each frame. */
+  /** Merge keyboard + touch each frame with 360° unit-circle vector normalization. */
   read(): ControlsState {
     const st = this.state;
+    let f = st.forward;
+    let s = st.strafe;
+
+    if (this.touch.x !== 0 || this.touch.y !== 0) {
+      const mag = Math.hypot(this.touch.x, this.touch.y);
+      if (mag > 0.001) {
+        const clampedMag = Math.min(1.0, mag);
+        const scale = clampedMag / mag;
+        f += this.touch.y * scale;
+        s += this.touch.x * scale;
+      }
+    }
+
+    const totalMag = Math.hypot(f, s);
+    if (totalMag > 1.0) {
+      f /= totalMag;
+      s /= totalMag;
+    }
+
     return {
       ...st,
-      forward: Math.max(-1, Math.min(1, st.forward + this.touch.y)),
-      strafe: Math.max(-1, Math.min(1, st.strafe + this.touch.x)),
+      forward: f,
+      strafe: s,
       jump: st.jump || this.touch.jump,
       sprint: st.sprint || this.touch.sprint,
       crouch: st.crouch || this.touch.crouch,
@@ -156,9 +228,10 @@ export class Controls {
       if (localStorage.getItem("bm-invert-joy-x") === "true") invX = -1;
       if (localStorage.getItem("bm-invert-joy-y") === "true") invY = -1;
     } catch {}
-    const sens = this.sensitivity * 2.8;
-    this.state.yaw -= dx * sens * invX;
-    this.state.pitch -= dy * sens * invY;
+    const sensX = this.sensitivityX * 2.8;
+    const sensY = this.sensitivityY * 2.8;
+    this.state.yaw -= dx * sensX * invX;
+    this.state.pitch -= dy * sensY * invY;
     const lim = Math.PI / 2 - 0.001;
     this.state.pitch = Math.max(-lim, Math.min(lim, this.state.pitch));
   }
@@ -171,5 +244,9 @@ export class Controls {
     this.el.removeEventListener("mousedown", this.onMouseDown);
     window.removeEventListener("mouseup", this.onMouseUp);
     window.removeEventListener("blur", this.onBlur);
+    window.removeEventListener("bm-sensitivity", this.onSensEvent as any);
+    window.removeEventListener("bm-cam-sensitivity", this.onSensEvent as any);
+    window.removeEventListener("bm-cam-sens-x", this.onSensXEvent as any);
+    window.removeEventListener("bm-cam-sens-y", this.onSensYEvent as any);
   }
 }
