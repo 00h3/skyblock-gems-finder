@@ -4663,6 +4663,11 @@ export function SandboxGame({
           waterSurfaceY,
         );
 
+        const bobY =
+          camController.enableBobbing && player.onGround && !input.crouch && horizontalSpeed > 0.4
+            ? Math.sin(player.bob * 2) * (input.sprint ? 0.042 : 0.032) * Math.min(1, horizontalSpeed / 4.5)
+            : 0;
+
         // Skyblock intro: smooth sweeping orbit that descends onto the island
         if (cutsceneRef.current.active) {
           const cs = cutsceneRef.current;

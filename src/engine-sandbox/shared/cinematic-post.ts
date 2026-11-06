@@ -40,11 +40,11 @@ const MotionShader = {
         float maxC = max(c.r, max(c.g, c.b));
         float minC = min(c.r, min(c.g, c.b));
         float sat = (maxC - minC) / (maxC + 0.0001);
-        float vibranceBoost = (1.0 - sat) * 0.18 * uGrade;
+        float vibranceBoost = (1.0 - sat) * 0.30 * uGrade;
         c = mix(vec3(luma), c, 1.0 + vibranceBoost);
 
         // Filmic S-curve contrast without crushing dark details
-        c = (c - 0.5) * (1.0 + 0.08 * uGrade) + 0.5;
+        c = (c - 0.5) * (1.0 + 0.12 * uGrade) + 0.5;
 
         // Warm golden highlight tint & rich celestial shadow tint
         vec3 shadowTint = vec3(0.96, 0.98, 1.05);
@@ -105,7 +105,7 @@ export class CinematicPost {
     const bloomScale = isMobile ? 0.25 : 0.5;
     const bloomW = Math.max(32, Math.round(targetW * bloomScale));
     const bloomH = Math.max(32, Math.round(targetH * bloomScale));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.12, 0.40, 0.92);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(bloomW, bloomH), 0.24, 0.55, 0.86);
     this.composer.addPass(this.bloom);
     this.motion = new ShaderPass(MotionShader);
     this.composer.addPass(this.motion);
@@ -114,11 +114,11 @@ export class CinematicPost {
 
   /** Graphics V2: gentle filmic tone without blinding bloom. */
   setGraphicsV2(on: boolean) {
-    this.bloom.strength = on ? 0.14 : 0.08;
-    this.bloom.radius = on ? 0.45 : 0.35;
-    this.bloom.threshold = on ? 0.90 : 0.94;
-    this.motion.uniforms.uGrade.value = on ? 1.02 : 0.92;
-    this.motion.uniforms.uVignette.value = on ? 0.05 : 0.03;
+    this.bloom.strength = on ? 0.30 : 0.16;
+    this.bloom.radius = on ? 0.55 : 0.40;
+    this.bloom.threshold = on ? 0.82 : 0.90;
+    this.motion.uniforms.uGrade.value = on ? 1.15 : 0.95;
+    this.motion.uniforms.uVignette.value = on ? 0.16 : 0.08;
   }
 
   setSize(w: number, h: number, pixelRatio: number) {

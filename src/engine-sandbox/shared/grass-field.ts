@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { WIND, type World } from "./world";
 
 const GRASS_ID = 1;
-const MAX_TUFTS = 1400;
+const MAX_TUFTS = 3600;
 
 type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number; minY: number; maxY: number };
 
@@ -60,11 +60,12 @@ export class GrassField {
   private scanAcc = 0;
   private hashSignature = 0;
   private readonly dummy = new THREE.Object3D();
+  private readonly tint = new THREE.Color();
 
   constructor(
     private readonly world: World,
     private readonly bounds: Bounds,
-    private readonly density = 0.6,
+    private readonly density = 0.9,
   ) {
     this.texture = makeTuftTexture();
     this.material = new THREE.MeshLambertMaterial({
@@ -87,9 +88,10 @@ export class GrassField {
           #endif
           float tip = uv.y * uv.y;
           float ph = root.x * 0.7 + root.y * 0.5;
-          float gust = 0.55 + 0.45 * sin(uWindTime * 0.4 + root.x * 0.08);
-          transformed.x += sin(uWindTime * 2.2 + ph) * 0.12 * tip * gust * uWindStrength;
-          transformed.z += cos(uWindTime * 1.7 + ph * 1.2) * 0.08 * tip * gust * uWindStrength;`,
+          float wave = sin(uWindTime * 1.3 + root.x * 0.35 + root.y * 0.22);
+          float gust = 0.6 + 0.4 * wave;
+          transformed.x += (sin(uWindTime * 2.6 + ph) * 0.16 + wave * 0.14) * tip * gust * uWindStrength;
+          transformed.z += cos(uWindTime * 2.0 + ph * 1.2) * 0.10 * tip * gust * uWindStrength;`,
         );
     };
     this.material.customProgramCacheKey = () => "grass-tuft-wind";
@@ -136,9 +138,12 @@ export class GrassField {
       this.dummy.scale.set(s, s, s);
       this.dummy.updateMatrix();
       this.mesh.setMatrixAt(i, this.dummy.matrix);
+      this.tint.setHSL(0.22 + r * 0.06, 0.4, 0.68 + hash(x, z, y) * 0.2);
+      this.mesh.setColorAt(i, this.tint);
     });
     this.mesh.count = spots.length;
     this.mesh.instanceMatrix.needsUpdate = true;
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 
   private dirty = false;
