@@ -97,6 +97,7 @@ import { MineTeleportButton, useWeather } from "@/components/SkyblockExtras";
 import { buildMiningArea, DRAGON_ARENA, type MiningArea } from "@/engine-sandbox/skyblock/mining-area";
 import { RewardChests } from "@/engine-sandbox/skyblock/reward-chests";
 import { RedDragon, type DragonHud } from "@/engine-sandbox/skyblock/red-dragon";
+import { FireLavaFx } from "@/engine-sandbox/skyblock/fire-lava-fx";
 import {
   ChestHint,
   ChestRewardModal,
@@ -1980,6 +1981,8 @@ export function SandboxGame({
     let world: World | null = null;
     let fx: BlockFx | null = null;
     let renderer: THREE.WebGLRenderer | null = null;
+    // Hoisted to effect scope so cleanup can always release its WebGL context.
+    let iconRenderer: THREE.WebGLRenderer | null = null;
     let controls: Controls | null = null;
     let sky: Sky | null = null;
     let avatar: Avatar | null = null;
@@ -2055,7 +2058,7 @@ export function SandboxGame({
             });
           } catch (error) {
             setGraphicsError(
-              "3D graphics are unavailable in this preview. Open the game in a browser with WebGL enabled.",
+              "Couldn't start 3D graphics. Your browser may have too many 3D tabs open or WebGL turned off. Close other game tabs and tap Try again.",
             );
             console.error("Could not create the sandbox WebGL renderer:", error);
             return;
@@ -2574,7 +2577,6 @@ export function SandboxGame({
       // attach to the hand rig; `heldSword` always points at the visible one.
       const heldSwords = new Map<string, THREE.Object3D>();
       let heldItemId: number | string = 0;
-      let iconRenderer: THREE.WebGLRenderer | null = null;
       let iconsPending = Object.keys(SWORD_MODELS).length;
       const renderSwordIcon = (model: THREE.Object3D) => {
         try {
@@ -2639,6 +2641,7 @@ export function SandboxGame({
             iconsPending -= 1;
             if (iconsPending <= 0 && iconRenderer) {
               iconRenderer.dispose();
+              iconRenderer.forceContextLoss();
               iconRenderer = null;
             }
           });
@@ -4294,6 +4297,12 @@ export function SandboxGame({
       };
       applyWeather();
       scene.add(particles.points);
+      // Cinematic fire + lava: glowing lava light, rising embers, flame halos.
+      // Skyblock only; skipped entirely on the "low" quality preset.
+      const fireLavaFx = isSkyblockLike
+        ? new FireLavaFx({ scene, world: world!, lowQuality: qualityPref === "low", lightweight: isMaliOrMobileGpu })
+        : null;
+      if (skyblock) fireLavaFx?.addFlame(1.5, 17.65, 1.5); // starter-island torch
       const onWeather = (e: Event) => {
         currentWeather = (e as CustomEvent<Weather>).detail;
         applyWeather();
@@ -4957,6 +4966,7 @@ export function SandboxGame({
             voxelTorchRef.current.update(tNow);
           }
           voxelPropsRef.current.forEach((p) => p.update?.(tNow));
+          fireLavaFx?.update(dt, tNow, camera, renderer);
 
           // Natural organic wind sway on stylized trees (gentle upright breeze sway)
           gltfTreesRef.current.forEach((t) => {
@@ -5205,6 +5215,7 @@ export function SandboxGame({
         features.dispose();
         featuresRef.current = null;
         particles.dispose();
+        fireLavaFx?.dispose();
         skyEnv?.dispose();
         cosmicSky?.dispose();
         cosmicSkyRef.current = null;
@@ -5342,8 +5353,19 @@ export function SandboxGame({
       window.removeEventListener("qb-reset-island", onResetIsland);
       world?.dispose();
       BmgoAudio.stopBgm();
+      // The icon renderer is a second WebGL context. Release it here too in case
+      // this effect is torn down before every sword icon has finished rendering.
+      if (iconRenderer) {
+        iconRenderer.dispose();
+        iconRenderer.forceContextLoss();
+        iconRenderer = null;
+      }
       if (renderer) {
         renderer.dispose();
+        // dispose() frees GPU resources but NOT the browser's WebGL context.
+        // Browsers cap live contexts (especially on phones), so without this the
+        // game fails to start after a few launches ("Sandbox unavailable").
+        renderer.forceContextLoss();
         renderer.domElement.remove();
       }
     };
@@ -6290,6 +6312,13 @@ export function SandboxGame({
             <p className="mt-2 text-[13px] font-medium leading-relaxed text-black/55">
               {graphicsError}
             </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 mr-2 inline-flex h-10 items-center justify-center rounded-full bg-[#16181d] px-5 text-[12px] font-extrabold text-white"
+            >
+              Try again
+            </button>
             {!qbUser && !authLoading && (
               <Link
                 to="/login"

@@ -265,6 +265,7 @@ function ShopItem3DViewer({ item }: { item: ShopItem }) {
     return () => {
       cancelAnimationFrame(animationFrameId);
       renderer.dispose();
+      renderer.forceContextLoss();
       if (renderer.domElement && mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
