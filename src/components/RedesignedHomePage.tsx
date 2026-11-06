@@ -175,7 +175,7 @@ export function RedesignedHomePage({
           </form>
         </div>
 
-        {/* Quick Entries: Shop, Events (Middle card with Floating Islands image), Fragments */}
+        {/* Quick Entries: Shop, Events, Fragments (reverted to blank glossy squircles without text and image) */}
         <div className="px-4 flex items-center gap-2.5">
           {/* Shop */}
           <button
@@ -183,21 +183,11 @@ export function RedesignedHomePage({
             onClick={() => {
               openShop();
             }}
-            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] bg-slate-900 shadow-sm"
+            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
             aria-label="Shop"
-          >
-            <img
-              src="https://maxwell.z3ki.dev/bot/_files/orange-shop-banner/C03CF82D-0DF5-46F0-92D3-6189D433FC9A.jpg"
-              alt="Shop"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/25" />
-            <div className="relative z-10 flex h-full items-end p-1.5">
-              <span className="text-[10.5px] font-black text-white drop-shadow">Shop</span>
-            </div>
-          </button>
+          />
 
-          {/* Events (Rectangle in middle fitted with Floating Islands image) */}
+          {/* Events */}
           <button
             type="button"
             onClick={() => {
@@ -205,24 +195,9 @@ export function RedesignedHomePage({
                 openEvents();
               }
             }}
-            className="qb-squircle press group relative h-[60px] flex-1 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] bg-slate-900 shadow-sm"
+            className="qb-squircle press relative h-[60px] flex-1 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
             aria-label="Events"
-          >
-            <img
-              src="https://maxwell.z3ki.dev/bot/_files/floating-islands/floating-islands.png"
-              alt="Events - Floating Islands"
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-            <div className="relative z-10 flex h-full flex-col justify-end p-2">
-              <span className="text-[8.5px] font-black uppercase tracking-wider text-[#ff6600] drop-shadow">
-                Live Event
-              </span>
-              <span className="text-[12px] font-black text-white leading-tight drop-shadow-md">
-                Floating Islands
-              </span>
-            </div>
-          </button>
+          />
 
           {/* Fragments */}
           <button
@@ -232,28 +207,38 @@ export function RedesignedHomePage({
                 openFragments();
               }
             }}
-            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px] bg-slate-900 shadow-sm"
+            className="qb-squircle press relative h-[60px] w-[60px] shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden rounded-[14px]"
             aria-label="Fragments"
-          >
-            <img
-              src="https://maxwell.z3ki.dev/bot/_files/0d68e334-94fc-436e-8197-c94b87/0D68E334-94FC-436E-8197-C94B87E81281.png"
-              alt="Fragments"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/25" />
-            <div className="relative z-10 flex h-full items-end p-1.5">
-              <span className="text-[10.5px] font-black text-white drop-shadow">Fragments</span>
-            </div>
-          </button>
+          />
         </div>
 
-        {/* Featured Beta & Floating Islands Event Component (Single completed banner with LaserFlow upper beam) */}
-        <div className="px-4 mt-2.5">
+        {/* Featured Floating Islands Event Component with LaserFlow flowing from above */}
+        <div className="relative px-4 mt-3">
+          {/* LaserFlow light beam positioned above the event component */}
+          <div className="absolute -top-20 left-4 right-4 h-[132px] pointer-events-none z-20 overflow-visible">
+            <LaserFlow
+              surfaceRef={bannerCardRef}
+              beamPosition={0.5}
+              color="#ff6600"
+              intensity={2.2}
+              flare={1.8}
+              spread={1.8}
+              spill={1.4}
+              fog={0.3}
+              dust={2.0}
+              streaks={2.0}
+              pulse={1.8}
+              speed={1.6}
+              theme="dark"
+            />
+          </div>
+
           <div
+            ref={bannerCardRef}
             onClick={() => {
               if (typeof window !== "undefined") openEvents();
             }}
-            className="qb-squircle press relative h-[112px] w-full overflow-hidden cursor-pointer select-none rounded-[16px] text-white shadow-lg transition-all duration-300 border border-orange-500/40 bg-slate-950"
+            className="qb-squircle press relative h-[112px] w-full overflow-hidden cursor-pointer select-none rounded-[16px] text-white shadow-xl transition-all duration-300 border border-white/20 bg-slate-950"
           >
             {/* Background Floating Islands Event Graphic */}
             <img
@@ -262,46 +247,31 @@ export function RedesignedHomePage({
               className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-[16px] z-10" />
 
-            {/* LaserFlow light beam aligned upper the event component */}
-            <div className="absolute inset-0 pointer-events-none z-15 overflow-hidden rounded-[16px]">
-              <LaserFlow
-                surfaceRef={bannerCardRef}
-                beamPosition={0.48}
-                color="#ff6600"
-                intensity={2.4}
-                flare={2.0}
-                spread={1.9}
-                spill={1.4}
-                fog={0.35}
-                dust={2.0}
-                streaks={2.0}
-                pulse={1.8}
-                speed={1.6}
-                theme="dark"
-              />
-            </div>
+            {/* Glossy top specular highlight & inner rim reflection */}
+            <div className="absolute inset-x-0 top-0 h-3/5 bg-gradient-to-b from-white/35 via-white/10 to-transparent pointer-events-none rounded-t-[16px] z-10" />
+            <div className="absolute -top-10 -left-10 w-44 h-24 bg-white/25 rounded-full blur-xl pointer-events-none z-10" />
+            <div className="absolute inset-0 rounded-[16px] ring-1 ring-inset ring-white/25 pointer-events-none z-10" />
 
             <div className="relative z-20 h-full p-3.5 flex items-center justify-between">
               <div className="flex flex-col justify-center max-w-[76%]">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[9px] font-black uppercase tracking-wider text-orange-200 bg-orange-600/80 border border-orange-400/50 px-2 py-0.5 rounded-full backdrop-blur-xs">
-                    This is Beta
+                    Live Event
                   </span>
                 </div>
                 <h3 className="mt-1 text-[18px] sm:text-[20px] font-black tracking-tight text-white leading-tight drop-shadow-md">
-                  This is Beta
+                  Floating Islands
                 </h3>
                 <p className="text-[11px] font-semibold text-amber-100/95 mt-0.5 line-clamp-1 drop-shadow-sm">
-                  Explore Floating Islands & build together in QBLOCK Beta
+                  Explore floating islands & collect rare treasures
                 </p>
               </div>
 
-              <div ref={bannerCardRef} className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-black/40 backdrop-blur-md border border-white/30 grid place-items-center shadow-lg overflow-hidden p-1.5">
+              <div className="relative z-20 shrink-0 w-14 h-14 rounded-2xl bg-black/40 backdrop-blur-md border border-white/30 grid place-items-center shadow-lg overflow-hidden p-1.5">
                 <img
                   src="https://maxwell.z3ki.dev/bot/_files/goggle-character/goggle_character.png"
-                  alt="Beta Mascot"
+                  alt="Floating Islands Mascot"
                   className="w-full h-full object-contain drop-shadow"
                   draggable={false}
                 />
