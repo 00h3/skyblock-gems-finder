@@ -128,6 +128,14 @@ function NotFoundComponent() {
       nav({ to: "/build" as never, replace: true });
       return;
     }
+    if (path === "/login" || path === "/welcome" || path === "/auth" || path === "/signin" || path === "/signup") {
+      nav({ to: "/login" as never, replace: true });
+      return;
+    }
+    if (path === "/onboarding") {
+      nav({ to: "/onboarding" as never, replace: true });
+      return;
+    }
     if (path === "/settings") {
       nav({ to: "/settings" as never, replace: true });
       return;

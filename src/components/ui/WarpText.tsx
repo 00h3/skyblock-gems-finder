@@ -356,6 +356,12 @@ export const WarpText: React.FC<WarpTextProps> = ({
   });
   const contextRef = useRef<{ program: any; rasterize: () => void } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     propsRef.current = {
@@ -413,6 +419,7 @@ export const WarpText: React.FC<WarpTextProps> = ({
 
     let renderer: any;
     let gl: any;
+    let canvas: any;
     let program: any;
     let geometry: any;
     let mesh: any;
@@ -446,61 +453,70 @@ export const WarpText: React.FC<WarpTextProps> = ({
         dpr: Math.min(window.devicePixelRatio || 1, 2)
       });
       gl = renderer.gl;
+      if (!gl || !renderer.gl) {
+        setFailed(true);
+        return undefined;
+      }
+
+      gl.clearColor(0, 0, 0, 0);
+      const canvasEl = gl.canvas;
+      if (!canvasEl) {
+        setFailed(true);
+        return undefined;
+      }
+      canvas = canvasEl;
+      canvas.style.position = 'absolute';
+      canvas.style.inset = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.display = 'block';
+      canvas.setAttribute('aria-hidden', 'true');
+      container.appendChild(canvas);
+
+      texture = new Texture(gl, {
+        generateMipmaps: false,
+        premultiplyAlpha: true,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR,
+        wrapS: gl.CLAMP_TO_EDGE,
+        wrapT: gl.CLAMP_TO_EDGE
+      });
+
+      geometry = new Triangle(gl);
+      program = new Program(gl, {
+        vertex,
+        fragment,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        uniforms: {
+          uTextTexture: { value: texture },
+          uResolution: { value: new Float32Array([1, 1]) },
+          uPointer: { value: new Float32Array([0.5, 0.5]) },
+          uPointerActive: { value: 0 },
+          uTime: { value: 0 },
+          uWarpStrength: { value: propsRef.current.warpStrength ?? 0.08 },
+          uWarpScale: { value: propsRef.current.warpScale ?? 1.7 },
+          uSpeed: { value: propsRef.current.speed ?? 0.55 },
+          uPointerInfluence: { value: propsRef.current.pointerInfluence ?? 0.42 },
+          uPointerStrength: { value: propsRef.current.pointerStrength ?? 0.38 },
+          uRefraction: { value: propsRef.current.refraction ?? 0.018 },
+          uChromatic: { value: propsRef.current.chromatic ?? 0 },
+          uRipple: { value: propsRef.current.ripple ? 1 : 0 },
+          uMotion: { value: reduceMotion ? 0 : 1 },
+          uLens: { value: LENS_MODES[propsRef.current.lens ?? 'bulge'] ?? 0 },
+          uIntro: { value: 0 },
+          uReveal: { value: 0 },
+          uBackdrop: { value: 0 },
+          uClicks: { value: clicks }
+        }
+      });
+      mesh = new Mesh(gl, { geometry, program });
     } catch (error) {
       console.warn('WarpText: WebGL could not be initialized.', error);
       setFailed(true);
       return undefined;
     }
-
-    gl.clearColor(0, 0, 0, 0);
-    const canvas = gl.canvas;
-    canvas.style.position = 'absolute';
-    canvas.style.inset = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
-    canvas.setAttribute('aria-hidden', 'true');
-    container.appendChild(canvas);
-
-    texture = new Texture(gl, {
-      generateMipmaps: false,
-      premultiplyAlpha: true,
-      minFilter: gl.LINEAR,
-      magFilter: gl.LINEAR,
-      wrapS: gl.CLAMP_TO_EDGE,
-      wrapT: gl.CLAMP_TO_EDGE
-    });
-
-    geometry = new Triangle(gl);
-    program = new Program(gl, {
-      vertex,
-      fragment,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      uniforms: {
-        uTextTexture: { value: texture },
-        uResolution: { value: new Float32Array([1, 1]) },
-        uPointer: { value: new Float32Array([0.5, 0.5]) },
-        uPointerActive: { value: 0 },
-        uTime: { value: 0 },
-        uWarpStrength: { value: propsRef.current.warpStrength ?? 0.08 },
-        uWarpScale: { value: propsRef.current.warpScale ?? 1.7 },
-        uSpeed: { value: propsRef.current.speed ?? 0.55 },
-        uPointerInfluence: { value: propsRef.current.pointerInfluence ?? 0.42 },
-        uPointerStrength: { value: propsRef.current.pointerStrength ?? 0.38 },
-        uRefraction: { value: propsRef.current.refraction ?? 0.018 },
-        uChromatic: { value: propsRef.current.chromatic ?? 0 },
-        uRipple: { value: propsRef.current.ripple ? 1 : 0 },
-        uMotion: { value: reduceMotion ? 0 : 1 },
-        uLens: { value: LENS_MODES[propsRef.current.lens ?? 'bulge'] ?? 0 },
-        uIntro: { value: 0 },
-        uReveal: { value: 0 },
-        uBackdrop: { value: 0 },
-        uClicks: { value: clicks }
-      }
-    });
-    mesh = new Mesh(gl, { geometry, program });
 
     const renderOnce = () => {
       if (disposed || contextLost) return;
@@ -523,18 +539,24 @@ export const WarpText: React.FC<WarpTextProps> = ({
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       lastInk = window.getComputedStyle(container).color;
-      const raster = buildTextCanvas({
-        container,
-        width: rect.width,
-        height: rect.height,
-        dpr,
-        props: propsRef.current
-      });
-      texture.image = raster.canvas;
-      texture.needsUpdate = true;
-      program.uniforms.uBackdrop.value = getLuminance(raster.ink) < 0.5 ? 1 : 0;
-      textReady = true;
-      renderOnce();
+      try {
+        const raster = buildTextCanvas({
+          container,
+          width: rect.width,
+          height: rect.height,
+          dpr,
+          props: propsRef.current
+        });
+        texture.image = raster.canvas;
+        texture.needsUpdate = true;
+        program.uniforms.uBackdrop.value = getLuminance(raster.ink) < 0.5 ? 1 : 0;
+        textReady = true;
+        renderOnce();
+        setCanvasReady(true);
+      } catch (err) {
+        console.warn('WarpText rasterize error', err);
+        setFailed(true);
+      }
     };
 
     const resize = () => {
@@ -655,12 +677,12 @@ export const WarpText: React.FC<WarpTextProps> = ({
     );
     intersectionObserver.observe(container);
 
-    canvas.addEventListener('pointermove', onPointerMove as EventListener);
+    canvas.addEventListener('pointermove', onPointerMove as any);
     canvas.addEventListener('pointerleave', onPointerLeave);
-    canvas.addEventListener('pointerdown', onPointerDown as EventListener);
-    canvas.addEventListener('webglcontextlost', onContextLost as EventListener, false);
+    canvas.addEventListener('pointerdown', onPointerDown as any);
+    canvas.addEventListener('webglcontextlost', onContextLost as any, false);
     document.addEventListener('visibilitychange', onVisibility);
-    mediaQuery?.addEventListener('change', onReducedMotion as EventListener);
+    mediaQuery?.addEventListener('change', onReducedMotion as any);
 
     syncUniforms(program, propsRef.current);
     contextRef.current = { program, rasterize };
@@ -673,12 +695,12 @@ export const WarpText: React.FC<WarpTextProps> = ({
       if (raf) cancelAnimationFrame(raf);
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
-      canvas.removeEventListener('pointermove', onPointerMove as EventListener);
+      canvas.removeEventListener('pointermove', onPointerMove as any);
       canvas.removeEventListener('pointerleave', onPointerLeave);
-      canvas.removeEventListener('pointerdown', onPointerDown as EventListener);
-      canvas.removeEventListener('webglcontextlost', onContextLost as EventListener);
+      canvas.removeEventListener('pointerdown', onPointerDown as any);
+      canvas.removeEventListener('webglcontextlost', onContextLost as any);
       document.removeEventListener('visibilitychange', onVisibility);
-      mediaQuery?.removeEventListener('change', onReducedMotion as EventListener);
+      mediaQuery?.removeEventListener('change', onReducedMotion as any);
 
       if (!contextLost) {
         try {
@@ -697,7 +719,7 @@ export const WarpText: React.FC<WarpTextProps> = ({
 
   return (
     <div ref={containerRef} className={`warp-text ${className}`.trim()} style={style} role="img" aria-label={text}>
-      {failed && (
+      {(!isMounted || failed || !canvasReady) && (
         <span
           className="warp-text__fallback"
           aria-hidden="true"

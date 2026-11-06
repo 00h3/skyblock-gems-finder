@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Users } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { MobileShell } from "@/components/MobileShell";
@@ -699,7 +699,7 @@ function FormError({ message }: { message: string }) {
 function FullLoader() {
   return (
     <div className="min-h-dvh flex items-center justify-center bg-white">
-      <HtmlSpinner size={36} />
+      <div className="w-9 h-9 rounded-full border-3 border-[#fa4616]/25 border-t-[#fa4616] animate-spin shadow-sm" />
     </div>
   );
 }

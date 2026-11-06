@@ -165,13 +165,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         {/* Secondary Action Link */}
         {secondaryActionText && onSecondaryActionClick && (
           <motion.div variants={itemVariants} className="text-center pt-1">
-            <Button
-              variant="link"
+            <button
+              type="button"
               onClick={onSecondaryActionClick}
-              className="text-sm font-semibold text-slate-600 hover:text-[#fa4616] cursor-pointer transition-colors"
+              className="text-sm font-semibold text-slate-600 hover:text-[#fa4616] cursor-pointer transition-colors bg-transparent border-none p-0 outline-none"
             >
               {secondaryActionText}
-            </Button>
+            </button>
           </motion.div>
         )}
       </motion.div>

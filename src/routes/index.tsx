@@ -43,11 +43,12 @@ import {
   User,
   Palette,
 } from "lucide-react";
-import { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { GameSheet, type GameMeta } from "@/components/GameSheet";
 import { TextureItemArt, type Item as AvatarShopItem } from "@/routes/inventory";
-import { useCurrency, addCurrency } from "@/lib/currency";
 import { useAuth } from "@/lib/auth-context";
+import { openEvents } from "@/lib/events-ui";
+import { openFragments } from "@/lib/fragments-ui";
 import { ProfileSheet, type ProfileUser } from "@/components/ProfileSheet";
 import { useAvatarColor } from "@/lib/avatar";
 import { PrivateServerSheet } from "@/components/PrivateServerSheet";
@@ -146,6 +147,7 @@ const FEED_GAMES = Array.from({ length: 50 }, (_, i) => ({
 
 function UploadedHomePage({ setBuyModal }: { setBuyModal: (type: string) => void }) {
   const navigate = useNavigate();
+  const { qbUser } = useAuth();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<GameMeta | null>(null);
   const [mailOpen, setMailOpen] = useState(false);
