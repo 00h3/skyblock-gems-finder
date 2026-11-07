@@ -4633,6 +4633,7 @@ export function SandboxGame({
       let frames = 0;
       let footstepT = 0.12;
       let smoothDt = 1 / 60;
+      let lastFrameMs = performance.now();
       const euler = new THREE.Euler(0, 0, 0, "YXZ");
       // Pre-allocated scratch vectors to eliminate garbage collection stutters on mobile
       const _eye = new THREE.Vector3();
@@ -4642,12 +4643,26 @@ export function SandboxGame({
       const _scratchChipPos = new THREE.Vector3();
       const _scratchChipNormal = new THREE.Vector3();
 
-      const loop = () => {
+      const loop = (ts?: number) => {
         raf = requestAnimationFrame(loop);
-        const raw = clock.getDelta();
 
-        // Render every browser frame. High-precision display refresh rate delta (butter-smooth 60/120fps motion)
-        const dt = Math.min(Math.max(raw, 0.001), 0.05);
+        // Frame time comes from the browser's vsync-aligned timestamp, not from
+        // clock.getDelta(): later in the frame the code calls clock.getElapsedTime(),
+        // which resets that timer, so the next getDelta() only measured from the
+        // middle of the previous frame. The step then wobbled with how heavy the
+        // first half of each frame was, which reads as micro-judder.
+        const nowMs = typeof ts === "number" ? ts : performance.now();
+        const rawDt = Math.min(Math.max((nowMs - lastFrameMs) / 1000, 0.001), 0.05);
+        lastFrameMs = nowMs;
+        // Still advance the clock: clock.elapsedTime drives wind, nature and other animation.
+        clock.getDelta();
+
+        // Display refresh is steady, so small frame-to-frame timer wobble is noise:
+        // blend it toward a running average. A real hitch (>35% off) passes through
+        // unchanged so physics and timers stay honest.
+        if (Math.abs(rawDt - smoothDt) < smoothDt * 0.35) smoothDt += (rawDt - smoothDt) * 0.15;
+        else smoothDt = rawDt;
+        const dt = smoothDt;
 
         const input = controls!.read();
         const tNow = matchNow();
