@@ -1877,7 +1877,7 @@ export function SandboxGame({
   }, [celestialNight, isSkyblockLike]);
 
   // Local identity used for multiplayer presence + name tags.
-  const { qbUser } = useAuth();
+  const { qbUser, loading: authLoading } = useAuth();
   const getInitialGuestId = () => {
     if (typeof window === "undefined") return "guest";
     try {
@@ -2066,6 +2066,7 @@ export function SandboxGame({
     let unsubSocketError: (() => void) | null = null;
     let unsubChat: (() => void) | null = null;
     let selfSayCleanup: (() => void) | null = null;
+    let onResetIslandHandler: (() => void) | null = null;
     hungerRef.current = 20;
     runesTimeRef.current = 600;
     setPlayerHunger(20);
@@ -3711,6 +3712,7 @@ export function SandboxGame({
         player.velocity.set(0, 0, 0);
         announce("Island Reset", "Welcome back to your fresh starter sanctuary!");
       };
+      onResetIslandHandler = onResetIsland;
       window.addEventListener("qb-reset-island", onResetIsland);
 
       // Instant local echo: your own bubble pops the moment you hit send,
@@ -4264,7 +4266,7 @@ export function SandboxGame({
       window.addEventListener("bm-fog-mode", onFogModeEvt);
 
       const onQualityEvt = (e: Event) => {
-        const q = (e as CustomEvent<RenderQuality | string>).detail as string;
+        const q = (e as CustomEvent<string>).detail;
         if (!q) return;
         const targetDpr = getTargetDpr(q);
         renderer.setPixelRatio(targetDpr);
@@ -4610,6 +4612,7 @@ export function SandboxGame({
       // Pre-allocated scratch vectors to eliminate garbage collection stutters on mobile
       const _eye = new THREE.Vector3();
       const _pivot = new THREE.Vector3();
+      const _avatarPos = new THREE.Vector3();
       const _scratchBreakVec = new THREE.Vector3();
       const _scratchChipPos = new THREE.Vector3();
       const _scratchChipNormal = new THREE.Vector3();
@@ -5480,7 +5483,7 @@ export function SandboxGame({
       if (candyCruiser) {
         candyCruiserMixer?.stopAllAction();
         candyCruiserMixer = null;
-        scene.remove(candyCruiser);
+        candyCruiser.removeFromParent();
         candyCruiser.traverse((child) => {
           const m = child as THREE.Mesh;
           if (m.isMesh) {
@@ -5492,7 +5495,7 @@ export function SandboxGame({
         candyCruiser = null;
       }
       if (cell99Model) {
-        scene.remove(cell99Model);
+        cell99Model.removeFromParent();
         cell99Model.traverse((object) => {
           const mesh = object as THREE.Mesh;
           if (!mesh.isMesh) return;
@@ -5502,7 +5505,9 @@ export function SandboxGame({
         });
         cell99Model = null;
       }
-      window.removeEventListener("qb-reset-island", onResetIsland);
+      if (onResetIslandHandler) {
+        window.removeEventListener("qb-reset-island", onResetIslandHandler);
+      }
       world?.dispose();
       BmgoAudio.stopBgm();
       // The icon renderer is a second WebGL context. Release it here too in case
@@ -6294,7 +6299,7 @@ export function SandboxGame({
           celestialNight={celestialNight}
           onToggleCelestialNight={() => setCelestialNight((prev) => !prev)}
           onLeave={() => setShowQuitDialog(true)}
-          onOpenChest={nearChestRef.current ? () => setChestOpen(true) : undefined}
+          onOpenChest={nearChestRef.current ? () => setChestOpen(true) : () => {}}
           joyRef={joyRef}
           joyNub={joyNub}
           onSelectSlot={selectSlot}
