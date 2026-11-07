@@ -33,6 +33,7 @@ uniform float uCloudCover;
 uniform float uNight;
 uniform float uAurora;
 uniform float uV2;
+uniform float uCine;
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -104,6 +105,27 @@ void main() {
     col = mix(col, mix(uHorizon, uSunColor, 0.25 * lowSun) * 1.02, haze * 0.15 * uV2 * (1.0 - uNight * 0.6));
   }
 
+#ifdef CINEMATIC_SKY
+  // Crepuscular rays: streaks fanning out from the sun. They are added before
+  // the clouds, so clouds cut them into shafts, and terrain hides them for free
+  // because the dome only draws where there is sky.
+  if (uV2 > 0.0 && sunVisible > 0.0 && sunDot > 0.25) {
+    vec3 refUp = abs(sunDir.y) < 0.95 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 sx = normalize(cross(refUp, sunDir));
+    vec3 sy = cross(sunDir, sx);
+    vec3 perp = dir - sunDir * dot(dir, sunDir);
+    vec2 pp = vec2(dot(perp, sx), dot(perp, sy));
+    // Direction around the sun as a point on a circle, so the noise has no seam.
+    vec2 cs = pp / max(length(pp), 0.0001);
+    float r1 = noise(cs * 3.0 + vec2(uTime * 0.015, 1.7));
+    float r2 = noise(cs * 8.0 - vec2(uTime * 0.03, 7.3));
+    float streak = smoothstep(0.38, 0.92, r1 * 0.6 + r2 * 0.4);
+    float rayStrength = pow(sunDot, 3.5) * streak * (0.4 + 0.6 * lowSun);
+    vec3 rayCol = mix(uSunColor, vec3(1.0, 0.68, 0.38), lowSun * 0.6);
+    col += rayCol * rayStrength * 0.34 * uV2 * sunVisible * (1.0 - uNight * 0.7);
+  }
+#endif
+
   // Moon: opposite the sun, soft cratered disc with a wide cold glow.
   vec3 moonDir = normalize(vec3(-sunDir.x, max(-sunDir.y, 0.25), -sunDir.z));
   float moonDot = max(dot(dir, moonDir), 0.0);
@@ -138,6 +160,27 @@ void main() {
     float neb = neb1 * 0.65 + neb2 * 0.35;
     vec3 nebColor = mix(vec3(0.08, 0.06, 0.18), vec3(0.16, 0.10, 0.24), neb);
     col += nebColor * smoothstep(0.48, 0.82, neb) * uNight * smoothstep(0.05, 0.4, h);
+
+#ifdef CINEMATIC_SKY
+    // Shooting stars: one short-lived meteor in most 6 second windows.
+    if (uV2 > 0.0 && uNight > 0.3) {
+      float slot = floor(uTime / 6.0);
+      float lt = fract(uTime / 6.0);
+      float life = 0.14;
+      if (lt < life && hash(vec2(slot, 3.7)) > 0.45) {
+        vec2 q = dir.xz / (dir.y + 0.25);
+        vec2 q0 = (vec2(hash(vec2(slot, 1.3)), hash(vec2(slot, 8.1))) - 0.5) * 5.0;
+        vec2 vd = normalize(vec2(hash(vec2(slot, 5.5)) - 0.5, -0.25 - hash(vec2(slot, 9.9)) * 0.5));
+        float head = (lt / life) * 1.8;
+        float along = dot(q - q0, vd);
+        float across = abs((q.x - q0.x) * vd.y - (q.y - q0.y) * vd.x) / (0.35 + 0.65 * length(q));
+        float trail = clamp(1.0 - (head - along) / 0.6, 0.0, 1.0);
+        float onPath = step(along, head) * step(head - 0.6, along);
+        float fadeLife = sin((lt / life) * 3.14159);
+        col += vec3(0.85, 0.93, 1.0) * onPath * trail * trail * exp(-across * across * 40000.0) * fadeLife * uNight * smoothstep(0.1, 0.4, h) * 2.0;
+      }
+    }
+#endif
   }
 
   // Volumetric billowy clouds with forward scattering and silver lining
@@ -167,6 +210,19 @@ void main() {
       float cirrus = fbm(vec2(uv.x * 0.55 + uTime * 0.004, uv.y * 3.2));
       col = mix(col, uCloudLit, smoothstep(0.58, 0.9, cirrus) * 0.18 * smoothstep(0.1, 0.5, h) * uV2);
     }
+
+#ifdef CINEMATIC_SKY
+    if (uCine > 0.0 && density > 0.02) {
+      // One step toward the sun through the cloud field: a cloud with denser
+      // sky between it and the sun is shaded, edges facing the sun glow.
+      vec2 toSun = sunDir.xz / max(length(sunDir.xz), 0.2);
+      float dSun = fbm(uv + wind + toSun * 0.07) * 0.68 + detail * 0.32;
+      float occl = clamp((dSun - d) * 4.0, 0.0, 1.0);
+      float rim = clamp((d - dSun) * 4.0, 0.0, 1.0);
+      cloud = mix(cloud, uCloudShade, occl * 0.6 * sunVisible * uCine);
+      cloud += uSunColor * rim * 0.35 * sunVisible * uCine;
+    }
+#endif
 
     col = mix(col, cloud, density * 0.95);
   }
@@ -285,6 +341,10 @@ export type SkyOptions = {
   dayLength?: number;
   shadowMapSize?: number;
   cloudOctaves?: number;
+  /** Sun shafts + shooting stars (cheap). Off keeps the classic sky exactly. */
+  cinematic?: boolean;
+  /** Sun-facing cloud shading (one extra fbm per cloudy pixel): desktop/high only. */
+  cloudShading?: boolean;
 };
 
 export class Sky {
@@ -339,7 +399,10 @@ export class Sky {
     this.mat = new THREE.ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
-      defines: { CLOUD_OCTAVES: opts.cloudOctaves ?? 5 },
+      defines: {
+        CLOUD_OCTAVES: opts.cloudOctaves ?? 5,
+        ...(opts.cinematic ? { CINEMATIC_SKY: 1 } : {}),
+      },
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
@@ -356,6 +419,7 @@ export class Sky {
         uNight: { value: 0 },
         uAurora: { value: 0 },
         uV2: { value: 0 },
+        uCine: { value: opts.cloudShading ? 1 : 0 },
       },
     });
 
@@ -431,6 +495,17 @@ export class Sky {
     this.v2 = on;
     this.mat.uniforms.uV2.value = on ? 1 : 0;
     this.apply();
+  }
+
+  /**
+   * Safety net: if the cinematic shader variant ever fails to compile on some
+   * GPU, drop back to the classic sky instead of leaving the dome blank.
+   */
+  disableCinematic() {
+    if (!this.mat.defines || this.mat.defines.CINEMATIC_SKY === undefined) return;
+    delete this.mat.defines.CINEMATIC_SKY;
+    this.mat.uniforms.uCine.value = 0;
+    this.mat.needsUpdate = true;
   }
 
   private resetCustomModes() {
