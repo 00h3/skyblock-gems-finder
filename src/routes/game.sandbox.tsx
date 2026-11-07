@@ -1716,9 +1716,6 @@ export function SandboxGame({
   }, []);
 
   const mineBarRef = useRef<HTMLDivElement>(null);
-  const mineCardRef = useRef<HTMLDivElement>(null);
-  const mineLabelRef = useRef<HTMLSpanElement>(null);
-  const minePctRef = useRef<HTMLSpanElement>(null);
 
   const [toolDurabilities, setToolDurabilities] = useState<Record<number, { current: number; max: number }>>(() => {
     const initial: Record<number, { current: number; max: number }> = {};
@@ -5087,7 +5084,6 @@ export function SandboxGame({
           attack();
           chargeMul = 0;
           if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-          if (mineCardRef.current) mineCardRef.current.style.display = "none";
         }
 
         if (isAimingChest && (wantMine || controls!.holding.place)) {
@@ -5098,14 +5094,12 @@ export function SandboxGame({
           mineT = 0;
           crackMesh.visible = false;
           if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-          if (mineCardRef.current) mineCardRef.current.style.display = "none";
         } else if (wantMine && !hit) {
           // Empty air: swords charge/strike; other tools attack; bare hand punches air
           if (typeof heldItemId === "string") {
             if (SWORD_STATS[heldItemId]) {
               const charge = features.charging(dt);
               if (mineBarRef.current) mineBarRef.current.style.width = `${charge * 100}%`;
-              if (mineCardRef.current) mineCardRef.current.style.display = "flex";
             } else {
               attack();
             }
@@ -5119,7 +5113,6 @@ export function SandboxGame({
           mineT = 0;
           crackMesh.visible = false;
           if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-          if (mineCardRef.current) mineCardRef.current.style.display = "none";
         } else if (wantMine && hit) {
           const def = BLOCKS.find((b) => b.id === hit.id);
           const hardness = def?.hardness ?? 1;
@@ -5127,14 +5120,12 @@ export function SandboxGame({
           if (hardness < 0) {
             crackMesh.visible = false;
             if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-            if (mineCardRef.current) mineCardRef.current.style.display = "none";
           } else if (skyblock && isVisiting) {
             announce("Visiting Mode", "You cannot break blocks on another player's island.");
             mining = false;
             if (controls) controls.holding.break = false;
             crackMesh.visible = false;
             if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-            if (mineCardRef.current) mineCardRef.current.style.display = "none";
           } else {
             // Target cancellation: if aim changed to a new block coordinate, reset progress
             const key = `${hit.x},${hit.y},${hit.z}`;
@@ -5188,9 +5179,6 @@ export function SandboxGame({
             crackTex.offset.x = Math.min(CRACK_STAGES - 1, newStage) / CRACK_STAGES;
 
             if (mineBarRef.current) mineBarRef.current.style.width = `${p * 100}%`;
-            if (mineCardRef.current) mineCardRef.current.style.display = "flex";
-            if (mineLabelRef.current) mineLabelRef.current.textContent = `${def?.name || "Block"} • ${toolDef?.name || "Hand"} (${speedMultiplier.toFixed(1)}x)`;
-            if (minePctRef.current) minePctRef.current.textContent = `${Math.min(100, Math.round(p * 100))}%`;
 
             // Block successfully mined
             if (p >= 1) {
@@ -5266,7 +5254,6 @@ export function SandboxGame({
               mineT = 0;
               crackMesh.visible = false;
               if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-              if (mineCardRef.current) mineCardRef.current.style.display = "none";
             }
           }
         } else {
@@ -5274,7 +5261,6 @@ export function SandboxGame({
           mineT = 0;
           crackMesh.visible = false;
           if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-          if (mineCardRef.current) mineCardRef.current.style.display = "none";
         }
 
         chestHandleRef.current?.update(dt);
@@ -6204,30 +6190,6 @@ export function SandboxGame({
           )}
         </V2GameHud>
       )}
-
-      {/* ── Active Mining Target Card & Progress Bar ── */}
-      <div
-        ref={mineCardRef}
-        role="status"
-        aria-live="polite"
-        style={{ display: "none" }}
-        className="pointer-events-none fixed left-1/2 bottom-[115px] -translate-x-1/2 z-[150] flex flex-col items-center gap-1.5 px-4 py-2 rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
-      >
-        <div className="flex items-center gap-2 text-xs font-bold text-white">
-          <span ref={mineLabelRef} className="text-amber-400 font-extrabold">Mining...</span>
-        </div>
-        {/* Progress bar */}
-        <div className="w-48 h-2 rounded-full bg-white/15 overflow-hidden p-[1px]">
-          <div
-            ref={mineBarRef}
-            className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] transition-all duration-75"
-            style={{ width: "0%" }}
-          />
-        </div>
-        <span ref={minePctRef} className="text-[10px] font-mono text-white/60">
-          0%
-        </span>
-      </div>
 
       {/* ── Central Aim Reticle ── */}
       {ready && !cutsceneOn && (
