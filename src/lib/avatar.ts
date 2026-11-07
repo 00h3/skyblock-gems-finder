@@ -47,9 +47,14 @@ export function getAvatarViewerUrl(opts?: {
     username === "ira/hr" ||
     username === "h3" ||
     username === "00h3" ||
+    username === "feather" ||
+    username.includes("feather") ||
     username.includes("h3") ||
     customId === "h3" ||
+    customId === "feather" ||
     customId.includes("h3") ||
+    customId.includes("feather") ||
+    email.includes("feather") ||
     email.includes("h3");
 
   if (isH3) {

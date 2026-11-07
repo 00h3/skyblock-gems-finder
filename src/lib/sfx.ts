@@ -8,6 +8,7 @@ export type SfxType =
   | "jump"
   | "land"
   | "break"
+  | "tool_break"
   | "place"
   | "mine_tick"
   | "step"
@@ -181,13 +182,56 @@ export function playSound(type: SfxType, material = "stone") {
       playTone(a, { freq: 90, to: 48, dur: 0.16, gain: 0.14, type: "sine" });
       break;
 
-    case "break":
-      // crunchy multi-grain shatter: low body + mid debris + bright shards
-      playNoise(a, { freq: rand(220, 300), q: 0.6, dur: 0.22, gain: 0.3, rate: rand(0.8, 1.0) });
-      playNoise(a, { freq: rand(1100, 1500), q: 1.6, dur: 0.16, gain: 0.16, delay: 0.012 });
-      playNoise(a, { freq: rand(2600, 3400), q: 2.2, dur: 0.1, gain: 0.09, delay: 0.03 });
-      playTone(a, { freq: rand(120, 160), to: 55, dur: 0.18, gain: 0.1, type: "triangle" });
+    case "break": {
+      const mat = (material || "").toLowerCase();
+      if (mat.includes("glass") || mat.includes("ice")) {
+        // High crystalline shatter + glittering shard noise
+        playNoise(a, { freq: rand(4500, 6500), q: 3.5, dur: 0.22, gain: 0.32 });
+        playNoise(a, { freq: rand(8000, 11000), q: 5, dur: 0.14, gain: 0.2, delay: 0.02 });
+        playTone(a, { freq: rand(2200, 2800), to: rand(800, 1200), dur: 0.18, gain: 0.16, type: "sine" });
+      } else if (mat.includes("wood") || mat.includes("log") || mat.includes("plank") || mat.includes("chest") || mat.includes("door")) {
+        // Splintering wooden snap + hollow thud
+        playNoise(a, { freq: rand(400, 600), q: 1.2, dur: 0.16, gain: 0.36 });
+        playNoise(a, { freq: rand(1200, 1800), q: 2.0, dur: 0.1, gain: 0.22, delay: 0.015 });
+        playTone(a, { freq: rand(180, 240), to: rand(70, 90), dur: 0.14, gain: 0.25, type: "triangle" });
+      } else if (mat.includes("dirt") || mat.includes("grass")) {
+        // Earthy soil crumble + soft low thud
+        playNoise(a, { freq: rand(240, 380), q: 0.7, dur: 0.18, gain: 0.32 });
+        playNoise(a, { freq: rand(650, 950), q: 1.1, dur: 0.12, gain: 0.18, delay: 0.01 });
+        playTone(a, { freq: rand(110, 140), to: 45, dur: 0.14, gain: 0.15, type: "sine" });
+      } else if (mat.includes("sand") || mat.includes("gravel")) {
+        // Crunchy granular sand slide & grit
+        playNoise(a, { freq: rand(800, 1400), q: 1.0, dur: 0.2, gain: 0.28 });
+        playNoise(a, { freq: rand(1800, 2600), q: 1.8, dur: 0.14, gain: 0.18, delay: 0.02 });
+      } else if (mat.includes("gold") || mat.includes("iron") || mat.includes("metal") || mat.includes("diamond") || mat.includes("amethyst")) {
+        // Metallic bell chime resonance + solid dense impact
+        playNoise(a, { freq: rand(800, 1200), q: 2.0, dur: 0.18, gain: 0.32 });
+        playTone(a, { freq: rand(880, 1100), to: rand(440, 550), dur: 0.28, gain: 0.22, type: "sine" });
+        playTone(a, { freq: rand(1760, 2200), to: rand(880, 1100), dur: 0.2, gain: 0.14, type: "triangle", delay: 0.01 });
+      } else if (mat.includes("leaves") || mat.includes("wool")) {
+        // Crisp rustle / soft muffled tear
+        playNoise(a, { freq: rand(1600, 2400), q: 1.2, dur: 0.14, gain: 0.24 });
+      } else if (mat.includes("snow")) {
+        // Soft icy powder crunch
+        playNoise(a, { freq: rand(1200, 2000), q: 1.4, dur: 0.14, gain: 0.22 });
+      } else {
+        // Stone / mineral default: crunchy multi-grain rock shatter
+        playNoise(a, { freq: rand(220, 300), q: 0.6, dur: 0.22, gain: 0.34, rate: rand(0.8, 1.0) });
+        playNoise(a, { freq: rand(1100, 1500), q: 1.6, dur: 0.16, gain: 0.18, delay: 0.012 });
+        playNoise(a, { freq: rand(2600, 3400), q: 2.2, dur: 0.1, gain: 0.1, delay: 0.03 });
+        playTone(a, { freq: rand(120, 160), to: 55, dur: 0.18, gain: 0.12, type: "triangle" });
+      }
       break;
+    }
+
+    case "tool_break": {
+      // Metallic stress snap + sharp scattering fracture
+      playNoise(a, { freq: rand(2400, 3600), q: 2.8, dur: 0.28, gain: 0.38 });
+      playNoise(a, { freq: rand(5200, 7500), q: 4.5, dur: 0.18, gain: 0.25, delay: 0.01 });
+      playTone(a, { freq: rand(1400, 1800), to: rand(200, 300), dur: 0.22, gain: 0.28, type: "sawtooth" });
+      playTone(a, { freq: rand(180, 240), to: 60, dur: 0.15, gain: 0.22, type: "sine" });
+      break;
+    }
 
     case "place":
       // short dull knock, slightly different pitch every time

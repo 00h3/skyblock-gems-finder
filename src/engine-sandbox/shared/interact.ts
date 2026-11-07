@@ -10,9 +10,10 @@ export type Hit = {
   ny: number;
   nz: number;
   id: number;
+  distance?: number;
 };
 
-/** DDA voxel raycast from an origin along a direction. */
+/** DDA voxel raycast from an origin along a direction with boundary safety. */
 export function raycastVoxel(
   world: World,
   origin: THREE.Vector3,
@@ -22,6 +23,22 @@ export function raycastVoxel(
   let x = Math.floor(origin.x);
   let y = Math.floor(origin.y);
   let z = Math.floor(origin.z);
+
+  // If ray origin is already inside a solid block
+  const startId = world.get(x, y, z);
+  if (startId !== 0 && startId !== 50 && startId !== 62) {
+    return {
+      x,
+      y,
+      z,
+      nx: -Math.sign(dir.x) || 0,
+      ny: -Math.sign(dir.y) || 0,
+      nz: -Math.sign(dir.z) || 0,
+      id: startId,
+      distance: 0,
+    };
+  }
+
   const stepX = Math.sign(dir.x) || 1;
   const stepY = Math.sign(dir.y) || 1;
   const stepZ = Math.sign(dir.z) || 1;
@@ -39,8 +56,10 @@ export function raycastVoxel(
 
   for (let i = 0; i < 256 && t <= maxDist; i++) {
     const id = world.get(x, y, z);
-    // Liquids are see-through for targeting (water 50, lava 62): you aim at the block behind.
-    if (id !== 0 && id !== 50 && id !== 62) return { x, y, z, nx, ny, nz, id };
+    // Liquids are see-through for targeting (water 50, lava 62)
+    if (id !== 0 && id !== 50 && id !== 62) {
+      return { x, y, z, nx, ny, nz, id, distance: t };
+    }
     if (tMaxX < tMaxY && tMaxX < tMaxZ) {
       x += stepX;
       t = tMaxX;
@@ -67,30 +86,86 @@ export function raycastVoxel(
   return null;
 }
 
-/** Clean Minecraft-accurate black wireframe outline around targeted block. */
+/** Clean, high-visibility block highlight with crisp wireframe outline and translucent targeting. */
 export function createHighlight() {
-  const geo = new THREE.BoxGeometry(1.002, 1.002, 1.002);
+  const group = new THREE.Group();
+
+  const boxGeo = new THREE.BoxGeometry(1.006, 1.006, 1.006);
   const edges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
+    new THREE.EdgesGeometry(boxGeo),
     new THREE.LineBasicMaterial({
-      color: 0x111111,
+      color: 0x000000,
       transparent: true,
-      opacity: 0.48,
+      opacity: 0.72,
+      depthTest: true,
+      depthWrite: false,
     }),
   );
-  edges.visible = false;
-  edges.renderOrder = 2;
-  return edges;
+  edges.renderOrder = 4;
+  group.add(edges);
+
+  // Subtle translucent face box to accentuate the selected voxel
+  const fillMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.08,
+    depthWrite: false,
+    depthTest: true,
+  });
+  const fillMesh = new THREE.Mesh(boxGeo, fillMat);
+  fillMesh.renderOrder = 3;
+  group.add(fillMesh);
+
+  // Active face highlight plane (shows targeted face clearly)
+  const faceGeo = new THREE.PlaneGeometry(1.008, 1.008);
+  const faceMat = new THREE.MeshBasicMaterial({
+    color: 0xf97316,
+    transparent: true,
+    opacity: 0.16,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const faceMesh = new THREE.Mesh(faceGeo, faceMat);
+  faceMesh.name = "highlight-face";
+  faceMesh.visible = false;
+  faceMesh.renderOrder = 5;
+  group.add(faceMesh);
+
+  group.visible = false;
+  return group;
 }
 
-/** Short-lived block animations (pop-in on place, shrink+crack on break) with zero-allocation object pooling. */
+/** Updates the face highlight plane on the selection box based on hit normal. */
+export function updateHighlightFace(
+  highlight: THREE.Object3D,
+  hit: Hit | null,
+) {
+  const face = highlight.getObjectByName("highlight-face") as THREE.Mesh | null;
+  if (!face) return;
+  if (!hit || (hit.nx === 0 && hit.ny === 0 && hit.nz === 0)) {
+    face.visible = false;
+    return;
+  }
+  face.visible = true;
+  face.position.set(hit.nx * 0.505, hit.ny * 0.505, hit.nz * 0.505);
+  if (hit.ny !== 0) {
+    face.rotation.set(Math.PI / 2, 0, 0);
+  } else if (hit.nx !== 0) {
+    face.rotation.set(0, Math.PI / 2, 0);
+  } else {
+    face.rotation.set(0, 0, 0);
+  }
+}
+
+/** Short-lived block animations with zero-allocation object pooling & progressive chipping. */
 export class BlockFx {
   readonly group = new THREE.Group();
   private items: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; t: number; life: number; kind: "place" | "break"; active: boolean }[] = [];
   private particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; t: number; life: number; active: boolean }[] = [];
 
   private static readonly cube = new THREE.BoxGeometry(1, 1, 1);
-  private static readonly chip = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+  private static readonly chip = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+  private static readonly smallChip = new THREE.BoxGeometry(0.08, 0.08, 0.08);
   private readonly tileMats = new Map<string, THREE.MeshBasicMaterial>();
 
   // Object pools
@@ -99,14 +174,14 @@ export class BlockFx {
 
   constructor(private atlas: Atlas) {
     // Pre-populate pool
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 20; i++) {
       const mat = new THREE.MeshBasicMaterial({ transparent: true });
       const mesh = new THREE.Mesh(BlockFx.cube, mat);
       mesh.visible = false;
       this.group.add(mesh);
       this.itemPool.push({ mesh, mat });
     }
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < 128; i++) {
       const mesh = new THREE.Mesh(BlockFx.chip, new THREE.MeshBasicMaterial());
       mesh.visible = false;
       this.group.add(mesh);
@@ -128,7 +203,45 @@ export class BlockFx {
     return mat;
   }
 
-  spawn(kind: "place" | "break", pos: THREE.Vector3, tile: string, chips = 10) {
+  /** Emits small chipping particles while a block is actively being mined. */
+  spawnChips(pos: THREE.Vector3, normal: THREE.Vector3, tile: string, count = 4) {
+    const shared = this.materialFor(tile);
+    const chipCount = Math.min(count, 8);
+
+    for (let i = 0; i < chipCount; i++) {
+      let pMesh = this.particlePool.pop();
+      if (!pMesh) {
+        pMesh = new THREE.Mesh(BlockFx.smallChip, shared);
+        this.group.add(pMesh);
+      } else {
+        pMesh.geometry = BlockFx.smallChip;
+        pMesh.material = shared;
+      }
+
+      // Position along the hit face with slight random jitter
+      pMesh.position.set(
+        pos.x + 0.5 + normal.x * 0.52 + (Math.random() - 0.5) * 0.6,
+        pos.y + 0.5 + normal.y * 0.52 + (Math.random() - 0.5) * 0.6,
+        pos.z + 0.5 + normal.z * 0.52 + (Math.random() - 0.5) * 0.6,
+      );
+      pMesh.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      pMesh.scale.setScalar(0.7 + Math.random() * 0.5);
+      pMesh.visible = true;
+
+      // Burst outward away from the face normal + slight upward arc
+      this.particles.push({
+        mesh: pMesh,
+        vx: normal.x * 1.8 + (Math.random() - 0.5) * 1.8,
+        vy: Math.max(0.6, normal.y * 1.5 + Math.random() * 2.0),
+        vz: normal.z * 1.8 + (Math.random() - 0.5) * 1.8,
+        t: 0,
+        life: 0.38 + Math.random() * 0.2,
+        active: true,
+      });
+    }
+  }
+
+  spawn(kind: "place" | "break", pos: THREE.Vector3, tile: string, chips = 18) {
     const shared = this.materialFor(tile);
 
     // Reuse from pool or allocate if pool exhausted
@@ -156,27 +269,32 @@ export class BlockFx {
     });
 
     if (kind === "break") {
-      const count = Math.min(chips, 12);
+      const count = Math.min(chips, 24);
       for (let i = 0; i < count; i++) {
         let pMesh = this.particlePool.pop();
         if (!pMesh) {
           pMesh = new THREE.Mesh(BlockFx.chip, shared);
           this.group.add(pMesh);
         } else {
+          pMesh.geometry = BlockFx.chip;
           pMesh.material = shared;
         }
-        pMesh.position.set(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
-        pMesh.rotation.set(Math.random() * 3, Math.random() * 3, 0);
-        pMesh.scale.set(1, 1, 1);
+        pMesh.position.set(
+          pos.x + 0.5 + (Math.random() - 0.5) * 0.5,
+          pos.y + 0.5 + (Math.random() - 0.5) * 0.5,
+          pos.z + 0.5 + (Math.random() - 0.5) * 0.5,
+        );
+        pMesh.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        pMesh.scale.setScalar(0.85 + Math.random() * 0.45);
         pMesh.visible = true;
 
         this.particles.push({
           mesh: pMesh,
-          vx: (Math.random() - 0.5) * 4,
-          vy: Math.random() * 3.5 + 1.2,
-          vz: (Math.random() - 0.5) * 4,
+          vx: (Math.random() - 0.5) * 5.2,
+          vy: Math.random() * 4.2 + 1.5,
+          vz: (Math.random() - 0.5) * 5.2,
           t: 0,
-          life: 0.55,
+          life: 0.65,
           active: true,
         });
       }

@@ -28,12 +28,19 @@ import {
 import { loadBedwarsLobby } from "@/engine-sandbox/bedwars/bedwars-lobby-model";
 import { Player } from "@/engine-sandbox/shared/player";
 import { Controls } from "@/engine-sandbox/shared/controls";
-import { BlockFx, createHighlight, raycastVoxel } from "@/engine-sandbox/shared/interact";
+import { BlockFx, createHighlight, raycastVoxel, updateHighlightFace } from "@/engine-sandbox/shared/interact";
 import { Sky } from "@/engine-sandbox/shared/sky";
 import { Avatar } from "@/engine-sandbox/shared/avatar";
 import { CYBERPUNK_DEV_MODEL, isIraHrUser } from "@/engine-sandbox/shared/avatar-model";
 import { DroppedItemManager } from "@/engine-sandbox/shared/dropped-items";
 import { CRACK_STAGES } from "@/engine-sandbox/shared/textures";
+import {
+  getToolDefinition,
+  getBlockPreferredTool,
+  getBlockSoundMaterial,
+  getBlockDrop,
+  calculateMiningSpeed,
+} from "@/engine-sandbox/shared/mining-tools";
 import { Link } from "@tanstack/react-router";
 import { SandboxChat, ChatPreview } from "@/components/SandboxChat";
 import { openFragments } from "@/lib/fragments-ui";
@@ -1709,6 +1716,48 @@ export function SandboxGame({
   }, []);
 
   const mineBarRef = useRef<HTMLDivElement>(null);
+  const [miningProgress, setMiningProgress] = useState(0);
+  const [miningBlockInfo, setMiningBlockInfo] = useState<{
+    name: string;
+    hardness: number;
+    toolSpeed: number;
+    toolName: string;
+  } | null>(null);
+
+  const [toolDurabilities, setToolDurabilities] = useState<Record<number, { current: number; max: number }>>(() => {
+    const initial: Record<number, { current: number; max: number }> = {};
+    hotbar.forEach((item, idx) => {
+      const tool = getToolDefinition(item);
+      if (tool) {
+        initial[idx] = { current: tool.durability, max: tool.durability };
+      }
+    });
+    return initial;
+  });
+  const toolDurabilitiesRef = useRef(toolDurabilities);
+  toolDurabilitiesRef.current = toolDurabilities;
+
+  // Sync tool durability entries when hotbar contents change
+  useEffect(() => {
+    setToolDurabilities((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      hotbar.forEach((item, idx) => {
+        const tool = getToolDefinition(item);
+        if (tool) {
+          if (!next[idx] || next[idx].max !== tool.durability) {
+            next[idx] = { current: tool.durability, max: tool.durability };
+            changed = true;
+          }
+        } else if (next[idx]) {
+          delete next[idx];
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [hotbar]);
+
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -4561,8 +4610,9 @@ export function SandboxGame({
       // Pre-allocated scratch vectors to eliminate garbage collection stutters on mobile
       const _eye = new THREE.Vector3();
       const _pivot = new THREE.Vector3();
-      const _avatarPos = new THREE.Vector3();
       const _scratchBreakVec = new THREE.Vector3();
+      const _scratchChipPos = new THREE.Vector3();
+      const _scratchChipNormal = new THREE.Vector3();
 
       const loop = () => {
         raf = requestAnimationFrame(loop);
@@ -5019,13 +5069,16 @@ export function SandboxGame({
         if (isAimingChest) {
           highlight.visible = true;
           highlight.position.set(3.0, 16.5, 3.0);
+          updateHighlightFace(highlight, null);
         } else if (hit) {
           highlight.visible = true;
           highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
           placePulse = Math.max(0, placePulse - dt * 6);
           highlight.scale.setScalar(1 + placePulse * 0.1);
+          updateHighlightFace(highlight, hit);
         } else {
           highlight.visible = false;
+          updateHighlightFace(highlight, null);
         }
 
         // ── hold-to-mine or chest interaction ──────────────
@@ -5035,19 +5088,11 @@ export function SandboxGame({
           attack();
           chargeMul = 0;
           if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+          setMiningProgress(0);
+          setMiningBlockInfo(null);
         }
-        if (wantMine && typeof heldItemId === "string") {
-          // Swords wind up while held and strike on release; other items swing on hold.
-          if (SWORD_STATS[heldItemId]) {
-            const charge = features.charging(dt);
-            if (mineBarRef.current) mineBarRef.current.style.width = `${charge * 100}%`;
-          } else {
-            attack();
-          }
-          mineKey = null;
-          mineT = 0;
-          crackMesh.visible = false;
-        } else if (isAimingChest && (wantMine || controls!.holding.place)) {
+
+        if (isAimingChest && (wantMine || controls!.holding.place)) {
           setChestOpen(true);
           controls!.holding.break = false;
           controls!.holding.place = false;
@@ -5055,88 +5100,190 @@ export function SandboxGame({
           mineT = 0;
           crackMesh.visible = false;
           if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-        } else {
-          const def = hit ? BLOCKS.find((b) => b.id === hit.id) : undefined;
-          const hardness = def?.hardness ?? 1;
-          if (wantMine && !hit) {
-            // Mining empty air/void ("vuoto"): snappy punch animation and air dig sound
+          setMiningProgress(0);
+          setMiningBlockInfo(null);
+        } else if (wantMine && !hit) {
+          // Empty air: swords charge/strike; other tools attack; bare hand punches air
+          if (typeof heldItemId === "string") {
+            if (SWORD_STATS[heldItemId]) {
+              const charge = features.charging(dt);
+              if (mineBarRef.current) mineBarRef.current.style.width = `${charge * 100}%`;
+            } else {
+              attack();
+            }
+          } else {
             if (swing < 0.25) {
               swing = 1;
               playSound("air_dig");
             }
-          } else if (wantMine && hit && hardness >= 0) {
-            if (skyblock && isVisiting) {
-              announce("Visiting Mode", "You cannot break blocks on another player's island.");
-              mining = false;
-              if (controls) controls.holding.break = false;
-              crackMesh.visible = false;
-              if (mineBarRef.current) mineBarRef.current.style.width = "0%";
-            } else {
-              const key = `${hit.x},${hit.y},${hit.z}`;
-              if (key !== mineKey) {
-                if (mineKey) features.rememberMining(mineKey, mineT);
-                mineKey = key;
-                mineT = features.recallMining(key);
-              }
+          }
+          mineKey = null;
+          mineT = 0;
+          crackMesh.visible = false;
+          if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+          setMiningProgress(0);
+          setMiningBlockInfo(null);
+        } else if (wantMine && hit) {
+          const def = BLOCKS.find((b) => b.id === hit.id);
+          const hardness = def?.hardness ?? 1;
 
-              const oldP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
-              mineT += dt;
-              const newP = Math.min(1, mineT / Math.max(0.25, hardness * 0.6));
-              if (Math.floor(newP * 4) > Math.floor(oldP * 4)) {
-                playSound("mine_tick", def?.name || "stone");
-              }
+          if (hardness < 0) {
+            crackMesh.visible = false;
+            setMiningProgress(0);
+            setMiningBlockInfo(null);
+          } else if (skyblock && isVisiting) {
+            announce("Visiting Mode", "You cannot break blocks on another player's island.");
+            mining = false;
+            if (controls) controls.holding.break = false;
+            crackMesh.visible = false;
+            setMiningProgress(0);
+            setMiningBlockInfo(null);
+          } else {
+            // Target cancellation: if aim changed to a new block coordinate, reset progress
+            const key = `${hit.x},${hit.y},${hit.z}`;
+            if (key !== mineKey) {
+              mineKey = key;
+              mineT = 0;
+            }
 
-              if (swing < 0.35) swing = 1;
-              const need = Math.max(0.25, hardness * 0.6);
-              const p = Math.min(1, mineT / need);
-              crackMesh.visible = p > 0.04;
-              crackMesh.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-              // Better breaking animation: subtle shake and scale increase
-              const shake = Math.sin(mineT * 50) * 0.02 * p;
-              crackMesh.position.x += shake;
-              crackMesh.position.z += Math.cos(mineT * 45) * 0.02 * p;
-              crackMesh.scale.setScalar(1 + p * 0.05);
-              crackTex.offset.x =
-                Math.min(CRACK_STAGES - 1, Math.floor(p * CRACK_STAGES)) / CRACK_STAGES;
-              if (mineBarRef.current) mineBarRef.current.style.width = `${p * 100}%`;
-              if (p >= 1) {
-                const oldId = world!.get(hit.x, hit.y, hit.z);
-                playSound("break");
-                fx!.spawn("break", _scratchBreakVec.set(hit.x, hit.y, hit.z), def!.side);
-                world!.set(hit.x, hit.y, hit.z, 0);
-                socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: 0 });
-                gravity.notify(hit.x, hit.y, hit.z);
-                features.forgetMining();
-                if (isSkyblockLike && !isVisiting) progression.recordMine();
-                if (isSkyblockLike && !isVisiting) nature.rollDrop(oldId);
-                if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
-                if (renderer) renderer.shadowMap.needsUpdate = true;
-                if (blockFall) {
-                  void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                    console.warn("Could not sync mined block:", error);
-                  });
-                } else if (skyblock) {
-                  if (!isVisiting) {
-                    saveIslandBlockDelta(activeSkyblockIslandId, hit.x, hit.y, hit.z, null);
-                  }
-                } else {
-                  void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
-                    console.warn("Could not sync mined block:", error);
-                  });
-                }
-                mineKey = null;
-                mineT = 0;
-                crackMesh.visible = false;
-                if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+            // Tool speeds and hardness mechanics
+            const currentSlot = slotRef.current;
+            const heldItem = hotbarRef.current[currentSlot];
+            const toolDef = getToolDefinition(heldItem);
+            const preferredCategory = getBlockPreferredTool(hit.id, def?.name ?? "");
+            const speedMultiplier = calculateMiningSpeed(toolDef, preferredCategory);
+
+            // Responsive break time calculation
+            const baseTime = Math.max(0.18, hardness * 0.7);
+            const breakTime = Math.max(0.08, baseTime / speedMultiplier);
+
+            const oldP = Math.min(1, mineT / breakTime);
+            mineT += dt;
+            const p = Math.min(1, mineT / breakTime);
+
+            // Progressive breaking stages & sound/particles feedback
+            const oldStage = Math.floor(oldP * CRACK_STAGES);
+            const newStage = Math.floor(p * CRACK_STAGES);
+            const soundMat = getBlockSoundMaterial(hit.id, def?.name ?? "");
+
+            if (newStage > oldStage && p < 1) {
+              playSound("mine_tick", soundMat);
+              // Face-aligned chip particles
+              _scratchChipPos.set(hit.x, hit.y, hit.z);
+              _scratchChipNormal.set(hit.nx, hit.ny, hit.nz);
+              fx!.spawnChips(_scratchChipPos, _scratchChipNormal, def?.side || "stone", 4);
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                try {
+                  navigator.vibrate(10);
+                } catch {}
               }
             }
-          } else {
-            if (mineKey) features.rememberMining(mineKey, mineT);
-            mineKey = null;
-            mineT = 0;
-            crackMesh.visible = false;
-            if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+
+            if (swing < 0.35) swing = 1;
+
+            crackMesh.visible = p > 0.03;
+            crackMesh.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+            // Subtle stress shake
+            const shake = Math.sin(mineT * 48) * 0.015 * p;
+            crackMesh.position.x += shake;
+            crackMesh.position.z += Math.cos(mineT * 42) * 0.015 * p;
+            crackMesh.scale.setScalar(1 + p * 0.04);
+            crackTex.offset.x = Math.min(CRACK_STAGES - 1, newStage) / CRACK_STAGES;
+
+            if (mineBarRef.current) mineBarRef.current.style.width = `${p * 100}%`;
+            setMiningProgress(p);
+            setMiningBlockInfo({
+              name: def?.name || "Block",
+              hardness,
+              toolSpeed: speedMultiplier,
+              toolName: toolDef?.name || "Bare Hand",
+            });
+
+            // Block successfully mined
+            if (p >= 1) {
+              const oldId = world!.get(hit.x, hit.y, hit.z);
+              playSound("break", soundMat);
+              fx!.spawn("break", _scratchBreakVec.set(hit.x, hit.y, hit.z), def?.side || "stone", 24);
+              world!.set(hit.x, hit.y, hit.z, 0);
+              socket?.sendBlockUpdate({ x: hit.x, y: hit.y, z: hit.z, id: 0 });
+              gravity.notify(hit.x, hit.y, hit.z);
+              features.forgetMining();
+
+              // Correct 3D item drops
+              const dropId = getBlockDrop(oldId);
+              if (dropId !== null && droppedItemsRef.current) {
+                const dropPos = new THREE.Vector3(hit.x + 0.5, hit.y + 0.45, hit.z + 0.5);
+                const popVel = new THREE.Vector3(
+                  (Math.random() - 0.5) * 1.6,
+                  2.5,
+                  (Math.random() - 0.5) * 1.6
+                );
+                droppedItemsRef.current.drop(dropId, 1, dropPos, popVel);
+              }
+
+              // Tool durability integration
+              if (toolDef) {
+                const slotIdx = currentSlot;
+                const currentDur = toolDurabilitiesRef.current[slotIdx];
+                if (currentDur) {
+                  const nextVal = currentDur.current - 1;
+                  if (nextVal <= 0) {
+                    playSound("tool_break");
+                    announce("Tool Shattered!", `Your ${toolDef.name} broke from exhaustion.`);
+                    setHotbar((prev) => {
+                      const next = [...prev];
+                      next[slotIdx] = 0;
+                      return next;
+                    });
+                    setHeldTile(0);
+                    setToolDurabilities((prev) => {
+                      const copy = { ...prev };
+                      delete copy[slotIdx];
+                      return copy;
+                    });
+                  } else {
+                    setToolDurabilities((prev) => ({
+                      ...prev,
+                      [slotIdx]: { ...currentDur, current: nextVal },
+                    }));
+                  }
+                }
+              }
+
+              if (isSkyblockLike && !isVisiting) progression.recordMine();
+              if (isSkyblockLike && !isVisiting) nature.rollDrop(oldId);
+              if (!blockFall) nature.onLogMined(hit.x, hit.y, hit.z, oldId, player.position);
+              if (renderer) renderer.shadowMap.needsUpdate = true;
+
+              if (blockFall) {
+                void writeBlockFallBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
+                  console.warn("Could not sync mined block:", error);
+                });
+              } else if (skyblock) {
+                if (!isVisiting) {
+                  saveIslandBlockDelta(activeSkyblockIslandId, hit.x, hit.y, hit.z, null);
+                }
+              } else {
+                void writeSandboxBlock({ x: hit.x, y: hit.y, z: hit.z, id: 0 }).catch((error) => {
+                  console.warn("Could not sync mined block:", error);
+                });
+              }
+
+              mineKey = null;
+              mineT = 0;
+              crackMesh.visible = false;
+              if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+              setMiningProgress(0);
+              setMiningBlockInfo(null);
+            }
           }
+        } else {
+          mineKey = null;
+          mineT = 0;
+          crackMesh.visible = false;
+          if (mineBarRef.current) mineBarRef.current.style.width = "0%";
+          setMiningProgress(0);
+          setMiningBlockInfo(null);
         }
 
         chestHandleRef.current?.update(dt);
@@ -5516,8 +5663,9 @@ export function SandboxGame({
 
   // A tap only counts as "place" if the finger stayed within this many pixels
   // of where it landed — otherwise a look-drag would drop blocks at random.
-  const TAP_SLOP = 8;
+  const TAP_SLOP = 24;
   const TAP_MS = 200;
+  const isTouchMiningRef = useRef(false);
 
   const onTouchStart = (e: React.PointerEvent) => {
     if (!isTouch) return;
@@ -5529,7 +5677,11 @@ export function SandboxGame({
     };
     tapInfo.current = { t: performance.now(), moved: false, ndc, ox: e.clientX, oy: e.clientY };
     api()?.setAim(ndc);
-    holdTimer.current = window.setTimeout(() => api()?.setMining(true), 260);
+    isTouchMiningRef.current = false;
+    holdTimer.current = window.setTimeout(() => {
+      isTouchMiningRef.current = true;
+      api()?.setMining(true);
+    }, 220);
   };
   const onTouchMove = (e: React.PointerEvent) => {
     const t = touchLook.current;
@@ -5542,7 +5694,10 @@ export function SandboxGame({
       const drift = Math.hypot(e.clientX - tap.ox, e.clientY - tap.oy);
       if (drift > TAP_SLOP && !tap.moved) {
         tap.moved = true;
-        clearHold(); // it's a look drag, not a mine or a place
+        // Only cancel if hold timer hasn't fired yet
+        if (!isTouchMiningRef.current) {
+          clearHold();
+        }
       }
     }
     controlsRef.current?.look(dx, dy);
@@ -5553,6 +5708,7 @@ export function SandboxGame({
     if (touchLook.current?.id === e.pointerId) touchLook.current = null;
     const tap = tapInfo.current;
     tapInfo.current = null;
+    isTouchMiningRef.current = false;
     // quick, stationary tap = place a block
     const still = tap ? Math.hypot(e.clientX - tap.ox, e.clientY - tap.oy) <= TAP_SLOP : false;
     if (tap && !tap.moved && still && performance.now() - tap.t < TAP_MS) {
@@ -6043,6 +6199,7 @@ export function SandboxGame({
               <V2Hotbar
                 hotbar={hotbar}
                 counts={hotbarCounts}
+                durabilities={toolDurabilities}
                 tileUrls={tileUrls}
                 slot={slot}
                 onSelect={selectSlot}
@@ -6053,6 +6210,40 @@ export function SandboxGame({
             </>
           )}
         </V2GameHud>
+      )}
+
+      {/* ── Active Mining Target Card & Progress Bar ── */}
+      {miningBlockInfo && miningProgress > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed left-1/2 bottom-[115px] -translate-x-1/2 z-[150] flex flex-col items-center gap-1.5 px-4 py-2 rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in-95 duration-100"
+        >
+          <div className="flex items-center gap-2 text-xs font-bold text-white">
+            <span className="text-amber-400 font-extrabold">{miningBlockInfo.name}</span>
+            <span className="text-white/40">•</span>
+            <span className="text-emerald-300 font-mono text-[11px] flex items-center gap-1">
+              <span>⛏️</span>
+              <span>{miningBlockInfo.toolName} ({miningBlockInfo.toolSpeed.toFixed(1)}x)</span>
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div className="w-48 h-2 rounded-full bg-white/15 overflow-hidden p-[1px]">
+            <div
+              ref={mineBarRef}
+              className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] transition-all duration-75"
+              style={{ width: `${Math.round(miningProgress * 100)}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-mono text-white/60">
+            {Math.round(miningProgress * 100)}%
+          </span>
+        </div>
+      )}
+
+      {/* ── Central Aim Reticle & Circular Progress Ring ── */}
+      {ready && !cutsceneOn && (
+        <Crosshair progress={miningProgress} visible={!pauseMenuOpen && !chatOpen && !settingsOpen} />
       )}
       {wheelOpen && (
         <RadialWheel

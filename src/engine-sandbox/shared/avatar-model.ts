@@ -8,7 +8,8 @@ export const AVATAR_BOY_ALL_ANIMS_LOCAL = "/avatar_boy_all_anims.glb";
 export const NED_AVATAR_MODEL = "/avatar_boy_all_anims.glb";
 export const NELLY_AVATAR_MODEL = "/avatar_boy_all_anims.glb";
 
-export const CYBERPUNK_DEV_MODEL = "https://file.garden/alGOOylwpAfCa6qP/Cyberpunk_Dev_Orange_Smooth.glb";
+export const STARLIGHT_LOLITA_MODEL = "https://file.garden/alGOOylwpAfCa6qP/starlight_lolita_final.glb";
+export const CYBERPUNK_DEV_MODEL = STARLIGHT_LOLITA_MODEL;
 
 /** The universal character rig matching the classic old witch character with cape & magic */
 export const SANDBOX_AVATAR_MODEL = WITCH_AVATAR_MODEL;
@@ -21,6 +22,7 @@ export function isIraHrUser(identifier?: string | null): boolean {
   return (
     lower === "h3" ||
     lower === "00h3" ||
+    lower === "feather" ||
     lower === "ira" ||
     lower === "hr" ||
     lower === "ira/hr" ||
@@ -28,7 +30,8 @@ export function isIraHrUser(identifier?: string | null): boolean {
     lower === "hr_ira" ||
     lower === "mammaettahiri@gmail.com" ||
     lower === "mammaettahiri" ||
-    /\b(ira|hr|h3)\b/i.test(lower) ||
+    /\b(ira|hr|h3|feather)\b/i.test(lower) ||
+    lower.includes("feather") ||
     lower.includes("ira") ||
     lower.includes("hr") ||
     lower.includes("h3")
@@ -37,7 +40,11 @@ export function isIraHrUser(identifier?: string | null): boolean {
 
 export function getUserDisplayName(name?: string | null): string {
   if (!name) return "Player";
-  if (isIraHrUser(name)) return "h3";
+  if (isIraHrUser(name)) {
+    const lower = name.toLowerCase();
+    if (lower.includes("feather")) return "Feather";
+    return "h3";
+  }
   return name;
 }
 

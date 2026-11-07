@@ -132,12 +132,11 @@ export function V2Hotbar({
   counts,
   tileUrls,
   slot,
-  onSelect,
-  isTouch,
-  onOpenInventory,
+  durabilities,
 }: {
   hotbar: (number | string)[];
   counts?: number[];
+  durabilities?: Record<number, { current: number; max: number }>;
   tileUrls: Record<number | string, string>;
   slot: number;
   onSelect: (i: number) => void;
@@ -213,6 +212,9 @@ export function V2Hotbar({
         {hotbar.map((id, i) => {
           const active = slot === i;
           const count = counts?.[i] ?? (typeof id === "number" ? 64 : String(id).includes("sword") || String(id).includes("staff") || id === "shield" ? 1 : 16);
+          const dur = durabilities?.[i];
+          const durRatio = dur && dur.max > 0 ? Math.max(0, Math.min(1, dur.current / dur.max)) : null;
+
           return (
             <button
               key={`${id}-${i}`}
@@ -248,6 +250,23 @@ export function V2Hotbar({
                   )}
                 </>
               ) : null}
+
+              {/* Durability Bar (Minecraft-Style) */}
+              {durRatio !== null && (
+                <div
+                  className="absolute bottom-[2px] inset-x-[3px] h-[2px] bg-black/90 rounded-[1px] overflow-hidden pointer-events-none shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
+                  title={`Durability: ${dur?.current} / ${dur?.max}`}
+                >
+                  <div
+                    className={cn(
+                      "h-full transition-all duration-75",
+                      durRatio > 0.5 ? "bg-[#22c55e]" : durRatio > 0.2 ? "bg-[#f59e0b]" : "bg-[#ef4444]"
+                    )}
+                    style={{ width: `${durRatio * 100}%` }}
+                  />
+                </div>
+              )}
+
               {!isTouch && i < 9 && (
                 <span
                   className={cn(
@@ -280,6 +299,67 @@ export function CinematicVignette() {
   return <div aria-hidden="true" className="v2-vignette pointer-events-none fixed inset-0 -z-10" />;
 }
 
-export function Crosshair() {
-  return null;
+export function Crosshair({
+  progress = 0,
+  visible = true,
+}: {
+  progress?: number;
+  visible?: boolean;
+}) {
+  if (!visible) return null;
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - clampedProgress * circumference;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex items-center justify-center select-none"
+    >
+      {/* Radial mining progress circle */}
+      {clampedProgress > 0 && (
+        <svg
+          className="absolute w-12 h-12 -rotate-90 pointer-events-none"
+          viewBox="0 0 44 44"
+        >
+          {/* Subtle track */}
+          <circle
+            cx="22"
+            cy="22"
+            r={radius}
+            fill="none"
+            stroke="rgba(0, 0, 0, 0.45)"
+            strokeWidth="3.2"
+          />
+          {/* Active progress arc */}
+          <circle
+            cx="22"
+            cy="22"
+            r={radius}
+            fill="none"
+            stroke="#f97316"
+            strokeWidth="3"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-75"
+            style={{
+              filter: "drop-shadow(0 0 4px rgba(249, 115, 22, 0.8))",
+            }}
+          />
+        </svg>
+      )}
+
+      {/* Crosshair reticle lines */}
+      <div className="relative w-5 h-5 flex items-center justify-center">
+        {/* Horizontal */}
+        <div className="absolute w-4 h-[2px] bg-white/85 shadow-[0_0_2px_#000] rounded-full" />
+        {/* Vertical */}
+        <div className="absolute h-4 w-[2px] bg-white/85 shadow-[0_0_2px_#000] rounded-full" />
+        {/* Center pip */}
+        <div className="w-[3px] h-[3px] rounded-full bg-white shadow-[0_0_2px_#000]" />
+      </div>
+    </div>
+  );
 }
