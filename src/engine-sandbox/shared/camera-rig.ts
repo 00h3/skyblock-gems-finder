@@ -51,6 +51,8 @@ export class ThirdPersonRig {
   private _up = new THREE.Vector3();
   private _rayOrigin = new THREE.Vector3();
   private _wall = new THREE.Vector3();
+  private _shoulder = new THREE.Vector3();
+  private _probeOffsets: THREE.Vector3[] = Array.from({ length: 8 }, () => new THREE.Vector3());
 
   snap(target: THREE.Vector3) {
     this.pivot.copy(target);
@@ -92,25 +94,29 @@ export class ThirdPersonRig {
     const verticalLift = lookDownFactor * 0.28;
 
     // Shift pivot over shoulder and apply vertical lift
-    const shoulderPivot = this.pivot.clone()
-      .addScaledVector(right, this.lateralOffset * (1 - lookDownFactor * 0.4))
-      .add(new THREE.Vector3(0, verticalLift, 0));
+    // Reused scratch vectors: this runs every frame, and allocating ~15 vectors
+    // per frame made garbage-collection hitches. Same math, zero allocations.
+    const shoulderPivot = this._shoulder
+      .copy(this.pivot)
+      .addScaledVector(right, this.lateralOffset * (1 - lookDownFactor * 0.4));
+    shoulderPivot.y += verticalLift;
 
     // Multi-sample 8-point SphereCast collision (~0.18m radius):
     const sphereRadius = 0.18;
-    const testOffsets = [
-      new THREE.Vector3(0, 0, 0),
-      right.clone().multiplyScalar(sphereRadius),
-      right.clone().multiplyScalar(-sphereRadius),
-      up.clone().multiplyScalar(sphereRadius),
-      up.clone().multiplyScalar(-sphereRadius),
-      right.clone().add(up).multiplyScalar(sphereRadius * 0.7),
-      right.clone().sub(up).multiplyScalar(sphereRadius * 0.7),
-      up.clone().sub(right).multiplyScalar(sphereRadius * 0.7),
-    ];
+    const diag = sphereRadius * 0.7;
+    const testOffsets = this._probeOffsets;
+    testOffsets[0].set(0, 0, 0);
+    testOffsets[1].copy(right).multiplyScalar(sphereRadius);
+    testOffsets[2].copy(right).multiplyScalar(-sphereRadius);
+    testOffsets[3].copy(up).multiplyScalar(sphereRadius);
+    testOffsets[4].copy(up).multiplyScalar(-sphereRadius);
+    testOffsets[5].copy(right).add(up).multiplyScalar(diag);
+    testOffsets[6].copy(right).sub(up).multiplyScalar(diag);
+    testOffsets[7].copy(up).sub(right).multiplyScalar(diag);
 
     let minHitDist = targetDist + 0.22;
-    for (const off of testOffsets) {
+    for (let probe = 0; probe < testOffsets.length; probe++) {
+      const off = testOffsets[probe];
       this._rayOrigin.copy(shoulderPivot).add(off);
       const hit = raycastVoxel(world, this._rayOrigin, back, targetDist + 0.22);
       if (hit) {

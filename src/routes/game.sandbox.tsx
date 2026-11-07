@@ -2083,6 +2083,8 @@ export function SandboxGame({
         const isMobileUA = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const isChinesePhoneBrand = typeof navigator !== "undefined" && /vivo|realme|xiaomi|redmi|oppo|poco|iqoo|infinix|tecno/i.test(navigator.userAgent);
         const qualityPref = readQualityPref();
+        // "lite" and "low" are the same power-saver preset under two names.
+        const lowQ = qualityPref === "low" || qualityPref === "lite";
         try {
           renderer = new THREE.WebGLRenderer({
             // Preserve crisp Retina render path while utilizing native 16-bit FP ALU pipelines
@@ -2176,8 +2178,17 @@ export function SandboxGame({
         dayLength: isSkyblockLike ? 720 : 600,
         shadowMapSize: getShadowMapSize(qualityPref),
         cloudOctaves: qualityPref === "low" ? 3 : 5,
+        // Sun shafts + shooting stars are only a few noise taps, so every mode
+        // except "low" gets them. Sun-facing cloud shading costs an extra fbm per
+        // cloudy pixel, so it stays on desktop-class GPUs at high/uhd quality.
+        cinematic: !lowQ,
+        cloudShading: (qualityPref === "high" || qualityPref === "advanced" || qualityPref === "uhd") && !isMaliOrMobileGpu,
       });
       skyRef.current = sky;
+      // If a GPU rejects the cinematic shader variant, fall back to the classic
+      // sky instead of leaving the dome blank.
+      const skyForFallback = sky;
+      renderer.debug.onShaderError = () => skyForFallback.disableCinematic();
       let initialAtm = "day";
       try {
         initialAtm = localStorage.getItem("qb_atmosphere") || "day";
@@ -4344,7 +4355,7 @@ export function SandboxGame({
       // Cinematic fire + lava: glowing lava light, rising embers, flame halos.
       // Skyblock only; skipped entirely on the "low" quality preset.
       const fireLavaFx = isSkyblockLike
-        ? new FireLavaFx({ scene, world: world!, lowQuality: qualityPref === "low", lightweight: isMaliOrMobileGpu })
+        ? new FireLavaFx({ scene, world: world!, lowQuality: lowQ, lightweight: isMaliOrMobileGpu })
         : null;
       if (skyblock) fireLavaFx?.addFlame(1.5, 17.65, 1.5); // starter-island torch
       const onWeather = (e: Event) => {
@@ -4567,6 +4578,27 @@ export function SandboxGame({
       const facing = camController.facing;
       facing.heading = controls.state.yaw + Math.PI;
       let lastNotice = 0;
+
+      // Warm-up: the GPU builds every shader program and uploads textures the first
+      // time something is drawn, which used to land in the first seconds of play
+      // (and the Skyblock intro cutscene) as visible hitches. Do it now, behind the
+      // loading screen. Capped so a slow device can never get stuck loading, and it
+      // changes no resolution, pixel ratio or quality setting.
+      {
+        const warmRenderer: THREE.WebGLRenderer | null = renderer;
+        if (warmRenderer) {
+          try {
+            if (atlas?.texture) warmRenderer.initTexture(atlas.texture);
+            await Promise.race([
+              warmRenderer.compileAsync(scene, camera),
+              new Promise<void>((resolve) => setTimeout(resolve, 2500)),
+            ]);
+          } catch {
+            // Warm-up is an optimisation only; the first real frame compiles lazily.
+          }
+          if (disposed) return;
+        }
+      }
 
       setEngineReady(true);
       setReady(true);
